@@ -1,0 +1,101 @@
+---
+title: Components
+description: A component library based on shadcn/ui designs, built on Div's elements. In progress.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '../../components/Shot.astro';
+
+A component library based on [shadcn/ui](https://ui.shadcn.com/) designs is
+in progress: **button, badge, card, label and separator** so far. It is a
+library on top of Div's [elements](/elements/): each component
+is a Rust function that returns styled elements, written with the same
+`view!` and `style:` you use in your own code. You can build an app without
+it.
+
+<Aside type="caution" title="Early and unpublished">
+The crate is `div-components`, in the repository's
+[`components/`](https://github.com/zhuowcui/open-ui/tree/main/components)
+folder. It is its own Cargo workspace, not part of the `divui` crate, and
+it is not published. The components are Rust reimplementations of the
+shadcn/ui designs (MIT, credited in
+[`THIRD_PARTY.md`](https://github.com/zhuowcui/open-ui/blob/main/crates/div-components/THIRD_PARTY.md)).
+Each one is compared with shadcn/ui rendered in Chrome; hover and focus
+styles, and the icons shadcn/ui draws with Lucide, are not there yet.
+</Aside>
+
+The images on this page are rendered by Div.
+
+## Button
+
+<div class="ou-shot"><Shot name="buttons" alt="Buttons in the default, secondary, outline, ghost, destructive and link styles" /></div>
+
+```rust
+use div_components::*;
+
+view! {
+    <Button variant={ButtonVariant::Outline} size={ButtonSize::Sm} disabled={false}>
+        "Export"
+    </Button>
+}
+```
+
+Variants: `Default`, `Secondary`, `Outline`, `Ghost`, `Destructive`, `Link`.
+Sizes: `Xs`, `Sm`, `Default`, `Lg`. `Button` draws a
+[`<button>` element](/elements/button/) with shadcn/ui's styles.
+
+## Badge
+
+<div class="ou-shot"><Shot name="badges" alt="Badges in the default, secondary, outline, destructive, ghost and link styles" /></div>
+
+```rust
+view! { <Badge variant={BadgeVariant::Secondary}>"Live"</Badge> }
+```
+
+The same six variants as `Button`.
+
+## Label and separator
+
+<div class="ou-shot"><Shot name="settings" alt="A label and description above horizontal and vertical separators" /></div>
+
+```rust
+view! {
+    <Label>"Div"</Label>
+    <Separator orientation={Orientation::Horizontal} />
+}
+```
+
+## Card
+
+`Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`,
+`CardContent` and `CardFooter` exist. Their layout is still taller than
+shadcn/ui's, because Div's column flexbox sizes text too narrowly (see
+[Layout](/docs/concepts/layout/#known-differences)), so the panels in these
+screenshots are built from styled elements instead.
+
+## Examples built from elements
+
+These are not library components. They are small apps made from plain
+elements (`div`, `span` and text, styled with `style:`) plus `Button` and
+`Badge`; their source is in
+[`site/showcase/src/main.rs`](https://github.com/zhuowcui/open-ui/blob/main/site/showcase/src/main.rs).
+The avatars are styled `div`s with initials.
+
+<div class="ou-grid">
+  <div class="ou-shot"><Shot name="notifications" alt="Example: a notifications panel with two messages and a Mark all as read button" /></div>
+  <div class="ou-shot"><Shot name="team" alt="Example: a team list with initials avatars, names, roles and an Invite people button" /></div>
+</div>
+
+## Planned
+
+More components are planned, but not built. The design (RFC 0003 in the
+repository) puts tabs, dialog, checkbox and switch first, then popover,
+menu, select, tooltip and collapsible, which need overlay features the
+engine does not have yet. See the [roadmap](/docs/roadmap/).
+
+<style>{`
+  .ou-shot { border: 1px solid var(--sl-color-gray-5); border-radius: 12px; overflow: hidden; max-width: 400px; }
+  .ou-shot img { width: 100%; height: auto; display: block; }
+  .ou-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .ou-grid .ou-shot { max-width: none; margin: 0; }
+`}</style>
