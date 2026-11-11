@@ -30,7 +30,7 @@ pub use crate::{
     ScrollMetrics, SelectionDirection, TextDirection, TextEdging, TextHinting,
     TextRasterConfiguration, TextUnit, ViewportAuthority, ViewportMetrics,
 };
-pub use div_macros::{component, view};
+pub use div_macros::{component, style, view};
 pub use div_text::{
     FontAxisRange, FontCollection, FontFaceDescriptor, FontFaceHandle, FontFeatureDefault,
     FontMetricOverrides, FontPaletteBase, FontPaletteEntryOverride, FontPaletteHandle,
