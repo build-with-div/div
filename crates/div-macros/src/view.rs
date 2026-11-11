@@ -23,7 +23,7 @@ pub(crate) fn typed_value_tokens(value: &div_style::StyleValue) -> Result<TokenS
         .map_err(|error| error.to_string())
 }
 
-fn property_tokens(value: div_style::StyleProperty) -> TokenStream {
+pub(crate) fn property_tokens(value: div_style::StyleProperty) -> TokenStream {
     let variant = format_ident!("{}", format!("{value:?}"));
     quote! { ::div::typed_style::StyleProperty::#variant }
 }
