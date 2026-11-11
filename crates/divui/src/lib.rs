@@ -55,6 +55,7 @@
 //! | Type / Macro | Purpose |
 //! |--------------|---------|
 //! | [`view!`] | JSX-like declarative UI macro |
+//! | [`style!`] | CSS declaration block compiled to a typed [`Style`] |
 //! | [`component`] | Attribute macro to define a component |
 //! | [`ViewNode`] | A renderable node in the UI tree |
 //! | [`IntoView`] | Trait for converting values into view nodes |
@@ -193,7 +194,7 @@ pub use div_platform::{KeyboardInput, PlatformEvent};
 
 // ─── Re-exports: proc macros ────────────────────────────────
 
-pub use div_macros::{component, view};
+pub use div_macros::{component, style, view};
 
 #[cfg(test)]
 mod form_association_tests;
