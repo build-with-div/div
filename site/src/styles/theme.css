@@ -1,0 +1,118 @@
+/*
+ * Zinc neutrals and one accent, Div blue (#266efb, brand/README.md).
+ * Shared by the docs (Starlight) and the landing page.
+ *
+ * Div blue has 4.46:1 on both backgrounds: enough for graphics (3:1) but
+ * not for text (4.5:1). So graphics use Div blue (--sl-color-accent,
+ * --ou-accent) and text uses a lighter tint in dark and a darker shade in
+ * light (--sl-color-text-accent, --ou-accent-text), each at least 4.5:1 on
+ * the backgrounds and surfaces it is drawn on.
+ */
+:root {
+  --sl-font: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --sl-font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  /* Dark (Starlight's default scheme). */
+  --sl-color-white: #fafafa;
+  --sl-color-gray-1: #e4e4e7;
+  --sl-color-gray-2: #d4d4d8;
+  --sl-color-gray-3: #a1a1aa;
+  --sl-color-gray-4: #71717a;
+  --sl-color-gray-5: #3f3f46;
+  --sl-color-gray-6: #27272a;
+  --sl-color-black: #09090b;
+  --sl-color-bg-nav: #09090b;
+  --sl-color-bg-sidebar: #09090b;
+
+  --sl-color-accent-low: #11254e;
+  --sl-color-accent: #266efb;
+  --sl-color-accent-high: #bed4fe;
+  --sl-color-text-accent: #518bfc;
+  --sl-color-text-invert: #09090b;
+
+  --ou-bg: #09090b;
+  --ou-bg-soft: #0f0f12;
+  --ou-surface: #18181b;
+  --ou-border: #27272a;
+  --ou-border-strong: #3f3f46;
+  --ou-text: #fafafa;
+  --ou-muted: #a1a1aa;
+  --ou-accent: #266efb;
+  --ou-accent-text: #518bfc;
+  --ou-accent-soft: rgb(38 110 251 / 0.14);
+  --ou-button: #fafafa;
+  --ou-button-text: #09090b;
+  --ou-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --ou-glow: rgb(38 110 251 / 0.18);
+}
+
+:root[data-theme='light'] {
+  --sl-color-white: #09090b;
+  --sl-color-gray-1: #18181b;
+  --sl-color-gray-2: #27272a;
+  --sl-color-gray-3: #52525b;
+  --sl-color-gray-4: #71717a;
+  --sl-color-gray-5: #d4d4d8;
+  --sl-color-gray-6: #e4e4e7;
+  --sl-color-gray-7: #f4f4f5;
+  --sl-color-black: #ffffff;
+  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-sidebar: #ffffff;
+
+  --sl-color-accent-low: #e9f1fe;
+  --sl-color-accent: #266efb;
+  --sl-color-accent-high: #113171;
+  --sl-color-text-accent: #2161dd;
+  --sl-color-text-invert: #ffffff;
+
+  --ou-bg: #ffffff;
+  --ou-bg-soft: #fafafa;
+  --ou-surface: #ffffff;
+  --ou-border: #e4e4e7;
+  --ou-border-strong: #d4d4d8;
+  --ou-text: #09090b;
+  --ou-muted: #52525b;
+  --ou-accent: #266efb;
+  --ou-accent-text: #2161dd;
+  --ou-accent-soft: rgb(38 110 251 / 0.08);
+  --ou-button: #18181b;
+  --ou-button-text: #fafafa;
+  --ou-shadow: 0 30px 80px -24px rgb(24 24 27 / 0.28), 0 0 0 1px rgb(9 9 11 / 0.06);
+  --ou-glow: rgb(38 110 251 / 0.1);
+}
+
+body {
+  background-color: var(--sl-color-black);
+}
+
+.sl-markdown-content a {
+  text-underline-offset: 0.2em;
+}
+
+/* The wordmark in the docs header, at the landing page's size. */
+.site-title img {
+  height: 22px;
+}
+
+/* Header links (src/components/HeaderLinks.astro). */
+.ou-header-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Images that differ by theme: <img class="ou-light"> and <img class="ou-dark">. */
+:root[data-theme='light'] .ou-dark,
+:root:not([data-theme='light']) .ou-light {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
