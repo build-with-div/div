@@ -1,0 +1,28 @@
+[package]
+name = "div-paint"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Exact fragment-to-Skia picture recording and software raster for Div"
+
+[dependencies]
+div-style = { version = "=0.2.0", path = "../div-style" }
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+div-layout = { version = "=0.2.0", path = "../div-layout" }
+div-dom = { version = "=0.2.0", path = "../div-dom" }
+div-text = { version = "=0.2.0", path = "../div-text" }
+skia-safe = "0.94"
+unicode-segmentation = "1.10"
+
+[dev-dependencies]
+png = "0.17"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "paint_benchmarks"
+harness = false

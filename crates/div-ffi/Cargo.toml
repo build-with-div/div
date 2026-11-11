@@ -1,0 +1,30 @@
+[package]
+name = "div-ffi"
+version.workspace = true
+edition.workspace = true
+description = "Validated C ABI for the Div retained engine"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+publish = false
+build = "build.rs"
+
+[features]
+default = []
+linux = ["divui/linux", "dep:div-platform", "div-platform/linux"]
+windows = ["divui/windows", "dep:div-platform", "div-platform/windows"]
+
+[lib]
+crate-type = ["rlib", "staticlib", "cdylib"]
+
+[dependencies]
+divui = { version = "=0.2.0", path = "../divui", features = ["ffi-integration"] }
+div-compositor = { version = "=0.2.0", path = "../div-compositor" }
+div-dom = { version = "=0.2.0", path = "../div-dom" }
+div-engine = { version = "=0.2.0", path = "../div-engine" }
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+div-platform = { version = "=0.2.0", path = "../div-platform", optional = true }
+div-style = { version = "=0.2.0", path = "../div-style" }

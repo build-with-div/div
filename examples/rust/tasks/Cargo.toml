@@ -1,0 +1,13 @@
+[package]
+name = "tasks"
+version = "0.2.0"
+edition = "2024"
+publish = false
+
+[features]
+default = []
+linux = ["divui/linux", "divui/async"]
+windows = ["divui/windows", "divui/async"]
+
+[dependencies]
+divui = { version = "=0.2.0", path = "../../../crates/divui", features = ["async"] }

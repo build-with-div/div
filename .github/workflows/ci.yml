@@ -1,0 +1,498 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-security:
+    # The reviewed lockfile audit is its own job so a dependency advisory
+    # never hides the Rust test results; it remains a required, strict gate.
+    name: dependency-security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal
+          rustup default 1.94.1
+
+      - name: Install the pinned dependency audit tool
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/divui-audit-tool-target" \
+            cargo +1.94.1 install cargo-audit --version =0.22.2 --locked \
+              --root "$RUNNER_TEMP/divui-audit-tool"
+          printf 'DIV_CARGO_AUDIT=%s\n' \
+            "$RUNNER_TEMP/divui-audit-tool/bin/cargo-audit" >> "$GITHUB_ENV"
+
+      - name: Enforce dependency security for both reviewed lockfiles
+        run: |
+          python3 -m unittest tools.release.test_dependency_security
+          python3 tools/release/check_dependency_security.py \
+            --output "$RUNNER_TEMP/dependency-security/ci"
+
+      - name: Preserve dependency security diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dependency-security-ci
+          path: ${{ runner.temp }}/dependency-security/
+          if-no-files-found: error
+
+  rust-parity:
+    name: rust-parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      # The checked-in Cargo config describes the pinned Chromium pixel runner.
+      # Public CI deliberately uses the hosted runner toolchain instead.
+      BINDGEN_EXTRA_CLANG_ARGS: ""
+      CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: ""
+      CC: clang
+      CLANGCC: clang
+      CLANGCXX: clang++
+      CXX: clang++
+      CXXFLAGS: ""
+      FORCE_SKIA_BUILD: "1"
+      LIBCLANG_PATH: /usr/lib/llvm-18/lib
+      PKG_CONFIG_SYSROOT_DIR: ""
+      # The fragmented multicol integration case exceeds libtest's 2 MiB
+      # worker-thread default; application threads use a larger stack.
+      RUST_MIN_STACK: "4194304"
+      SKIA_GN_ARGS: >-
+        extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP",
+        "-DSK_ENABLE_LEGACY_SHADERCONTEXT",
+        "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
+        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
+      SKIA_NINJA_COMMAND: ninja
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust and Skia build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang curl libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev ninja-build pkg-config python3
+          rustup toolchain install 1.94.1 --profile minimal --component rustfmt
+          rustup default 1.94.1
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            target
+          key: rust-parity-v1-${{ runner.os }}-1.94.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
+
+      - name: Check Rust formatting
+        run: cargo fmt --all --check
+
+      - name: Build and verify the C ABI
+        run: |
+          cargo build \
+            --config 'target.x86_64-unknown-linux-gnu.rustflags=[]' \
+            --locked --package div-ffi
+          python3 tools/ffi/verify_abi.py
+
+      - name: Run parity-relevant Rust tests
+        run: >-
+          cargo --config 'target.x86_64-unknown-linux-gnu.rustflags=[]'
+          test --locked --no-fail-fast
+          --package div-style
+          --package div-text
+          --package div-layout
+          --package div-paint
+          --package div-compositor
+          --package div-engine
+          --package div-macros
+          --package divui
+          --package div-ffi
+          --package div-cli
+          --features "divui/async divui/http divui/testing"
+
+  windows-msvc:
+    name: windows-msvc
+    runs-on: windows-2025
+    timeout-minutes: 240
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}\out\cargo-win
+      FORCE_SKIA_BUILD: "1"
+      LIBCLANG_PATH: C:\Program Files\LLVM\bin
+      PYTHONUTF8: "1"
+      RUST_MIN_STACK: "4194304"
+      SKIA_GN_ARGS: >-
+        extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP",
+        "-DSK_ENABLE_LEGACY_SHADERCONTEXT",
+        "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
+        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
+      SKIA_NINJA_COMMAND: ninja
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Enable long paths before checkout
+        run: git config --global core.longpaths true
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: Install Rust, Ninja and Python test dependencies
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal --component rustfmt
+          rustup default 1.94.1
+          python -m pip install Pillow==12.2.0 clang-format==18.1.8 ninja==1.13.0
+
+      - name: Install Chromium-locked Acorn parser
+        run: |
+          parser_root="$RUNNER_TEMP/chromium-acorn"
+          npm install --prefix "$parser_root" --no-save --ignore-scripts \
+            --no-package-lock --no-audit --no-fund --no-progress acorn@8.14.0
+          parser="$parser_root/node_modules/acorn/dist/acorn.mjs"
+          # Hash stdin: sha256sum escapes output for paths with backslashes.
+          test "$(sha256sum < "$parser" | cut -d ' ' -f 1)" = \
+            402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93
+          printf 'CHROMIUM_ACORN=%s\n' "$parser" >> "$GITHUB_ENV"
+
+      - name: Fetch pinned Chromium 147 WPT sources
+        run: |
+          # Keep upstream bytes exact; Windows runners default to autocrlf.
+          chromium_src="$RUNNER_TEMP/chromium-src"
+          chromium_commit=09d377d9438dc95267369f74a073acd81bdde38f
+          git -c core.autocrlf=false init --quiet "$chromium_src"
+          git -C "$chromium_src" config core.autocrlf false
+          git -C "$chromium_src" remote add origin https://github.com/chromium/chromium.git
+          git -C "$chromium_src" sparse-checkout init --cone
+          git -C "$chromium_src" sparse-checkout set \
+            third_party/blink/web_tests/external/wpt/css \
+            third_party/blink/web_tests/external/wpt/fonts \
+            third_party/blink/web_tests/external/wpt/images \
+            third_party/blink/web_tests/external/wpt/media
+          git -C "$chromium_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
+          git -C "$chromium_src" checkout --detach --quiet FETCH_HEAD
+          test "$(git -C "$chromium_src" rev-parse HEAD)" = "$chromium_commit"
+          wpt_root="$chromium_src/third_party/blink/web_tests/external/wpt"
+          printf 'CHROMIUM_WPT_ROOT=%s\nCHROMIUM_WPT_CSS=%s\n' \
+            "$wpt_root" "$wpt_root/css" >> "$GITHUB_ENV"
+
+      - name: Restore the pinned fidelity data
+        run: python tools/fidelity_data.py fetch
+
+      - name: Verify the Windows-pending test ledger
+        run: |
+          python -m unittest tools.ci.test_check_platform_scoped_tests
+          python tools/ci/check_platform_scoped_tests.py
+
+      - name: Run closure, porter, renderer, packaging and security tool tests
+        run: |
+          python -m unittest \
+            tools.accountability.test_audit_frozen_oracle \
+            tools.accountability.test_chromium_capture \
+            tools.wpt.test_sp13p_paint_closure \
+            tools.wpt.test_sp13r_multicol_closure \
+            tools.wpt.test_sp14_text_port \
+            tools.wpt.test_sp15_closure \
+            tools.wpt.test_sp16_closure \
+            tools.wpt.test_sp17_closure \
+            tools.wpt.test_sp18_closure \
+            tools.wpt.test_sp19_closure \
+            tools.wpt.test_sp20_closure \
+            tools.wpt.test_port_coverage_area \
+            tools.qualification.test_build_renderer \
+            tools.qualification.test_census_lock \
+            tools.qualification.test_renderer_matrix \
+            tools.qualification.test_summarize_renderer_census \
+            tools.qualification.test_windows_chrome \
+            tools.qualification.test_compare_windows_text \
+            tools.qualification.test_scrollbar_probe_tools \
+            tools.style.test_generate_properties \
+            tools.release.test_v02_packaging \
+            tools.release.test_windows_sdk \
+            tools.release.test_dependency_security
+
+      - name: Verify immutable closure ledgers byte for byte
+        run: |
+          python tools/accountability/restore_frozen_openui_archive.py --check
+          python tools/qualification/generate_renderer_contract.py --check
+          python tools/wpt/generate_sp13r_multicol_closure.py --check
+          python tools/wpt/generate_sp17_closure.py --check
+          python tools/wpt/generate_sp18_closure.py --check
+          python tools/wpt/generate_sp20_closure.py --check
+          python tools/wpt/port_coverage_area.py --check css-grid css_grid
+          python tools/release/generate_v02_contract.py --check
+          python tools/style/generate_properties.py --check
+          python tools/ffi/generate_ffi.py --check
+          python tools/ffi/generate_form_owner_cases.py --check
+          python tools/ffi/generate_control_keyboard_cases.py --check
+          python tools/accountability/audit.py --repository-only
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            out/cargo-win
+          key: windows-msvc-v1-1.94.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
+
+      - name: Build the headless workspace
+        run: cargo build --workspace --locked
+
+      - name: Build and verify the C ABI DLL and consumers
+        run: |
+          cargo build --locked --package div-ffi
+          python tools/ffi/verify_abi.py --library "$CARGO_TARGET_DIR/debug/div_ffi.dll"
+
+      - name: Build and smoke the Win32 desktop runtime
+        run: |
+          features="div-platform/windows divui/windows div-ffi/windows hello/windows multi-window/windows tasks/windows clipboard/windows dialogs/windows menus/windows fetch/windows"
+          cargo build --locked \
+            --package div-ffi --package hello --package multi-window --package tasks --package clipboard \
+            --package dialogs --package menus --package fetch --features "$features"
+          # Includes the dialog test, which answers real common item dialogs,
+          # and the menu test, which reads and chooses a native menu bar.
+          cargo test --locked --no-fail-fast \
+            --package div-platform --package divui --package div-ffi \
+            --features "div-platform/windows div-platform/dialog div-platform/menu divui/windows divui/async divui/dialog divui/menu divui/http divui/testing div-ffi/windows"
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/hello.exe"
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/multi-window.exe"
+          # Exits only once background work and timers have woken the loop.
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 timeout 120 "$CARGO_TARGET_DIR/debug/tasks.exe"
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/clipboard.exe" | grep -F 'Ok("Div clipboard example")'
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/dialogs.exe"
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/menus.exe"
+          # Fetches from a server inside the example; no network is needed.
+          DIV_BACKEND=software DIV_SMOKE_EXIT=1 timeout 120 "$CARGO_TARGET_DIR/debug/fetch.exe" | grep -F 'fetch: 200'
+          python tools/ffi/verify_native_window.py \
+            --library "$CARGO_TARGET_DIR/debug/div_ffi.dll" \
+            --protocol win32 --backend software
+
+      - name: Drive the accessibility example through UI Automation
+        run: |
+          cargo build --locked \
+            --package accessibility --features windows
+          DIV_BACKEND=software pwsh -NoProfile -File tools/platform/verify_windows_uia.ps1 \
+            -Executable "$CARGO_TARGET_DIR/debug/accessibility.exe" -TimeoutSeconds 120
+          # Hosted runners have no hardware OpenGL; Auto must fall back.
+          pwsh -NoProfile -File tools/platform/verify_windows_uia.ps1 \
+            -Executable "$CARGO_TARGET_DIR/debug/accessibility.exe" -TimeoutSeconds 120
+
+      - name: Build and smoke the Windows SDK archive
+        run: |
+          python tools/release/build_v02_windows.py \
+            --library-dir "$CARGO_TARGET_DIR/debug" --output "$RUNNER_TEMP/sdk" --smoke
+
+      - name: Run the headless workspace tests
+        run: >-
+          cargo test --locked --no-fail-fast
+          --package div-style
+          --package div-text
+          --package div-layout
+          --package div-paint
+          --package div-compositor
+          --package div-engine
+          --package div-macros
+          --package divui
+          --package div-ffi
+          --package div-cli
+          --features divui/async
+
+      - name: Confirm LF checkout bytes are unchanged
+        run: git diff --exit-code
+
+  historical-pixel-audit:
+    name: historical-pixel-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Restore the pinned fidelity data
+        run: python3 tools/fidelity_data.py fetch
+
+      - name: Verify historical archive integrity and comparator metadata
+        run: |
+          python3 tools/accountability/restore_frozen_openui_archive.py --check
+          python3 tools/accountability/audit_frozen_oracle.py \
+            --output "$RUNNER_TEMP/historical-pixel-audit.json"
+
+      - name: Upload historical audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-pixel-audit
+          path: ${{ runner.temp }}/historical-pixel-audit.json
+          if-no-files-found: error
+
+  python-accountability:
+    name: python-accountability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install renderer evidence test dependency
+        run: python3 -m pip install Pillow==12.2.0 clang-format==18.1.8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: Install Chromium-locked Acorn parser
+        run: |
+          parser_root="$RUNNER_TEMP/chromium-acorn"
+          npm install --prefix "$parser_root" --no-save --ignore-scripts \
+            --no-package-lock --no-audit --no-fund --no-progress acorn@8.14.0
+          parser="$parser_root/node_modules/acorn/dist/acorn.mjs"
+          test "$(sha256sum "$parser" | cut -d ' ' -f 1)" = \
+            402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93
+          printf 'CHROMIUM_ACORN=%s\n' "$parser" >> "$GITHUB_ENV"
+
+      - name: Fetch pinned Chromium 147 WPT sources
+        run: |
+          chromium_src="$RUNNER_TEMP/chromium-src"
+          chromium_commit=09d377d9438dc95267369f74a073acd81bdde38f
+          git init --quiet "$chromium_src"
+          git -C "$chromium_src" remote add origin https://github.com/chromium/chromium.git
+          git -C "$chromium_src" sparse-checkout init --cone
+          git -C "$chromium_src" sparse-checkout set \
+            third_party/blink/web_tests/external/wpt/css \
+            third_party/blink/web_tests/external/wpt/fonts \
+            third_party/blink/web_tests/external/wpt/images \
+            third_party/blink/web_tests/external/wpt/media
+          git -C "$chromium_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
+          git -C "$chromium_src" checkout --detach --quiet FETCH_HEAD
+          test "$(git -C "$chromium_src" rev-parse HEAD)" = "$chromium_commit"
+          wpt_root="$chromium_src/third_party/blink/web_tests/external/wpt"
+          test -f "$wpt_root/css/CSS2/floats/adjoining-floats-dynamic.html"
+          printf 'CHROMIUM_WPT_ROOT=%s\nCHROMIUM_WPT_CSS=%s\n' \
+            "$wpt_root" "$wpt_root/css" >> "$GITHUB_ENV"
+
+      - name: Restore the pinned fidelity data
+        run: python3 tools/fidelity_data.py fetch
+
+      - name: Run closure, porter, and renderer evidence tests
+        run: |
+          python3 -m unittest \
+            tools.accountability.test_audit_frozen_oracle \
+            tools.accountability.test_chromium_capture \
+            tools.wpt.test_sp13p_paint_closure \
+            tools.wpt.test_sp13r_multicol_closure \
+            tools.wpt.test_sp14_text_port \
+            tools.wpt.test_sp15_closure \
+            tools.wpt.test_sp16_closure \
+            tools.wpt.test_sp17_closure \
+            tools.wpt.test_sp18_closure \
+            tools.wpt.test_sp19_closure \
+            tools.wpt.test_sp20_closure \
+            tools.wpt.test_port_coverage_area \
+            tools.qualification.test_build_renderer \
+            tools.qualification.test_census_lock \
+            tools.qualification.test_renderer_matrix \
+            tools.qualification.test_summarize_renderer_census \
+            tools.qualification.test_windows_chrome \
+            tools.qualification.test_compare_windows_text \
+            tools.qualification.test_scrollbar_probe_tools \
+            tools.style.test_generate_properties \
+            tools.ci.test_check_platform_scoped_tests
+
+      - name: Verify immutable closure ledgers
+        run: |
+          python3 tools/ci/check_platform_scoped_tests.py
+          python3 tools/accountability/restore_frozen_openui_archive.py --check
+          python3 tools/qualification/generate_renderer_contract.py --check
+          python3 tools/wpt/generate_sp13r_multicol_closure.py --check
+          python3 tools/wpt/generate_sp17_closure.py --check
+          python3 tools/wpt/generate_sp18_closure.py --check
+          python3 tools/wpt/generate_sp20_closure.py --check
+          python3 tools/wpt/port_coverage_area.py --check css-grid css_grid
+          python3 tools/release/generate_v02_contract.py --check
+          python3 tools/style/generate_properties.py --check
+          python3 tools/ffi/generate_ffi.py --check
+          python3 tools/ffi/generate_form_owner_cases.py --check
+          python3 tools/ffi/generate_control_keyboard_cases.py --check
+          python3 tools/release/build_v02_linux.py --verify-source
+          python3 -m unittest tools.release.test_v02_packaging tools.release.test_windows_sdk
+          python3 tools/conformance/verify_v02.py
+          python3 tools/performance/verify_v02.py
+          python3 tools/performance/verify_v02.py \
+            tools/performance/results/local-wsl2-2026-09-13.json
+
+      - name: Audit authoritative accountability artifacts
+        run: python3 tools/accountability/audit.py --repository-only
+
+  cli-template:
+    # `div new` from this checkout, then a release build (`div build`)
+    # and a dev build of the generated app. The app must get the Skia build
+    # profile from its own .cargo/config.toml, and both builds must render
+    # the first frame byte for byte alike.
+    name: cli-template (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends             build-essential clang libclang-18-dev libfontconfig1-dev             libfreetype-dev libgl1-mesa-dev libwayland-dev libx11-dev             libx11-xcb-dev libxcb1-dev libxkbcommon-dev ninja-build             pkg-config python3
+          echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+
+      - name: Install Windows build dependencies
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install ninja==1.13.0
+          echo 'LIBCLANG_PATH=C:\Program Files\LLVM\bin' >> "$GITHUB_ENV"
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal
+          rustup default 1.94.1
+
+      - name: Create, build, render and test the minimal and default templates
+        run: >-
+          python tools/framework/check_cli_template.py
+          --work "$RUNNER_TEMP/cli-template"
+          --report "$RUNNER_TEMP/cli-template.json"
+
+      - name: Preserve the template report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-template-${{ matrix.os }}
+          path: ${{ runner.temp }}/cli-template.json
+          if-no-files-found: ignore

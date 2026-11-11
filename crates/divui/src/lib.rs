@@ -1,0 +1,201 @@
+//! # Div
+//!
+//! Safe, direct Rust framework over the pure-Rust Div retained engine.
+//! Application interaction uses Rust callbacks and native [`Document`] and
+//! [`Element`] methods. Browser-like element behavior needed by applications
+//! belongs in this public native Rust API. Div does not execute JavaScript
+//! or expose browser script bindings.
+//!
+//! ```no_run
+//! use div::prelude::*;
+//!
+//! # fn main() -> Result<(), Error> {
+//! let count = create_signal(0_i32);
+//! let app = App::builder()
+//!     .title("Div")
+//!     .size(LogicalSize::new(800.0, 600.0))
+//!     .backend(BackendPreference::Auto)
+//!     .build()?;
+//!
+//! app.run(move || view! {
+//!     <button
+//!         style:display={Display::Flex}
+//!         style:padding="8px 16px"
+//!         on:click={move |_| count.update(|value| *value += 1)}
+//!     >
+//!         {count.get()}
+//!     </button>
+//! })?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Reactive primitives
+//!
+//! | Primitive | Purpose |
+//! |-----------|---------|
+//! | [`Signal`] | Readable/writable reactive value |
+//! | [`Memo`] | Cached derived value |
+//! | [`create_effect`] | Side-effect that re-runs on dependency changes |
+//! | [`batch`] | Defer effect execution across multiple updates |
+//! | [`create_scope`] | Group effects for batch disposal |
+//! | [`dispose_scope`] | Tear down a scope and its children |
+//! | [`on_cleanup`] | Register a cleanup callback in the current scope |
+//!
+//! ## Native document and element handles
+//!
+//! | Type | Purpose |
+//! |------|---------|
+//! | [`Document`] | Native retained document and rendering context |
+//! | [`Element`] | A node in the retained document tree |
+//! | [`TextNode`] | Native text data that can be created, edited, attached, and moved |
+//!
+//! ## View system
+//!
+//! | Type / Macro | Purpose |
+//! |--------------|---------|
+//! | [`view!`] | JSX-like declarative UI macro |
+//! | [`component`] | Attribute macro to define a component |
+//! | [`ViewNode`] | A renderable node in the UI tree |
+//! | [`IntoView`] | Trait for converting values into view nodes |
+//! | [`mount_view`] | Mount a view node onto a parent element |
+//! | [`with_document`] | Set the render context document |
+//! | [`current_document`] | Access the current render context document |
+
+extern crate self as div;
+
+// ─── Reactive runtime modules ───────────────────────────────
+
+pub mod effect;
+pub mod runtime;
+pub mod scope;
+pub mod signal;
+
+// ─── DOM wrapper modules ────────────────────────────────────
+
+mod animation_timeline;
+pub use animation_timeline::AnimationTimelineBinding;
+
+pub mod document;
+pub mod element;
+pub mod events;
+pub mod scroll_button;
+pub mod style;
+pub mod text_node;
+
+// ─── View system modules ────────────────────────────────────
+
+pub mod context;
+pub mod renderer;
+pub mod view_node;
+
+mod generated_style_setters;
+
+// ─── Application shell ─────────────────────────────────────
+
+pub mod app;
+mod app_spec;
+pub mod clipboard;
+#[cfg(all(feature = "dialog", any(target_os = "linux", target_os = "windows")))]
+pub mod dialog;
+#[cfg(feature = "http")]
+pub mod http;
+#[cfg(feature = "menu")]
+pub mod menu;
+#[cfg(feature = "menu")]
+mod menu_bar;
+#[cfg(feature = "async")]
+mod resource;
+#[cfg(feature = "async")]
+pub mod task;
+#[cfg(feature = "testing")]
+pub mod testing;
+pub mod window;
+
+/// Convenience prelude for common imports.
+pub mod prelude;
+
+// ─── Re-exports: reactive primitives ────────────────────────
+
+pub use effect::{batch, create_effect};
+#[cfg(feature = "async")]
+pub use resource::{create_resource, Resource};
+pub use runtime::{EffectId, ScopeId, SignalId};
+pub use scope::{create_scope, dispose_scope, on_cleanup};
+#[cfg(feature = "async")]
+pub use signal::SignalSender;
+pub use signal::{create_memo, create_signal, Memo, Signal};
+
+// ─── Re-exports: DOM wrappers ───────────────────────────────
+
+pub use div_dom::ElementTag;
+pub use document::Document;
+pub use element::{Element, WeakElement};
+pub use events::{
+    Event, EventPhase, InputEventInfo, InputType, KeyEventType, Modifiers, MouseButton,
+    MouseEventType,
+};
+pub use scroll_button::{
+    ScrollButton, ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState,
+    ScrollSnapStrictness,
+};
+pub use style::{Bitmap, Error, Rect};
+pub use text_node::{TextNode, WeakTextNode};
+
+/// Canonical typed style values shared with the engine, macro, and C schema.
+pub mod typed_style {
+    pub use div_style::*;
+}
+pub use div_style::{ComputedStyle, Style, StyleProperty, StyleValue};
+pub use div_text::{
+    AppliedPlatformFontSettings, AppliedSkFontSettings, FontFaceSourceInfo, FontInstantiation,
+    FontProviderConstruction, FontRenderHintStyle, FontRenderPreference, FontRenderQueryIntent,
+    FontRenderStyle, FontSelectionOrigin, FontSelectionSource,
+};
+pub use div_text::{
+    FontAxisRange, FontCollection, FontCollectionError, FontCollectionStats, FontContainerFormat,
+    FontFaceDescriptor, FontFaceHandle, FontFaceInfo, FontFeatureDefault, FontMetricOverrides,
+    FontPaletteBase, FontPaletteEntryOverride, FontPaletteHandle, FontPaletteValuesDescriptor,
+    FontStyleRange, FontUnicodeRange, HyphenationDictionaryHandle, HyphenationRegistry,
+    HyphenationRegistryError,
+};
+
+// ─── Re-exports: view system ────────────────────────────────
+
+pub use context::{current_document, with_document};
+pub use renderer::{DynChild, For, Show};
+pub use view_node::{mount_view, IntoView, ViewNode};
+
+// ─── Re-exports: application shell ─────────────────────────
+
+pub use app::{
+    App, AppBuilder, AppExitHandle, BackendPreference, HeadlessApp, LogicalSize, RenderOptions,
+    WindowOptions,
+};
+pub use app_spec::AppSpec;
+pub use div_engine::{
+    AccessibilityAction, AccessibilityLive, AccessibilityNode, AccessibilityNodeId,
+    AccessibilityPlatformAction, AccessibilityRelation, AccessibilityRole,
+    AccessibilityScrollDirection, AccessibilityTreeUpdate, AnimationAttachmentSnapshot,
+    AnimationEvent, AnimationEventKind, AnimationId, AnimationResolvedTimelineRanges,
+    AnimationState, AnimationTimelineSnapshot, AnimationTimelineSource, ControlAdjustment,
+    EditCommand, EngineOptions, FocusOrigin, PointerEventKind, RangeSelectionMode, RasterBackend,
+    RasterConfiguration, RasterPixelGeometry, ScrollAlignment, ScrollAnimationId,
+    ScrollIntoViewContainer, ScrollIntoViewOptions, ScrollMetrics, SelectionDirection,
+    TextDirection, TextEdging, TextHinting, TextRasterConfiguration, TextUnit, ViewportAuthority,
+    ViewportMetrics, ViewportMetricsError,
+};
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+pub use div_platform::{KeyboardInput, PlatformEvent};
+
+// ─── Re-exports: proc macros ────────────────────────────────
+
+pub use div_macros::{component, view};
+
+#[cfg(test)]
+mod form_association_tests;
+#[cfg(test)]
+mod tests;
