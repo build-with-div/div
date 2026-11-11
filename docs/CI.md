@@ -1,0 +1,107 @@
+# Continuous integration and release gates
+
+The supported CI surface is the pure-Rust v0.2 workspace. The workflows have
+read-only repository permissions unless a tag job explicitly needs an
+attestation identity.
+
+## Pull-request gates
+
+The CI, Format Check and v0.2 Hardening workflows accept PRs targeting `main`.
+Use one PR at a time and merge it before starting the next task. Push-only
+checks remain restricted to `main`. The user explicitly accepted the
+17 October experimental baseline with its documented native clipping failure;
+that integration does not turn failing checks green or waive release gates.
+
+`.github/workflows/ci.yml` runs:
+
+- formatting and the locked Rust renderer/framework/ABI suites;
+- an integrity check of the 5,731-image historical Div archive and an
+  audit of its old comparison policy; old image replay is diagnostic only;
+- generated style, C ABI, migration, and SP13-R through SP20 closure checks;
+- versioned renderer profiles, author-style inventory, and offline disposition
+  checks for Chromium WPT files that contain scripts;
+- Python porter/closure tests and the 7/7 repository audit;
+- C ABI export/layout checks plus C and C++ consumers;
+- application conformance and performance artifact validation;
+- the Windows MSVC headless build, tests, ledger and C ABI checks
+  (`windows-msvc`);
+- the reviewed-lockfile dependency audit (`dependency-security`), a separate
+  job so an advisory never hides the Rust test results. It denies warnings
+  and accepts only the dated, reviewed exemptions in
+  `tools/release/check_dependency_security.py`, so it fails on any other open
+  RustSec advisory; the release workflow keeps the same gate before any
+  artifact is built.
+
+Since 16 October 2026, RustSec has published informational unmaintained
+notices RUSTSEC-2026-0370, 0371 and 0372 for `zvariant`, `zbus_names` and
+`zvariant_derive`, which merged into `zbus` 6.0. Every published
+`accesskit_unix`, `accesskit_atspi_common` and `atspi` release still requires
+`zbus` 5 (and `zbus` 6 requires Rust 1.89, above the 1.85 MSRV). On
+25 October 2026 these three notices received a reviewed exemption that
+expires on 25 January 2027 and fails the gate once it is unused; see
+[the review record](https://github.com/zhuowcui/open-ui/blob/1b73689055aa8c398c14b2eeea636ebe0bec04b3/docs/progress/dependency-audit-zbus-exemption-2026-10-25.md).
+
+`.github/workflows/hardening.yml` additionally runs the 43-scenario application
+suite, Linux C API tests, and real Rust/C/C++ windows under Xvfb with software
+and Mesa OpenGL presentation. A headless Weston session runs the Rust and
+C/C++ consumers on pure Wayland with software presentation.
+
+## Scheduled hardening
+
+Weekly/manual jobs use pinned `nightly-2026-09-01` for:
+
+- Miri checks for C opaque-handle kind, thread, destruction, and token reuse;
+- Rust address and leak sanitizers at the C ABI boundary;
+- C/C++ undefined-behavior sanitizer consumers;
+- all five libFuzzer targets.
+
+Failures block release even when they do not run on every pull request.
+
+Pixel release qualification separately requires a complete, clean-source,
+zero-tolerance four-profile matrix against the pinned Chromium oracle. The
+historical archive check and a green pull-request workflow do not establish
+that result. See the [renderer contract](renderer/contract.md).
+
+## Release workflow
+
+`.github/workflows/release-v02.yml` is manual/tag-only. For both supported
+architectures it:
+
+1. verifies source contracts and crates.io package contents;
+2. builds the SDK twice with a fixed source epoch and compares hashes;
+3. builds `.deb` and `.rpm` packages in Ubuntu/Fedora environments;
+4. installs each package and compiles/runs the packaged C example; Debian
+   consumers also open native C/C++ windows on X11 software/GL and Wayland
+   software;
+5. uploads checksums, SBOM, provenance, detached symbols, and artifacts;
+6. produces keyless signatures and GitHub attestations when running from the
+   protected release tag.
+
+The workflow does not publish crates.io packages automatically. Compatible
+crates must be published in the dependency order documented in
+`docs/v02/packaging.md` after every final gate is recorded.
+
+## Local source checks
+
+```bash
+cargo fmt --all --check
+cargo test --workspace --locked
+
+python3 tools/release/build_v02_linux.py --verify-source
+python3 tools/ffi/verify_abi.py
+python3 tools/accountability/audit.py
+git diff --check
+```
+
+Formatting the generated `pixel-compare` registry can exhaust rustfmt's default
+stack because it is intentionally enormous. The generated file is checked by
+its source generator; all handwritten packages remain subject to rustfmt.
+
+## Evidence rules
+
+Hosted repository-only audit confirms committed result metadata but does not
+replace the full local audit with PNGs. A focused render overwrites
+`summary.json`; preserve the authoritative full result unless the focused run
+is intentionally replacing it. Performance results are qualifying only when
+their artifact names the checked-in reference-machine profile and sets
+`qualification: true`.

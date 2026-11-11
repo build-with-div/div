@@ -1,0 +1,6 @@
+# Portable defaults intentionally leave compiler, linker, sysroot, and Skia
+# selection to Cargo and the host. The exact SP20 parity toolchain is opt-in:
+#
+#   cargo --config .cargo/config.chromium.toml test --locked
+#
+# Release and hosted CI builds must never depend on machine-specific paths.

@@ -1,0 +1,18 @@
+[package]
+name = "div-components-render"
+description = "Renders the shadcn/ui reference fixtures with Div"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "div-components-render"
+path = "src/main.rs"
+
+[dependencies]
+divui.workspace = true
+div-components.workspace = true
+serde_json.workspace = true

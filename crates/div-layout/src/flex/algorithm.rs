@@ -1,0 +1,7107 @@
+//! Flex layout algorithm — the main entry point.
+//!
+//! Extracted from Blink's `FlexLayoutAlgorithm::LayoutInternal()` and
+//! `PlaceFlexItems()` (flex_layout_algorithm.cc:1229, 1394).
+//!
+//! Orchestrates: item collection → line breaking → flexing → alignment → positioning.
+
+use crate::layout_context::LayoutDocument;
+use div_dom::{Document, ElementTag, NodeId, PseudoElementKind};
+use div_geometry::Length;
+use div_geometry::{
+    BoxStrut, LayoutUnit, LengthType, LogicalOffset, LogicalSize, MinMaxSizes, PhysicalOffset,
+    PhysicalRect, PhysicalSize, WritingDirectionMode, WritingModeConverter,
+};
+use div_style::{
+    ContentAlignment, ContentDistribution, ContentPosition, FlexWrap, ItemPosition,
+    OverflowAlignment,
+};
+
+use crate::block::{resolve_border, resolve_margins, resolve_padding};
+use crate::constraint_space::ConstraintSpace;
+use crate::fragment::Fragment;
+use crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout;
+use crate::length_resolver::resolve_length;
+
+use super::alignment::{
+    resolve_align_self, resolve_content_alignment, resolve_cross_auto_margins,
+    resolve_main_auto_margins,
+};
+use super::item::{FlexItem, FlexerState};
+use super::line::FlexLine;
+use super::line_breaker::break_into_lines;
+use super::line_flexer::LineFlexer;
+
+/// Maps the flex container's main/cross axes to one item's logical axes.
+///
+/// Flex sizing is performed in the container's axes, while a child's
+/// `ConstraintSpace` is always expressed in the child's writing mode. Keep
+/// that conversion at this boundary so available sizes, percentage bases, and
+/// externally-determined-size flags cannot be transposed independently.
+#[derive(Clone, Copy)]
+struct FlexItemAxisMapping {
+    is_column: bool,
+    main_axis_is_horizontal: bool,
+    main_axis_is_child_inline: bool,
+    child_writing_direction: WritingDirectionMode,
+    percentage_edges_use_container_inline: bool,
+}
+
+impl FlexItemAxisMapping {
+    fn new(
+        child_style: &div_style::ComputedStyle,
+        is_column: bool,
+        main_axis_is_horizontal: bool,
+    ) -> Self {
+        let child_writing_direction = child_style
+            .direction
+            .writing_direction(child_style.writing_mode);
+        let container_inline_is_horizontal = main_axis_is_horizontal ^ is_column;
+        let is_orthogonal =
+            container_inline_is_horizontal != child_writing_direction.is_horizontal();
+        let percentage_edges_use_container_inline = is_orthogonal
+            && [
+                &child_style.margin_top,
+                &child_style.margin_right,
+                &child_style.margin_bottom,
+                &child_style.margin_left,
+                &child_style.padding_top,
+                &child_style.padding_right,
+                &child_style.padding_bottom,
+                &child_style.padding_left,
+            ]
+            .iter()
+            .any(|length| length.is_percent() || length.is_calculated());
+        Self {
+            is_column,
+            main_axis_is_horizontal,
+            main_axis_is_child_inline: main_axis_is_horizontal
+                == child_writing_direction.is_horizontal(),
+            child_writing_direction,
+            percentage_edges_use_container_inline,
+        }
+    }
+
+    #[inline]
+    fn child_logical_size(self, main: LayoutUnit, cross: LayoutUnit) -> LogicalSize {
+        if self.main_axis_is_child_inline {
+            LogicalSize::new(main, cross)
+        } else {
+            LogicalSize::new(cross, main)
+        }
+    }
+
+    #[inline]
+    fn container_logical_to_main_cross(
+        self,
+        inline: LayoutUnit,
+        block: LayoutUnit,
+    ) -> (LayoutUnit, LayoutUnit) {
+        if self.is_column {
+            (block, inline)
+        } else {
+            (inline, block)
+        }
+    }
+
+    /// Percentages on physical cross-axis properties still use the
+    /// container's logical cross size. Physical flow selects width/height;
+    /// flex-direction selects inline/block, independently of writing mode.
+    fn container_cross_percentage_size(self, inline: LayoutUnit, block: LayoutUnit) -> LayoutUnit {
+        self.container_logical_to_main_cross(inline, block).1
+    }
+
+    fn child_space(
+        self,
+        available_main: LayoutUnit,
+        available_cross: LayoutUnit,
+        percentage_container_inline: LayoutUnit,
+        percentage_container_block: LayoutUnit,
+    ) -> ConstraintSpace {
+        let available = self.child_logical_size(available_main, available_cross);
+        let (percentage_main, percentage_cross) = self.container_logical_to_main_cross(
+            percentage_container_inline,
+            percentage_container_block,
+        );
+        let percentage = self.child_logical_size(percentage_main, percentage_cross);
+        let mut space = ConstraintSpace::for_flex_child_with_writing_direction(
+            available.inline_size,
+            available.block_size,
+            percentage.inline_size,
+            percentage.block_size,
+            self.child_writing_direction,
+        );
+        // Like ordinary block children, percentage margins and padding on an
+        // orthogonal flex item resolve against the containing block's logical
+        // inline size. Width/height bases still follow the axis projection
+        // above; this field is shared by the compact constraint model, so only
+        // override it when an edge actually needs that containing measure.
+        if self.percentage_edges_use_container_inline {
+            space.percentage_resolution_inline_size = percentage_container_inline;
+        }
+        space
+    }
+
+    #[inline]
+    fn set_main_fixed(self, space: &mut ConstraintSpace) {
+        if self.main_axis_is_child_inline {
+            space.is_fixed_inline_size = true;
+        } else {
+            space.is_fixed_block_size = true;
+        }
+    }
+
+    #[inline]
+    fn set_cross_fixed(self, space: &mut ConstraintSpace) {
+        if self.main_axis_is_child_inline {
+            space.is_fixed_block_size = true;
+        } else {
+            space.is_fixed_inline_size = true;
+        }
+    }
+
+    #[inline]
+    fn set_cross_stretch(self, space: &mut ConstraintSpace) {
+        if self.main_axis_is_child_inline {
+            space.stretch_block_size = true;
+        } else {
+            space.stretch_inline_size = true;
+        }
+    }
+
+    #[inline]
+    fn main_maps_to_child_block(self) -> bool {
+        !self.main_axis_is_child_inline
+    }
+
+    /// Project the flex-resolved main/cross border box into fragment storage.
+    #[inline]
+    fn physical_size(self, main: LayoutUnit, cross: LayoutUnit) -> PhysicalSize {
+        if self.main_axis_is_horizontal {
+            PhysicalSize::new(main, cross)
+        } else {
+            PhysicalSize::new(cross, main)
+        }
+    }
+}
+
+/// Main entry point for flex layout.
+///
+/// Blink: `FlexLayoutAlgorithm::Layout()` → `LayoutInternal()` → `PlaceFlexItems()`.
+///
+/// Takes a flex container node and its constraint space, returns a positioned Fragment.
+pub(crate) fn flex_layout_with_layout(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    space: &ConstraintSpace,
+) -> Fragment {
+    crate::scrollbars::layout(doc, node_id, space)
+}
+
+pub(crate) fn flex_layout_contents(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    space: &ConstraintSpace,
+) -> Fragment {
+    let style = &doc.node(node_id).style;
+
+    // ── Axis orientation (Blink constructor, line 170-191) ───────────
+    let is_column = style.flex_direction.is_column();
+    // Direction and writing-mode flips are applied by the logical-to-physical
+    // converter. Only the authored flex-direction reverses logical item order.
+    let is_reverse = style.flex_direction.is_reverse();
+    let is_wrap_reverse = style.flex_wrap.is_wrap_reverse();
+    let is_multi_line = style.flex_wrap.is_wrap();
+    let logical_box = crate::ResolvedLogicalBox::from_style(style);
+    let writing_direction = logical_box.writing_direction;
+
+    // Whether the flex main axis maps to the physical x axis. Row follows the
+    // container's inline axis; column follows its block axis.
+    let is_horizontal_flow = writing_direction.is_horizontal() ^ is_column;
+
+    // ── Resolve container border + padding ───────────────────────────
+    let border = resolve_border(style);
+    let padding = resolve_padding(style, space.percentage_resolution_inline_size);
+    let logical_border = border.to_logical(writing_direction);
+    let logical_padding = padding.to_logical(writing_direction);
+    let border_padding_inline = logical_border.inline_sum() + logical_padding.inline_sum();
+    let border_padding_block = logical_border.block_sum() + logical_padding.block_sum();
+    let element_scrollbars = crate::scrollbars::for_node(space, node_id);
+    let scrollbar_insets = element_scrollbars.map_or(BoxStrut::zero(), |bars| bars.insets);
+    let logical_scrollbars = scrollbar_insets.to_logical(writing_direction);
+    let border_scrollbar_padding_inline = border_padding_inline + logical_scrollbars.inline_sum();
+    let border_scrollbar_padding_block = border_padding_block + logical_scrollbars.block_sum();
+    // The fragment retains authored padding. Placement consumes the additional
+    // gutter edges without turning them into CSS padding or painting them twice.
+    let layout_padding = BoxStrut::new(
+        padding.top + scrollbar_insets.top,
+        padding.right + scrollbar_insets.right,
+        padding.bottom + scrollbar_insets.bottom,
+        padding.left + scrollbar_insets.left,
+    );
+
+    // ── Resolve container inline size (width for row, used for percentage base) ──
+    let container_inline_size =
+        resolve_container_inline_size(doc, node_id, style, space, border_padding_inline);
+
+    // Content-box sizes
+    let content_inline_size = if container_inline_size.is_indefinite() {
+        container_inline_size
+    } else {
+        (container_inline_size - border_scrollbar_padding_inline).clamp_negative_to_zero()
+    };
+
+    // ── Resolve gaps (Blink line 187-191) ────────────────────────────
+    // CSS Box Alignment §8: row-gap % resolves against block size,
+    // column-gap % resolves against inline size.
+    let column_gap_pct_base = content_inline_size;
+    let block_size = logical_box.sizes.block_size;
+    let row_gap_pct_base = if space.is_fixed_block_size || space.stretch_block_size {
+        (space.available_block_size - border_scrollbar_padding_block).clamp_negative_to_zero()
+    } else if !block_size.is_auto() && !block_size.is_content_or_intrinsic() {
+        let raw = resolve_length(
+            block_size,
+            space.percentage_resolution_block_size,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        if style.box_sizing == div_style::BoxSizing::BorderBox {
+            (raw - border_scrollbar_padding_block).clamp_negative_to_zero()
+        } else {
+            (raw - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+        }
+    } else {
+        // Auto height → percentage gap resolves to 0
+        LayoutUnit::zero()
+    };
+    let gap_between_items = resolve_gap(
+        if is_column {
+            &style.row_gap
+        } else {
+            &style.column_gap
+        },
+        if is_column {
+            row_gap_pct_base
+        } else {
+            column_gap_pct_base
+        },
+    );
+    let gap_between_lines = resolve_gap(
+        if is_column {
+            &style.column_gap
+        } else {
+            &style.row_gap
+        },
+        if is_column {
+            column_gap_pct_base
+        } else {
+            row_gap_pct_base
+        },
+    );
+
+    // ── Main axis inner size ─────────────────────────────────────────
+    let main_axis_inner_size = if is_column {
+        // Column: main axis = block, may be indefinite
+        let resolved = resolve_container_block_size_for_flex(
+            style,
+            space,
+            border_padding_block,
+            container_inline_size,
+        );
+        let resolved = if resolved.is_indefinite() {
+            resolved
+        } else {
+            (resolved - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+        };
+        // If resolved to indefinite but parent provided a fixed height, use it for
+        // wrapping decisions (CSS Flexbox §9.2: definite size from containing block)
+        if resolved.is_indefinite() && (space.is_fixed_block_size || space.stretch_block_size) {
+            (space.available_block_size - border_scrollbar_padding_block).clamp_negative_to_zero()
+        } else if resolved.is_indefinite()
+            && style.flex_wrap != FlexWrap::Nowrap
+            && space.fragmentainer_block_size > LayoutUnit::zero()
+        {
+            // Inside a fragmentainer (multicol column) with flex-wrap: use the
+            // column height as the wrapping boundary so items wrap correctly.
+            // Only for wrapping containers — non-wrapping ones should stay
+            // indefinite and be fragmented by the multicol distribution pass.
+            (space.fragmentainer_block_size - border_scrollbar_padding_block)
+                .clamp_negative_to_zero()
+        } else {
+            resolved
+        }
+    } else {
+        // Row: main axis = inline
+        content_inline_size
+    };
+
+    // Child percentage resolution sizes.
+    // Percentage heights on flex items resolve against the flex container's
+    // own content-box height (CSS §9.8). When the container has auto height,
+    // its height is indefinite until layout completes, so percentages are
+    // indefinite regardless of parent's available block size.
+    let child_percentage_inline = content_inline_size;
+    let child_percentage_block = if (space.is_fixed_block_size || space.stretch_block_size)
+        && !space.is_initial_block_size_indefinite
+    {
+        // The parent has already resolved this flex container's used
+        // border-box block-size (notably for an abspos percentage height).
+        // Descendant percentages use its content box; resolving the
+        // container's authored percentage again against the child space
+        // would apply the containing-block reduction twice.
+        (space.available_block_size - border_scrollbar_padding_block).clamp_negative_to_zero()
+    } else if !block_size.is_auto() {
+        if block_size.is_content_or_intrinsic() {
+            // Intrinsic keyword on container height → treat as indefinite for child percentages
+            LayoutUnit::from_raw(-64) // indefinite
+        } else {
+            // Container has explicit height → use it as percentage base
+            let raw = resolve_length(
+                block_size,
+                space.percentage_resolution_block_size,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            let content = if style.box_sizing == div_style::BoxSizing::BorderBox {
+                (raw - border_scrollbar_padding_block).clamp_negative_to_zero()
+            } else {
+                (raw - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+            };
+            content
+        }
+    } else if let Some(ar) = &style.aspect_ratio {
+        // Aspect-ratio with definite inline size gives a definite block size
+        // for percentage resolution (CSS Sizing L4).
+        if ar.ratio.0 > 0.0
+            && ar.ratio.1 > 0.0
+            && container_inline_size.raw() > 0
+            && !container_inline_size.is_indefinite()
+        {
+            let ratio = ar.ratio.0 / ar.ratio.1;
+            let ar_block = LayoutUnit::from_f32(container_inline_size.to_f32() / ratio);
+            (ar_block - border_scrollbar_padding_block).clamp_negative_to_zero()
+        } else {
+            LayoutUnit::from_raw(-64) // indefinite
+        }
+    } else {
+        // Container height is auto → percentages are indefinite
+        LayoutUnit::from_raw(-64) // indefinite
+    };
+
+    // ── Step A: Collect items (Blink line 801) ───────────────────────
+    let mut flex_items = construct_flex_items(
+        doc,
+        node_id,
+        is_column,
+        is_horizontal_flow,
+        child_percentage_inline,
+        child_percentage_block,
+        main_axis_inner_size,
+        space,
+    );
+
+    // ── Step B: Break into lines (Blink line_breaker.cc) ─────────────
+    let mut flex_lines = break_into_lines(
+        &flex_items,
+        main_axis_inner_size,
+        gap_between_items,
+        is_multi_line,
+    );
+    let mut effective_main_axis_inner_size = main_axis_inner_size;
+    if is_column
+        && block_size.is_auto()
+        && !main_axis_inner_size.is_indefinite()
+        && !logical_box.sizes.max_block_size.is_auto()
+        && !logical_box.sizes.max_block_size.is_none()
+    {
+        let all_lines_fit_hypothetical = flex_lines.iter().all(|line| {
+            let visible_count = line
+                .item_indices
+                .iter()
+                .filter(|&&idx| !flex_items[idx].is_collapsed)
+                .count() as i32;
+            let gap_count = if visible_count > 1 {
+                visible_count - 1
+            } else {
+                0
+            };
+            let total_gap = gap_between_items * gap_count;
+            let sum_hyp = line
+                .item_indices
+                .iter()
+                .map(|&idx| flex_items[idx].hypothetical_main_axis_margin_box_size())
+                .fold(LayoutUnit::zero(), |acc, s| acc + s);
+            sum_hyp + total_gap <= main_axis_inner_size
+        });
+        if all_lines_fit_hypothetical {
+            effective_main_axis_inner_size = LayoutUnit::from_raw(-64);
+        }
+    }
+
+    // ── Step C: Flex each line (CSS §9.7) ────────────────────────────
+    for line in &mut flex_lines {
+        let sum_hyp: LayoutUnit = line
+            .item_indices
+            .iter()
+            .map(|&idx| flex_items[idx].hypothetical_main_axis_margin_box_size())
+            .fold(LayoutUnit::zero(), |acc, s| acc + s);
+
+        // When main axis is indefinite (auto-height column), skip grow/shrink.
+        // Items stay at their hypothetical sizes.
+        if !effective_main_axis_inner_size.is_indefinite() {
+            let mut flexer = LineFlexer::new(
+                &mut flex_items,
+                &line.item_indices,
+                effective_main_axis_inner_size,
+                sum_hyp,
+                gap_between_items,
+            );
+            flexer.run();
+        } else {
+            // CSS Flexbox §9.9.1: For auto-height column flex, each item's
+            // max-content contribution is max(outer max-content size, outer
+            // hypothetical main size). When an item has a definite main-size
+            // property (height for column), its max-content size equals that
+            // resolved height, which may exceed the hypothetical size.
+            // BUT: this only applies when flex-basis is auto (§9.2 step A),
+            // since an explicit flex-basis overrides the main-size property.
+            for &idx in &line.item_indices {
+                let mut frozen = flex_items[idx].hypothetical_content_size;
+
+                if is_column {
+                    let child_style = &doc.node(flex_items[idx].node_id).style;
+                    // Only use the physical main-size property when
+                    // flex-basis is auto. A column follows the container's
+                    // logical block axis, which is physical width in a
+                    // vertical writing mode and physical height otherwise.
+                    // An explicit flex-basis (e.g. 0%) means the item's main
+                    // size was intentionally set and should not be overridden.
+                    if child_style.flex_basis.is_auto() {
+                        let main_length = if is_horizontal_flow {
+                            &child_style.width
+                        } else {
+                            &child_style.height
+                        };
+                        if !main_length.is_auto() && !main_length.is_content_or_intrinsic() {
+                            if main_length.is_fixed() || !child_percentage_block.is_indefinite() {
+                                let resolved = resolve_length(
+                                    main_length,
+                                    child_percentage_block,
+                                    LayoutUnit::zero(),
+                                    LayoutUnit::zero(),
+                                );
+                                let content =
+                                    if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                        (resolved - flex_items[idx].main_axis_border_padding)
+                                            .clamp_negative_to_zero()
+                                    } else {
+                                        resolved
+                                    };
+                                let clamped = flex_items[idx].main_axis_min_max.clamp(content);
+                                frozen = frozen.max_of(clamped);
+                            }
+                        }
+                    }
+                }
+
+                flex_items[idx].flexed_content_size = frozen;
+                flex_items[idx].state = super::item::FlexerState::Frozen;
+            }
+        }
+
+        // Compute free space after flexing
+        let total_flexed: LayoutUnit = line
+            .item_indices
+            .iter()
+            .map(|&idx| flex_items[idx].flexed_margin_box_size())
+            .fold(LayoutUnit::zero(), |acc, s| acc + s);
+
+        let num_visible = line
+            .item_indices
+            .iter()
+            .filter(|&&idx| !flex_items[idx].is_collapsed)
+            .count() as i32;
+        let num_gaps = if num_visible > 1 { num_visible - 1 } else { 0 };
+        let total_gap = gap_between_items * num_gaps;
+        if !effective_main_axis_inner_size.is_indefinite() {
+            line.main_axis_free_space = effective_main_axis_inner_size - total_flexed - total_gap;
+        } else {
+            line.main_axis_free_space = LayoutUnit::zero();
+        }
+        line.main_axis_used_size = total_flexed + total_gap;
+
+        // Count auto margins on main axis
+        line.main_axis_auto_margin_count = line
+            .item_indices
+            .iter()
+            .map(|&idx| flex_items[idx].main_axis_auto_margin_count as u32)
+            .sum();
+    }
+
+    // ── Step D: Compute line cross sizes (Blink line 1470) ───────────
+    let hypothetical_cross_border_box_sizes = compute_line_cross_sizes(
+        doc,
+        &flex_items,
+        &mut flex_lines,
+        is_column,
+        is_horizontal_flow,
+        child_percentage_inline,
+        child_percentage_block,
+        space,
+    );
+
+    // For single-line: use container cross size if definite
+    if !is_multi_line && flex_lines.len() == 1 {
+        let container_cross = if is_column {
+            content_inline_size
+        } else {
+            // Use the container's own resolved content-box height when explicit.
+            // CSS Flexbox §9.4: Only use container cross size if it is definite.
+            // height:auto means the cross size is NOT definite, even with definite available space.
+            // Exception: if the parent flex has set a definite block size (via
+            // is_fixed_block_size or stretch_block_size), the cross size IS definite.
+            if space.is_fixed_block_size || space.stretch_block_size {
+                (space.available_block_size - border_scrollbar_padding_block)
+                    .clamp_negative_to_zero()
+            } else if !block_size.is_auto() && !block_size.is_content_or_intrinsic() {
+                // Explicit height — use resolved content-box value
+                let raw = resolve_length(
+                    block_size,
+                    space.percentage_resolution_block_size,
+                    LayoutUnit::zero(),
+                    LayoutUnit::zero(),
+                );
+                if style.box_sizing == div_style::BoxSizing::BorderBox {
+                    (raw - border_scrollbar_padding_block).clamp_negative_to_zero()
+                } else {
+                    (raw - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+                }
+            } else {
+                flex_lines[0].line_cross_size // keep computed size
+            }
+        };
+
+        // Clamp cross size to container's min/max constraints (CSS Flexbox §9.4)
+        let clamped_cross = if !is_column {
+            let pct_base = space.percentage_resolution_block_size;
+            let min_block = logical_box.sizes.min_block_size;
+            let max_block = logical_box.sizes.max_block_size;
+            let min_h = if !min_block.is_auto() {
+                if min_block.is_content_or_intrinsic() {
+                    let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                        doc,
+                        node_id,
+                        space,
+                        compute_intrinsic_block_sizes_with_layout(doc, node_id),
+                    );
+                    let intrinsic = match min_block.length_type() {
+                        LengthType::MinContent => sizes.min_content_block_size,
+                        _ => sizes.max_content_block_size,
+                    };
+                    (intrinsic - border_scrollbar_padding_block).clamp_negative_to_zero()
+                } else if !pct_base.is_indefinite() || min_block.is_fixed() {
+                    let min_raw =
+                        resolve_length(min_block, pct_base, LayoutUnit::zero(), LayoutUnit::zero());
+                    if style.box_sizing == div_style::BoxSizing::BorderBox {
+                        (min_raw - border_scrollbar_padding_block).clamp_negative_to_zero()
+                    } else {
+                        (min_raw - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+                    }
+                } else {
+                    LayoutUnit::zero()
+                }
+            } else {
+                LayoutUnit::zero()
+            };
+            let max_h = if !max_block.is_none() {
+                if max_block.is_content_or_intrinsic() {
+                    let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                        doc,
+                        node_id,
+                        space,
+                        compute_intrinsic_block_sizes_with_layout(doc, node_id),
+                    );
+                    let intrinsic = match max_block.length_type() {
+                        LengthType::MinContent => sizes.min_content_block_size,
+                        _ => sizes.max_content_block_size,
+                    };
+                    (intrinsic - border_scrollbar_padding_block).clamp_negative_to_zero()
+                } else if !pct_base.is_indefinite() || max_block.is_fixed() {
+                    let max_raw = resolve_length(
+                        max_block,
+                        pct_base,
+                        LayoutUnit::zero(),
+                        LayoutUnit::from_i32(33554431),
+                    );
+                    if style.box_sizing == div_style::BoxSizing::BorderBox {
+                        (max_raw - border_scrollbar_padding_block).clamp_negative_to_zero()
+                    } else {
+                        (max_raw - logical_scrollbars.block_sum()).clamp_negative_to_zero()
+                    }
+                } else {
+                    LayoutUnit::from_i32(33554431)
+                }
+            } else {
+                LayoutUnit::from_i32(33554431)
+            };
+            container_cross.clamp(min_h, max_h)
+        } else {
+            container_cross
+        };
+
+        flex_lines[0].line_cross_size = clamped_cross;
+    }
+
+    // ── Compute total block size ─────────────────────────────────────
+    let intrinsic_block_size = compute_intrinsic_block_size(
+        &flex_lines,
+        is_column,
+        gap_between_lines,
+        border_scrollbar_padding_block,
+    );
+
+    let sizing_intrinsic_block_size = crate::containment::logical_block_fallback(style)
+        .map_or(intrinsic_block_size, |fallback| {
+            fallback + border_scrollbar_padding_block
+        });
+    let total_block_size = resolve_total_block_size(
+        doc,
+        node_id,
+        style,
+        space,
+        sizing_intrinsic_block_size,
+        border_padding_block,
+        container_inline_size,
+    );
+
+    // ── Fix: Recalculate main-axis free space for column flex ────────
+    // When the main axis was initially indefinite (auto-height column),
+    // items were frozen at hypothetical sizes with free_space=0. But
+    // total_block_size may be larger than intrinsic_block_size (due to
+    // min-height, stretch from parent, etc.). Recalculate so that
+    // justify-content and column-reverse positioning use the real free space.
+    // Blink: LayoutColumnReverse() recalculates offsets using the resolved size.
+    if is_column && effective_main_axis_inner_size.is_indefinite() {
+        let resolved_main =
+            (total_block_size - border_scrollbar_padding_block).clamp_negative_to_zero();
+        for line in &mut flex_lines {
+            let num_vis = line
+                .item_indices
+                .iter()
+                .filter(|&&idx| !flex_items[idx].is_collapsed)
+                .count() as i32;
+            let num_gaps = if num_vis > 1 { num_vis - 1 } else { 0 };
+            let total_gap = gap_between_items * num_gaps;
+            line.main_axis_free_space = resolved_main - line.main_axis_used_size - total_gap;
+        }
+    }
+    if is_column {
+        let resolved_main =
+            (total_block_size - border_scrollbar_padding_block).clamp_negative_to_zero();
+        let should_reflex_to_resolved_main = resolved_main.raw() > 0
+            && (effective_main_axis_inner_size.is_indefinite()
+                || resolved_main != effective_main_axis_inner_size);
+        if should_reflex_to_resolved_main {
+            effective_main_axis_inner_size = resolved_main;
+            for line in &mut flex_lines {
+                let sum_hyp: LayoutUnit = line
+                    .item_indices
+                    .iter()
+                    .map(|&idx| flex_items[idx].hypothetical_main_axis_margin_box_size())
+                    .fold(LayoutUnit::zero(), |acc, s| acc + s);
+                let mut flexer = LineFlexer::new(
+                    &mut flex_items,
+                    &line.item_indices,
+                    resolved_main,
+                    sum_hyp,
+                    gap_between_items,
+                );
+                flexer.run();
+
+                let total_flexed = line
+                    .item_indices
+                    .iter()
+                    .map(|&idx| flex_items[idx].flexed_margin_box_size())
+                    .fold(LayoutUnit::zero(), |acc, s| acc + s);
+                let visible_count = line
+                    .item_indices
+                    .iter()
+                    .filter(|&&idx| !flex_items[idx].is_collapsed)
+                    .count() as i32;
+                let gap_count = if visible_count > 1 {
+                    visible_count - 1
+                } else {
+                    0
+                };
+                let total_gap = gap_between_items * gap_count;
+                line.main_axis_used_size = total_flexed + total_gap;
+                line.main_axis_free_space = resolved_main - total_flexed - total_gap;
+            }
+        }
+    }
+
+    // ── Step 5b: Stretch cross-axis lines BEFORE reversal ────────────
+    // Blink performs align-content:stretch before reversing lines, so
+    // remainder pixels go to the first lines in original order.
+    let content_cross_size = if is_column {
+        content_inline_size
+    } else {
+        (total_block_size - border_scrollbar_padding_block).clamp_negative_to_zero()
+    };
+    {
+        let total_line_cross: LayoutUnit = flex_lines
+            .iter()
+            .map(|l| l.line_cross_size)
+            .fold(LayoutUnit::zero(), |acc, s| acc + s);
+        let num_line_gaps = if flex_lines.len() > 1 {
+            flex_lines.len() as i32 - 1
+        } else {
+            0
+        };
+        let total_line_gap = gap_between_lines * num_line_gaps;
+        let cross_free_space = content_cross_size - total_line_cross - total_line_gap;
+
+        let should_stretch_lines = style.align_content.distribution == ContentDistribution::Stretch
+            || (style.align_content.distribution == ContentDistribution::Default
+                && style.align_content.position == ContentPosition::Normal);
+        if should_stretch_lines && cross_free_space > LayoutUnit::zero() && flex_lines.len() > 0 {
+            let n = flex_lines.len() as i32;
+            let extra_per_line = LayoutUnit::from_raw(cross_free_space.raw() / n);
+            let remainder = cross_free_space.raw() % n;
+            for (i, line) in flex_lines.iter_mut().enumerate() {
+                let bonus = if (i as i32) < remainder {
+                    LayoutUnit::from_raw(1)
+                } else {
+                    LayoutUnit::zero()
+                };
+                line.line_cross_size = line.line_cross_size + extra_per_line + bonus;
+            }
+        }
+    }
+
+    // ── Step 6: Apply reversals (Blink line 1265) ────────────────────
+    if is_wrap_reverse {
+        flex_lines.reverse();
+    }
+    if is_reverse {
+        for line in &mut flex_lines {
+            line.item_indices.reverse();
+        }
+    }
+
+    let (children, computed_first_baseline, computed_last_baseline) = give_items_final_position(
+        doc,
+        &mut flex_items,
+        &mut flex_lines,
+        is_column,
+        is_reverse,
+        is_wrap_reverse,
+        is_horizontal_flow,
+        writing_direction,
+        effective_main_axis_inner_size,
+        content_cross_size,
+        gap_between_items,
+        gap_between_lines,
+        &style.justify_content,
+        &style.align_content,
+        &border,
+        &layout_padding,
+        child_percentage_inline,
+        child_percentage_block,
+        &hypothetical_cross_border_box_sizes,
+        container_inline_size,
+        total_block_size,
+    );
+
+    // ── Build fragment ───────────────────────────────────────────────
+    // When the container inline size is indefinite (e.g. auto-width flex container
+    // being measured for intrinsic sizing), shrink-wrap to the actual content.
+    // CSS Flexbox §9.2: auto main size → fit-content.
+    let final_inline_size =
+        if container_inline_size.is_indefinite() || container_inline_size < LayoutUnit::zero() {
+            // Compute from actual item sizes: max of all lines' used sizes
+            let max_line_main = flex_lines
+                .iter()
+                .map(|line| line.main_axis_used_size)
+                .fold(LayoutUnit::zero(), |acc, s| acc.max_of(s));
+            let result = if is_column {
+                let max_child_width = children
+                    .iter()
+                    .map(|c| c.offset.left + c.width())
+                    .fold(LayoutUnit::zero(), |acc, w| acc.max_of(w));
+                max_child_width + border.right + layout_padding.right
+            } else {
+                max_line_main + border_scrollbar_padding_inline
+            };
+            result
+        } else {
+            container_inline_size
+        };
+    let fragment_size =
+        logical_box.physical_size(LogicalSize::new(final_inline_size, total_block_size));
+    let mut fragment = Fragment::new_box(node_id, fragment_size);
+    fragment.element_scrollbars = element_scrollbars;
+    fragment.padding = padding.clone();
+    fragment.border = border.clone();
+    fragment.children = children;
+
+    // ── Lay out out-of-flow (absolute/fixed) children ────────────────
+    let content_inline =
+        (final_inline_size - border_scrollbar_padding_inline).clamp_negative_to_zero();
+    let content_block =
+        (total_block_size - border_scrollbar_padding_block).clamp_negative_to_zero();
+    let content_size = logical_box.physical_size(LogicalSize::new(content_inline, content_block));
+    // CSS Position: the padding box establishes the abspos containing block;
+    // flex alignment itself continues to use the content box below.
+    let cb_size = logical_box.physical_size(LogicalSize::new(
+        content_inline + logical_padding.inline_sum(),
+        content_block + logical_padding.block_sum(),
+    ));
+    let content_width = content_size.width;
+    let content_height = content_size.height;
+
+    let mut oof_candidates = Vec::new();
+    let mut bubbled_oof_candidates = Vec::new();
+    let is_root = node_id == doc.root();
+    let establishes_cb_for_abspos = style.position.is_positioned()
+        || is_root
+        || style.has_transform_containing_block()
+        || style.has_layout_containment()
+        || doc.anonymous_absolute_container(node_id);
+    let captures_fixed = is_root
+        || style.has_transform_containing_block()
+        || style.has_layout_containment()
+        || doc.anonymous_fixed_container(node_id);
+
+    // Collect bubbled OOF candidates from flex item fragments.
+    for child_frag in &mut fragment.children {
+        let bubbled = std::mem::take(&mut child_frag.oof_candidates);
+        for mut c in bubbled {
+            c.static_position.left = c.static_position.left + child_frag.offset.left;
+            c.static_position.top = c.static_position.top + child_frag.offset.top;
+            let captures = if c.style.position == div_style::Position::Fixed {
+                captures_fixed
+            } else {
+                establishes_cb_for_abspos
+            };
+            if captures {
+                c.containing_block_size = cb_size;
+                c.containing_block_offset =
+                    PhysicalOffset::new(scrollbar_insets.left, scrollbar_insets.top);
+                c.containing_block_border = border.clone();
+                c.containing_block_direction = style.direction;
+                c.containing_block_node = node_id;
+                oof_candidates.push(c);
+            } else {
+                bubbled_oof_candidates.push(c);
+            }
+        }
+    }
+
+    for child_id in flex_abspos_children(doc, node_id) {
+        let child_style = &doc.node(child_id).style;
+        if child_style.position.is_absolutely_positioned() {
+            // CSS Flexbox §4.1: The static position of an abspos child of a
+            // flex container is determined as if the child were the sole flex
+            // item in the container, using the container's alignment properties.
+            let static_position = compute_abspos_static_position(
+                doc,
+                child_id,
+                child_style,
+                style,
+                content_width,
+                content_height,
+                is_column,
+                &border,
+                &padding,
+                &scrollbar_insets,
+            );
+            let mut candidate = crate::out_of_flow::OutOfFlowCandidate {
+                node_id: child_id,
+                style: child_style.clone(),
+                static_position: static_position.offset,
+                static_position_horizontal_edge: static_position.horizontal_edge,
+                static_position_vertical_edge: static_position.vertical_edge,
+                containing_block_offset: PhysicalOffset::new(
+                    scrollbar_insets.left,
+                    scrollbar_insets.top,
+                ),
+                containing_block_node: NodeId::NONE,
+                containing_block_size: cb_size,
+                containing_block_border: border.clone(),
+                containing_block_direction: style.direction,
+                static_position_direction: style.direction,
+                has_inline_containing_block: false,
+                inline_containing_block_node: None,
+            };
+            let captures = if child_style.position == div_style::Position::Fixed {
+                captures_fixed
+            } else {
+                establishes_cb_for_abspos
+            };
+            if captures {
+                candidate.containing_block_node = node_id;
+                oof_candidates.push(candidate);
+            } else {
+                bubbled_oof_candidates.push(candidate);
+            }
+        }
+    }
+    if !oof_candidates.is_empty() {
+        let oof_fragments =
+            crate::out_of_flow::layout_out_of_flow_children_with_layout(doc, &oof_candidates);
+        fragment.children.extend(oof_fragments);
+    }
+    fragment.oof_candidates = bubbled_oof_candidates;
+    finalize_flex_fragment(doc, &mut fragment, style, is_column);
+    // Override baselines with values computed from the baseline alignment group.
+    // flex_baseline_from_child only examines the first/last child and cannot
+    // account for baseline-aligned items (which may be deeper in the list and
+    // may produce a baseline that extends beyond the container's block size).
+    // This matches Blink's BaselineAccumulator::AccumulateLine behavior where
+    // first_major_baseline_ = line.cross_axis_offset + line.major_baseline.
+    if computed_first_baseline.is_some() {
+        fragment.first_baseline = computed_first_baseline;
+    }
+    if computed_last_baseline.is_some() {
+        fragment.last_baseline = computed_last_baseline;
+    }
+
+    fragment
+}
+
+/// Resolve the container's logical inline size.
+fn resolve_container_inline_size(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    style: &div_style::ComputedStyle,
+    space: &ConstraintSpace,
+    border_padding_inline: LayoutUnit,
+) -> LayoutUnit {
+    let logical_sizes = crate::ResolvedLogicalBox::from_style(style).sizes;
+    let inline_size = logical_sizes.inline_size;
+    let resolved = if space.is_fixed_inline_size || space.stretch_inline_size {
+        // The parent flex algorithm has already resolved this container's
+        // post-flexing border-box inline size. That used size replaces even
+        // an authored intrinsic keyword during final child layout.
+        space.available_inline_size
+    } else if inline_size.is_auto() {
+        if space.available_inline_size.is_indefinite() {
+            // Shrink-to-fit: compute max-content inline size from children
+            let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                doc,
+                node_id,
+                space,
+                compute_intrinsic_block_sizes_with_layout(doc, node_id),
+            );
+            sizes.max_content_inline_size.max_of(border_padding_inline)
+        } else {
+            space.available_inline_size
+        }
+    } else if inline_size.is_content_or_intrinsic() {
+        // Resolve intrinsic sizing keywords for the flex container inline size.
+        let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+            doc,
+            node_id,
+            space,
+            compute_intrinsic_block_sizes_with_layout(doc, node_id),
+        );
+        let bp = border_padding_inline;
+        match inline_size.length_type() {
+            LengthType::MinContent => sizes.min_content_inline_size.max_of(bp),
+            LengthType::MaxContent => sizes.max_content_inline_size.max_of(bp),
+            LengthType::FitContent => {
+                let avail = space.available_inline_size;
+                let min = sizes.min_content_inline_size;
+                let max = sizes.max_content_inline_size;
+                avail.clamp(min, max).max_of(bp)
+            }
+            _ => space.available_inline_size,
+        }
+    } else {
+        let raw = resolve_length(
+            inline_size,
+            space.percentage_resolution_inline_size,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        if style.box_sizing == div_style::BoxSizing::BorderBox {
+            raw
+        } else {
+            raw + border_padding_inline
+        }
+    };
+
+    // Clamp to min/max
+    clamp_inline_size(doc, node_id, style, space, resolved, border_padding_inline)
+}
+
+/// Clamp the logical inline size to its min/max constraints.
+fn clamp_inline_size(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    style: &div_style::ComputedStyle,
+    space: &ConstraintSpace,
+    size: LayoutUnit,
+    border_padding_inline: LayoutUnit,
+) -> LayoutUnit {
+    let pct_base = space.percentage_resolution_inline_size;
+    let logical_sizes = crate::ResolvedLogicalBox::from_style(style).sizes;
+    let min_inline_size = logical_sizes.min_inline_size;
+    let max_inline_size = logical_sizes.max_inline_size;
+
+    let min = if !min_inline_size.is_auto() {
+        if min_inline_size.is_content_or_intrinsic() {
+            let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                doc,
+                node_id,
+                space,
+                compute_intrinsic_block_sizes_with_layout(doc, node_id),
+            );
+            match min_inline_size.length_type() {
+                LengthType::MinContent => sizes.min_content_inline_size,
+                _ => sizes.max_content_inline_size,
+            }
+        } else {
+            let min_raw = resolve_length(
+                min_inline_size,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            if style.box_sizing == div_style::BoxSizing::BorderBox {
+                min_raw
+            } else {
+                min_raw + border_padding_inline
+            }
+        }
+    } else {
+        LayoutUnit::zero()
+    };
+
+    let max = if !max_inline_size.is_none() {
+        if max_inline_size.is_content_or_intrinsic() {
+            let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                doc,
+                node_id,
+                space,
+                compute_intrinsic_block_sizes_with_layout(doc, node_id),
+            );
+            match max_inline_size.length_type() {
+                LengthType::MinContent => sizes.min_content_inline_size,
+                LengthType::MaxContent | LengthType::FitContent => sizes.max_content_inline_size,
+                _ => sizes.max_content_inline_size,
+            }
+        } else {
+            let max_raw = resolve_length(
+                max_inline_size,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::from_i32(33554431),
+            );
+            if style.box_sizing == div_style::BoxSizing::BorderBox {
+                max_raw
+            } else {
+                max_raw + border_padding_inline
+            }
+        }
+    } else {
+        LayoutUnit::from_i32(33554431) // nearly max
+    };
+
+    size.clamp(min, max)
+}
+
+/// Resolve the container's block size for flex layout.
+/// For column flex, this is the main-axis size. For row flex, just the cross size.
+fn resolve_container_block_size_for_flex(
+    style: &div_style::ComputedStyle,
+    space: &ConstraintSpace,
+    border_padding_block: LayoutUnit,
+    container_inline_size: LayoutUnit,
+) -> LayoutUnit {
+    let logical_sizes = crate::ResolvedLogicalBox::from_style(style).sizes;
+    let block_size = logical_sizes.block_size;
+    let min_block_size = logical_sizes.min_block_size;
+    let max_block_size = logical_sizes.max_block_size;
+    // When the parent flex has set a definite block size for this container,
+    // use it as the main axis size (e.g. nested column flex with stretch).
+    if space.is_fixed_block_size {
+        return (space.available_block_size - border_padding_block).clamp_negative_to_zero();
+    }
+    if space.stretch_block_size {
+        return (space.available_block_size - border_padding_block).clamp_negative_to_zero();
+    }
+
+    if block_size.is_auto() {
+        // CSS Sizing L4 §5.1: When a box has a preferred aspect ratio and
+        // auto height but a definite width, the height is computed from the
+        // width divided by the ratio.  For column flex this provides a
+        // definite main-axis size enabling correct wrapping.
+        if let Some(ar) = &style.aspect_ratio {
+            if ar.ratio.1 > 0.0 && ar.ratio.0 > 0.0 {
+                // container_inline_size is the border-box width of this flex container.
+                // For aspect-ratio, border-box width maps to border-box height:
+                //   border-box-height = border-box-width * (ratio.1 / ratio.0)
+                // Then content-box height = border-box-height - border_padding_block
+                if container_inline_size.raw() > 0 && !container_inline_size.is_indefinite() {
+                    let ratio = ar.ratio.0 / ar.ratio.1;
+                    let border_box_height =
+                        LayoutUnit::from_f32(container_inline_size.to_f32() / ratio);
+                    let height_from_ar =
+                        (border_box_height - border_padding_block).clamp_negative_to_zero();
+
+                    // Apply min-height / max-height clamping
+                    let min_h = if !min_block_size.is_auto() {
+                        let raw = resolve_length(
+                            min_block_size,
+                            space.percentage_resolution_block_size,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        if style.box_sizing == div_style::BoxSizing::BorderBox {
+                            (raw - border_padding_block).clamp_negative_to_zero()
+                        } else {
+                            raw
+                        }
+                    } else {
+                        LayoutUnit::zero()
+                    };
+                    let max_h = if !max_block_size.is_auto() && !max_block_size.is_none() {
+                        let raw = resolve_length(
+                            max_block_size,
+                            space.percentage_resolution_block_size,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        if style.box_sizing == div_style::BoxSizing::BorderBox {
+                            (raw - border_padding_block).clamp_negative_to_zero()
+                        } else {
+                            raw
+                        }
+                    } else {
+                        LayoutUnit::from_raw(i32::MAX / 2)
+                    };
+
+                    return height_from_ar.max_of(min_h).min_of(max_h);
+                }
+            }
+        }
+        // CSS Flexbox §9.7: When the flex container has a definite max main
+        // size (max-height for column), use it as the available space for the
+        // flex algorithm so that flex-shrink can produce negative free space.
+        // Blink: FlexLayoutAlgorithm::ComputeMainAxisAutoFallbackSize().
+        if !max_block_size.is_auto() && !max_block_size.is_none() {
+            let raw = resolve_length(
+                max_block_size,
+                space.percentage_resolution_block_size,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            let content_max = if style.box_sizing == div_style::BoxSizing::BorderBox {
+                (raw - border_padding_block).clamp_negative_to_zero()
+            } else {
+                raw
+            };
+            if content_max.raw() > 0 {
+                return content_max;
+            }
+        }
+        // Auto height with no max-height → indefinite main axis.
+        // Items stay at hypothetical sizes; container shrink-wraps.
+        LayoutUnit::from_raw(-64) // INDEFINITE_SIZE sentinel
+    } else {
+        let raw = resolve_length(
+            block_size,
+            space.percentage_resolution_block_size,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        let content = if style.box_sizing == div_style::BoxSizing::BorderBox {
+            raw - border_padding_block
+        } else {
+            raw
+        };
+        content.clamp_negative_to_zero()
+    }
+}
+
+/// Resolve the total block size of the container.
+fn resolve_total_block_size(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    style: &div_style::ComputedStyle,
+    space: &ConstraintSpace,
+    intrinsic_block_size: LayoutUnit,
+    border_padding_block: LayoutUnit,
+    container_inline_size: LayoutUnit,
+) -> LayoutUnit {
+    let logical_sizes = crate::ResolvedLogicalBox::from_style(style).sizes;
+    let block_size = logical_sizes.block_size;
+    let min_block_size = logical_sizes.min_block_size;
+    let max_block_size = logical_sizes.max_block_size;
+    let resolved = if space.is_fixed_block_size {
+        // Parent (e.g., column flex) has set a definite block size for this child
+        space.available_block_size
+    } else if space.stretch_block_size {
+        // Parent flex is stretching this container on the cross axis
+        space.available_block_size
+    } else if block_size.is_auto() {
+        // When aspect-ratio is set and width is definite, the block size is
+        // determined from the ratio — even if content is smaller.
+        if let Some(ar) = &style.aspect_ratio {
+            if ar.ratio.0 > 0.0
+                && ar.ratio.1 > 0.0
+                && container_inline_size.raw() > 0
+                && !container_inline_size.is_indefinite()
+            {
+                let ratio = ar.ratio.0 / ar.ratio.1;
+                let ar_block = LayoutUnit::from_f32(container_inline_size.to_f32() / ratio);
+                // Use the larger of AR-derived and intrinsic: AR provides the
+                // definite size from which wrapping was computed, but content
+                // might overflow (single-line or nowrap).
+                ar_block.max_of(intrinsic_block_size)
+            } else {
+                intrinsic_block_size
+            }
+        } else {
+            intrinsic_block_size
+        }
+    } else if block_size.is_content_or_intrinsic() && !style.flex_direction.is_column() {
+        // In a row flex container the block axis is the cross axis. Its
+        // intrinsic keyword is resolved from the already flexed line at the
+        // final intrinsic inline size so wrapping feeds back into cross size.
+        intrinsic_block_size
+    } else if block_size.is_content_or_intrinsic() {
+        let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+            doc,
+            node_id,
+            space,
+            compute_intrinsic_block_sizes_with_layout(doc, node_id),
+        );
+        match block_size.length_type() {
+            LengthType::MinContent => sizes.min_content_block_size.max_of(border_padding_block),
+            LengthType::MaxContent => sizes.max_content_block_size.max_of(border_padding_block),
+            _ => intrinsic_block_size,
+        }
+    } else {
+        let raw = resolve_length(
+            block_size,
+            space.percentage_resolution_block_size,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        if style.box_sizing == div_style::BoxSizing::BorderBox {
+            raw
+        } else {
+            raw + border_padding_block
+        }
+    };
+
+    // Clamp min/max
+    let pct_base = space.percentage_resolution_block_size;
+
+    let min = if !min_block_size.is_auto()
+        && (!pct_base.is_indefinite()
+            || min_block_size.is_fixed()
+            || min_block_size.is_content_or_intrinsic())
+    {
+        if min_block_size.is_content_or_intrinsic() {
+            let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                doc,
+                node_id,
+                space,
+                compute_intrinsic_block_sizes_with_layout(doc, node_id),
+            );
+            match min_block_size.length_type() {
+                LengthType::MinContent => sizes.min_content_block_size.max_of(border_padding_block),
+                _ => sizes.max_content_block_size.max_of(border_padding_block),
+            }
+        } else {
+            let min_raw = resolve_length(
+                min_block_size,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            if style.box_sizing == div_style::BoxSizing::BorderBox {
+                min_raw
+            } else {
+                min_raw + border_padding_block
+            }
+        }
+    } else {
+        LayoutUnit::zero()
+    };
+
+    let max = if !max_block_size.is_none()
+        && (!pct_base.is_indefinite()
+            || max_block_size.is_fixed()
+            || max_block_size.is_content_or_intrinsic())
+    {
+        if max_block_size.is_content_or_intrinsic() {
+            let sizes = crate::scrollbars::intrinsic_sizes_for_layout(
+                doc,
+                node_id,
+                space,
+                compute_intrinsic_block_sizes_with_layout(doc, node_id),
+            );
+            match max_block_size.length_type() {
+                LengthType::MinContent => sizes.min_content_block_size.max_of(border_padding_block),
+                LengthType::MaxContent | LengthType::FitContent => {
+                    sizes.max_content_block_size.max_of(border_padding_block)
+                }
+                _ => sizes.max_content_block_size.max_of(border_padding_block),
+            }
+        } else {
+            let max_raw = resolve_length(
+                max_block_size,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::from_i32(33554431),
+            );
+            if style.box_sizing == div_style::BoxSizing::BorderBox {
+                max_raw
+            } else {
+                max_raw + border_padding_block
+            }
+        }
+    } else {
+        LayoutUnit::from_i32(33554431)
+    };
+
+    resolved.clamp(min, max)
+}
+
+/// Resolve a gap value (row-gap or column-gap).
+fn resolve_gap(gap: &Option<Length>, percentage_base: LayoutUnit) -> LayoutUnit {
+    match gap {
+        Some(length) => resolve_length(
+            length,
+            percentage_base,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        ),
+        None => LayoutUnit::zero(), // normal = 0px for flex
+    }
+}
+
+/// Construct flex items from in-flow children.
+/// Blink: `ConstructAndAppendFlexItems()` at line 801.
+fn construct_flex_items(
+    doc: &dyn LayoutDocument,
+    container_id: NodeId,
+    is_column: bool,
+    is_horizontal_flow: bool,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    main_axis_inner_size: LayoutUnit,
+    space: &ConstraintSpace,
+) -> Vec<FlexItem> {
+    let container_style = &doc.node(container_id).style;
+
+    // Collect children with their order values, then stable sort.  display:contents
+    // nodes do not generate flex item boxes; their box-generating children are
+    // promoted into the flex container's child list.
+    let mut flex_children = flex_box_children(doc, container_id);
+    if doc.node(container_id).pseudo_kind == Some(PseudoElementKind::ScrollMarkerGroup) {
+        let origin = doc.node(container_id).pseudo_origin;
+        if !origin.is_none() {
+            let origin_fragment = crate::block::block_layout_with_layout(doc, origin, space);
+            let column_count = origin_fragment
+                .children
+                .iter()
+                .filter(|fragment| fragment.kind == crate::fragment::FragmentKind::ColumnBox)
+                .count()
+                .max(1);
+            if column_count > 1 {
+                flex_children = flex_children
+                    .into_iter()
+                    .flat_map(|child_id| {
+                        let count = if doc.node(child_id).pseudo_kind
+                            == Some(PseudoElementKind::ColumnScrollMarker)
+                        {
+                            column_count
+                        } else {
+                            1
+                        };
+                        std::iter::repeat_n(child_id, count)
+                    })
+                    .collect();
+            }
+        }
+    }
+    let mut children_with_order: Vec<(NodeId, i32)> = Vec::new();
+    for child_id in flex_children {
+        let child_style = &doc.node(child_id).style;
+        children_with_order.push((child_id, child_style.order));
+    }
+
+    // Stable sort by order (Blink: FlexChildIterator)
+    children_with_order.sort_by_key(|&(_, order)| order);
+
+    let mut items = Vec::with_capacity(children_with_order.len());
+
+    for (item_index, &(child_id, _)) in children_with_order.iter().enumerate() {
+        let child_style = &doc.node(child_id).style;
+
+        // CSS Flexbox §4.4: visibility:collapse items participate in layout
+        // but with zero main size. They still contribute to line cross size.
+        let is_collapsed = child_style.visibility == div_style::Visibility::Collapse;
+
+        // Read flex properties — CSS spec requires non-negative values.
+        let flex_grow = child_style.flex_grow.max(0.0);
+        let flex_shrink = child_style.flex_shrink.max(0.0);
+
+        // Resolve alignment (Blink: ResolvedAlignSelf, line 261)
+        let (alignment, alignment_overflow) = resolve_item_alignment(child_style, container_style);
+
+        // Compute margins
+        let margin_pct_base = child_percentage_inline;
+        let margin = resolve_margins(child_style, margin_pct_base);
+
+        // Compute border + padding
+        let child_border = resolve_border(child_style);
+        let child_padding = resolve_padding(child_style, child_percentage_inline);
+
+        let main_axis_border_padding = if is_horizontal_flow {
+            child_border.inline_sum() + child_padding.inline_sum()
+        } else {
+            child_border.block_sum() + child_padding.block_sum()
+        };
+
+        // Count auto margins on main axis
+        let main_axis_auto_margin_count = if is_horizontal_flow {
+            (if child_style.margin_left.is_auto() {
+                1u8
+            } else {
+                0
+            }) + (if child_style.margin_right.is_auto() {
+                1
+            } else {
+                0
+            })
+        } else {
+            (if child_style.margin_top.is_auto() {
+                1u8
+            } else {
+                0
+            }) + (if child_style.margin_bottom.is_auto() {
+                1
+            } else {
+                0
+            })
+        };
+
+        // ── Resolve flex-basis (Blink lines 942-1024) ────────────────
+        let (base_content_size, is_used_flex_basis_indefinite) = resolve_flex_basis(
+            doc,
+            child_id,
+            child_style,
+            is_column,
+            is_horizontal_flow,
+            main_axis_border_padding,
+            child_percentage_inline,
+            child_percentage_block,
+            main_axis_inner_size,
+            space,
+            alignment,
+        );
+
+        // ── Resolve min/max on main axis (Blink lines 1145-1157) ─────
+        let main_axis_min_max = resolve_main_axis_min_max(
+            doc,
+            child_id,
+            child_style,
+            is_column,
+            is_horizontal_flow,
+            main_axis_border_padding,
+            child_percentage_inline,
+            child_percentage_block,
+            base_content_size,
+            is_used_flex_basis_indefinite,
+            alignment,
+        );
+        // Hypothetical = clamp base to min/max. Collapsed flex items keep their
+        // flex base for line sizing/positioning, but their fragments are not painted.
+        let hypothetical_content_size = main_axis_min_max.clamp(base_content_size);
+
+        items.push(FlexItem {
+            node_id: child_id,
+            item_index,
+            flex_grow,
+            flex_shrink,
+            base_content_size,
+            hypothetical_content_size,
+            main_axis_min_max,
+            main_axis_border_padding,
+            margin,
+            main_axis_auto_margin_count,
+            alignment,
+            alignment_overflow,
+            flexed_content_size: LayoutUnit::zero(),
+            state: FlexerState::None,
+            free_space_fraction: 0.0,
+            is_used_flex_basis_indefinite,
+            is_horizontal_flow,
+            is_collapsed,
+        });
+    }
+
+    items
+}
+
+/// Layout one concrete flex item. Text children generate anonymous flex-item
+/// boxes whose contents are an inline formatting context; invoking block
+/// layout directly on the Text node would otherwise measure its advance but
+/// produce an empty zero-height box with no paintable text fragment.
+fn layout_flex_item(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    space: &ConstraintSpace,
+) -> Fragment {
+    if doc.node(child_id).tag == ElementTag::Text {
+        let anonymous_run = anonymous_flex_text_run(doc, child_id);
+        let mut fragment = crate::inline::algorithm::inline_layout_for_children_with_layout(
+            doc,
+            child_id,
+            &anonymous_run,
+            space,
+        );
+        // The inline algorithm's public working pair is logical
+        // (inline, block). A direct text child has no block wrapper to perform
+        // the normal projection, so the flex-item boundary must do it once.
+        if !space.writing_direction.is_horizontal() {
+            let logical_size = LogicalSize::new(fragment.size.width, fragment.size.height);
+            let physical_size = WritingModeConverter::new(
+                space.writing_direction,
+                PhysicalSize::new(LayoutUnit::zero(), LayoutUnit::zero()),
+            )
+            .to_physical_size(logical_size);
+            for child in &mut fragment.children {
+                crate::block::project_logical_child_to_physical(
+                    child,
+                    space.writing_direction,
+                    physical_size,
+                );
+            }
+            fragment.size = physical_size;
+        }
+        fragment
+    } else {
+        crate::block::block_layout_with_layout(doc, child_id, space)
+    }
+}
+
+fn flex_box_children(doc: &dyn LayoutDocument, parent_id: NodeId) -> Vec<NodeId> {
+    let mut flattened = Vec::new();
+    flatten_flex_box_children(doc, parent_id, &mut flattened);
+    let mut children = Vec::new();
+    let mut in_anonymous_text_run = false;
+    for child_id in flattened {
+        let child_style = &doc.node(child_id).style;
+        if child_style.display == div_style::Display::None {
+            continue;
+        }
+        // A marker pseudo belongs to its originating scroller's external
+        // scroll-marker group. It does not also generate a flex item in the
+        // origin's principal box.
+        if doc.node(parent_id).pseudo_kind != Some(PseudoElementKind::ScrollMarkerGroup)
+            && matches!(
+                doc.node(child_id).pseudo_kind,
+                Some(PseudoElementKind::ScrollMarker) | Some(PseudoElementKind::ColumnScrollMarker)
+            )
+        {
+            continue;
+        }
+        if matches!(doc.node(child_id).tag, ElementTag::Text | ElementTag::Break) {
+            // A contiguous text/<br> sequence generates one anonymous flex
+            // item whose contents establish an inline formatting context.
+            // CSS Flexbox §4 discards an anonymous item containing only
+            // whitespace, including under white-space:pre.
+            if !in_anonymous_text_run && doc.node(child_id).tag == ElementTag::Text {
+                let whitespace_only = anonymous_flex_text_run(doc, child_id).iter().all(|id| {
+                    let node = doc.node(*id);
+                    node.tag == ElementTag::Text
+                        && node.text.as_deref().is_none_or(|text| {
+                            text.chars()
+                                .all(|ch| matches!(ch, ' ' | '\t' | '\n' | '\r' | '\u{000C}'))
+                        })
+                });
+                if !whitespace_only {
+                    children.push(child_id);
+                }
+            }
+            in_anonymous_text_run = true;
+            continue;
+        }
+        in_anonymous_text_run = false;
+        if child_style.position.is_absolutely_positioned() {
+            continue;
+        }
+        children.push(child_id);
+    }
+    children
+}
+
+fn flatten_flex_box_children(
+    doc: &dyn LayoutDocument,
+    parent_id: NodeId,
+    output: &mut Vec<NodeId>,
+) {
+    if doc.node(parent_id).pseudo_kind == Some(PseudoElementKind::ScrollMarkerGroup) {
+        let origin = doc.node(parent_id).pseudo_origin;
+        if !origin.is_none() {
+            crate::block::collect_scroll_marker_group_items(doc, origin, output);
+        }
+        return;
+    }
+
+    for child_id in doc.children(parent_id) {
+        let child_style = &doc.node(child_id).style;
+        if child_style.display == div_style::Display::Contents
+            && !child_style.position.is_absolutely_positioned()
+        {
+            flatten_flex_box_children(doc, child_id, output);
+        } else {
+            output.push(child_id);
+        }
+    }
+}
+
+fn anonymous_flex_text_run(doc: &dyn LayoutDocument, representative: NodeId) -> Vec<NodeId> {
+    let mut flex_parent = doc.node(representative).parent;
+    while !flex_parent.is_none() && !doc.node(flex_parent).style.display.is_flex() {
+        flex_parent = doc.node(flex_parent).parent;
+    }
+    if flex_parent.is_none() {
+        return vec![representative];
+    }
+    let mut flattened = Vec::new();
+    flatten_flex_box_children(doc, flex_parent, &mut flattened);
+    let mut result = Vec::new();
+    let mut collecting = false;
+    for child_id in flattened {
+        if child_id == representative {
+            collecting = true;
+        }
+        if !collecting {
+            continue;
+        }
+        if matches!(doc.node(child_id).tag, ElementTag::Text | ElementTag::Break) {
+            result.push(child_id);
+        } else {
+            break;
+        }
+    }
+    if result.is_empty() {
+        result.push(representative);
+    }
+    result
+}
+
+fn anonymous_flex_text_run_max_inline_size(
+    doc: &dyn LayoutDocument,
+    representative: NodeId,
+) -> Option<LayoutUnit> {
+    let run = anonymous_flex_text_run(doc, representative);
+    let mut current = LayoutUnit::zero();
+    let mut maximum = LayoutUnit::zero();
+    for child_id in run {
+        let child = doc.node(child_id);
+        if child.tag == ElementTag::Break {
+            maximum = maximum.max_of(current);
+            current = LayoutUnit::zero();
+        } else {
+            current = current
+                + crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(
+                    doc, child_id,
+                )
+                .max;
+        }
+    }
+    Some(maximum.max_of(current))
+}
+
+fn flex_abspos_children(doc: &dyn LayoutDocument, parent_id: NodeId) -> Vec<NodeId> {
+    let mut children = Vec::new();
+    append_flex_abspos_children(doc, parent_id, &mut children);
+    children
+}
+
+fn append_flex_abspos_children(
+    doc: &dyn LayoutDocument,
+    parent_id: NodeId,
+    children: &mut Vec<NodeId>,
+) {
+    for child_id in doc.children(parent_id) {
+        let child_style = &doc.node(child_id).style;
+        if child_style.display == div_style::Display::None {
+            continue;
+        }
+        if child_style.position.is_absolutely_positioned() {
+            children.push(child_id);
+            continue;
+        }
+        if child_style.display == div_style::Display::Contents {
+            append_flex_abspos_children(doc, child_id, children);
+        }
+    }
+}
+
+/// Resolve the effective alignment for a flex item.
+/// Blink: `ResolvedAlignSelf()` at flex_layout_algorithm.cc:261.
+fn resolve_item_alignment(
+    child_style: &div_style::ComputedStyle,
+    parent_style: &div_style::ComputedStyle,
+) -> (ItemPosition, OverflowAlignment) {
+    // Legacy flexible boxes predate align-self. Their children always use the
+    // container's -webkit-box-align value, even if a modern align-self rule
+    // also matches the child.
+    let mut position = if parent_style.legacy_webkit_box {
+        parent_style.align_items.position
+    } else {
+        child_style.align_self.position
+    };
+    let mut overflow = if parent_style.legacy_webkit_box {
+        parent_style.align_items.overflow
+    } else {
+        child_style.align_self.overflow
+    };
+
+    // auto → inherit from parent's align-items
+    if position == ItemPosition::Auto {
+        position = parent_style.align_items.position;
+        overflow = parent_style.align_items.overflow;
+    }
+
+    // normal → stretch in flex context
+    if position == ItemPosition::Normal {
+        position = ItemPosition::Stretch;
+    }
+
+    // CSS Box Alignment §4: Start/SelfStart and End/SelfEnd are NOT
+    // equivalent to FlexStart/FlexEnd — they are axis-relative and must
+    // NOT be flipped by flex-wrap:wrap-reverse.  Preserve them so that
+    // resolve_align_self can handle them correctly.
+    (position, overflow)
+}
+
+/// Resolve flex-basis for a flex item.
+/// Blink: lines 942-1024 of flex_layout_algorithm.cc.
+///
+/// Returns (base_content_size, is_used_flex_basis_indefinite).
+fn resolve_flex_basis(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    child_style: &div_style::ComputedStyle,
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    main_axis_border_padding: LayoutUnit,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    main_axis_inner_size: LayoutUnit,
+    space: &ConstraintSpace,
+    resolved_alignment: ItemPosition,
+) -> (LayoutUnit, bool) {
+    let flex_basis = &child_style.flex_basis;
+
+    // Step 1: If flex-basis is not auto, try to resolve it
+    if !flex_basis.is_auto() {
+        // Handle intrinsic sizing keywords (min-content, max-content, fit-content)
+        // and the `content` keyword.
+        if flex_basis.is_content_or_intrinsic() {
+            // First try aspect-ratio transfer: if the item has a definite cross
+            // size and an aspect ratio, derive the main size from it. This is
+            // handled by resolve_content_based_size which already has full AR logic.
+            let ar_size = resolve_content_based_size(
+                doc,
+                child_id,
+                child_style,
+                is_column,
+                is_main_axis_horizontal,
+                main_axis_border_padding,
+                child_percentage_inline,
+                child_percentage_block,
+                true,
+                space,
+                resolved_alignment,
+            );
+            // resolve_content_based_size returns the AR-derived content size
+            // when applicable, or falls back to layout-based sizing.
+            // For min-content specifically, we need the min-content value.
+            if flex_basis.length_type() == LengthType::MinContent {
+                let contrib =
+                    crate::intrinsic_sizing::compute_child_intrinsic_contribution_with_layout(
+                        doc, child_id,
+                    );
+                let child_margin = resolve_margins(child_style, LayoutUnit::zero());
+                let margin_main = if is_main_axis_horizontal {
+                    child_margin.left + child_margin.right
+                } else {
+                    child_margin.top + child_margin.bottom
+                };
+                let intrinsic = if is_main_axis_horizontal {
+                    contrib.min_content_inline_size - margin_main
+                } else {
+                    contrib.min_content_block_size - margin_main
+                };
+                let content = (intrinsic - main_axis_border_padding).clamp_negative_to_zero();
+                // Use the larger of AR-derived and min-content
+                return (content.max_of(ar_size), true);
+            }
+            return (ar_size, true);
+        }
+
+        // CSS Flexbox §9.2: percentage flex-basis resolves against the flex
+        // container's main size. For column flex, use main_axis_inner_size
+        // (which accounts for parent-imposed sizes), not child_percentage_block.
+        let pct_base = if is_column {
+            main_axis_inner_size
+        } else {
+            child_percentage_inline
+        };
+
+        // CSS Flexbox §9.2 step E: a percentage flex-basis with an indefinite
+        // containing block falls back to content-based sizing. This includes
+        // zero percentages: `0%` remains distinct from a definite `0px` basis.
+        if !pct_base.is_indefinite() || flex_basis.is_fixed() {
+            let resolved =
+                resolve_length(flex_basis, pct_base, LayoutUnit::zero(), LayoutUnit::zero());
+            let content = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                (resolved - main_axis_border_padding).clamp_negative_to_zero()
+            } else {
+                // CSS Flexbox §4.2: negative flex-basis clamps to 0
+                resolved.clamp_negative_to_zero()
+            };
+            return (content, false);
+        }
+
+        // Percentage with indefinite base → content-based
+        return (
+            resolve_content_based_size(
+                doc,
+                child_id,
+                child_style,
+                is_column,
+                is_main_axis_horizontal,
+                main_axis_border_padding,
+                child_percentage_inline,
+                child_percentage_block,
+                true,
+                space,
+                resolved_alignment,
+            ),
+            true,
+        );
+    }
+
+    // Step 2: flex-basis: auto → use width/height in main axis direction
+    let main_length = if is_main_axis_horizontal {
+        &child_style.width
+    } else {
+        &child_style.height
+    };
+
+    if !main_length.is_auto() {
+        if main_length.is_stretch() && !main_axis_inner_size.is_indefinite() {
+            let margin = resolve_margins(child_style, child_percentage_inline);
+            let main_margin = if is_main_axis_horizontal {
+                margin.left + margin.right
+            } else {
+                margin.top + margin.bottom
+            };
+            let border_box = (main_axis_inner_size - main_margin).clamp_negative_to_zero();
+            return (
+                (border_box - main_axis_border_padding).clamp_negative_to_zero(),
+                false,
+            );
+        }
+
+        // Handle intrinsic sizing keywords on width/height
+        if main_length.is_content_or_intrinsic() {
+            let intrinsic = if is_main_axis_horizontal {
+                let is_wrapping_column_flex = child_style.display.is_flex()
+                    && child_style.flex_direction.is_column()
+                    && child_style.flex_wrap != div_style::FlexWrap::Nowrap;
+                let has_cross_auto_margin =
+                    child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto();
+                let stretched_block_size = (is_wrapping_column_flex
+                    && !child_percentage_block.is_indefinite()
+                    && resolved_alignment == ItemPosition::Stretch
+                    && (child_style.height.is_auto() || child_style.height.is_stretch())
+                    && !has_cross_auto_margin)
+                    .then(|| {
+                        let margin = resolve_margins(child_style, child_percentage_inline);
+                        (child_percentage_block - margin.block_sum()).clamp_negative_to_zero()
+                    });
+                if let Some(block_size) = stretched_block_size {
+                    let sizes =
+                        crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_block_size_with_layout(
+                            doc,
+                            child_id,
+                            block_size,
+                            child_percentage_inline,
+                        );
+                    match main_length.length_type() {
+                        LengthType::MinContent => sizes.min,
+                        _ => sizes.max,
+                    }
+                } else {
+                    let sizes = compute_intrinsic_block_sizes_with_layout(doc, child_id);
+                    match main_length.length_type() {
+                        LengthType::MinContent => sizes.min_content_inline_size,
+                        _ => sizes.max_content_inline_size,
+                    }
+                }
+            } else {
+                let sizes = compute_intrinsic_block_sizes_with_layout(doc, child_id);
+                match main_length.length_type() {
+                    LengthType::MinContent => sizes.min_content_block_size,
+                    _ => sizes.max_content_block_size,
+                }
+            };
+            let content = (intrinsic - main_axis_border_padding).clamp_negative_to_zero();
+            return (content, false);
+        }
+
+        // Percentage main sizes resolve in the container's logical main
+        // axis. Physical width/height happens to match this only in
+        // horizontal writing modes.
+        let pct_base = if is_column {
+            child_percentage_block
+        } else {
+            child_percentage_inline
+        };
+
+        if !pct_base.is_indefinite() || main_length.is_fixed() {
+            let resolved = resolve_length(
+                main_length,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            let content = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                (resolved - main_axis_border_padding).clamp_negative_to_zero()
+            } else {
+                resolved
+            };
+            if child_style.display.is_table_wrapper() && !is_main_axis_horizontal {
+                let captions = crate::table::compute_table_caption_block_size(
+                    doc,
+                    child_id,
+                    child_percentage_inline,
+                    space,
+                );
+                return (content + captions, false);
+            }
+            return (content, false);
+        }
+    }
+
+    // A percentage-width table inside an otherwise auto-sized block flex item
+    // contributes that percentage of the definite flex container to the
+    // item's flex base. This is the table-wrapper cyclic-percentage rule used
+    // before flex shrink distributes multiple such items across the line.
+    if is_main_axis_horizontal && !child_percentage_inline.is_indefinite() {
+        let mut in_flow = doc.children(child_id).filter(|descendant_id| {
+            let descendant = doc.node(*descendant_id);
+            descendant.style.display != div_style::Display::None
+                && !descendant.style.is_out_of_flow()
+                && descendant.style.float == div_style::Float::None
+        });
+        if let Some(descendant_id) = in_flow.next() {
+            let descendant_style = &doc.node(descendant_id).style;
+            if in_flow.next().is_none()
+                && descendant_style.display.is_table_wrapper()
+                && descendant_style.width.is_percent()
+            {
+                let descendant_border = resolve_border(descendant_style);
+                let descendant_padding = resolve_padding(descendant_style, child_percentage_inline);
+                let resolved = resolve_length(
+                    &descendant_style.width,
+                    child_percentage_inline,
+                    LayoutUnit::zero(),
+                    LayoutUnit::zero(),
+                );
+                let border_box = if descendant_style.box_sizing == div_style::BoxSizing::BorderBox {
+                    resolved
+                } else {
+                    resolved + descendant_border.inline_sum() + descendant_padding.inline_sum()
+                };
+                return (
+                    (border_box - main_axis_border_padding).clamp_negative_to_zero(),
+                    false,
+                );
+            }
+        }
+    }
+
+    // Step 3: Content-based sizing (max-content)
+    (
+        resolve_content_based_size(
+            doc,
+            child_id,
+            child_style,
+            is_column,
+            is_main_axis_horizontal,
+            main_axis_border_padding,
+            child_percentage_inline,
+            child_percentage_block,
+            false,
+            space,
+            resolved_alignment,
+        ),
+        true,
+    )
+}
+
+/// Resolve content-based (intrinsic) size for a flex item.
+/// This runs a child layout to determine the item's natural size.
+/// Also handles aspect-ratio: if the item has an aspect ratio and one dimension
+/// is known, derive the main-axis size from the cross-axis size.
+fn effective_flex_item_aspect_ratio(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    child_style: &div_style::ComputedStyle,
+) -> Option<div_style::AspectRatio> {
+    let natural_ratio = doc
+        .node(child_id)
+        .replaced
+        .and_then(|replaced| replaced.intrinsic_ratio)
+        .filter(|(width, height)| *width > 0.0 && *height > 0.0);
+    match child_style.aspect_ratio {
+        Some(ratio) if ratio.auto_flag => natural_ratio
+            .map(|natural| div_style::AspectRatio {
+                ratio: natural,
+                auto_flag: true,
+            })
+            .or(Some(ratio)),
+        Some(ratio) if ratio.ratio.0 > 0.0 && ratio.ratio.1 > 0.0 => Some(ratio),
+        Some(_) => natural_ratio.map(|natural| div_style::AspectRatio {
+            ratio: natural,
+            auto_flag: true,
+        }),
+        None => natural_ratio.map(|natural| div_style::AspectRatio {
+            ratio: natural,
+            auto_flag: true,
+        }),
+    }
+}
+
+fn stretched_cross_replaced_inline_contribution(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    stretched_block_size: LayoutUnit,
+) -> Option<LayoutUnit> {
+    if stretched_block_size.is_indefinite()
+        || !crate::intrinsic_sizing::has_block_dependent_replaced_descendant(doc, node_id)
+    {
+        return None;
+    }
+    Some(
+        crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_block_size_with_layout(
+            doc,
+            node_id,
+            stretched_block_size,
+            LayoutUnit::zero(),
+        )
+        .max,
+    )
+}
+
+fn resolve_content_based_size(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    child_style: &div_style::ComputedStyle,
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    main_axis_border_padding: LayoutUnit,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    replaces_main_size: bool,
+    _space: &ConstraintSpace,
+    resolved_alignment: ItemPosition,
+) -> LayoutUnit {
+    let axis_mapping = FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+    if is_main_axis_horizontal && doc.node(child_id).tag == ElementTag::Text {
+        if let Some(max_inline) = anonymous_flex_text_run_max_inline_size(doc, child_id) {
+            return (max_inline - main_axis_border_padding).clamp_negative_to_zero();
+        }
+    }
+    let effective_aspect_ratio = effective_flex_item_aspect_ratio(doc, child_id, child_style);
+    let (_container_main_percentage, container_cross_percentage) = axis_mapping
+        .container_logical_to_main_cross(child_percentage_inline, child_percentage_block);
+    // Check if aspect-ratio can resolve the main-axis size from a known cross-axis size
+    if let Some(ar) = effective_aspect_ratio.as_ref() {
+        let ratio = ar.ratio;
+        if ratio.0 > 0.0 && ratio.1 > 0.0 {
+            let cross_prop = if is_main_axis_horizontal {
+                &child_style.height
+            } else {
+                &child_style.width
+            };
+            let cross_pct = container_cross_percentage;
+
+            let definite_cross = if cross_prop.is_stretch() && !cross_pct.is_indefinite() {
+                let margin = resolve_margins(child_style, LayoutUnit::zero());
+                let cross_margin = if is_main_axis_horizontal {
+                    margin.top + margin.bottom
+                } else {
+                    margin.left + margin.right
+                };
+                let border = resolve_border(child_style);
+                let padding = resolve_padding(child_style, LayoutUnit::zero());
+                let cross_edges = if is_main_axis_horizontal {
+                    border.top + border.bottom + padding.top + padding.bottom
+                } else {
+                    border.left + border.right + padding.left + padding.right
+                };
+                let margin_box = (cross_pct - cross_margin).clamp_negative_to_zero();
+                Some(
+                    if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                        margin_box
+                    } else {
+                        (margin_box - cross_edges).clamp_negative_to_zero()
+                    },
+                )
+            } else if !cross_prop.is_auto() && (!cross_pct.is_indefinite() || cross_prop.is_fixed())
+            {
+                Some(resolve_length(
+                    cross_prop,
+                    cross_pct,
+                    LayoutUnit::zero(),
+                    LayoutUnit::zero(),
+                ))
+            } else {
+                None
+            };
+
+            if let Some(mut cross_val) = definite_cross {
+                // Clamp by min/max cross-axis constraints before AR transfer.
+                let (min_cross, max_cross) = if is_main_axis_horizontal {
+                    (&child_style.min_height, &child_style.max_height)
+                } else {
+                    (&child_style.min_width, &child_style.max_width)
+                };
+                if !max_cross.is_none() && !max_cross.is_auto() {
+                    if !max_cross.is_percent() || !cross_pct.is_indefinite() {
+                        let max_v = resolve_length(
+                            max_cross,
+                            cross_pct,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        if cross_val > max_v {
+                            cross_val = max_v;
+                        }
+                    }
+                }
+                if !min_cross.is_auto() && !min_cross.is_none() && *min_cross != Length::zero() {
+                    if !min_cross.is_percent() || !cross_pct.is_indefinite() {
+                        let min_v = resolve_length(
+                            min_cross,
+                            cross_pct,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        if cross_val < min_v {
+                            cross_val = min_v;
+                        }
+                    }
+                }
+                // CSS Sizing 4 §5.1: a bare ratio respects box-sizing; `auto <ratio>`
+                // transfers through the content box when no intrinsic ratio exists.
+                let b = resolve_border(child_style);
+                let p = resolve_padding(child_style, LayoutUnit::zero());
+                let cross_bp = if is_main_axis_horizontal {
+                    b.top + b.bottom + p.top + p.bottom
+                } else {
+                    b.left + b.right + p.left + p.right
+                };
+                let main_bp = if is_main_axis_horizontal {
+                    b.left + b.right + p.left + p.right
+                } else {
+                    b.top + b.bottom + p.top + p.bottom
+                };
+                let box_sizing_for_ar = if ar.auto_flag {
+                    div_style::BoxSizing::ContentBox
+                } else {
+                    child_style.box_sizing
+                };
+                let main_val = if box_sizing_for_ar == div_style::BoxSizing::BorderBox {
+                    // AR on border-box: main_bb = cross_bb × ratio
+                    let main_bb = if is_main_axis_horizontal {
+                        LayoutUnit::from_f32(cross_val.to_f32() * ratio.0 / ratio.1)
+                    } else {
+                        LayoutUnit::from_f32(cross_val.to_f32() * ratio.1 / ratio.0)
+                    };
+                    (main_bb - main_bp).clamp_negative_to_zero()
+                } else {
+                    // AR on content-box: main = cross × ratio
+                    let content_cross = if child_style.box_sizing == div_style::BoxSizing::BorderBox
+                    {
+                        (cross_val - cross_bp).clamp_negative_to_zero()
+                    } else {
+                        cross_val
+                    };
+                    if is_main_axis_horizontal {
+                        LayoutUnit::from_f32(content_cross.to_f32() * ratio.0 / ratio.1)
+                    } else {
+                        LayoutUnit::from_f32(content_cross.to_f32() * ratio.1 / ratio.0)
+                    }
+                };
+                return main_val;
+            }
+
+            if cross_prop.is_auto() {
+                let (min_cross, _) = if is_main_axis_horizontal {
+                    (&child_style.min_height, &child_style.max_height)
+                } else {
+                    (&child_style.min_width, &child_style.max_width)
+                };
+                if !min_cross.is_auto() && !min_cross.is_none() && *min_cross != Length::zero() {
+                    if !min_cross.is_percent() || !cross_pct.is_indefinite() {
+                        let cross_val = resolve_length(
+                            min_cross,
+                            cross_pct,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        let b = resolve_border(child_style);
+                        let p = resolve_padding(child_style, LayoutUnit::zero());
+                        let cross_bp = if is_main_axis_horizontal {
+                            b.top + b.bottom + p.top + p.bottom
+                        } else {
+                            b.left + b.right + p.left + p.right
+                        };
+                        let box_sizing_for_ar = if ar.auto_flag {
+                            div_style::BoxSizing::ContentBox
+                        } else {
+                            child_style.box_sizing
+                        };
+                        let content_cross = if box_sizing_for_ar == div_style::BoxSizing::BorderBox
+                        {
+                            cross_val
+                        } else if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                            (cross_val - cross_bp).clamp_negative_to_zero()
+                        } else {
+                            cross_val
+                        };
+                        return if is_main_axis_horizontal {
+                            LayoutUnit::from_f32(content_cross.to_f32() * ratio.0 / ratio.1)
+                        } else {
+                            LayoutUnit::from_f32(content_cross.to_f32() * ratio.1 / ratio.0)
+                        };
+                    }
+                }
+
+                let max_cross = if is_main_axis_horizontal {
+                    &child_style.max_height
+                } else {
+                    &child_style.max_width
+                };
+                if !max_cross.is_none()
+                    && !max_cross.is_auto()
+                    && (!max_cross.is_percent() || !cross_pct.is_indefinite())
+                {
+                    let natural_cross = doc.node(child_id).replaced.and_then(|replaced| {
+                        let explicit = if is_main_axis_horizontal {
+                            replaced.intrinsic_height
+                        } else {
+                            replaced.intrinsic_width
+                        };
+                        explicit.or_else(|| {
+                            if replaced.intrinsic_width.is_some()
+                                || replaced.intrinsic_height.is_some()
+                            {
+                                return None;
+                            }
+                            let default_ratio = 300.0 / 150.0;
+                            let (ratio_width, ratio_height) = ratio;
+                            let (default_width, default_height) =
+                                if ratio_width / ratio_height > default_ratio {
+                                    (300.0, 300.0 * ratio_height / ratio_width)
+                                } else {
+                                    (150.0 * ratio_width / ratio_height, 150.0)
+                                };
+                            Some(if is_main_axis_horizontal {
+                                default_height
+                            } else {
+                                default_width
+                            })
+                        })
+                    });
+                    if let Some(natural_cross) = natural_cross.filter(|value| *value >= 0.0) {
+                        let b = resolve_border(child_style);
+                        let p = resolve_padding(child_style, LayoutUnit::zero());
+                        let cross_bp = if is_main_axis_horizontal {
+                            b.top + b.bottom + p.top + p.bottom
+                        } else {
+                            b.left + b.right + p.left + p.right
+                        };
+                        let main_bp = if is_main_axis_horizontal {
+                            b.left + b.right + p.left + p.right
+                        } else {
+                            b.top + b.bottom + p.top + p.bottom
+                        };
+                        let max_cross_value = resolve_length(
+                            max_cross,
+                            cross_pct,
+                            LayoutUnit::zero(),
+                            LayoutUnit::max(),
+                        );
+                        let natural_cross = LayoutUnit::from_f32(natural_cross);
+                        let box_sizing_for_ar = if ar.auto_flag {
+                            div_style::BoxSizing::ContentBox
+                        } else {
+                            child_style.box_sizing
+                        };
+                        let used_cross = if box_sizing_for_ar == div_style::BoxSizing::BorderBox {
+                            (natural_cross + cross_bp).min_of(max_cross_value)
+                        } else {
+                            natural_cross.min_of(
+                                if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                    (max_cross_value - cross_bp).clamp_negative_to_zero()
+                                } else {
+                                    max_cross_value
+                                },
+                            )
+                        };
+                        return if box_sizing_for_ar == div_style::BoxSizing::BorderBox {
+                            let main_border_box = if is_main_axis_horizontal {
+                                LayoutUnit::from_f32(used_cross.to_f32() * ratio.0 / ratio.1)
+                            } else {
+                                LayoutUnit::from_f32(used_cross.to_f32() * ratio.1 / ratio.0)
+                            };
+                            (main_border_box - main_bp).clamp_negative_to_zero()
+                        } else if is_main_axis_horizontal {
+                            LayoutUnit::from_f32(used_cross.to_f32() * ratio.0 / ratio.1)
+                        } else {
+                            LayoutUnit::from_f32(used_cross.to_f32() * ratio.1 / ratio.0)
+                        };
+                    }
+                }
+            }
+
+            // CSS Flexbox §9.2 step 3(B): If cross-size is auto but the item
+            // will stretch (align-self: stretch + definite container cross),
+            // the cross-size is definite and equals the container cross minus margins.
+            // NOTE: Must resolve align-self against parent's align-items, since
+            // auto/normal inherit from the parent.
+            if cross_prop.is_auto() {
+                // Use the flex container's own resolved cross-axis content size,
+                // not the parent's available size (which may be much larger).
+                let cross_container = container_cross_percentage;
+                if !cross_container.is_indefinite() {
+                    // CSS Flexbox §9.4: Cross-axis auto margins prevent stretching.
+                    let has_cross_auto_margin = if is_main_axis_horizontal {
+                        child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto()
+                    } else {
+                        child_style.margin_left.is_auto() || child_style.margin_right.is_auto()
+                    };
+                    // Use the resolved alignment (which already accounts for
+                    // parent's align-items when align-self is auto/normal).
+                    let would_stretch =
+                        resolved_alignment == ItemPosition::Stretch && !has_cross_auto_margin;
+                    if would_stretch {
+                        let margin = resolve_margins(child_style, LayoutUnit::zero());
+                        let cross_margin = if is_main_axis_horizontal {
+                            margin.top + margin.bottom
+                        } else {
+                            margin.left + margin.right
+                        };
+                        let b = resolve_border(child_style);
+                        let p = resolve_padding(child_style, LayoutUnit::zero());
+                        let cross_bp = if is_main_axis_horizontal {
+                            b.top + b.bottom + p.top + p.bottom
+                        } else {
+                            b.left + b.right + p.left + p.right
+                        };
+                        let stretched_bb =
+                            (cross_container - cross_margin).clamp_negative_to_zero();
+                        // CSS Sizing 4 §5.1: a bare ratio respects box-sizing; `auto <ratio>`
+                        // transfers through the content box when no intrinsic ratio exists.
+                        let box_sizing_for_ar = if ar.auto_flag {
+                            div_style::BoxSizing::ContentBox
+                        } else {
+                            child_style.box_sizing
+                        };
+                        let main_val = if box_sizing_for_ar == div_style::BoxSizing::BorderBox {
+                            // AR on border-box: main_bb = cross_bb * ratio
+                            let main_bb = if is_main_axis_horizontal {
+                                LayoutUnit::from_f32(stretched_bb.to_f32() * ratio.0 / ratio.1)
+                            } else {
+                                LayoutUnit::from_f32(stretched_bb.to_f32() * ratio.1 / ratio.0)
+                            };
+                            let main_bp = if is_main_axis_horizontal {
+                                b.left + b.right + p.left + p.right
+                            } else {
+                                b.top + b.bottom + p.top + p.bottom
+                            };
+                            (main_bb - main_bp).clamp_negative_to_zero()
+                        } else {
+                            let content_cross = (stretched_bb - cross_bp).clamp_negative_to_zero();
+                            if is_main_axis_horizontal {
+                                LayoutUnit::from_f32(content_cross.to_f32() * ratio.0 / ratio.1)
+                            } else {
+                                LayoutUnit::from_f32(content_cross.to_f32() * ratio.1 / ratio.0)
+                            }
+                        };
+                        return main_val;
+                    }
+                }
+            }
+        }
+    }
+
+    if axis_mapping.main_axis_is_child_inline
+        && !axis_mapping.child_writing_direction.is_horizontal()
+    {
+        let intrinsic =
+            crate::intrinsic_sizing::compute_logical_intrinsic_inline_sizes(doc, child_id);
+        return (intrinsic.max - main_axis_border_padding).clamp_negative_to_zero();
+    }
+
+    // `flex-basis: content` substitutes the item's max-content contribution
+    // for its preferred main size.  Running normal layout in the row axis
+    // would apply an authored width and turn (for example) an empty padded
+    // item's 10px content contribution into width + padding.
+    if replaces_main_size && is_main_axis_horizontal {
+        let intrinsic = compute_intrinsic_block_sizes_with_layout(doc, child_id);
+        return (intrinsic.max_content_inline_size - main_axis_border_padding)
+            .clamp_negative_to_zero();
+    }
+
+    // Flex base sizing ignores min/max constraints on the main axis. A final
+    // layout pass already applies those constraints, so measuring a replaced
+    // item through block_layout_with_layout here incorrectly bakes (for example) a
+    // min-width into the base before free-space distribution. Definite cross
+    // sizes and stretch transfers were handled above; the remaining
+    // content-based basis is the resource's natural main-axis dimension.
+    if let Some(replaced) = doc.node(child_id).replaced {
+        let natural_main = if is_main_axis_horizontal {
+            replaced.intrinsic_width
+        } else {
+            replaced.intrinsic_height
+        };
+        if let Some(natural_main) = natural_main.filter(|value| *value >= 0.0) {
+            return LayoutUnit::from_f32(natural_main);
+        }
+        if effective_aspect_ratio.is_some() {
+            // A ratio-only replaced item has no natural size contribution in
+            // an unconstrained main axis. Definite cross-size transfers have
+            // already returned above; do not invent the 300x150 default box
+            // while resolving its flex base.
+            return LayoutUnit::zero();
+        }
+    }
+
+    // For content-based sizing, lay out the child with unconstrained main axis.
+    // CSS Flexbox §9.2: When computing the flex base size from content, the cross-
+    // axis available size depends on alignment and the item's own constraints.
+    // If the item will stretch, use the container's cross-axis size.
+    // If not stretching, use the item's own cross-axis constraints (max-width
+    // for column, max-height for row) to bound the layout, since the item
+    // will shrink-wrap to its content.
+    // CSS Flexbox §9.4: Cross-axis auto margins prevent stretching.
+    let has_cross_auto_margin_for_stretch = if is_main_axis_horizontal {
+        child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto()
+    } else {
+        child_style.margin_left.is_auto() || child_style.margin_right.is_auto()
+    };
+    let cross_size_is_auto = if is_main_axis_horizontal {
+        child_style.height.is_auto() || child_style.height.is_stretch()
+    } else {
+        child_style.width.is_auto() || child_style.width.is_stretch()
+    };
+    let would_stretch_cross = resolved_alignment == ItemPosition::Stretch
+        && cross_size_is_auto
+        && !has_cross_auto_margin_for_stretch;
+    let physical_margin = resolve_margins(child_style, LayoutUnit::zero());
+    let cross_margin = if is_main_axis_horizontal {
+        physical_margin.top + physical_margin.bottom
+    } else {
+        physical_margin.left + physical_margin.right
+    };
+    let mut child_space = if is_column {
+        let mut cross_inline = if would_stretch_cross {
+            if child_percentage_inline.is_indefinite() {
+                child_percentage_inline
+            } else {
+                (child_percentage_inline - cross_margin).clamp_negative_to_zero()
+            }
+        } else if child_style.aspect_ratio.is_some() && child_style.width.is_auto() {
+            // AR items with auto cross-size: use indefinite so AR derives
+            // main from content, not from container width.
+            LayoutUnit::from_raw(-64)
+        } else if !child_style.max_width.is_none() && !child_style.max_width.is_auto() {
+            // Item has explicit max-width: use it as constraint
+            let max_w = resolve_length(
+                &child_style.max_width,
+                child_percentage_inline,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            max_w
+        } else if child_style.width.is_auto() {
+            let has_float_descendant = doc.children(child_id).any(|grandchild_id| {
+                let grandchild_style = &doc.node(grandchild_id).style;
+                grandchild_style.display != div_style::Display::None
+                    && !grandchild_style.position.is_absolutely_positioned()
+                    && grandchild_style.float != div_style::Float::None
+            });
+            if has_float_descendant && !child_percentage_inline.is_indefinite() {
+                // Flex-base measurement uses the container's cross
+                // opportunity. Floats can stack in that measure and increase
+                // the content-based main size even when the item's eventual
+                // max-content cross size is wider.
+                (child_percentage_inline - cross_margin).clamp_negative_to_zero()
+            } else {
+                let min_max = crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(
+                    doc, child_id,
+                );
+                if min_max.max > LayoutUnit::zero() {
+                    min_max.max
+                } else {
+                    LayoutUnit::from_raw(-64)
+                }
+            }
+        } else {
+            LayoutUnit::from_raw(-64)
+        };
+        // The cross constraint used while measuring an automatic column main
+        // size already includes the item's min/max width. Otherwise content is
+        // laid out at the unclamped container width and can wrap into a flex
+        // base that remains too tall after the final cross size is clamped.
+        if !cross_inline.is_indefinite() {
+            let border = resolve_border(child_style);
+            let padding = resolve_padding(child_style, child_percentage_inline);
+            let cross_bp = border.left + border.right + padding.left + padding.right;
+            let min_raw = resolve_cross_min_max(
+                doc,
+                child_id,
+                &child_style.min_width,
+                true,
+                child_percentage_inline,
+                true,
+            );
+            let max_raw = resolve_cross_min_max(
+                doc,
+                child_id,
+                &child_style.max_width,
+                true,
+                child_percentage_inline,
+                false,
+            );
+            let min_border_box = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                min_raw
+            } else if min_raw > LayoutUnit::zero() {
+                min_raw + cross_bp
+            } else {
+                min_raw
+            };
+            let max_border_box = if max_raw == LayoutUnit::from_i32(33554431)
+                || child_style.box_sizing == div_style::BoxSizing::BorderBox
+            {
+                max_raw
+            } else {
+                max_raw + cross_bp
+            };
+            cross_inline = cross_inline.clamp(min_border_box, max_border_box);
+        }
+        let pct_inline_for_child = if cross_inline.is_indefinite() {
+            child_percentage_inline
+        } else {
+            cross_inline
+        };
+        axis_mapping.child_space(
+            LayoutUnit::from_raw(-64), // indefinite main axis
+            cross_inline,
+            pct_inline_for_child,
+            child_percentage_block,
+        )
+    } else {
+        // Use the flex container's own cross-axis content size, not the parent's.
+        let container_cross_block = child_percentage_block;
+        let cross_block = if would_stretch_cross && !container_cross_block.is_indefinite() {
+            (container_cross_block - cross_margin).clamp_negative_to_zero()
+        } else if child_style.aspect_ratio.is_some() && child_style.height.is_auto() {
+            LayoutUnit::from_raw(-64)
+        } else if !container_cross_block.is_indefinite() {
+            container_cross_block
+        } else {
+            LayoutUnit::from_raw(-64)
+        };
+        axis_mapping.child_space(
+            LayoutUnit::from_raw(-64), // indefinite main axis
+            cross_block,
+            child_percentage_inline,
+            child_percentage_block,
+        )
+    };
+    if would_stretch_cross
+        && crate::intrinsic_sizing::has_block_dependent_replaced_descendant(doc, child_id)
+    {
+        // Flexbox §9.2 gives content-based main-size measurement the
+        // definite eventual stretched cross size. Descendant percentages can
+        // therefore resolve during this probe (for example a 100%-high canvas
+        // transferring its natural ratio into an inline flex item's width).
+        axis_mapping.set_cross_stretch(&mut child_space);
+    }
+
+    // CSS Flexbox §9.2 step E: "size the item into the available space using
+    // its used flex basis in place of its main size, treating a value of content
+    // as max-content." For column flex, the main axis is block — block_layout_with_layout
+    // would use the item's own `height` property (even with indefinite available
+    // space, a fixed height still resolves). Instead, compute the intrinsic
+    // max-content block size, which ignores the item's height property and
+    // measures purely from content.
+    if is_column {
+        // For aspect-ratio items, try deriving main from cross first
+        if let Some(ref ar) = effective_aspect_ratio {
+            let ratio = ar.ratio;
+            if ratio.0 > 0.0 && ratio.1 > 0.0 {
+                let child_fragment = layout_flex_item(doc, child_id, &child_space);
+                let cross_size = if is_main_axis_horizontal {
+                    child_fragment.height()
+                } else {
+                    child_fragment.width()
+                };
+                if !cross_size.is_indefinite() && cross_size > LayoutUnit::zero() {
+                    let derived_main = if is_main_axis_horizontal {
+                        LayoutUnit::from_f32(cross_size.to_f32() * ratio.0 / ratio.1)
+                    } else {
+                        LayoutUnit::from_f32(cross_size.to_f32() * ratio.1 / ratio.0)
+                    };
+                    return (derived_main - main_axis_border_padding).clamp_negative_to_zero();
+                }
+            }
+        }
+
+        let mut main_size = if replaces_main_size {
+            // Size the item with its used flex basis substituted for the main
+            // size. A measurement document provides that style override while
+            // retaining the actual cross size, so wrapping, floats, controls,
+            // and replaced descendants all contribute through normal layout.
+            let measurement_style = doc.node(child_id).style.derive(|style| {
+                if is_main_axis_horizontal {
+                    style.width = Length::auto();
+                } else {
+                    style.height = Length::auto();
+                }
+            });
+            let measurement_context =
+                crate::layout_context::NodeStyleContext::new(doc, child_id, measurement_style);
+            let child_fragment = layout_flex_item(&measurement_context, child_id, &child_space);
+            if is_main_axis_horizontal {
+                child_fragment.width()
+            } else {
+                child_fragment.height()
+            }
+        } else if child_style.display.is_table_wrapper() && child_style.height.is_auto() {
+            // Flex base sizes ignore min/max main-size constraints. Running a
+            // table layout here would already apply min-height and inflate the
+            // base before free-space distribution; use the raw table content
+            // contribution and clamp only when forming the hypothetical size.
+            compute_intrinsic_block_sizes_with_layout(doc, child_id).max_content_block_size
+        } else {
+            // Preserve the established auto/content path: its layout-based
+            // sizing also carries cross-axis constraints and aspect-ratio
+            // effects that are not part of percentage-basis replacement.
+            let child_fragment = layout_flex_item(doc, child_id, &child_space);
+            if is_main_axis_horizontal {
+                child_fragment.width()
+            } else {
+                child_fragment.height()
+            }
+            .clamp_indefinite_to_zero()
+        };
+        if axis_mapping.main_axis_is_child_inline
+            && axis_mapping.percentage_edges_use_container_inline
+        {
+            // The unconstrained block-layout probe shrink-wraps using an
+            // intrinsic contribution where cyclic percentage edges are zero.
+            // Once the containing inline size is known, the used flex base
+            // keeps the same content contribution and adds the resolved edge
+            // delta to its border box before converting back to content-box.
+            let intrinsic =
+                crate::intrinsic_sizing::compute_logical_intrinsic_inline_sizes(doc, child_id);
+            let border = resolve_border(child_style);
+            let zero_padding = resolve_padding(child_style, LayoutUnit::zero());
+            let zero_main_edges = if is_main_axis_horizontal {
+                border.inline_sum() + zero_padding.inline_sum()
+            } else {
+                border.block_sum() + zero_padding.block_sum()
+            };
+            let resolved_edge_delta =
+                (main_axis_border_padding - zero_main_edges).clamp_negative_to_zero();
+            main_size = main_size.max_of(intrinsic.max + resolved_edge_delta);
+        }
+        return (main_size - main_axis_border_padding).clamp_negative_to_zero();
+    }
+
+    let child_fragment = layout_flex_item(doc, child_id, &child_space);
+
+    let mut main_size = if is_main_axis_horizontal {
+        child_fragment.width()
+    } else {
+        child_fragment.height()
+    };
+
+    let has_definite_cross_constraint = would_stretch_cross
+        || (!child_style.height.is_auto()
+            && (!child_percentage_block.is_indefinite() || child_style.height.is_fixed()))
+        || (!child_style.min_height.is_auto()
+            && !child_style.min_height.is_none()
+            && (!child_percentage_block.is_indefinite() || child_style.min_height.is_fixed()))
+        || (!child_style.max_height.is_auto()
+            && !child_style.max_height.is_none()
+            && (!child_percentage_block.is_indefinite() || child_style.max_height.is_fixed()));
+    if is_main_axis_horizontal && has_definite_cross_constraint {
+        if let Some(transferred_descendant) =
+            stretched_cross_replaced_inline_contribution(doc, child_id, child_fragment.height())
+        {
+            main_size = transferred_descendant;
+        }
+    }
+
+    // If block_layout_with_layout returned indefinite (empty element with unconstrained axis),
+    // treat as zero content size.
+    let main_size = main_size.clamp_indefinite_to_zero();
+
+    // Apply aspect-ratio for row flex: derive main (inline) from cross (block)
+    if let Some(ref ar) = effective_aspect_ratio {
+        let ratio = ar.ratio;
+        if ratio.0 > 0.0 && ratio.1 > 0.0 {
+            let cross_size = if is_main_axis_horizontal {
+                child_fragment.height()
+            } else {
+                child_fragment.width()
+            };
+            if !cross_size.is_indefinite() && cross_size > LayoutUnit::zero() {
+                let derived_main = if is_main_axis_horizontal {
+                    LayoutUnit::from_f32(cross_size.to_f32() * ratio.0 / ratio.1)
+                } else {
+                    LayoutUnit::from_f32(cross_size.to_f32() * ratio.1 / ratio.0)
+                };
+                let (cross_max, cross_percentage) = if is_main_axis_horizontal {
+                    (&child_style.max_height, container_cross_percentage)
+                } else {
+                    (&child_style.max_width, container_cross_percentage)
+                };
+                let cross_max_is_definite = !cross_max.is_none()
+                    && (!cross_percentage.is_indefinite() || cross_max.is_fixed());
+                if derived_main > main_size || cross_max_is_definite {
+                    return (derived_main - main_axis_border_padding).clamp_negative_to_zero();
+                }
+            }
+        }
+    }
+
+    // Convert from border-box to content-box
+    (main_size - main_axis_border_padding).clamp_negative_to_zero()
+}
+
+/// CSS Flexbox §4.5: Compute the "transferred size suggestion" for a flex item.
+///
+/// If the item has an aspect ratio and its flex base size is content-based
+/// (not definite), the transferred size suggestion is the size transferred
+/// through its AR from its definite cross-axis constraint.
+///
+/// Returns `Some(content_box_main_size)` if a transferred suggestion exists.
+fn compute_transferred_size_suggestion(
+    ar: &div_style::AspectRatio,
+    child_style: &div_style::ComputedStyle,
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    resolved_alignment: ItemPosition,
+    pct_inline: LayoutUnit,
+    pct_block: LayoutUnit,
+    main_axis_border_padding: LayoutUnit,
+) -> Option<LayoutUnit> {
+    if ar.ratio.0 <= 0.0 || ar.ratio.1 <= 0.0 {
+        return None;
+    }
+
+    // Determine the definite cross-axis size.
+    let axis_mapping = FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+    let (main_pct, cross_pct) = axis_mapping.container_logical_to_main_cross(pct_inline, pct_block);
+    let cross_prop = if is_main_axis_horizontal {
+        &child_style.height
+    } else {
+        &child_style.width
+    };
+
+    let b = resolve_border(child_style);
+    let p = resolve_padding(child_style, LayoutUnit::zero());
+    let cross_bp = if is_main_axis_horizontal {
+        b.top + b.bottom + p.top + p.bottom
+    } else {
+        b.left + b.right + p.left + p.right
+    };
+    let main_bp = if is_main_axis_horizontal {
+        b.left + b.right + p.left + p.right
+    } else {
+        b.top + b.bottom + p.top + p.bottom
+    };
+    let is_border_box = child_style.box_sizing == div_style::BoxSizing::BorderBox;
+    let ar_uses_border_box = is_border_box && !ar.auto_flag;
+
+    // Get the cross-axis border-box size (for AR transfer).
+    let cross_container = cross_pct;
+    let cross_bb = if cross_prop.is_stretch() && !cross_container.is_indefinite() {
+        // CSS Sizing 4 stretch-fit sizing is a definite cross size even when
+        // the item opts out of flex alignment stretching with align-self.
+        let margin = resolve_margins(child_style, LayoutUnit::zero());
+        let cross_margin = if is_main_axis_horizontal {
+            margin.top + margin.bottom
+        } else {
+            margin.left + margin.right
+        };
+        (cross_container - cross_margin).clamp_negative_to_zero()
+    } else if !cross_prop.is_auto() && (!cross_pct.is_indefinite() || cross_prop.is_fixed()) {
+        // Explicit cross-axis property → use it.
+        let resolved = resolve_length(
+            cross_prop,
+            cross_pct,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        if is_border_box {
+            resolved
+        } else {
+            resolved + cross_bp
+        }
+    } else if cross_prop.is_auto() {
+        // Check if the item would stretch to a definite cross size.
+        let has_cross_auto_margin = if is_main_axis_horizontal {
+            child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto()
+        } else {
+            child_style.margin_left.is_auto() || child_style.margin_right.is_auto()
+        };
+        let would_stretch = resolved_alignment == ItemPosition::Stretch && !has_cross_auto_margin;
+        if would_stretch && !cross_container.is_indefinite() {
+            let margin = resolve_margins(child_style, LayoutUnit::zero());
+            let cross_margin = if is_main_axis_horizontal {
+                margin.top + margin.bottom
+            } else {
+                margin.left + margin.right
+            };
+            (cross_container - cross_margin).clamp_negative_to_zero()
+        } else {
+            // A definite minimum cross size is itself a transferable cross
+            // constraint even when the preferred cross size is auto and the
+            // flex container's cross size is indefinite.
+            let cross_min = if is_main_axis_horizontal {
+                &child_style.min_height
+            } else {
+                &child_style.min_width
+            };
+            if cross_min.is_auto()
+                || cross_min.is_none()
+                || (cross_min.is_percent() && cross_pct.is_indefinite())
+            {
+                return None;
+            }
+            let resolved =
+                resolve_length(cross_min, cross_pct, LayoutUnit::zero(), LayoutUnit::zero());
+            if is_border_box {
+                resolved
+            } else {
+                resolved + cross_bp
+            }
+        }
+    } else {
+        return None;
+    };
+
+    // CSS Sizing 4 §5.1: a bare ratio respects box-sizing; `auto <ratio>`
+    // transfers through the content box when no intrinsic ratio exists.
+    let transferred = if ar_uses_border_box {
+        // AR on border-box: main_bb = cross_bb × ratio
+        let main_bb = if is_main_axis_horizontal {
+            LayoutUnit::from_f32(cross_bb.to_f32() * ar.ratio.0 / ar.ratio.1)
+        } else {
+            LayoutUnit::from_f32(cross_bb.to_f32() * ar.ratio.1 / ar.ratio.0)
+        };
+        (main_bb - main_bp).clamp_negative_to_zero()
+    } else {
+        // AR on content-box: convert to content, apply ratio
+        let cross_content = (cross_bb - cross_bp).clamp_negative_to_zero();
+        if is_main_axis_horizontal {
+            LayoutUnit::from_f32(cross_content.to_f32() * ar.ratio.0 / ar.ratio.1)
+        } else {
+            LayoutUnit::from_f32(cross_content.to_f32() * ar.ratio.1 / ar.ratio.0)
+        }
+    };
+
+    // Clamp by cross-axis min/max transferred through AR.
+    let (cross_min_prop, cross_max_prop) = if is_main_axis_horizontal {
+        (&child_style.min_height, &child_style.max_height)
+    } else {
+        (&child_style.min_width, &child_style.max_width)
+    };
+    let cross_min = if !cross_min_prop.is_auto()
+        && !cross_min_prop.is_none()
+        && (!cross_pct.is_indefinite() || cross_min_prop.is_fixed())
+    {
+        let r = resolve_length(
+            cross_min_prop,
+            cross_pct,
+            LayoutUnit::zero(),
+            LayoutUnit::zero(),
+        );
+        let cross_min_bb = if is_border_box { r } else { r + cross_bp };
+        if ar_uses_border_box {
+            let main_min_bb = if is_main_axis_horizontal {
+                LayoutUnit::from_f32(cross_min_bb.to_f32() * ar.ratio.0 / ar.ratio.1)
+            } else {
+                LayoutUnit::from_f32(cross_min_bb.to_f32() * ar.ratio.1 / ar.ratio.0)
+            };
+            (main_min_bb - main_bp).clamp_negative_to_zero()
+        } else {
+            let content_min = (cross_min_bb - cross_bp).clamp_negative_to_zero();
+            if is_main_axis_horizontal {
+                LayoutUnit::from_f32(content_min.to_f32() * ar.ratio.0 / ar.ratio.1)
+            } else {
+                LayoutUnit::from_f32(content_min.to_f32() * ar.ratio.1 / ar.ratio.0)
+            }
+        }
+    } else {
+        LayoutUnit::zero()
+    };
+    let cross_max =
+        if !cross_max_prop.is_none() && (!cross_pct.is_indefinite() || cross_max_prop.is_fixed()) {
+            let r = resolve_length(
+                cross_max_prop,
+                cross_pct,
+                LayoutUnit::zero(),
+                LayoutUnit::from_i32(33554431),
+            );
+            let cross_max_bb = if is_border_box { r } else { r + cross_bp };
+            if ar_uses_border_box {
+                let main_max_bb = if is_main_axis_horizontal {
+                    LayoutUnit::from_f32(cross_max_bb.to_f32() * ar.ratio.0 / ar.ratio.1)
+                } else {
+                    LayoutUnit::from_f32(cross_max_bb.to_f32() * ar.ratio.1 / ar.ratio.0)
+                };
+                (main_max_bb - main_bp).clamp_negative_to_zero()
+            } else {
+                let content_max = (cross_max_bb - cross_bp).clamp_negative_to_zero();
+                if is_main_axis_horizontal {
+                    LayoutUnit::from_f32(content_max.to_f32() * ar.ratio.0 / ar.ratio.1)
+                } else {
+                    LayoutUnit::from_f32(content_max.to_f32() * ar.ratio.1 / ar.ratio.0)
+                }
+            }
+        } else {
+            LayoutUnit::from_i32(33554431)
+        };
+
+    // Also clamp by main-axis max if definite.
+    let main_max_prop = if is_main_axis_horizontal {
+        &child_style.max_width
+    } else {
+        &child_style.max_height
+    };
+    let main_max =
+        if !main_max_prop.is_none() && (!main_pct.is_indefinite() || main_max_prop.is_fixed()) {
+            let r = resolve_length(
+                main_max_prop,
+                main_pct,
+                LayoutUnit::zero(),
+                LayoutUnit::from_i32(33554431),
+            );
+            if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                (r - main_axis_border_padding).clamp_negative_to_zero()
+            } else {
+                r
+            }
+        } else {
+            LayoutUnit::from_i32(33554431)
+        };
+
+    let result = transferred.clamp(cross_min, cross_max).min_of(main_max);
+    Some(result)
+}
+
+/// Whether this node's own inline formatting context contains a semantic
+/// forced break. Inline wrappers are transparent here; atomic/block children
+/// establish their own formatting context and are measured independently.
+fn has_semantic_break_in_inline_flow(doc: &dyn LayoutDocument, node_id: NodeId) -> bool {
+    doc.children(node_id).any(|child_id| {
+        let child = doc.node(child_id);
+        if child.style.display == div_style::Display::None
+            || child.style.position.is_absolutely_positioned()
+        {
+            return false;
+        }
+        if child.tag == ElementTag::Break {
+            return true;
+        }
+        matches!(
+            child.style.display,
+            div_style::Display::Inline | div_style::Display::Contents
+        ) && has_semantic_break_in_inline_flow(doc, child_id)
+    })
+}
+
+/// Resolve min/max constraints on the main axis.
+/// Blink: lines 1034-1157.
+fn resolve_main_axis_min_max(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    child_style: &div_style::ComputedStyle,
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    main_axis_border_padding: LayoutUnit,
+    pct_inline: LayoutUnit,
+    pct_block: LayoutUnit,
+    _base_content_size: LayoutUnit,
+    is_basis_from_content: bool,
+    resolved_alignment: ItemPosition,
+) -> MinMaxSizes {
+    let axis_mapping = FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+    let effective_aspect_ratio = effective_flex_item_aspect_ratio(doc, child_id, child_style);
+    let main_is_child_inline = axis_mapping.main_axis_is_child_inline;
+    let (min_prop, max_prop) = if is_main_axis_horizontal {
+        (&child_style.min_width, &child_style.max_width)
+    } else {
+        (&child_style.min_height, &child_style.max_height)
+    };
+    let pct_base = if is_column { pct_block } else { pct_inline };
+
+    // ── Resolve min ──────────────────────────────────────────────────
+    let min = if min_prop.is_auto() {
+        // CSS Flexbox §4.5: Automatic Minimum Size
+        // Scroll containers use an automatic minimum size of zero. Non-scrollable
+        // overflow values (visible and clip) keep the content-based minimum.
+        if child_style.is_scroll_container() {
+            LayoutUnit::zero()
+        } else {
+            // CSS Flexbox §4.5: Content size suggestion is the min-content
+            // size in the main axis. Always compute min-content intrinsic
+            // size — base_content_size is max-content when flex-basis was
+            // content-based, which is NOT the right value here.
+            let content_size = if main_is_child_inline {
+                let constrained_cross = if !is_column
+                    && axis_mapping.child_writing_direction.is_horizontal()
+                    && !pct_block.is_indefinite()
+                    && crate::intrinsic_sizing::has_block_dependent_replaced_descendant(
+                        doc, child_id,
+                    ) {
+                    let border = resolve_border(child_style);
+                    let padding = resolve_padding(child_style, pct_inline);
+                    let block_edges = border.block_sum() + padding.block_sum();
+                    let margins = resolve_margins(child_style, pct_inline);
+                    let to_border_box = |raw: LayoutUnit| {
+                        if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                            raw.max_of(block_edges)
+                        } else {
+                            raw + block_edges
+                        }
+                    };
+                    let resolve_bound = |length: &Length| {
+                        (!length.is_auto()
+                            && !length.is_none()
+                            && !length.is_content_or_intrinsic())
+                        .then(|| {
+                            resolve_length(
+                                length,
+                                pct_block,
+                                div_geometry::INDEFINITE_SIZE,
+                                div_geometry::INDEFINITE_SIZE,
+                            )
+                        })
+                        .filter(|value| !value.is_indefinite())
+                        .map(to_border_box)
+                    };
+                    resolve_bound(&child_style.height).or_else(|| {
+                        let has_auto_margin =
+                            child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto();
+                        if child_style.height.is_auto()
+                            && resolved_alignment == ItemPosition::Stretch
+                            && !has_auto_margin
+                        {
+                            return Some(
+                                (pct_block - margins.block_sum()).clamp_negative_to_zero(),
+                            );
+                        }
+                        let min =
+                            resolve_bound(&child_style.min_height).unwrap_or(LayoutUnit::zero());
+                        let max =
+                            resolve_bound(&child_style.max_height).unwrap_or(LayoutUnit::max());
+                        if min <= LayoutUnit::zero() && max == LayoutUnit::max() {
+                            None
+                        } else {
+                            let natural =
+                                crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(
+                                    doc, child_id,
+                                )
+                                .max_content_block_size;
+                            Some(natural.clamp(min, max))
+                        }
+                    })
+                } else {
+                    None
+                };
+                let min_max = constrained_cross.map_or_else(
+                    || crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(doc, child_id),
+                    |block_size| {
+                        crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_block_size_with_layout(
+                            doc, child_id, block_size, pct_inline,
+                        )
+                    },
+                );
+                let mut cs = (min_max.min - main_axis_border_padding).clamp_negative_to_zero();
+                if doc.node(child_id).tag == ElementTag::Text
+                    && anonymous_flex_text_run(doc, child_id).len() > 1
+                {
+                    if let Some(run_minimum) =
+                        anonymous_flex_text_run_max_inline_size(doc, child_id)
+                    {
+                        // Contiguous text nodes form one anonymous flex item.
+                        // Their min-content boundary is computed across the
+                        // concatenated run, not independently per DOM text
+                        // node; an explicit break remains a forced boundary.
+                        cs = cs.max_of(
+                            (run_minimum - main_axis_border_padding).clamp_negative_to_zero(),
+                        );
+                    }
+                }
+                // CSS Flexbox §4.5: When the item has AR and a definite cross
+                // size, the content size suggestion is clamped by min/max cross
+                // sizes transferred through the AR. Also, if the raw min-content
+                // is zero but the cross size is definite, transfer through AR.
+                if !is_basis_from_content || doc.node(child_id).replaced.is_some() {
+                    if let Some(ref ar) = effective_aspect_ratio {
+                        if ar.ratio.0 != 0.0 && ar.ratio.1 != 0.0 {
+                            let cross_prop = &child_style.height;
+                            if !cross_prop.is_auto()
+                                && (cross_prop.is_fixed() || !pct_block.is_indefinite())
+                            {
+                                let mut cross_raw = resolve_length(
+                                    cross_prop,
+                                    pct_block,
+                                    LayoutUnit::zero(),
+                                    LayoutUnit::zero(),
+                                );
+                                // Clamp by min/max cross constraints before AR transfer
+                                if !child_style.max_height.is_none()
+                                    && !child_style.max_height.is_auto()
+                                {
+                                    if child_style.max_height.is_fixed()
+                                        || !pct_block.is_indefinite()
+                                    {
+                                        let max_v = resolve_length(
+                                            &child_style.max_height,
+                                            pct_block,
+                                            LayoutUnit::zero(),
+                                            LayoutUnit::zero(),
+                                        );
+                                        if cross_raw > max_v {
+                                            cross_raw = max_v;
+                                        }
+                                    }
+                                }
+                                if !child_style.min_height.is_auto()
+                                    && !child_style.min_height.is_none()
+                                {
+                                    if child_style.min_height.is_fixed()
+                                        || !pct_block.is_indefinite()
+                                    {
+                                        let min_v = resolve_length(
+                                            &child_style.min_height,
+                                            pct_block,
+                                            LayoutUnit::zero(),
+                                            LayoutUnit::zero(),
+                                        );
+                                        if cross_raw < min_v {
+                                            cross_raw = min_v;
+                                        }
+                                    }
+                                }
+                                let cross_bp = {
+                                    let b = resolve_border(child_style);
+                                    let p = resolve_padding(child_style, pct_block);
+                                    b.top + b.bottom + p.top + p.bottom
+                                };
+                                let content_cross =
+                                    if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                        (cross_raw - cross_bp).clamp_negative_to_zero()
+                                    } else {
+                                        cross_raw
+                                    };
+                                let transferred = LayoutUnit::from_f32(
+                                    content_cross.to_f32() * ar.ratio.0 / ar.ratio.1,
+                                );
+                                cs = if doc.node(child_id).replaced.is_some() {
+                                    cs.min_of(transferred)
+                                } else {
+                                    cs.max_of(transferred)
+                                };
+                            }
+                        }
+                    }
+                }
+                if let Some(ref ar) = effective_aspect_ratio {
+                    if ar.ratio.0 != 0.0
+                        && ar.ratio.1 != 0.0
+                        && child_style.height.is_auto()
+                        && !child_style.max_height.is_auto()
+                        && !child_style.max_height.is_none()
+                        && (child_style.max_height.is_fixed() || !pct_block.is_indefinite())
+                    {
+                        let cross_raw = resolve_length(
+                            &child_style.max_height,
+                            pct_block,
+                            LayoutUnit::zero(),
+                            LayoutUnit::max(),
+                        );
+                        let border = resolve_border(child_style);
+                        let padding = resolve_padding(child_style, pct_block);
+                        let cross_edges = border.top + border.bottom + padding.top + padding.bottom;
+                        let content_cross =
+                            if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                (cross_raw - cross_edges).clamp_negative_to_zero()
+                            } else {
+                                cross_raw
+                            };
+                        let transferred =
+                            LayoutUnit::from_f32(content_cross.to_f32() * ar.ratio.0 / ar.ratio.1);
+                        cs = cs.min_of(transferred);
+                    }
+                    if ar.ratio.0 != 0.0
+                        && ar.ratio.1 != 0.0
+                        && child_style.height.is_auto()
+                        && !child_style.min_height.is_auto()
+                        && !child_style.min_height.is_none()
+                        && (child_style.min_height.is_fixed() || !pct_block.is_indefinite())
+                    {
+                        let cross_raw = resolve_length(
+                            &child_style.min_height,
+                            pct_block,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        let b = resolve_border(child_style);
+                        let p = resolve_padding(child_style, pct_block);
+                        let cross_bp = b.top + b.bottom + p.top + p.bottom;
+                        let transferred = if child_style.box_sizing
+                            == div_style::BoxSizing::BorderBox
+                            && !ar.auto_flag
+                        {
+                            let main_bb =
+                                LayoutUnit::from_f32(cross_raw.to_f32() * ar.ratio.0 / ar.ratio.1);
+                            (main_bb - main_axis_border_padding).clamp_negative_to_zero()
+                        } else {
+                            let content_cross =
+                                if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                    (cross_raw - cross_bp).clamp_negative_to_zero()
+                                } else {
+                                    cross_raw
+                                };
+                            LayoutUnit::from_f32(content_cross.to_f32() * ar.ratio.0 / ar.ratio.1)
+                        };
+                        cs = cs.max_of(transferred);
+                    }
+                }
+                cs
+            } else {
+                let intrinsic = crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(
+                    doc, child_id,
+                );
+                let has_definite_inline_constraint = child_style.width.is_fixed()
+                    || child_style.min_width.is_fixed()
+                    || (!child_style.max_width.is_none()
+                        && !child_style.max_width.is_auto()
+                        && child_style.max_width.is_fixed());
+                // A definite eventual cross constraint, an orthogonal item,
+                // or a semantic forced break requires the unwrapped/forced
+                // line contribution. Preserve the fragmentation-sensitive
+                // min-content block contribution for unconstrained horizontal
+                // IFCs so measuring an auto minimum does not invent height.
+                let intrinsic_block = if axis_mapping.child_writing_direction.is_horizontal()
+                    && !axis_mapping.child_writing_direction.is_rtl()
+                    && !has_definite_inline_constraint
+                    && !has_semantic_break_in_inline_flow(doc, child_id)
+                {
+                    intrinsic.min_content_block_size
+                } else {
+                    intrinsic.max_content_block_size
+                };
+                let mut cs = (intrinsic_block - main_axis_border_padding).clamp_negative_to_zero();
+                // Same AR transfer for row flex (cross = block)
+                if !is_basis_from_content || doc.node(child_id).replaced.is_some() {
+                    if let Some(ref ar) = effective_aspect_ratio {
+                        if ar.ratio.0 != 0.0 && ar.ratio.1 != 0.0 {
+                            let cross_prop = &child_style.width;
+                            if !cross_prop.is_auto()
+                                && (cross_prop.is_fixed() || !pct_inline.is_indefinite())
+                            {
+                                let mut cross_raw = resolve_length(
+                                    cross_prop,
+                                    pct_inline,
+                                    LayoutUnit::zero(),
+                                    LayoutUnit::zero(),
+                                );
+                                let mut raised_by_cross_min = false;
+                                // Clamp by min/max cross constraints before AR transfer
+                                if !child_style.max_width.is_none()
+                                    && !child_style.max_width.is_auto()
+                                {
+                                    if child_style.max_width.is_fixed()
+                                        || !pct_inline.is_indefinite()
+                                    {
+                                        let max_v = resolve_length(
+                                            &child_style.max_width,
+                                            pct_inline,
+                                            LayoutUnit::zero(),
+                                            LayoutUnit::zero(),
+                                        );
+                                        if cross_raw > max_v {
+                                            cross_raw = max_v;
+                                        }
+                                    }
+                                }
+                                if !child_style.min_width.is_auto()
+                                    && !child_style.min_width.is_none()
+                                {
+                                    if child_style.min_width.is_fixed()
+                                        || !pct_inline.is_indefinite()
+                                    {
+                                        let min_v = resolve_length(
+                                            &child_style.min_width,
+                                            pct_inline,
+                                            LayoutUnit::zero(),
+                                            LayoutUnit::zero(),
+                                        );
+                                        if cross_raw < min_v {
+                                            cross_raw = min_v;
+                                            raised_by_cross_min = true;
+                                        }
+                                    }
+                                }
+                                let cross_bp = {
+                                    let b = resolve_border(child_style);
+                                    let p = resolve_padding(child_style, pct_inline);
+                                    b.left + b.right + p.left + p.right
+                                };
+                                let content_cross =
+                                    if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                        (cross_raw - cross_bp).clamp_negative_to_zero()
+                                    } else {
+                                        cross_raw
+                                    };
+                                let transferred = LayoutUnit::from_f32(
+                                    content_cross.to_f32() * ar.ratio.1 / ar.ratio.0,
+                                );
+                                cs = if doc.node(child_id).replaced.is_some() {
+                                    if raised_by_cross_min {
+                                        cs.max_of(transferred)
+                                    } else {
+                                        cs.min_of(transferred)
+                                    }
+                                } else {
+                                    cs.max_of(transferred)
+                                };
+                            }
+                        }
+                    }
+                }
+                if let Some(ref ar) = effective_aspect_ratio {
+                    if ar.ratio.0 != 0.0
+                        && ar.ratio.1 != 0.0
+                        && child_style.width.is_auto()
+                        && !child_style.max_width.is_auto()
+                        && !child_style.max_width.is_none()
+                        && (child_style.max_width.is_fixed() || !pct_inline.is_indefinite())
+                    {
+                        let cross_raw = resolve_length(
+                            &child_style.max_width,
+                            pct_inline,
+                            LayoutUnit::zero(),
+                            LayoutUnit::max(),
+                        );
+                        let border = resolve_border(child_style);
+                        let padding = resolve_padding(child_style, pct_inline);
+                        let cross_edges = border.left + border.right + padding.left + padding.right;
+                        let content_cross =
+                            if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                (cross_raw - cross_edges).clamp_negative_to_zero()
+                            } else {
+                                cross_raw
+                            };
+                        let transferred =
+                            LayoutUnit::from_f32(content_cross.to_f32() * ar.ratio.1 / ar.ratio.0);
+                        cs = cs.min_of(transferred);
+                    }
+                    if ar.ratio.0 != 0.0
+                        && ar.ratio.1 != 0.0
+                        && child_style.width.is_auto()
+                        && !child_style.min_width.is_auto()
+                        && !child_style.min_width.is_none()
+                        && (child_style.min_width.is_fixed() || !pct_inline.is_indefinite())
+                    {
+                        let cross_raw = resolve_length(
+                            &child_style.min_width,
+                            pct_inline,
+                            LayoutUnit::zero(),
+                            LayoutUnit::zero(),
+                        );
+                        let b = resolve_border(child_style);
+                        let p = resolve_padding(child_style, pct_inline);
+                        let cross_bp = b.left + b.right + p.left + p.right;
+                        let transferred = if child_style.box_sizing
+                            == div_style::BoxSizing::BorderBox
+                            && !ar.auto_flag
+                        {
+                            let main_bb =
+                                LayoutUnit::from_f32(cross_raw.to_f32() * ar.ratio.1 / ar.ratio.0);
+                            (main_bb - main_axis_border_padding).clamp_negative_to_zero()
+                        } else {
+                            let content_cross =
+                                if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                    (cross_raw - cross_bp).clamp_negative_to_zero()
+                                } else {
+                                    cross_raw
+                                };
+                            LayoutUnit::from_f32(content_cross.to_f32() * ar.ratio.1 / ar.ratio.0)
+                        };
+                        cs = cs.max_of(transferred);
+                    }
+                }
+                cs
+            };
+
+            // Specified size suggestion (CSS Flexbox §4.5):
+            // Uses the main-size property (width/height), NOT flex-basis.
+            let main_size_prop = if is_main_axis_horizontal {
+                &child_style.width
+            } else {
+                &child_style.height
+            };
+            let has_specified_main = !main_size_prop.is_auto()
+                && (!pct_base.is_indefinite() || main_size_prop.is_fixed());
+            let transferred_suggestion = effective_aspect_ratio.as_ref().and_then(|ar| {
+                compute_transferred_size_suggestion(
+                    ar,
+                    child_style,
+                    is_column,
+                    is_main_axis_horizontal,
+                    resolved_alignment,
+                    pct_inline,
+                    pct_block,
+                    main_axis_border_padding,
+                )
+            });
+            let ratio_only_replaced_main = doc.node(child_id).replaced.is_some_and(|replaced| {
+                let natural_main = if is_main_axis_horizontal {
+                    replaced.intrinsic_width
+                } else {
+                    replaced.intrinsic_height
+                };
+                natural_main.is_none() && effective_aspect_ratio.is_some()
+            });
+
+            if has_specified_main {
+                let resolved = resolve_length(
+                    main_size_prop,
+                    pct_base,
+                    LayoutUnit::zero(),
+                    LayoutUnit::zero(),
+                );
+                let specified = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                    (resolved - main_axis_border_padding).clamp_negative_to_zero()
+                } else {
+                    resolved
+                };
+                // A source-less `img` with author dimensions still exposes
+                // those dimensions as the min-content size of its broken
+                // replaced box. It has no packaged resource metadata, but it
+                // must retain the same flex automatic minimum as a decoded
+                // image instead of shrinking as an empty non-replaced box.
+                let source_less_sized_image = doc.node(child_id).tag == ElementTag::Image
+                    && doc.node(child_id).replaced.is_none()
+                    && doc.attribute(child_id, "src").is_none();
+                let specified_content = if source_less_sized_image {
+                    specified
+                } else {
+                    content_size.min_of(specified)
+                };
+                if doc.node(child_id).replaced.is_some() || source_less_sized_image {
+                    transferred_suggestion.map_or(specified_content, |transferred| {
+                        specified_content.min_of(transferred)
+                    })
+                } else {
+                    specified_content
+                }
+            } else if let Some(transferred) = transferred_suggestion {
+                // CSS Flexbox §4.5: a replaced item's content-based automatic
+                // minimum is the smaller of its content and transferred size
+                // suggestions. Non-replaced boxes use the larger suggestion.
+                if doc.node(child_id).replaced.is_some() {
+                    let cross_prop = if is_main_axis_horizontal {
+                        &child_style.height
+                    } else {
+                        &child_style.width
+                    };
+                    if cross_prop.is_stretch() {
+                        // Stretch-fit is a preferred cross size, so it also
+                        // replaces the natural cross contribution before the
+                        // automatic minimum transfers through the ratio.
+                        transferred
+                    } else {
+                        content_size.min_of(transferred)
+                    }
+                } else {
+                    content_size.max_of(transferred)
+                }
+            } else if ratio_only_replaced_main {
+                // With neither a natural main size nor a definite cross-size
+                // transfer, a ratio-only replaced item has a zero automatic
+                // minimum in the flex main axis.
+                LayoutUnit::zero()
+            } else if is_basis_from_content {
+                content_size
+            } else {
+                content_size
+            }
+        }
+    } else if min_prop.is_none() || *min_prop == Length::zero() {
+        LayoutUnit::zero()
+    } else if min_prop.is_content_or_intrinsic() {
+        // CSS Sizing 3: min-width/min-height: min-content/max-content
+        // Resolve via intrinsic sizing in the main axis.
+        let transferred_intrinsic = if doc.node(child_id).replaced.is_some() {
+            effective_aspect_ratio.as_ref().and_then(|ar| {
+                compute_transferred_size_suggestion(
+                    ar,
+                    child_style,
+                    is_column,
+                    is_main_axis_horizontal,
+                    resolved_alignment,
+                    pct_inline,
+                    pct_block,
+                    main_axis_border_padding,
+                )
+            })
+        } else {
+            None
+        };
+        if let Some(transferred) = transferred_intrinsic {
+            transferred
+        } else if is_main_axis_horizontal {
+            let min_max =
+                crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(doc, child_id);
+            let val = match min_prop.length_type() {
+                LengthType::MinContent => min_max.min,
+                _ => min_max.max,
+            };
+            (val - main_axis_border_padding).clamp_negative_to_zero()
+        } else {
+            let intrinsic =
+                crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(doc, child_id);
+            let val = match min_prop.length_type() {
+                LengthType::MinContent => intrinsic.min_content_block_size,
+                _ => intrinsic.max_content_block_size,
+            };
+            (val - main_axis_border_padding).clamp_negative_to_zero()
+        }
+    } else {
+        let resolved = resolve_length(min_prop, pct_base, LayoutUnit::zero(), LayoutUnit::zero());
+        if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+            (resolved - main_axis_border_padding).clamp_negative_to_zero()
+        } else {
+            resolved
+        }
+    };
+
+    // ── Resolve max ──────────────────────────────────────────────────
+    let max = if max_prop.is_none() {
+        LayoutUnit::from_i32(33554431) // ~LayoutUnit::Max()
+    } else if max_prop.is_content_or_intrinsic() {
+        // CSS Sizing 3: max-width/max-height: min-content/max-content
+        if is_main_axis_horizontal {
+            let min_max =
+                crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(doc, child_id);
+            let val = match max_prop.length_type() {
+                LengthType::MinContent => min_max.min,
+                _ => min_max.max,
+            };
+            (val - main_axis_border_padding).clamp_negative_to_zero()
+        } else {
+            let intrinsic =
+                crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(doc, child_id);
+            let val = match max_prop.length_type() {
+                LengthType::MinContent => intrinsic.min_content_block_size,
+                _ => intrinsic.max_content_block_size,
+            };
+            (val - main_axis_border_padding).clamp_negative_to_zero()
+        }
+    } else if !pct_base.is_indefinite() || max_prop.is_fixed() {
+        let resolved = resolve_length(
+            max_prop,
+            pct_base,
+            LayoutUnit::zero(),
+            LayoutUnit::from_i32(33554431),
+        );
+        if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+            (resolved - main_axis_border_padding).clamp_negative_to_zero()
+        } else {
+            resolved
+        }
+    } else {
+        LayoutUnit::from_i32(33554431)
+    };
+
+    // A table wrapper cannot become narrower than its table-grid min-content
+    // width, even when an authored min-width is smaller. Otherwise flex would
+    // position the following item at the authored minimum while the principal
+    // table box overflows through it.
+    let min = if child_style.display.is_table_wrapper() && main_is_child_inline {
+        let intrinsic =
+            crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(doc, child_id);
+        min.max_of((intrinsic.min - main_axis_border_padding).clamp_negative_to_zero())
+    } else {
+        min
+    };
+
+    let min = if min_prop.is_auto() {
+        // CSS Flexbox §4.5: the content-based automatic minimum size is
+        // clamped by any definite maximum main size.
+        min.min_of(max)
+    } else {
+        min
+    };
+
+    MinMaxSizes::new(min, max)
+}
+
+/// Resolve a cross-axis min or max constraint, handling intrinsic keywords.
+fn resolve_cross_min_max(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    prop: &div_geometry::Length,
+    is_column: bool,
+    pct_base: LayoutUnit,
+    is_min: bool,
+) -> LayoutUnit {
+    if is_min && prop.is_auto() {
+        return LayoutUnit::zero();
+    }
+    if !is_min && prop.is_none() {
+        return LayoutUnit::from_i32(33554431);
+    }
+    if prop.is_content_or_intrinsic() {
+        let sizes = if is_column {
+            crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_layout(doc, node_id)
+        } else {
+            let block =
+                crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(doc, node_id);
+            MinMaxSizes::new(block.min_content_block_size, block.max_content_block_size)
+        };
+        return match prop.length_type() {
+            LengthType::MinContent => sizes.min,
+            _ => sizes.max,
+        };
+    }
+    let (auto_val, none_val) = if is_min {
+        (LayoutUnit::zero(), LayoutUnit::zero())
+    } else {
+        (
+            LayoutUnit::from_i32(33554431),
+            LayoutUnit::from_i32(33554431),
+        )
+    };
+    resolve_length(prop, pct_base, auto_val, none_val)
+}
+
+/// Compute cross-axis sizes for each line.
+/// Blink: PlaceFlexItems cross-size computation (line 1470-1558).
+fn compute_line_cross_sizes(
+    doc: &dyn LayoutDocument,
+    items: &[FlexItem],
+    lines: &mut [FlexLine],
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    space: &ConstraintSpace,
+) -> Vec<LayoutUnit> {
+    let mut hypothetical_cross_border_box_sizes = vec![LayoutUnit::zero(); items.len()];
+
+    for line in lines.iter_mut() {
+        let mut max_cross_size = LayoutUnit::zero();
+        let mut max_baseline_ascent = LayoutUnit::zero();
+        let mut max_baseline_descent = LayoutUnit::zero();
+        let mut has_baseline_group = false;
+
+        for &idx in &line.item_indices {
+            let item = &items[idx];
+            let child_style = &doc.node(item.node_id).style;
+
+            // Compute cross-axis size by laying out the child
+            let child_border = resolve_border(child_style);
+            let child_padding = resolve_padding(child_style, child_percentage_inline);
+
+            let cross_border_padding = if is_main_axis_horizontal {
+                child_border.block_sum() + child_padding.block_sum()
+            } else {
+                child_border.inline_sum() + child_padding.inline_sum()
+            };
+
+            // Resolve cross-axis size
+            let cross_content_size = resolve_cross_size(
+                doc,
+                item,
+                child_style,
+                is_column,
+                is_main_axis_horizontal,
+                cross_border_padding,
+                child_percentage_inline,
+                child_percentage_block,
+                space,
+            );
+
+            // Apply cross-axis min/max constraints
+            let cross_bb = cross_content_size + cross_border_padding;
+            let (cross_min_prop, cross_max_prop) = if is_main_axis_horizontal {
+                (&child_style.min_height, &child_style.max_height)
+            } else {
+                (&child_style.min_width, &child_style.max_width)
+            };
+            let cross_pct_base =
+                FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal)
+                    .container_cross_percentage_size(
+                        child_percentage_inline,
+                        child_percentage_block,
+                    );
+            let cross_min_raw = resolve_cross_min_max(
+                doc,
+                item.node_id,
+                cross_min_prop,
+                !is_main_axis_horizontal,
+                cross_pct_base,
+                true,
+            );
+            let cross_max_raw = resolve_cross_min_max(
+                doc,
+                item.node_id,
+                cross_max_prop,
+                !is_main_axis_horizontal,
+                cross_pct_base,
+                false,
+            );
+            let cross_min_bb = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                cross_min_raw
+            } else if cross_min_raw > LayoutUnit::zero() {
+                cross_min_raw + cross_border_padding
+            } else {
+                cross_min_raw
+            };
+            let cross_max_bb = if cross_max_raw == LayoutUnit::from_i32(33554431) {
+                cross_max_raw
+            } else if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                cross_max_raw
+            } else {
+                cross_max_raw + cross_border_padding
+            };
+            let clamped_cross_bb = cross_bb.clamp(cross_min_bb, cross_max_bb);
+            hypothetical_cross_border_box_sizes[idx] = clamped_cross_bb;
+
+            let cross_margin_box = clamped_cross_bb + item.cross_axis_margin_extent();
+
+            max_cross_size = max_cross_size.max_of(cross_margin_box);
+
+            // CSS Flexbox §9.4: a baseline-sharing group's contribution
+            // is the greatest distance above its shared baseline plus the
+            // greatest distance below it. Merely taking the largest margin
+            // box loses, for example, a trailing margin on a shorter item.
+            let child_logical = crate::ResolvedLogicalBox::from_style(child_style);
+            let has_cross_auto_margins = if is_column {
+                child_logical.margins.inline_start.is_auto()
+                    || child_logical.margins.inline_end.is_auto()
+            } else {
+                child_logical.margins.block_start.is_auto()
+                    || child_logical.margins.block_end.is_auto()
+            };
+            let is_baseline_aligned = matches!(
+                item.alignment,
+                ItemPosition::Baseline | ItemPosition::LastBaseline
+            ) && !has_cross_auto_margins;
+
+            // Blink sizes a baseline-sharing line in every writing mode
+            // (`FlexLayoutAlgorithm` max major ascent plus descent). A clamped
+            // item's last baseline is capped at its retained cross edge, as
+            // the final placement below does, so an unclamped continuation
+            // cannot enlarge the group.
+            if is_baseline_aligned && !is_column {
+                let child_direction = child_style
+                    .direction
+                    .writing_direction(child_style.writing_mode);
+                let axis_mapping =
+                    FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+                let mut child_space = axis_mapping.child_space(
+                    item.flexed_border_box_size(),
+                    clamped_cross_bb,
+                    child_percentage_inline,
+                    child_percentage_block,
+                );
+                axis_mapping.set_main_fixed(&mut child_space);
+                let cross_size_is_auto = if is_main_axis_horizontal {
+                    child_style.height.is_auto() || child_style.height.is_stretch()
+                } else {
+                    child_style.width.is_auto() || child_style.width.is_stretch()
+                };
+                if !cross_size_is_auto {
+                    axis_mapping.set_cross_fixed(&mut child_space);
+                }
+                let child_fragment = layout_flex_item(doc, item.node_id, &child_space);
+                let synthesized = clamped_cross_bb;
+                let is_line_clamped = child_style.line_clamp != div_style::LineClamp::None;
+                if is_line_clamped
+                    && child_fragment.first_baseline.is_none()
+                    && child_fragment.last_baseline.is_none()
+                {
+                    // A clamped item without content lines keeps the legacy
+                    // measurement: its synthesized edge does not size the
+                    // shared line.
+                    continue;
+                }
+                let fragment_baseline = if item.alignment == ItemPosition::LastBaseline {
+                    let baseline = child_fragment
+                        .last_baseline
+                        .or(child_fragment.first_baseline);
+                    if is_line_clamped {
+                        baseline.map(|baseline| baseline.min_of(synthesized))
+                    } else {
+                        baseline
+                    }
+                } else {
+                    child_fragment.first_baseline
+                };
+                // Synthesize exactly as final placement does.
+                let cross_baseline = if child_direction.is_horizontal()
+                    != space.writing_direction.is_horizontal()
+                {
+                    synthesized
+                } else if !is_main_axis_horizontal {
+                    match (child_style.writing_mode, child_style.text_orientation) {
+                        (
+                            div_style::WritingMode::VerticalLr,
+                            div_style::TextOrientation::Sideways,
+                        ) => LayoutUnit::zero(),
+                        (
+                            div_style::WritingMode::VerticalRl | div_style::WritingMode::VerticalLr,
+                            div_style::TextOrientation::Mixed | div_style::TextOrientation::Upright,
+                        ) => fragment_baseline.unwrap_or(synthesized / 2),
+                        _ => fragment_baseline.unwrap_or(synthesized),
+                    }
+                } else {
+                    fragment_baseline.unwrap_or(synthesized)
+                };
+                let logical_margin = item.margin.to_logical(space.writing_direction);
+                let ascent = logical_margin.block_start + cross_baseline;
+                let descent = cross_margin_box - ascent;
+                max_baseline_ascent = max_baseline_ascent.max_of(ascent);
+                max_baseline_descent = max_baseline_descent.max_of(descent);
+                has_baseline_group = true;
+            }
+        }
+
+        if has_baseline_group {
+            max_cross_size = max_cross_size.max_of(max_baseline_ascent + max_baseline_descent);
+        }
+        line.line_cross_size = max_cross_size;
+    }
+
+    hypothetical_cross_border_box_sizes
+}
+
+/// Resolve the cross-axis size of a single flex item.
+fn resolve_cross_size(
+    doc: &dyn LayoutDocument,
+    item: &FlexItem,
+    child_style: &div_style::ComputedStyle,
+    is_column: bool,
+    is_main_axis_horizontal: bool,
+    cross_border_padding: LayoutUnit,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    _space: &ConstraintSpace,
+) -> LayoutUnit {
+    let cross_prop = if is_main_axis_horizontal {
+        &child_style.height
+    } else {
+        &child_style.width
+    };
+    let pct_base = FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal)
+        .container_cross_percentage_size(child_percentage_inline, child_percentage_block);
+
+    if cross_prop.is_stretch() && !pct_base.is_indefinite() {
+        let margin_box = (pct_base - item.cross_axis_margin_extent()).clamp_negative_to_zero();
+        (margin_box - cross_border_padding).clamp_negative_to_zero()
+    } else if !cross_prop.is_auto() && (!pct_base.is_indefinite() || cross_prop.is_fixed()) {
+        let resolved = resolve_length(cross_prop, pct_base, LayoutUnit::zero(), LayoutUnit::zero());
+        if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+            (resolved - cross_border_padding).clamp_negative_to_zero()
+        } else {
+            resolved
+        }
+    } else if cross_prop.is_auto() {
+        // Check if aspect-ratio can derive cross-axis from the flexed main-axis size
+        let effective_aspect_ratio =
+            effective_flex_item_aspect_ratio(doc, item.node_id, child_style);
+        if let Some(ref ar) = effective_aspect_ratio {
+            let ratio = ar.ratio;
+            if ratio.0 > 0.0 && ratio.1 > 0.0 {
+                let main_size = item.flexed_border_box_size();
+                if !main_size.is_indefinite() && main_size > LayoutUnit::zero() {
+                    // CSS Sizing 4 §5.1: AR applies to content-box or border-box
+                    // depending on box-sizing.
+                    let cross_content = if child_style.box_sizing == div_style::BoxSizing::BorderBox
+                    {
+                        // AR on border-box: cross_bb = main_bb × ratio
+                        let cross_bb = if is_main_axis_horizontal {
+                            LayoutUnit::from_f32(main_size.to_f32() * ratio.1 / ratio.0)
+                        } else {
+                            LayoutUnit::from_f32(main_size.to_f32() * ratio.0 / ratio.1)
+                        };
+                        (cross_bb - cross_border_padding).clamp_negative_to_zero()
+                    } else {
+                        // AR on content-box
+                        let main_bp = if is_main_axis_horizontal {
+                            let b = resolve_border(child_style);
+                            let p = resolve_padding(child_style, child_percentage_inline);
+                            b.inline_sum() + p.inline_sum()
+                        } else {
+                            let b = resolve_border(child_style);
+                            let p = resolve_padding(child_style, child_percentage_inline);
+                            b.block_sum() + p.block_sum()
+                        };
+                        let main_content = (main_size - main_bp).clamp_negative_to_zero();
+                        if is_main_axis_horizontal {
+                            LayoutUnit::from_f32(main_content.to_f32() * ratio.1 / ratio.0)
+                        } else {
+                            LayoutUnit::from_f32(main_content.to_f32() * ratio.0 / ratio.1)
+                        }
+                    };
+                    return cross_content;
+                }
+            }
+        }
+
+        let axis_mapping =
+            FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+        if axis_mapping.main_maps_to_child_block() {
+            // The flex cross axis is this child's logical inline axis. Its
+            // automatic cross size is fit-content in the container's cross
+            // space, with specified margins reducing that space and auto
+            // margins contributing zero during hypothetical sizing.
+            let mut intrinsic = if doc.node(item.node_id).tag == ElementTag::Text {
+                let max = anonymous_flex_text_run_max_inline_size(doc, item.node_id)
+                    .unwrap_or(LayoutUnit::zero());
+                div_geometry::MinMaxSizes { min: max, max }
+            } else if axis_mapping.child_writing_direction.is_horizontal()
+                && !item.flexed_border_box_size().is_indefinite()
+                && crate::intrinsic_sizing::has_block_dependent_replaced_descendant(
+                    doc,
+                    item.node_id,
+                )
+            {
+                // A post-flexing main size is definite. For a column flex
+                // item that is the child's block size, so percentage-height
+                // replaced descendants transfer that exact size into the
+                // fit-content cross contribution.
+                crate::intrinsic_sizing::compute_intrinsic_inline_sizes_with_block_size_with_layout(
+                    doc,
+                    item.node_id,
+                    item.flexed_border_box_size(),
+                    child_percentage_inline,
+                )
+            } else {
+                crate::intrinsic_sizing::compute_logical_intrinsic_inline_sizes(doc, item.node_id)
+            };
+            // Intrinsic contributions treat cyclic percentage padding as zero.
+            // At this point, however, the flex container's inline size is
+            // definite and the item's logical-inline padding has a real used
+            // value. Add only that newly resolvable edge delta; fixed padding
+            // and borders are already part of the intrinsic contribution.
+            let child_border = resolve_border(child_style);
+            let zero_base_padding = resolve_padding(child_style, LayoutUnit::zero());
+            let zero_base_cross_border_padding = if is_main_axis_horizontal {
+                child_border.block_sum() + zero_base_padding.block_sum()
+            } else {
+                child_border.inline_sum() + zero_base_padding.inline_sum()
+            };
+            let resolved_percentage_edge_delta =
+                (cross_border_padding - zero_base_cross_border_padding).clamp_negative_to_zero();
+            intrinsic.min = intrinsic.min + resolved_percentage_edge_delta;
+            intrinsic.max = intrinsic.max + resolved_percentage_edge_delta;
+            let available_cross = if is_column {
+                child_percentage_inline
+            } else {
+                child_percentage_block
+            };
+            let has_float_descendant = doc.children(item.node_id).any(|child_id| {
+                let child_style = &doc.node(child_id).style;
+                child_style.display != div_style::Display::None
+                    && !child_style.position.is_absolutely_positioned()
+                    && child_style.float != div_style::Float::None
+            });
+            let available_cross = if available_cross.is_indefinite() {
+                available_cross
+            } else {
+                (available_cross - item.cross_axis_margin_extent()).clamp_negative_to_zero()
+            };
+            let border_box = if available_cross.is_indefinite() || has_float_descendant {
+                // A non-stretched column flex item with floated contents keeps
+                // its max-content cross contribution. Its main-size probe may
+                // have stacked those floats in the container's narrower cross
+                // opportunity; clamping the final cross size to that same
+                // opportunity loses the float row's preferred width.
+                intrinsic.max
+            } else {
+                crate::intrinsic_sizing::shrink_to_fit_inline_size(
+                    intrinsic.min,
+                    intrinsic.max,
+                    available_cross,
+                )
+            };
+            return (border_box - cross_border_padding).clamp_negative_to_zero();
+        }
+
+        let (cross_min_prop, _) = if is_main_axis_horizontal {
+            (&child_style.min_height, &child_style.max_height)
+        } else {
+            (&child_style.min_width, &child_style.max_width)
+        };
+        if !cross_min_prop.is_auto()
+            && !cross_min_prop.is_none()
+            && (!pct_base.is_indefinite() || cross_min_prop.is_fixed())
+        {
+            let resolved = resolve_length(
+                cross_min_prop,
+                pct_base,
+                LayoutUnit::zero(),
+                LayoutUnit::zero(),
+            );
+            return if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                (resolved - cross_border_padding).clamp_negative_to_zero()
+            } else {
+                resolved
+            };
+        }
+
+        // Auto cross size → lay out child to get intrinsic size.
+        // For row flex: we know the inline size (main axis), need intrinsic block (cross).
+        // For column flex: we know the block size (main axis), need intrinsic inline (cross).
+        let axis_mapping =
+            FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+        let mut child_space = axis_mapping.child_space(
+            item.flexed_border_box_size(),
+            LayoutUnit::from_raw(-64),
+            child_percentage_inline,
+            child_percentage_block,
+        );
+        axis_mapping.set_main_fixed(&mut child_space);
+
+        let child_fragment = layout_flex_item(doc, item.node_id, &child_space);
+        let cross_size = if is_main_axis_horizontal {
+            child_fragment.height()
+        } else {
+            child_fragment.width()
+        };
+
+        (cross_size - cross_border_padding).clamp_negative_to_zero()
+    } else {
+        // Intrinsic keyword or other non-auto, non-fixed cross size
+        let axis_mapping =
+            FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+        let mut child_space = axis_mapping.child_space(
+            item.flexed_border_box_size(),
+            LayoutUnit::from_raw(-64),
+            child_percentage_inline,
+            child_percentage_block,
+        );
+        axis_mapping.set_main_fixed(&mut child_space);
+
+        let child_fragment = layout_flex_item(doc, item.node_id, &child_space);
+        let cross_size = if is_main_axis_horizontal {
+            child_fragment.height()
+        } else {
+            child_fragment.width()
+        };
+
+        (cross_size - cross_border_padding).clamp_negative_to_zero()
+    }
+}
+
+/// Compute intrinsic block size (sum of line cross sizes + gaps + border/padding).
+fn compute_intrinsic_block_size(
+    lines: &[FlexLine],
+    is_column: bool,
+    gap_between_lines: LayoutUnit,
+    border_padding_block: LayoutUnit,
+) -> LayoutUnit {
+    if is_column {
+        // Column: intrinsic block = max line main-axis used size.
+        let mut max_line_main = LayoutUnit::zero();
+        for line in lines {
+            max_line_main = max_line_main.max_of(line.main_axis_used_size);
+        }
+        max_line_main + border_padding_block
+    } else {
+        // Row: intrinsic block = sum of line cross sizes + gaps
+        let mut total = LayoutUnit::zero();
+        for (i, line) in lines.iter().enumerate() {
+            total = total + line.line_cross_size;
+            if i > 0 {
+                total = total + gap_between_lines;
+            }
+        }
+        total + border_padding_block
+    }
+}
+
+/// Position all items at their final locations.
+/// Blink: `GiveItemsFinalPositionAndSize()` at line 1834.
+#[allow(clippy::too_many_arguments)]
+fn give_items_final_position(
+    doc: &dyn LayoutDocument,
+    items: &mut [FlexItem],
+    lines: &mut [FlexLine],
+    is_column: bool,
+    is_reverse: bool,
+    is_wrap_reverse: bool,
+    is_main_axis_horizontal: bool,
+    writing_direction: WritingDirectionMode,
+    main_axis_inner_size: LayoutUnit,
+    content_cross_size: LayoutUnit,
+    gap_between_items: LayoutUnit,
+    gap_between_lines: LayoutUnit,
+    justify_content: &ContentAlignment,
+    align_content: &ContentAlignment,
+    border: &BoxStrut,
+    padding: &BoxStrut,
+    child_percentage_inline: LayoutUnit,
+    child_percentage_block: LayoutUnit,
+    hypothetical_cross_border_box_sizes: &[LayoutUnit],
+    container_inline_size: LayoutUnit,
+    container_block_size: LayoutUnit,
+) -> (Vec<Fragment>, Option<LayoutUnit>, Option<LayoutUnit>) {
+    let content_offset_y = border.top + padding.top;
+    let logical_border = border.to_logical(writing_direction);
+    let logical_padding = padding.to_logical(writing_direction);
+    let content_logical_offset = LogicalOffset::new(
+        logical_border.inline_start + logical_padding.inline_start,
+        logical_border.block_start + logical_padding.block_start,
+    );
+    let container_physical_size = WritingModeConverter::new(
+        writing_direction,
+        PhysicalSize::new(LayoutUnit::zero(), LayoutUnit::zero()),
+    )
+    .to_physical_size(LogicalSize::new(
+        container_inline_size,
+        container_block_size,
+    ));
+    let converter = WritingModeConverter::new(writing_direction, container_physical_size);
+    let cross_axis_is_physically_reversed = is_wrap_reverse
+        ^ if is_column {
+            writing_direction.is_rtl()
+        } else {
+            writing_direction.is_flipped_blocks()
+        };
+
+    // ── Resolve align-content (cross-axis line offsets) ──────────────
+    // NOTE: Line stretching (align-content:stretch/normal) was already
+    // performed before reversals in flex_layout_with_layout(), so lines are already
+    // at their final cross sizes here. Just compute remaining free space.
+    let total_line_cross: LayoutUnit = lines
+        .iter()
+        .map(|l| l.line_cross_size)
+        .fold(LayoutUnit::zero(), |acc, s| acc + s);
+
+    let num_line_gaps = if lines.len() > 1 {
+        lines.len() as i32 - 1
+    } else {
+        0
+    };
+    let total_line_gap = gap_between_lines * num_line_gaps;
+    let cross_free_after = content_cross_size - total_line_cross - total_line_gap;
+
+    let cross_align = resolve_content_alignment(
+        align_content,
+        cross_free_after,
+        lines.len(),
+        is_wrap_reverse, // wrap-reverse flips cross-axis alignment semantics
+        !is_column,      // cross axis: row→block(vertical), column→inline(horizontal)
+    );
+
+    // Assign cross-axis offsets to lines
+    let num_lines = lines.len();
+    let mut cross_offset = cross_align.initial_offset;
+    for (i, line) in lines.iter_mut().enumerate() {
+        line.cross_axis_offset = cross_offset;
+        cross_offset = cross_offset + line.line_cross_size;
+        if i < num_lines - 1 {
+            cross_offset = cross_offset + gap_between_lines + cross_align.between_space;
+        }
+    }
+
+    // ── Position items within each line ──────────────────────────────
+    // Two-pass approach per line:
+    //   Pass 1: Layout all items, collect fragments and baseline data
+    //   Pass 2: Compute line baseline, then position items
+    let mut children = Vec::new();
+    // Track the flex container's first/last baseline from the baseline
+    // alignment group: content_offset_y + line.cross_axis_offset + line_max_ascent.
+    // Only set for row flex (not column) and non-wrap-reverse, where cross
+    // axis = block axis and "ascent" maps to the physical top.
+    let mut container_first_baseline: Option<LayoutUnit> = None;
+    let mut container_last_baseline: Option<LayoutUnit> = None;
+    let mut column_marker_occurrence = 0usize;
+
+    for line in lines.iter() {
+        let line_children_start = children.len();
+        // Resolve justify-content for this line
+        let effective_free = if line.main_axis_auto_margin_count > 0 {
+            LayoutUnit::zero()
+        } else {
+            line.main_axis_free_space
+        };
+
+        // Count only non-collapsed items for justify-content distribution.
+        // CSS Flexbox §4.4: collapsed items occupy zero main-axis space.
+        let visible_item_count = line
+            .item_indices
+            .iter()
+            .filter(|&&idx| !items[idx].is_collapsed)
+            .count();
+
+        let mut physical_justify = *justify_content;
+        if is_column && is_main_axis_horizontal {
+            physical_justify.position = match justify_content.position {
+                ContentPosition::Left => {
+                    if writing_direction.is_flipped_blocks() {
+                        ContentPosition::End
+                    } else {
+                        ContentPosition::Start
+                    }
+                }
+                ContentPosition::Right => {
+                    if writing_direction.is_flipped_blocks() {
+                        ContentPosition::Start
+                    } else {
+                        ContentPosition::End
+                    }
+                }
+                position => position,
+            };
+        }
+        let main_align = resolve_content_alignment(
+            &physical_justify,
+            effective_free,
+            visible_item_count,
+            is_reverse,
+            is_column,
+        );
+
+        // ── Pass 1: Layout all items and collect data ────────────────
+        struct ItemLayoutData {
+            fragment: Fragment,
+            idx: usize,
+            cross_margin_box: LayoutUnit,
+            has_cross_auto_margins: bool,
+            is_start_auto: bool,
+            is_end_auto: bool,
+            baseline: Option<LayoutUnit>,
+            cross_margin_start: LayoutUnit,
+            is_baseline_aligned: bool,
+            clamped_last_baseline_at_cross_edge: bool,
+        }
+
+        let mut item_data: Vec<ItemLayoutData> = Vec::with_capacity(line.item_count());
+        let line_has_line_clamp = line.item_indices.iter().any(|&idx| {
+            doc.node(items[idx].node_id).style.line_clamp != div_style::LineClamp::None
+        });
+
+        for &idx in line.item_indices.iter() {
+            let item = &mut items[idx];
+            let child_style = &doc.node(item.node_id).style;
+            let child_logical = crate::ResolvedLogicalBox::from_style(child_style);
+            let axis_mapping =
+                FlexItemAxisMapping::new(child_style, is_column, is_main_axis_horizontal);
+            let mut logical_margin = item.margin.to_logical(writing_direction);
+
+            // ── Resolve main-axis auto margins ───────────────────────
+            if item.main_axis_auto_margin_count > 0
+                && line.main_axis_free_space > LayoutUnit::zero()
+            {
+                let is_start_auto = if is_column {
+                    child_logical.margins.block_start.is_auto()
+                } else {
+                    child_logical.margins.inline_start.is_auto()
+                };
+                let is_end_auto = if is_column {
+                    child_logical.margins.block_end.is_auto()
+                } else {
+                    child_logical.margins.inline_end.is_auto()
+                };
+
+                let per_margin_space = LayoutUnit::from_raw(
+                    line.main_axis_free_space.raw() / line.main_axis_auto_margin_count as i32,
+                );
+
+                let (start_margin, end_margin) = resolve_main_auto_margins(
+                    per_margin_space * item.main_axis_auto_margin_count as i32,
+                    is_start_auto,
+                    is_end_auto,
+                );
+
+                if is_column {
+                    if is_start_auto {
+                        logical_margin.block_start = start_margin;
+                    }
+                    if is_end_auto {
+                        logical_margin.block_end = end_margin;
+                    }
+                } else {
+                    if is_start_auto {
+                        logical_margin.inline_start = start_margin;
+                    }
+                    if is_end_auto {
+                        logical_margin.inline_end = end_margin;
+                    }
+                }
+                item.margin = logical_margin.to_physical(writing_direction);
+            }
+
+            // ── Layout child with final sizes ────────────────────────
+            let child_border = resolve_border(child_style);
+            let child_padding = resolve_padding(child_style, child_percentage_inline);
+
+            let flexed_border_box = item.flexed_border_box_size();
+
+            let cross_border_padding = if is_main_axis_horizontal {
+                child_border.block_sum() + child_padding.block_sum()
+            } else {
+                child_border.inline_sum() + child_padding.inline_sum()
+            };
+
+            let cross_size_is_auto = if is_main_axis_horizontal {
+                child_style.height.is_auto() || child_style.height.is_stretch()
+            } else {
+                child_style.width.is_auto() || child_style.width.is_stretch()
+            };
+            let has_cross_auto_margins_for_stretch = if is_main_axis_horizontal {
+                child_style.margin_top.is_auto() || child_style.margin_bottom.is_auto()
+            } else {
+                child_style.margin_left.is_auto() || child_style.margin_right.is_auto()
+            };
+            let should_stretch = item.alignment == ItemPosition::Stretch
+                && cross_size_is_auto
+                && !has_cross_auto_margins_for_stretch;
+            let cross_size_for_child = if should_stretch {
+                let stretch_size = line.line_cross_size - item.cross_axis_margin_extent();
+                let stretch_size = stretch_size.clamp_negative_to_zero();
+                let (cross_min_prop, cross_max_prop) = if is_main_axis_horizontal {
+                    (&child_style.min_height, &child_style.max_height)
+                } else {
+                    (&child_style.min_width, &child_style.max_width)
+                };
+                let cross_pct_base = axis_mapping.container_cross_percentage_size(
+                    child_percentage_inline,
+                    child_percentage_block,
+                );
+                let cross_min_raw = resolve_cross_min_max(
+                    doc,
+                    item.node_id,
+                    cross_min_prop,
+                    !is_main_axis_horizontal,
+                    cross_pct_base,
+                    true,
+                );
+                let cross_max_raw = resolve_cross_min_max(
+                    doc,
+                    item.node_id,
+                    cross_max_prop,
+                    !is_main_axis_horizontal,
+                    cross_pct_base,
+                    false,
+                );
+                let cross_min = if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                    cross_min_raw
+                } else if cross_min_raw > LayoutUnit::zero() {
+                    cross_min_raw + cross_border_padding
+                } else {
+                    cross_min_raw
+                };
+                let cross_max = if cross_max_raw == LayoutUnit::from_i32(33554431) {
+                    cross_max_raw
+                } else if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                    cross_max_raw
+                } else {
+                    cross_max_raw + cross_border_padding
+                };
+                stretch_size.clamp(cross_min, cross_max)
+            } else {
+                // Reuse the hypothetical cross size that established this line.
+                // It already includes border/padding and the cross min/max clamp;
+                // resolving it again here can choose a different intrinsic path
+                // after wrapping and double-apply those outer constraints.
+                hypothetical_cross_border_box_sizes[idx]
+            };
+
+            let mut final_main = flexed_border_box;
+            if item.flex_grow == 0.0 {
+                if let Some(ar) = &child_style.aspect_ratio {
+                    if ar.ratio.0 > 0.0 && ar.ratio.1 > 0.0 {
+                        let cross_max_prop = if is_main_axis_horizontal {
+                            &child_style.max_height
+                        } else {
+                            &child_style.max_width
+                        };
+                        let cross_pct_base = axis_mapping.container_cross_percentage_size(
+                            child_percentage_inline,
+                            child_percentage_block,
+                        );
+                        if !cross_max_prop.is_none()
+                            && (!cross_pct_base.is_indefinite() || cross_max_prop.is_fixed())
+                        {
+                            let cross_max = resolve_length(
+                                cross_max_prop,
+                                cross_pct_base,
+                                LayoutUnit::zero(),
+                                LayoutUnit::from_i32(33554431),
+                            );
+                            let main_limit = if child_style.box_sizing
+                                == div_style::BoxSizing::BorderBox
+                                && !ar.auto_flag
+                            {
+                                if !is_main_axis_horizontal {
+                                    LayoutUnit::from_f32(
+                                        cross_max.to_f32() * ar.ratio.1 / ar.ratio.0,
+                                    )
+                                } else {
+                                    LayoutUnit::from_f32(
+                                        cross_max.to_f32() * ar.ratio.0 / ar.ratio.1,
+                                    )
+                                }
+                            } else {
+                                let content_cross =
+                                    if child_style.box_sizing == div_style::BoxSizing::BorderBox {
+                                        (cross_max - cross_border_padding).clamp_negative_to_zero()
+                                    } else {
+                                        cross_max
+                                    };
+                                let content_main = if !is_main_axis_horizontal {
+                                    LayoutUnit::from_f32(
+                                        content_cross.to_f32() * ar.ratio.1 / ar.ratio.0,
+                                    )
+                                } else {
+                                    LayoutUnit::from_f32(
+                                        content_cross.to_f32() * ar.ratio.0 / ar.ratio.1,
+                                    )
+                                };
+                                content_main + item.main_axis_border_padding
+                            };
+                            final_main = final_main.min_of(main_limit);
+                        }
+                    }
+                }
+            }
+
+            // CSS Flexbox §9.8: flex item sizes are definite for child
+            // percentage resolution only when the flex container has a
+            // definite main size. When the container has auto height
+            // (even if max-height constrains it), percentage heights on
+            // flex item children must resolve as auto.
+            let item_pct_block = if is_column {
+                if child_percentage_block.is_indefinite() && item.is_used_flex_basis_indefinite {
+                    // CSS Flexbox §9.8: Container main size is not definite
+                    // AND the item has no definite flex-basis → item height
+                    // is not definite for percentage purposes.
+                    child_percentage_block // indefinite
+                } else {
+                    // Either the container has a definite main size, OR the
+                    // item has a definite flex-basis — treat the post-flexing
+                    // main size as definite for percentage resolution (§9.8).
+                    (final_main - item.main_axis_border_padding).clamp_negative_to_zero()
+                }
+            } else {
+                if should_stretch || child_percentage_block.is_indefinite() {
+                    let child_style = &doc.node(item.node_id).style;
+                    let bp_cross = {
+                        let border = resolve_border(child_style);
+                        let pad_t = crate::length_resolver::resolve_margin_or_padding(
+                            &child_style.padding_top,
+                            child_percentage_inline,
+                        );
+                        let pad_b = crate::length_resolver::resolve_margin_or_padding(
+                            &child_style.padding_bottom,
+                            child_percentage_inline,
+                        );
+                        border.top + border.bottom + pad_t + pad_b
+                    };
+                    (cross_size_for_child - bp_cross).clamp_negative_to_zero()
+                } else {
+                    child_percentage_block
+                }
+            };
+
+            let mut child_space = axis_mapping.child_space(
+                final_main,
+                cross_size_for_child,
+                child_percentage_inline,
+                item_pct_block,
+            );
+
+            axis_mapping.set_main_fixed(&mut child_space);
+            if is_column {
+                // CSS Flexbox §9.8: flex item heights are only definite for
+                // child percentage resolution when the container has a definite
+                // main size OR the item has a definite flex-basis. Mark
+                // indefinite only when BOTH container AND basis are indefinite.
+                if axis_mapping.main_maps_to_child_block()
+                    && child_percentage_block.is_indefinite()
+                    && item.is_used_flex_basis_indefinite
+                {
+                    child_space.is_initial_block_size_indefinite = true;
+                }
+                if should_stretch {
+                    axis_mapping.set_cross_stretch(&mut child_space);
+                } else if !cross_size_is_auto || child_style.width.is_stretch() {
+                    axis_mapping.set_cross_fixed(&mut child_space);
+                }
+            } else {
+                if should_stretch {
+                    axis_mapping.set_cross_stretch(&mut child_space);
+                } else if !cross_size_is_auto || child_style.height.is_stretch() {
+                    // Row flex: item has explicit cross size (e.g. height + max-height).
+                    // The flex algorithm already resolved the used cross size including
+                    // min/max constraints. Mark as fixed so block.rs uses the constraint
+                    // space value for child percentage resolution instead of re-resolving
+                    // from style.height (which ignores max-height clamping).
+                    axis_mapping.set_cross_fixed(&mut child_space);
+                }
+            }
+
+            let mut child_fragment = layout_flex_item(doc, item.node_id, &child_space);
+
+            if doc.node(item.node_id).replaced.is_some() {
+                // Replaced flex items still resolve their authored preferred
+                // size during their own layout, but the post-flexing main
+                // size is authoritative at the flex-item boundary.
+                if is_main_axis_horizontal {
+                    child_fragment.size.width = final_main;
+                } else {
+                    child_fragment.size.height = final_main;
+                }
+            }
+
+            // For an externally fixed cross-size, project the resolved pair at
+            // the flex boundary. An automatic cross-size must retain the size
+            // discovered by final child layout: flexing the logical inline
+            // size can wrap vertical text into additional columns, increasing
+            // its physical width after the hypothetical cross-size pass.
+            // A table's block size is at least its rows' extent, so its laid-
+            // out fragment, not the flexed size, is authoritative there.
+            if !axis_mapping.child_writing_direction.is_horizontal()
+                && !child_style.display.is_flex()
+                && !child_style.display.is_table_wrapper()
+                && (!cross_size_is_auto || should_stretch)
+            {
+                child_fragment.size = axis_mapping.physical_size(final_main, cross_size_for_child);
+            }
+
+            let child_logical_size = converter.to_logical_size(child_fragment.size);
+            let item_cross_margin_box = if is_column {
+                child_logical_size.inline_size + item.cross_axis_margin_extent()
+            } else {
+                child_logical_size.block_size + item.cross_axis_margin_extent()
+            };
+
+            let has_cross_auto_margins = if is_column {
+                child_logical.margins.inline_start.is_auto()
+                    || child_logical.margins.inline_end.is_auto()
+            } else {
+                child_logical.margins.block_start.is_auto()
+                    || child_logical.margins.block_end.is_auto()
+            };
+
+            let is_start_auto = if is_column {
+                child_logical.margins.inline_start.is_auto()
+            } else {
+                child_logical.margins.block_start.is_auto()
+            };
+            let is_end_auto = if is_column {
+                child_logical.margins.inline_end.is_auto()
+            } else {
+                child_logical.margins.block_end.is_auto()
+            };
+
+            let cross_margin_start = if is_column {
+                logical_margin.inline_start
+            } else {
+                logical_margin.block_start
+            };
+
+            // Baseline alignment: for row flex, baseline = first_baseline of
+            // the child fragment (distance from cross-start to baseline).
+            // If no baseline from content, synthesize from the cross-end
+            // border edge (CSS Flexbox §9.4).
+            let is_baseline_aligned = matches!(
+                item.alignment,
+                ItemPosition::Baseline | ItemPosition::LastBaseline
+            ) && !has_cross_auto_margins;
+
+            let mut clamped_last_baseline_at_cross_edge = false;
+            let baseline = if is_baseline_aligned {
+                let cross_size = if is_column {
+                    child_logical_size.inline_size
+                } else {
+                    child_logical_size.block_size
+                };
+                let mut frag_baseline = if item.alignment == ItemPosition::LastBaseline {
+                    child_fragment
+                        .last_baseline
+                        .or(child_fragment.first_baseline)
+                } else {
+                    child_fragment.first_baseline
+                };
+                if item.alignment == ItemPosition::LastBaseline
+                    && child_style.line_clamp != div_style::LineClamp::None
+                {
+                    // A clipped/clamped flex item cannot expose a baseline
+                    // from a discarded line beyond its border-box. Clamp the
+                    // propagated last baseline to the retained cross edge.
+                    clamped_last_baseline_at_cross_edge =
+                        frag_baseline.is_some_and(|baseline| baseline >= cross_size);
+                    frag_baseline = frag_baseline.map(|baseline| baseline.min_of(cross_size));
+                }
+                // Ascent includes the cross-start margin so baselines align
+                // across items with different margins.
+                let child_direction = child_style
+                    .direction
+                    .writing_direction(child_style.writing_mode);
+                let cross_baseline = if child_direction.is_horizontal()
+                    != writing_direction.is_horizontal()
+                {
+                    // An orthogonal flex item cannot expose a baseline
+                    // parallel to this row's cross axis. Synthesize it from
+                    // the cross-end border edge.
+                    cross_size
+                } else if is_column {
+                    // A horizontal child's baseline is parallel to a column
+                    // flex container's cross axis. Synthesize the alignment
+                    // baseline at its cross-start margin edge; this keeps the
+                    // participating border boxes on a shared physical edge in
+                    // both LTR and RTL containers.
+                    LayoutUnit::zero()
+                } else if !is_main_axis_horizontal {
+                    // Blink: LogicalBoxFragment::FirstBaselineOrSynthesize.
+                    // Vertical lines expose their central baseline, and an
+                    // item without one synthesizes it at its middle.
+                    // Sideways vertical-lr text keeps the alphabetic edge,
+                    // which is block-start in flipped lines.
+                    match (child_style.writing_mode, child_style.text_orientation) {
+                        (
+                            div_style::WritingMode::VerticalLr,
+                            div_style::TextOrientation::Sideways,
+                        ) => LayoutUnit::zero(),
+                        (
+                            div_style::WritingMode::VerticalRl | div_style::WritingMode::VerticalLr,
+                            div_style::TextOrientation::Mixed | div_style::TextOrientation::Upright,
+                        ) => frag_baseline.unwrap_or(cross_size / 2),
+                        _ => frag_baseline.unwrap_or(cross_size),
+                    }
+                } else {
+                    frag_baseline.unwrap_or(cross_size)
+                };
+                let baseline_from_top = cross_margin_start + cross_baseline;
+                // For wrap-reverse the cross axis runs bottom-to-top, so
+                // "ascent" is measured from the physical bottom (= cross-start).
+                Some(if cross_axis_is_physically_reversed {
+                    item_cross_margin_box - baseline_from_top
+                } else {
+                    baseline_from_top
+                })
+            } else {
+                None
+            };
+
+            item_data.push(ItemLayoutData {
+                fragment: child_fragment,
+                idx,
+                cross_margin_box: item_cross_margin_box,
+                has_cross_auto_margins,
+                is_start_auto,
+                is_end_auto,
+                baseline,
+                cross_margin_start,
+                is_baseline_aligned,
+                clamped_last_baseline_at_cross_edge,
+            });
+        }
+
+        // ── Compute line baseline (max ascent among baseline-aligned items) ──
+        // Do NOT clamp to zero: for wrap-reverse items negative ascents are
+        // valid (baseline extends beyond the cross-end margin edge), and
+        // clamping to zero would offset items incorrectly.
+        let line_max_ascent = item_data
+            .iter()
+            .filter_map(|d| d.baseline)
+            .max()
+            .unwrap_or(LayoutUnit::zero());
+        let line_max_last_descent = item_data
+            .iter()
+            .filter(|data| items[data.idx].alignment == ItemPosition::LastBaseline)
+            .filter_map(|data| {
+                data.baseline
+                    .map(|baseline| data.cross_margin_box - baseline)
+            })
+            .max()
+            .unwrap_or(LayoutUnit::zero());
+        let column_baseline_group_cross_size = item_data
+            .iter()
+            .filter(|data| data.is_baseline_aligned)
+            .map(|data| data.cross_margin_box)
+            .max()
+            .unwrap_or(LayoutUnit::zero());
+
+        // For row (non-column), non-wrap-reverse flex: export the container's
+        // baseline from this line's alignment group.  The baseline is
+        // content_offset_y + line.cross_axis_offset + line_max_ascent —
+        // the physical distance from the container's border-box top to the
+        // shared baseline of all baseline-aligned items in this line.
+        // This mirrors Blink's BaselineAccumulator::AccumulateLine which sets
+        // first_major_baseline_ = line.cross_axis_offset + line.major_baseline.
+        let has_baseline_items = item_data.iter().any(|d| d.is_baseline_aligned);
+        let vertical_baseline_max_font = item_data
+            .iter()
+            .filter(|data| data.is_baseline_aligned)
+            .map(|data| doc.node(items[data.idx].node_id).style.font_size)
+            .fold(0.0_f32, f32::max);
+        let clamped_last_group_at_cross_edge = item_data
+            .iter()
+            .any(|data| data.clamped_last_baseline_at_cross_edge);
+        if has_baseline_items && !is_column && !is_wrap_reverse {
+            let line_baseline = content_offset_y + line.cross_axis_offset + line_max_ascent;
+            if container_first_baseline.is_none() {
+                container_first_baseline = Some(line_baseline);
+            }
+            container_last_baseline = Some(line_baseline);
+        }
+
+        // ── Pass 2: Position items ───────────────────────────────────
+        let sideways_baseline_group_margin = |alignment: ItemPosition, at_start: bool| {
+            item_data
+                .iter()
+                .filter(|data| items[data.idx].alignment == alignment)
+                .filter(|data| {
+                    let child_style = &doc.node(items[data.idx].node_id).style;
+                    let child_direction = child_style
+                        .direction
+                        .writing_direction(child_style.writing_mode);
+                    !is_main_axis_horizontal
+                        && child_direction == writing_direction
+                        && matches!(
+                            child_style.writing_mode,
+                            div_style::WritingMode::SidewaysRl | div_style::WritingMode::SidewaysLr
+                        )
+                })
+                .map(|data| {
+                    if at_start {
+                        data.cross_margin_start
+                    } else {
+                        items[data.idx].cross_axis_margin_extent() - data.cross_margin_start
+                    }
+                })
+                .max()
+                .unwrap_or(LayoutUnit::zero())
+        };
+        let first_baseline_margin_start =
+            sideways_baseline_group_margin(ItemPosition::Baseline, true);
+        let first_baseline_margin_end =
+            sideways_baseline_group_margin(ItemPosition::Baseline, false);
+        let last_baseline_margin_start =
+            sideways_baseline_group_margin(ItemPosition::LastBaseline, true);
+        let last_baseline_margin_end =
+            sideways_baseline_group_margin(ItemPosition::LastBaseline, false);
+        let mut main_offset = main_align.initial_offset;
+
+        for (item_pos, data) in item_data.into_iter().enumerate() {
+            let item = &items[data.idx];
+            let child_style = &doc.node(item.node_id).style;
+            let cross_space = line.line_cross_size - data.cross_margin_box;
+
+            let mut cross_item_offset = if data.has_cross_auto_margins {
+                let (start, _end) =
+                    resolve_cross_auto_margins(cross_space, data.is_start_auto, data.is_end_auto);
+                start
+            } else if data.is_baseline_aligned {
+                let child_direction = child_style
+                    .direction
+                    .writing_direction(child_style.writing_mode);
+                if !is_main_axis_horizontal
+                    && child_direction == writing_direction
+                    && matches!(
+                        child_style.writing_mode,
+                        div_style::WritingMode::SidewaysRl | div_style::WritingMode::SidewaysLr
+                    )
+                {
+                    // A sideways run's alphabetic baseline is parallel to the
+                    // row main axis. Its cross-axis baseline is therefore
+                    // synthesized from a border edge: first baseline uses
+                    // cross-start and last baseline uses cross-end. Reuse the
+                    // ordinary start/end alignment path. The flex line's
+                    // cross-axis offset already incorporates wrap reversal;
+                    // do not reverse the synthesized edge a second time.
+                    let place_at_end =
+                        (item.alignment == ItemPosition::LastBaseline) ^ is_wrap_reverse;
+                    let base = resolve_align_self(
+                        if place_at_end {
+                            ItemPosition::End
+                        } else {
+                            ItemPosition::Start
+                        },
+                        cross_space,
+                        item.alignment_overflow,
+                        false,
+                    );
+                    let item_margin_end = item.cross_axis_margin_extent() - data.cross_margin_start;
+                    if place_at_end {
+                        let group_margin_end = if item.alignment == ItemPosition::LastBaseline {
+                            last_baseline_margin_end
+                        } else {
+                            first_baseline_margin_end
+                        };
+                        base - (group_margin_end - item_margin_end)
+                    } else {
+                        let group_margin_start = if item.alignment == ItemPosition::LastBaseline {
+                            last_baseline_margin_start
+                        } else {
+                            first_baseline_margin_start
+                        };
+                        base + (group_margin_start - data.cross_margin_start)
+                    }
+                } else if item.alignment == ItemPosition::LastBaseline
+                    && !is_column
+                    && !cross_axis_is_physically_reversed
+                {
+                    // Last-baseline groups are packed against cross-end. The
+                    // largest post-baseline descent (including the cross-end
+                    // margin) determines the shared baseline coordinate.
+                    line.line_cross_size
+                        - line_max_last_descent
+                        - data.baseline.unwrap_or(LayoutUnit::zero())
+                } else if is_column {
+                    // Column items synthesize their cross-axis baseline at a
+                    // border edge. Keep that edge shared inside a group sized
+                    // by its largest participant; unused container cross
+                    // space remains on the flex-end side.
+                    if cross_axis_is_physically_reversed {
+                        column_baseline_group_cross_size - data.cross_margin_box
+                    } else {
+                        LayoutUnit::zero()
+                    }
+                } else {
+                    // Offset aligns all baselines on the same cross-axis line.
+                    // For wrap-reverse the cross axis is flipped:
+                    // cross_item_offset counts from physical top.
+                    let item_ascent = data.baseline.unwrap_or(LayoutUnit::zero());
+                    if cross_axis_is_physically_reversed {
+                        cross_space - (line_max_ascent - item_ascent)
+                    } else {
+                        line_max_ascent - item_ascent
+                    }
+                }
+            } else if matches!(
+                item.alignment,
+                ItemPosition::SelfStart | ItemPosition::SelfEnd
+            ) {
+                let child_direction = child_style
+                    .direction
+                    .writing_direction(child_style.writing_mode);
+                match cross_axis_static_position_edge(
+                    item.alignment,
+                    is_wrap_reverse,
+                    writing_direction,
+                    child_direction,
+                    !is_column,
+                ) {
+                    crate::out_of_flow::StaticPositionEdge::Start => LayoutUnit::zero(),
+                    crate::out_of_flow::StaticPositionEdge::Center => {
+                        LayoutUnit::from_raw(cross_space.raw() / 2)
+                    }
+                    crate::out_of_flow::StaticPositionEdge::End => cross_space,
+                }
+            } else {
+                let alignment_cross_space = if item.alignment_overflow == OverflowAlignment::Safe {
+                    let container_cross_space = content_cross_size - data.cross_margin_box;
+                    cross_space.min_of(container_cross_space)
+                } else {
+                    cross_space
+                };
+                resolve_align_self(
+                    item.alignment,
+                    alignment_cross_space,
+                    item.alignment_overflow,
+                    is_wrap_reverse,
+                )
+            };
+
+            // For RTL row flex, physical right margin is the main-start margin.
+            let logical_margin = item.margin.to_logical(writing_direction);
+            let main_margin_start = if is_column {
+                logical_margin.block_start
+            } else {
+                logical_margin.inline_start
+            };
+            let cross_margin_start = data.cross_margin_start;
+
+            let item_main_pos = main_offset + main_margin_start;
+            let item_cross_pos = line.cross_axis_offset + cross_item_offset + cross_margin_start;
+
+            let logical_offset = if is_column {
+                LogicalOffset::new(
+                    content_logical_offset.inline_offset + item_cross_pos,
+                    content_logical_offset.block_offset + item_main_pos,
+                )
+            } else {
+                LogicalOffset::new(
+                    content_logical_offset.inline_offset + item_main_pos,
+                    content_logical_offset.block_offset + item_cross_pos,
+                )
+            };
+
+            let mut positioned = data.fragment;
+            positioned.offset = converter.to_physical_offset(logical_offset, positioned.size);
+            positioned.margin = item.margin.clone();
+            if doc.node(item.node_id).pseudo_kind == Some(PseudoElementKind::ColumnScrollMarker) {
+                if column_marker_occurrence > 0 {
+                    positioned.paint_background_color_override =
+                        doc.node(item.node_id).scroll_marker_inactive_background;
+                }
+                column_marker_occurrence += 1;
+            }
+
+            crate::relative::apply_relative_offset(
+                &mut positioned,
+                child_style,
+                child_percentage_inline,
+                child_percentage_block,
+            );
+
+            let main_margin_end = if is_column {
+                logical_margin.block_end
+            } else {
+                logical_margin.inline_end
+            };
+            let positioned_logical_size = converter.to_logical_size(positioned.size);
+            let item_main_size = if is_column {
+                positioned_logical_size.block_size
+            } else {
+                positioned_logical_size.inline_size
+            };
+
+            // Blink keeps visibility:collapse flex items in main-axis layout
+            // while suppressing their fragment from painting; their cross-axis
+            // strut is already accounted for by line cross-size computation.
+            if !item.is_collapsed {
+                children.push(positioned);
+            }
+
+            main_offset = main_offset + main_margin_start + item_main_size + main_margin_end;
+
+            if item_pos < line.item_count() - 1 {
+                main_offset = main_offset + gap_between_items + main_align.between_space;
+            }
+        }
+
+        // Column-reverse lays out the reversed item sequence toward the
+        // physical block end. Keep the finished line inside that resolved
+        // main-axis extent; otherwise a zero-free-space line is displaced by
+        // one item and fragmentation observes a spurious leading gap.
+        if writing_direction.is_horizontal()
+            && is_column
+            && is_reverse
+            && justify_content.overflow != OverflowAlignment::Safe
+        {
+            let desired_end = content_offset_y + main_axis_inner_size;
+            let actual_end = children[line_children_start..]
+                .iter()
+                .map(|child| child.offset.top + child.size.height)
+                .max()
+                .unwrap_or(desired_end);
+            let excess = (actual_end - desired_end).clamp_negative_to_zero();
+            if excess > LayoutUnit::zero() {
+                for child in &mut children[line_children_start..] {
+                    child.offset.top = child.offset.top - excess;
+                }
+            }
+        }
+    }
+
+    (children, container_first_baseline, container_last_baseline)
+}
+
+fn finalize_flex_fragment(
+    doc: &dyn LayoutDocument,
+    fragment: &mut Fragment,
+    style: &div_style::ComputedStyle,
+    is_column: bool,
+) {
+    let border_box_rect = PhysicalRect::new(PhysicalOffset::zero(), fragment.size);
+    let mut overflow = border_box_rect;
+    let writing_direction = style.direction.writing_direction(style.writing_mode);
+    let converter = WritingModeConverter::new(writing_direction, fragment.size);
+    let logical_padding = fragment.padding.to_logical(writing_direction);
+    let inline_end_is_reversed = if is_column {
+        style.flex_wrap.is_wrap_reverse()
+    } else {
+        style.flex_direction.is_reverse()
+    };
+    let block_end_is_reversed = if is_column {
+        style.flex_direction.is_reverse()
+    } else {
+        style.flex_wrap.is_wrap_reverse()
+    };
+    let is_scroll_container = !matches!(
+        (style.overflow_x, style.overflow_y),
+        (
+            div_style::Overflow::Visible | div_style::Overflow::Clip,
+            div_style::Overflow::Visible | div_style::Overflow::Clip
+        )
+    );
+    for child in &fragment.children {
+        let child_rect = PhysicalRect::new(child.offset, child.size);
+        overflow = overflow.unite(&child_rect);
+        if is_scroll_container {
+            // CSS Overflow's flex-item contribution includes the item's
+            // resolved margin box followed by the container's end padding.
+            // On reversed main/cross axes that end padding precedes the item
+            // physically, so it extends the logical start instead. This is
+            // what makes row-reverse/column-reverse scroll areas symmetric
+            // with their non-reversed counterparts.
+            let margin_rect = PhysicalRect::new(
+                PhysicalOffset::new(
+                    child.offset.left - child.margin.left,
+                    child.offset.top - child.margin.top,
+                ),
+                PhysicalSize::new(
+                    child.size.width + child.margin.left + child.margin.right,
+                    child.size.height + child.margin.top + child.margin.bottom,
+                ),
+            );
+            let mut logical = converter.to_logical_rect(margin_rect);
+            if inline_end_is_reversed {
+                logical.offset.inline_offset =
+                    logical.offset.inline_offset - logical_padding.inline_start;
+                logical.size.inline_size = logical.size.inline_size + logical_padding.inline_start;
+            } else {
+                logical.size.inline_size = logical.size.inline_size + logical_padding.inline_end;
+            }
+            if block_end_is_reversed {
+                logical.offset.block_offset =
+                    logical.offset.block_offset - logical_padding.block_start;
+                logical.size.block_size = logical.size.block_size + logical_padding.block_start;
+            } else {
+                logical.size.block_size = logical.size.block_size + logical_padding.block_end;
+            }
+            overflow = overflow.unite(&converter.to_physical_rect(logical));
+        }
+        if !child.has_overflow_clip {
+            if let Some(child_overflow) = child.overflow_rect {
+                let shifted = PhysicalRect::new(
+                    PhysicalOffset::new(
+                        child.offset.left + child_overflow.offset.left,
+                        child.offset.top + child_overflow.offset.top,
+                    ),
+                    child_overflow.size,
+                );
+                overflow = overflow.unite(&shifted);
+            }
+        }
+    }
+    if overflow != border_box_rect {
+        fragment.overflow_rect = Some(overflow);
+    }
+    fragment.has_overflow_clip = crate::scroll_area::has_overflow_clip(doc, fragment.node_id);
+
+    fragment.first_baseline = flex_baseline_from_child(doc, fragment, style, is_column, true);
+    fragment.last_baseline = flex_baseline_from_child(doc, fragment, style, is_column, false);
+}
+
+fn flex_baseline_from_child(
+    _doc: &dyn LayoutDocument,
+    fragment: &Fragment,
+    style: &div_style::ComputedStyle,
+    is_column: bool,
+    first: bool,
+) -> Option<LayoutUnit> {
+    let child = match if first {
+        fragment.children.first()
+    } else {
+        fragment.children.last()
+    } {
+        Some(child) => child,
+        None => return None,
+    };
+    let child_baseline = if first {
+        child.first_baseline.or(child.last_baseline)
+    } else {
+        child.last_baseline.or(child.first_baseline)
+    };
+    if is_column {
+        child_baseline
+            .map(|baseline| child.offset.top + baseline)
+            .or_else(|| {
+                if child.height() == LayoutUnit::zero() {
+                    Some(child.offset.top)
+                } else {
+                    None
+                }
+            })
+    } else {
+        child_baseline
+            .map(|baseline| child.offset.top + baseline)
+            .or_else(|| {
+                // A horizontal flex item without a natural baseline
+                // synthesizes one from its cross-end margin edge. In an
+                // orthogonal vertical inline context this scalar represents
+                // the wrong physical axis, so the owning IFC must synthesize
+                // the atomic baseline from its border edge instead.
+                ((style.writing_mode == div_style::WritingMode::HorizontalTb
+                    && (matches!(
+                        style.align_items.position,
+                        ItemPosition::Baseline | ItemPosition::LastBaseline
+                    ) || child.children.is_empty()))
+                    || style.flex_wrap.is_wrap())
+                .then_some(child.offset.top + child.height())
+            })
+    }
+}
+
+/// Compute the static position for an abspos child of a flex container.
+///
+/// Per CSS Flexbox §4.1, the child is positioned as if it were the sole flex
+/// item, applying the container's `justify-content` (main axis) and
+/// `align-items` (cross axis) alignment.
+#[derive(Debug, Clone, Copy)]
+struct FlexAbsposStaticPosition {
+    offset: PhysicalOffset,
+    horizontal_edge: crate::out_of_flow::StaticPositionEdge,
+    vertical_edge: crate::out_of_flow::StaticPositionEdge,
+}
+
+fn main_axis_static_position_edge(
+    alignment: &ContentAlignment,
+    is_reverse: bool,
+    is_block_axis: bool,
+    writing_direction: WritingDirectionMode,
+) -> crate::out_of_flow::StaticPositionEdge {
+    use crate::out_of_flow::StaticPositionEdge::{Center, End, Start};
+
+    match alignment.position {
+        ContentPosition::FlexEnd => {
+            if is_reverse {
+                Start
+            } else {
+                End
+            }
+        }
+        ContentPosition::Center => Center,
+        ContentPosition::Start => Start,
+        ContentPosition::End => End,
+        ContentPosition::Left => {
+            physical_side_static_position_edge(true, writing_direction, is_block_axis)
+        }
+        ContentPosition::Right => {
+            physical_side_static_position_edge(false, writing_direction, is_block_axis)
+        }
+        _ => match alignment.distribution {
+            ContentDistribution::SpaceAround | ContentDistribution::SpaceEvenly => Center,
+            _ if is_reverse => End,
+            _ => Start,
+        },
+    }
+}
+
+fn logical_axis_is_horizontal(
+    writing_direction: WritingDirectionMode,
+    is_block_axis: bool,
+) -> bool {
+    writing_direction.is_horizontal() != is_block_axis
+}
+
+fn physical_axis_start_is_low(
+    writing_direction: WritingDirectionMode,
+    physical_axis_is_horizontal: bool,
+) -> bool {
+    if physical_axis_is_horizontal {
+        if writing_direction.is_horizontal() {
+            !writing_direction.is_rtl()
+        } else {
+            !writing_direction.is_flipped_blocks()
+        }
+    } else if writing_direction.is_horizontal() {
+        true
+    } else {
+        !(writing_direction.is_flipped_lines() ^ writing_direction.is_rtl())
+    }
+}
+
+fn physical_side_static_position_edge(
+    is_left: bool,
+    writing_direction: WritingDirectionMode,
+    is_block_axis: bool,
+) -> crate::out_of_flow::StaticPositionEdge {
+    use crate::out_of_flow::StaticPositionEdge::{End, Start};
+
+    let axis_is_horizontal = logical_axis_is_horizontal(writing_direction, is_block_axis);
+    if !axis_is_horizontal {
+        // A physical keyword on a vertical block axis falls back to `start`.
+        // A vertical inline axis retains the corpus-defined left/right
+        // start/end pairing before its logical edge is projected physically.
+        return if is_block_axis || is_left { Start } else { End };
+    }
+    let start_is_left = physical_axis_start_is_low(writing_direction, true);
+    if is_left == start_is_left {
+        Start
+    } else {
+        End
+    }
+}
+
+fn cross_axis_static_position_edge(
+    alignment: ItemPosition,
+    is_wrap_reverse: bool,
+    container_direction: WritingDirectionMode,
+    child_direction: WritingDirectionMode,
+    cross_axis_is_block: bool,
+) -> crate::out_of_flow::StaticPositionEdge {
+    use crate::out_of_flow::StaticPositionEdge::{Center, End, Start};
+
+    match alignment {
+        ItemPosition::Center => Center,
+        ItemPosition::FlexStart | ItemPosition::Stretch if is_wrap_reverse => End,
+        ItemPosition::FlexEnd if !is_wrap_reverse => End,
+        ItemPosition::End | ItemPosition::LastBaseline => End,
+        ItemPosition::SelfStart | ItemPosition::SelfEnd => {
+            let physical_axis_is_horizontal =
+                logical_axis_is_horizontal(container_direction, cross_axis_is_block);
+            let container_start_is_low =
+                physical_axis_start_is_low(container_direction, physical_axis_is_horizontal);
+            let child_start_is_low =
+                physical_axis_start_is_low(child_direction, physical_axis_is_horizontal);
+            let self_start_is_container_start = container_start_is_low == child_start_is_low;
+            let wants_self_start = alignment == ItemPosition::SelfStart;
+            if wants_self_start == self_start_is_container_start {
+                Start
+            } else {
+                End
+            }
+        }
+        _ => Start,
+    }
+}
+
+fn edge_offset(edge: crate::out_of_flow::StaticPositionEdge, size: LayoutUnit) -> LayoutUnit {
+    match edge {
+        crate::out_of_flow::StaticPositionEdge::Start => LayoutUnit::zero(),
+        crate::out_of_flow::StaticPositionEdge::Center => size / 2,
+        crate::out_of_flow::StaticPositionEdge::End => size,
+    }
+}
+
+fn compute_abspos_static_position(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    child_style: &div_style::ComputedStyle,
+    container_style: &div_style::ComputedStyle,
+    content_width: LayoutUnit,
+    content_height: LayoutUnit,
+    is_column: bool,
+    border: &BoxStrut,
+    padding: &BoxStrut,
+    scrollbar_insets: &BoxStrut,
+) -> FlexAbsposStaticPosition {
+    let writing_direction = container_style
+        .direction
+        .writing_direction(container_style.writing_mode);
+    let child_direction = child_style
+        .direction
+        .writing_direction(child_style.writing_mode);
+    let physical_padding_box = PhysicalSize::new(
+        content_width + padding.left + padding.right,
+        content_height + padding.top + padding.bottom,
+    );
+    let child_percentage_size = WritingModeConverter::new(child_direction, physical_padding_box)
+        .to_logical_size(physical_padding_box);
+    let child_available_size = WritingModeConverter::new(
+        child_direction,
+        PhysicalSize::new(content_width, content_height),
+    )
+    .to_logical_size(PhysicalSize::new(content_width, content_height));
+
+    // Layout the abspos child to determine its hypothetical size.
+    let child_space =
+        crate::constraint_space::ConstraintSpace::for_block_child_with_writing_direction(
+            child_available_size.inline_size,
+            child_available_size.block_size,
+            child_percentage_size.inline_size,
+            child_percentage_size.block_size,
+            false,
+            child_direction,
+        );
+    let child_fragment = crate::block::block_layout_with_layout(doc, child_id, &child_space);
+    let child_margins = resolve_margins(child_style, physical_padding_box.width);
+    let child_margin_box = PhysicalSize::new(
+        child_fragment.size.width + child_margins.left + child_margins.right,
+        child_fragment.size.height + child_margins.top + child_margins.bottom,
+    );
+
+    let container_content_physical = PhysicalSize::new(content_width, content_height);
+    let converter = WritingModeConverter::new(
+        writing_direction,
+        PhysicalSize::new(
+            content_width
+                + border.left
+                + border.right
+                + padding.left
+                + padding.right
+                + scrollbar_insets.inline_sum(),
+            content_height
+                + border.top
+                + border.bottom
+                + padding.top
+                + padding.bottom
+                + scrollbar_insets.block_sum(),
+        ),
+    );
+    let content_logical = converter.to_logical_size(container_content_physical);
+    let child_logical = converter.to_logical_size(child_margin_box);
+
+    let (main_size, cross_size, child_main, child_cross) = if is_column {
+        (
+            content_logical.block_size,
+            content_logical.inline_size,
+            child_logical.block_size,
+            child_logical.inline_size,
+        )
+    } else {
+        (
+            content_logical.inline_size,
+            content_logical.block_size,
+            child_logical.inline_size,
+            child_logical.block_size,
+        )
+    };
+
+    // Static alignment carries an edge, not a completed hypothetical-box
+    // origin. Start/end use the corresponding flex-content edge and center is
+    // independent of the child's hypothetical size. Safe overflow alone may
+    // replace the requested edge with logical start.
+    let mut main_edge = main_axis_static_position_edge(
+        &container_style.justify_content,
+        container_style.flex_direction.is_reverse(),
+        is_column,
+        writing_direction,
+    );
+    if container_style.justify_content.overflow == OverflowAlignment::Safe && child_main > main_size
+    {
+        main_edge = crate::out_of_flow::StaticPositionEdge::Start;
+    }
+
+    // align-self:auto inherits both position and overflow from align-items.
+    // Resolve wrap reversal once before assigning the retained edge.
+    let (cross_alignment, cross_overflow) = resolve_item_alignment(child_style, container_style);
+    let mut cross_edge = cross_axis_static_position_edge(
+        cross_alignment,
+        container_style.flex_wrap.is_wrap_reverse(),
+        writing_direction,
+        child_direction,
+        !is_column,
+    );
+    if cross_overflow == OverflowAlignment::Safe && child_cross > cross_size {
+        cross_edge = crate::out_of_flow::StaticPositionEdge::Start;
+    }
+
+    let (inline_edge, block_edge) = if is_column {
+        (cross_edge, main_edge)
+    } else {
+        (main_edge, cross_edge)
+    };
+    let logical_border = border.to_logical(writing_direction);
+    let logical_padding = padding.to_logical(writing_direction);
+    let logical_scrollbars = scrollbar_insets.to_logical(writing_direction);
+    let logical_anchor = LogicalOffset::new(
+        logical_border.inline_start
+            + logical_padding.inline_start
+            + logical_scrollbars.inline_start
+            + edge_offset(inline_edge, content_logical.inline_size),
+        logical_border.block_start
+            + logical_padding.block_start
+            + logical_scrollbars.block_start
+            + edge_offset(block_edge, content_logical.block_size),
+    );
+    let physical_anchor = converter.to_physical_offset(logical_anchor, PhysicalSize::zero());
+    let (horizontal_edge, vertical_edge) = if writing_direction.is_horizontal() {
+        (inline_edge, block_edge)
+    } else {
+        (block_edge, inline_edge)
+    };
+    FlexAbsposStaticPosition {
+        offset: physical_anchor,
+        horizontal_edge,
+        vertical_edge,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use div_dom::Document;
+    use div_geometry::{LayoutUnit, Length};
+    use div_style::{
+        ComputedStyle, ContentPosition, Direction, Display, FlexDirection, FlexWrap, ItemAlignment,
+        ItemPosition, LineClamp, Overflow, OverflowAlignment, WritingMode,
+    };
+
+    fn make_flex_container(doc: &mut Document, width: i32, height: i32) -> NodeId {
+        let root = doc.root();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::Flex;
+                style.width = Length::px(width as f32);
+                style.height = Length::px(height as f32);
+            });
+        }
+        doc.append_child(root, container);
+        container
+    }
+
+    fn add_flex_child(doc: &mut Document, parent: NodeId, width: i32, height: i32) -> NodeId {
+        let child = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(child, |style| {
+                style.display = Display::Block;
+                style.width = Length::px(width as f32);
+                style.height = Length::px(height as f32);
+            });
+        }
+        doc.append_child(parent, child);
+        child
+    }
+
+    #[test]
+    fn empty_flex_item_synthesizes_container_baseline_from_cross_end() {
+        let doc = Document::new();
+        let mut fragment = Fragment::new_box(
+            NodeId::NONE,
+            div_geometry::PhysicalSize::new(LayoutUnit::from_i32(100), LayoutUnit::from_i32(40)),
+        );
+        let mut child = Fragment::new_box(
+            NodeId::NONE,
+            div_geometry::PhysicalSize::new(LayoutUnit::from_i32(20), LayoutUnit::from_i32(15)),
+        );
+        child.offset.top = LayoutUnit::from_i32(7);
+        fragment.children.push(child);
+
+        let style = ComputedStyle::default();
+        assert_eq!(
+            flex_baseline_from_child(&doc, &fragment, &style, false, true),
+            Some(LayoutUnit::from_i32(22)),
+        );
+        assert_eq!(
+            flex_baseline_from_child(&doc, &fragment, &style, false, false),
+            Some(LayoutUnit::from_i32(22)),
+        );
+    }
+
+    #[test]
+    fn nested_empty_flex_item_still_supplies_container_baseline() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::InlineFlex;
+                style.width = Length::px(100.0);
+                style.border_top_width = 1;
+                style.border_bottom_width = 1;
+                style.border_top_style = div_style::BorderStyle::Solid;
+                style.border_bottom_style = div_style::BorderStyle::Solid;
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let nested = doc.create_node(ElementTag::Div);
+        doc.update_resolved_style(nested, |style| style.display = Display::Flex);
+        doc.append_child(container, nested);
+        let sibling = doc.create_node(ElementTag::Div);
+        doc.append_child(container, sibling);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(200));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.first_baseline, Some(LayoutUnit::from_i32(1)));
+    }
+
+    #[test]
+    fn baseline_line_cross_size_combines_ascent_and_trailing_margin() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::Flex;
+                style.width = Length::px(100.0);
+                style.flex_wrap = FlexWrap::Wrap;
+                style.align_items = ItemAlignment::new(ItemPosition::Baseline);
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let tall = add_flex_child(&mut doc, container, 50, 12);
+        doc.update_resolved_style(tall, |style| style.min_width = Length::zero());
+        let trailing = add_flex_child(&mut doc, container, 50, 2);
+        doc.update_resolved_style(trailing, |style| style.min_width = Length::zero());
+        doc.update_resolved_style(trailing, |style| style.margin_bottom = Length::px(8.0));
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(200));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.height(), LayoutUnit::from_i32(20));
+    }
+
+    #[test]
+    fn baseline_line_cross_size_preserves_legacy_line_clamp_measurement() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::Flex;
+                style.width = Length::px(100.0);
+                style.flex_wrap = FlexWrap::Wrap;
+                style.align_items = ItemAlignment::new(ItemPosition::Baseline);
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let tall = add_flex_child(&mut doc, container, 50, 12);
+        doc.update_resolved_style(tall, |style| style.min_width = Length::zero());
+        let clamped = add_flex_child(&mut doc, container, 50, 2);
+        doc.update_resolved_style(clamped, |style| style.min_width = Length::zero());
+        doc.update_resolved_style(clamped, |style| style.margin_bottom = Length::px(8.0));
+        doc.update_resolved_style(clamped, |style| style.line_clamp = LineClamp::Lines(3));
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(200));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.height(), LayoutUnit::from_i32(12));
+    }
+
+    #[test]
+    fn main_axis_auto_margin_preserves_fixed_opposite_margin() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 200, 20);
+        let first = add_flex_child(&mut doc, container, 30, 10);
+        doc.update_resolved_style(first, |style| style.min_width = Length::zero());
+        doc.update_resolved_style(first, |style| style.margin_left = Length::auto());
+        doc.update_resolved_style(first, |style| style.margin_right = Length::px(20.0));
+        let second = add_flex_child(&mut doc, container, 30, 10);
+        doc.update_resolved_style(second, |style| style.min_width = Length::zero());
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(200));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::from_i32(120));
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::from_i32(170));
+    }
+
+    #[test]
+    fn vertical_nowrap_flex_defers_orthogonal_baseline_synthesis_to_ifc() {
+        let doc = Document::new();
+        let mut fragment = Fragment::new_box(
+            NodeId::NONE,
+            div_geometry::PhysicalSize::new(LayoutUnit::from_i32(100), LayoutUnit::from_i32(40)),
+        );
+        let child = Fragment::new_box(
+            NodeId::NONE,
+            div_geometry::PhysicalSize::new(LayoutUnit::from_i32(20), LayoutUnit::from_i32(15)),
+        );
+        fragment.children.push(child);
+
+        let mut style = ComputedStyle::default();
+        style.update_derived(|computed| computed.writing_mode = WritingMode::VerticalRl);
+        assert_eq!(
+            flex_baseline_from_child(&doc, &fragment, &style, false, true),
+            None,
+        );
+    }
+
+    #[test]
+    fn abspos_main_edges_resolve_distribution_physical_sides_and_reverse_once() {
+        use crate::out_of_flow::StaticPositionEdge::{Center, End, Start};
+
+        let h_ltr = Direction::Ltr.writing_direction(WritingMode::HorizontalTb);
+        let h_rtl = Direction::Rtl.writing_direction(WritingMode::HorizontalTb);
+        let v_rl = Direction::Ltr.writing_direction(WritingMode::VerticalRl);
+        let v_lr = Direction::Ltr.writing_direction(WritingMode::VerticalLr);
+
+        for (direction, is_block_axis, left, right) in [
+            (h_ltr, false, Start, End),
+            (h_rtl, false, End, Start),
+            (h_ltr, true, Start, Start),
+            (h_rtl, true, Start, Start),
+            (v_rl, true, End, Start),
+            (v_lr, true, Start, End),
+            (v_rl, false, Start, End),
+        ] {
+            assert_eq!(
+                main_axis_static_position_edge(
+                    &ContentAlignment::new(ContentPosition::Left),
+                    false,
+                    is_block_axis,
+                    direction,
+                ),
+                left,
+            );
+            assert_eq!(
+                main_axis_static_position_edge(
+                    &ContentAlignment::new(ContentPosition::Right),
+                    false,
+                    is_block_axis,
+                    direction,
+                ),
+                right,
+            );
+        }
+
+        for (distribution, expected) in [
+            (ContentDistribution::SpaceBetween, End),
+            (ContentDistribution::SpaceAround, Center),
+            (ContentDistribution::SpaceEvenly, Center),
+            (ContentDistribution::Stretch, End),
+        ] {
+            assert_eq!(
+                main_axis_static_position_edge(
+                    &ContentAlignment::with_distribution(distribution),
+                    true,
+                    false,
+                    h_ltr,
+                ),
+                expected,
+            );
+        }
+        assert_eq!(
+            main_axis_static_position_edge(
+                &ContentAlignment::new(ContentPosition::FlexStart),
+                true,
+                false,
+                h_ltr,
+            ),
+            End,
+        );
+        assert_eq!(
+            main_axis_static_position_edge(
+                &ContentAlignment::new(ContentPosition::FlexEnd),
+                true,
+                false,
+                h_ltr,
+            ),
+            Start,
+        );
+    }
+
+    #[test]
+    fn abspos_cross_edges_keep_axis_self_and_wrap_semantics_distinct() {
+        use crate::out_of_flow::StaticPositionEdge::{End, Start};
+
+        let h_rtl = Direction::Rtl.writing_direction(WritingMode::HorizontalTb);
+        let h_ltr = Direction::Ltr.writing_direction(WritingMode::HorizontalTb);
+        let v_rl = Direction::Ltr.writing_direction(WritingMode::VerticalRl);
+        let v_lr_rtl = Direction::Rtl.writing_direction(WritingMode::VerticalLr);
+
+        for (container, child, cross_axis_is_block) in [
+            (h_rtl, h_ltr, false),
+            (v_rl, h_ltr, true),
+            (v_rl, v_lr_rtl, false),
+        ] {
+            assert_eq!(
+                cross_axis_static_position_edge(
+                    ItemPosition::SelfStart,
+                    false,
+                    container,
+                    child,
+                    cross_axis_is_block,
+                ),
+                End,
+            );
+            assert_eq!(
+                cross_axis_static_position_edge(
+                    ItemPosition::SelfEnd,
+                    false,
+                    container,
+                    child,
+                    cross_axis_is_block,
+                ),
+                Start,
+            );
+        }
+
+        for (position, wrap_reverse, expected) in [
+            (ItemPosition::Stretch, false, Start),
+            (ItemPosition::Stretch, true, End),
+            (ItemPosition::FlexStart, true, End),
+            (ItemPosition::FlexEnd, true, Start),
+            (ItemPosition::Start, true, Start),
+            (ItemPosition::End, true, End),
+            (ItemPosition::Baseline, true, Start),
+            (ItemPosition::LastBaseline, true, End),
+            (ItemPosition::Left, false, Start),
+            (ItemPosition::Right, false, Start),
+        ] {
+            assert_eq!(
+                cross_axis_static_position_edge(position, wrap_reverse, h_ltr, h_ltr, true,),
+                expected,
+                "{position:?}, wrap_reverse={wrap_reverse}",
+            );
+        }
+    }
+
+    #[test]
+    fn item_axis_mapping_keeps_sizes_bases_and_flags_in_one_child_coordinate_system() {
+        let cases = [
+            // horizontal-tb row with a vertical child
+            (false, true, WritingMode::VerticalLr, (40, 30), (400, 300)),
+            // vertical row with a horizontal child
+            (
+                false,
+                false,
+                WritingMode::HorizontalTb,
+                (40, 30),
+                (400, 300),
+            ),
+            // vertical row with a parallel child
+            (false, false, WritingMode::VerticalRl, (30, 40), (300, 400)),
+            // vertical column with a horizontal child
+            (true, true, WritingMode::HorizontalTb, (30, 40), (400, 300)),
+        ];
+
+        for (
+            is_column,
+            main_axis_is_horizontal,
+            child_mode,
+            expected_available,
+            expected_percentage,
+        ) in cases
+        {
+            let mut style = div_style::ComputedStyle::default();
+            style.update_derived(|computed| computed.writing_mode = child_mode);
+            let mapping = FlexItemAxisMapping::new(&style, is_column, main_axis_is_horizontal);
+            let mut space = mapping.child_space(
+                LayoutUnit::from_i32(30),
+                LayoutUnit::from_i32(40),
+                LayoutUnit::from_i32(300),
+                LayoutUnit::from_i32(400),
+            );
+            mapping.set_main_fixed(&mut space);
+            mapping.set_cross_stretch(&mut space);
+
+            assert_eq!(
+                (
+                    space.available_inline_size,
+                    space.available_block_size,
+                    space.percentage_resolution_inline_size,
+                    space.percentage_resolution_block_size,
+                ),
+                (
+                    LayoutUnit::from_i32(expected_available.0),
+                    LayoutUnit::from_i32(expected_available.1),
+                    LayoutUnit::from_i32(expected_percentage.0),
+                    LayoutUnit::from_i32(expected_percentage.1),
+                ),
+                "wrong child-axis mapping for {child_mode:?}",
+            );
+            assert_eq!(
+                (space.is_fixed_inline_size, space.is_fixed_block_size),
+                (
+                    mapping.main_axis_is_child_inline,
+                    !mapping.main_axis_is_child_inline
+                )
+            );
+            assert_eq!(
+                (space.stretch_inline_size, space.stretch_block_size),
+                (
+                    !mapping.main_axis_is_child_inline,
+                    mapping.main_axis_is_child_inline
+                )
+            );
+            assert_eq!(
+                mapping.physical_size(LayoutUnit::from_i32(30), LayoutUnit::from_i32(40)),
+                if main_axis_is_horizontal {
+                    PhysicalSize::new(LayoutUnit::from_i32(30), LayoutUnit::from_i32(40))
+                } else {
+                    PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(30))
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn overflow_padding_does_not_extend_an_items_existing_overflow_rect() {
+        let mut doc = Document::new();
+        let owner = doc.create_node(ElementTag::Div);
+        let mut container = Fragment::new_box(
+            owner,
+            PhysicalSize::new(LayoutUnit::from_i32(100), LayoutUnit::from_i32(100)),
+        );
+        container.padding = BoxStrut::new(
+            LayoutUnit::from_i32(25),
+            LayoutUnit::from_i32(25),
+            LayoutUnit::from_i32(25),
+            LayoutUnit::from_i32(25),
+        );
+        let mut item = Fragment::new_box(
+            NodeId::NONE,
+            PhysicalSize::new(LayoutUnit::from_i32(30), LayoutUnit::from_i32(30)),
+        );
+        item.offset = PhysicalOffset::new(LayoutUnit::from_i32(25), LayoutUnit::from_i32(25));
+        item.overflow_rect = Some(PhysicalRect::new(
+            PhysicalOffset::zero(),
+            PhysicalSize::new(LayoutUnit::from_i32(65), LayoutUnit::from_i32(65)),
+        ));
+        container.children.push(item);
+
+        finalize_flex_fragment(
+            &doc,
+            &mut container,
+            &div_style::ComputedStyle::default(),
+            false,
+        );
+
+        assert_eq!(container.overflow_rect, None);
+    }
+
+    #[test]
+    fn scrollable_flex_overflow_includes_margin_box_and_end_padding() {
+        let mut doc = Document::new();
+        let owner = doc.create_node(ElementTag::Div);
+        let mut container = Fragment::new_box(
+            owner,
+            PhysicalSize::new(LayoutUnit::from_i32(86), LayoutUnit::from_i32(86)),
+        );
+        container.padding = BoxStrut::new(
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+        );
+        let mut item = Fragment::new_box(
+            NodeId::NONE,
+            PhysicalSize::new(LayoutUnit::from_i32(30), LayoutUnit::from_i32(30)),
+        );
+        item.offset = PhysicalOffset::new(LayoutUnit::from_i32(33), LayoutUnit::from_i32(33));
+        item.margin = BoxStrut::new(
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+        );
+        container.children.push(item);
+
+        let mut style = ComputedStyle::default();
+        style.update_derived(|computed| {
+            computed.overflow_x = Overflow::Scroll;
+            computed.overflow_y = Overflow::Scroll;
+        });
+        doc.install_resolved_style(owner, style.clone());
+        finalize_flex_fragment(&doc, &mut container, &style, false);
+
+        assert_eq!(
+            container.overflow_rect,
+            Some(PhysicalRect::new(
+                PhysicalOffset::zero(),
+                PhysicalSize::new(LayoutUnit::from_i32(93), LayoutUnit::from_i32(93)),
+            ))
+        );
+    }
+
+    #[test]
+    fn reversed_scrollable_flex_overflow_puts_end_padding_at_start() {
+        let mut doc = Document::new();
+        let owner = doc.create_node(ElementTag::Div);
+        let mut container = Fragment::new_box(
+            owner,
+            PhysicalSize::new(LayoutUnit::from_i32(86), LayoutUnit::from_i32(86)),
+        );
+        container.padding = BoxStrut::new(
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+            LayoutUnit::from_i32(10),
+        );
+        let mut item = Fragment::new_box(
+            NodeId::NONE,
+            PhysicalSize::new(LayoutUnit::from_i32(30), LayoutUnit::from_i32(30)),
+        );
+        item.offset = PhysicalOffset::new(LayoutUnit::from_i32(23), LayoutUnit::from_i32(33));
+        item.margin = BoxStrut::new(
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+            LayoutUnit::from_i32(20),
+        );
+        container.children.push(item);
+
+        let mut style = ComputedStyle::default();
+        style.update_derived(|computed| {
+            computed.display = Display::Flex;
+            computed.flex_direction = FlexDirection::RowReverse;
+            computed.overflow_x = Overflow::Scroll;
+            computed.overflow_y = Overflow::Scroll;
+        });
+        doc.install_resolved_style(owner, style.clone());
+        finalize_flex_fragment(&doc, &mut container, &style, false);
+
+        assert_eq!(
+            container.overflow_rect,
+            Some(PhysicalRect::new(
+                PhysicalOffset::new(LayoutUnit::from_i32(-7), LayoutUnit::zero()),
+                PhysicalSize::new(LayoutUnit::from_i32(93), LayoutUnit::from_i32(93)),
+            ))
+        );
+    }
+
+    #[test]
+    fn basic_row_flex_three_items() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 300, 100);
+        let _c1 = add_flex_child(&mut doc, container, 50, 50);
+        let _c2 = add_flex_child(&mut doc, container, 80, 50);
+        let _c3 = add_flex_child(&mut doc, container, 70, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(fragment.children.len(), 3);
+        // Items should be placed left-to-right: 0, 50, 130
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::zero());
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::from_i32(50));
+        assert_eq!(fragment.children[2].offset.left, LayoutUnit::from_i32(130));
+
+        // Heights remain 50px (explicit height overrides stretch)
+        assert_eq!(fragment.children[0].height(), LayoutUnit::from_i32(50));
+        assert_eq!(fragment.children[1].height(), LayoutUnit::from_i32(50));
+    }
+
+    #[test]
+    fn vertical_lr_row_wrap_follows_inline_then_block_axes() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 40, 30);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.writing_mode = WritingMode::VerticalLr;
+                style.flex_wrap = FlexWrap::Wrap;
+            });
+        }
+        for _ in 0..4 {
+            add_flex_child(&mut doc, container, 20, 15);
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalLr);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(40),
+            LayoutUnit::from_i32(30),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(
+            fragment.size,
+            PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(30))
+        );
+        assert_eq!(fragment.children.len(), 4);
+        assert_eq!(
+            fragment.children[0].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::zero())
+        );
+        assert_eq!(
+            fragment.children[1].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::from_i32(15))
+        );
+        assert_eq!(
+            fragment.children[2].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::zero())
+        );
+        assert_eq!(
+            fragment.children[3].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::from_i32(15))
+        );
+    }
+
+    #[test]
+    fn vertical_row_baseline_synthesis_does_not_expand_cross_size() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 100, 100);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.writing_mode = WritingMode::VerticalLr;
+                style.align_items = ItemAlignment::new(ItemPosition::Baseline);
+            });
+        }
+        let first = add_flex_child(&mut doc, container, 100, 50);
+        let second = add_flex_child(&mut doc, container, 100, 50);
+        doc.update_resolved_style(second, |style| {
+            style.line_height = div_style::LineHeight::Length(0.0)
+        });
+        let atomic = doc.create_node(div_dom::ElementTag::Span);
+        doc.update_resolved_style(atomic, |style| style.display = Display::InlineBlock);
+        doc.update_resolved_style(atomic, |style| style.width = Length::px(10.0));
+        doc.update_resolved_style(atomic, |style| style.height = Length::px(10.0));
+        doc.append_child(second, atomic);
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalLr);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(100),
+            LayoutUnit::from_i32(100),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(fragment.children[0].node_id, first);
+        assert_eq!(fragment.children[1].node_id, second);
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::zero());
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::zero());
+        assert_eq!(fragment.size.width, LayoutUnit::from_i32(100));
+    }
+
+    #[test]
+    fn vertical_rl_row_wrap_flips_physical_block_placement() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 40, 30);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.writing_mode = WritingMode::VerticalRl;
+                style.flex_wrap = FlexWrap::Wrap;
+            });
+        }
+        for _ in 0..4 {
+            add_flex_child(&mut doc, container, 20, 15);
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalRl);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(40),
+            LayoutUnit::from_i32(30),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(
+            fragment.children[0].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::zero())
+        );
+        assert_eq!(
+            fragment.children[1].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::from_i32(15))
+        );
+        assert_eq!(
+            fragment.children[2].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::zero())
+        );
+        assert_eq!(
+            fragment.children[3].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::from_i32(15))
+        );
+    }
+
+    #[test]
+    fn vertical_lr_rtl_row_starts_at_physical_bottom() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 40, 30);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.writing_mode = WritingMode::VerticalLr;
+                style.direction = div_style::Direction::Rtl;
+                style.flex_wrap = FlexWrap::Wrap;
+            });
+        }
+        for _ in 0..4 {
+            add_flex_child(&mut doc, container, 20, 15);
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalLr);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(40),
+            LayoutUnit::from_i32(30),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(
+            fragment.children[0].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::from_i32(15))
+        );
+        assert_eq!(
+            fragment.children[1].offset,
+            PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::zero())
+        );
+        assert_eq!(
+            fragment.children[2].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::from_i32(15))
+        );
+        assert_eq!(
+            fragment.children[3].offset,
+            PhysicalOffset::new(LayoutUnit::from_i32(20), LayoutUnit::zero())
+        );
+    }
+
+    #[test]
+    fn horizontal_rtl_row_wrap_positions_items_from_inline_start() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 200, 100);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.direction = div_style::Direction::Rtl;
+                style.flex_wrap = FlexWrap::Wrap;
+                style.row_gap = Some(Length::px(20.0));
+                style.column_gap = Some(Length::px(20.0));
+            });
+        }
+        add_flex_child(&mut doc, container, 120, 20);
+        add_flex_child(&mut doc, container, 130, 20);
+        add_flex_child(&mut doc, container, 40, 20);
+        add_flex_child(&mut doc, container, 40, 20);
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::HorizontalTb);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(200),
+            LayoutUnit::from_i32(100),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        let offsets: Vec<_> = fragment.children.iter().map(|child| child.offset).collect();
+        assert_eq!(
+            offsets,
+            vec![
+                PhysicalOffset::new(LayoutUnit::from_i32(80), LayoutUnit::zero()),
+                PhysicalOffset::new(LayoutUnit::from_i32(70), LayoutUnit::from_i32(40)),
+                PhysicalOffset::new(LayoutUnit::from_i32(10), LayoutUnit::from_i32(40)),
+                PhysicalOffset::new(LayoutUnit::from_i32(160), LayoutUnit::from_i32(80)),
+            ]
+        );
+    }
+
+    #[test]
+    fn horizontal_rtl_logical_end_margins_match_row_gaps() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 200, 100);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.direction = div_style::Direction::Rtl;
+                style.flex_wrap = FlexWrap::Wrap;
+            });
+        }
+        let first = add_flex_child(&mut doc, container, 120, 20);
+        let second = add_flex_child(&mut doc, container, 130, 20);
+        add_flex_child(&mut doc, container, 40, 20);
+        add_flex_child(&mut doc, container, 40, 20);
+        for child in [first, second] {
+            doc.update_resolved_style(child, |style| {
+                style.margin_left = Length::px(20.0);
+                style.margin_bottom = Length::px(20.0);
+            });
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::HorizontalTb);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(200),
+            LayoutUnit::from_i32(100),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        let offsets: Vec<_> = fragment.children.iter().map(|child| child.offset).collect();
+        assert_eq!(
+            offsets,
+            vec![
+                PhysicalOffset::new(LayoutUnit::from_i32(80), LayoutUnit::zero()),
+                PhysicalOffset::new(LayoutUnit::from_i32(70), LayoutUnit::from_i32(40)),
+                PhysicalOffset::new(LayoutUnit::from_i32(10), LayoutUnit::from_i32(40)),
+                PhysicalOffset::new(LayoutUnit::from_i32(160), LayoutUnit::from_i32(80)),
+            ]
+        );
+    }
+
+    #[test]
+    fn horizontal_rtl_gap_and_logical_margin_reference_share_fragment_geometry() {
+        fn build(reference: bool) -> (Document, NodeId, ConstraintSpace) {
+            let mut doc = Document::new();
+            let container = make_flex_container(&mut doc, 200, 100);
+            {
+                doc.update_resolved_style(container, |style| {
+                    style.direction = div_style::Direction::Rtl;
+                    style.flex_wrap = FlexWrap::Wrap;
+                    if !reference {
+                        style.row_gap = Some(Length::px(20.0));
+                        style.column_gap = Some(Length::px(20.0));
+                    }
+                });
+            }
+            for (index, (width, text)) in [
+                (120, "Black Panther"),
+                (130, "Wonder Woman"),
+                (40, "Storm"),
+                (40, "Flash"),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                let child = add_flex_child(&mut doc, container, width, 20);
+                doc.update_resolved_style(child, |style| {
+                    style.direction = div_style::Direction::Rtl
+                });
+                if reference && index < 2 {
+                    doc.update_resolved_style(child, |style| style.margin_left = Length::px(20.0));
+                    doc.update_resolved_style(child, |style| {
+                        style.margin_bottom = Length::px(20.0)
+                    });
+                }
+                let text_node = doc.create_node(div_dom::ElementTag::Text);
+                doc.update_resolved_style(text_node, |style| {
+                    style.direction = div_style::Direction::Rtl
+                });
+                doc.node_mut(text_node).text = Some(text.to_string());
+                doc.append_child(child, text_node);
+            }
+            let direction = doc
+                .node(container)
+                .style
+                .direction
+                .writing_direction(WritingMode::HorizontalTb);
+            let space = ConstraintSpace::for_root_with_writing_direction(
+                LayoutUnit::from_i32(200),
+                LayoutUnit::from_i32(100),
+                direction,
+            );
+            (doc, container, space)
+        }
+
+        fn geometry(fragment: &Fragment, result: &mut Vec<(PhysicalOffset, PhysicalSize)>) {
+            result.push((fragment.offset, fragment.size));
+            for child in &fragment.children {
+                geometry(child, result);
+            }
+        }
+
+        let (target_doc, target_node, target_space) = build(false);
+        let (reference_doc, reference_node, reference_space) = build(true);
+        let target = flex_layout_with_layout(&target_doc, target_node, &target_space);
+        let reference = flex_layout_with_layout(&reference_doc, reference_node, &reference_space);
+        let mut target_geometry = Vec::new();
+        let mut reference_geometry = Vec::new();
+        geometry(&target, &mut target_geometry);
+        geometry(&reference, &mut reference_geometry);
+        assert_eq!(target_geometry, reference_geometry);
+    }
+
+    #[test]
+    fn flex_grow_equal() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 300, 100);
+        let c1 = doc.create_node(div_dom::ElementTag::Div);
+        let c2 = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(c1, |s| {
+                s.display = Display::Block;
+                s.flex_grow = 1.0;
+                s.height = Length::px(50.0);
+            });
+        }
+        {
+            doc.update_resolved_style(c2, |s| {
+                s.display = Display::Block;
+                s.flex_grow = 1.0;
+                s.height = Length::px(50.0);
+            });
+        }
+        doc.append_child(container, c1);
+        doc.append_child(container, c2);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Each should get 150px width (300 / 2)
+        assert_eq!(fragment.children[0].width(), LayoutUnit::from_i32(150));
+        assert_eq!(fragment.children[1].width(), LayoutUnit::from_i32(150));
+    }
+
+    #[test]
+    fn flex_grow_weighted() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 400, 100);
+
+        for (grow, _) in [(1.0, 50), (2.0, 50), (1.0, 50)] {
+            let child = doc.create_node(div_dom::ElementTag::Div);
+            {
+                doc.update_resolved_style(child, |s| {
+                    s.display = Display::Block;
+                    s.flex_grow = grow;
+                    s.height = Length::px(50.0);
+                });
+            }
+            doc.append_child(container, child);
+        }
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(400), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Proportions: 1:2:1 of 400 = 100:200:100
+        assert_eq!(fragment.children[0].width(), LayoutUnit::from_i32(100));
+        assert_eq!(fragment.children[1].width(), LayoutUnit::from_i32(200));
+        assert_eq!(fragment.children[2].width(), LayoutUnit::from_i32(100));
+    }
+
+    #[test]
+    fn justify_content_center() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(400.0);
+                s.height = Length::px(100.0);
+                s.justify_content = ContentAlignment::new(div_style::ContentPosition::Center);
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let _c1 = add_flex_child(&mut doc, container, 50, 50);
+        let _c2 = add_flex_child(&mut doc, container, 50, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(400), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Total items = 100, free space = 300, offset = 150
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::from_i32(150));
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::from_i32(200));
+    }
+
+    #[test]
+    fn justify_content_space_between() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(400.0);
+                s.height = Length::px(100.0);
+                s.justify_content =
+                    ContentAlignment::with_distribution(ContentDistribution::SpaceBetween);
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let _c1 = add_flex_child(&mut doc, container, 50, 50);
+        let _c2 = add_flex_child(&mut doc, container, 50, 50);
+        let _c3 = add_flex_child(&mut doc, container, 50, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(400), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Free space = 250, 2 gaps → 125 each
+        // Positions: 0, 50+125=175, 175+50+125=350
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::from_i32(0));
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::from_i32(175));
+        assert_eq!(fragment.children[2].offset.left, LayoutUnit::from_i32(350));
+    }
+
+    #[test]
+    fn flex_wrap_basic() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(200.0);
+                s.flex_wrap = FlexWrap::Wrap;
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        // 3 items of 100px each → wrap after 2
+        add_flex_child(&mut doc, container, 100, 50);
+        add_flex_child(&mut doc, container, 100, 50);
+        add_flex_child(&mut doc, container, 100, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(200), LayoutUnit::from_i32(300));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(fragment.children.len(), 3);
+        // First two on line 1, third on line 2
+        assert_eq!(fragment.children[0].offset.top, LayoutUnit::zero());
+        assert_eq!(fragment.children[1].offset.top, LayoutUnit::zero());
+        assert_eq!(fragment.children[2].offset.top, LayoutUnit::from_i32(50));
+    }
+
+    #[test]
+    fn flex_direction_column() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(200.0);
+                s.height = Length::px(300.0);
+                s.flex_direction = FlexDirection::Column;
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        add_flex_child(&mut doc, container, 50, 50);
+        add_flex_child(&mut doc, container, 50, 80);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(200), LayoutUnit::from_i32(300));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Column: items stack vertically
+        assert_eq!(fragment.children[0].offset.top, LayoutUnit::zero());
+        assert_eq!(fragment.children[1].offset.top, LayoutUnit::from_i32(50));
+        // Cross axis (x): explicit width=50 doesn't stretch
+        assert_eq!(fragment.children[0].width(), LayoutUnit::from_i32(50));
+    }
+
+    #[test]
+    fn vertical_lr_column_wrap_uses_block_main_and_inline_cross_axes() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 100, 560);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.writing_mode = WritingMode::VerticalLr;
+                style.flex_direction = FlexDirection::Column;
+                style.flex_wrap = FlexWrap::Wrap;
+                style.row_gap = Some(Length::px(20.0));
+                style.column_gap = Some(Length::px(20.0));
+            });
+        }
+        for _ in 0..4 {
+            let child = add_flex_child(&mut doc, container, 40, 0);
+            doc.update_resolved_style(child, |child_style| {
+                child_style.writing_mode = WritingMode::VerticalLr;
+                child_style.width = Length::calc_percent_px(50.0, -10.0);
+                child_style.height = Length::auto();
+            });
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalLr);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(560),
+            LayoutUnit::from_i32(100),
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        let geometry: Vec<_> = fragment
+            .children
+            .iter()
+            .map(|child| (child.offset, child.size))
+            .collect();
+        assert_eq!(
+            geometry,
+            vec![
+                (
+                    PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::zero()),
+                    PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(270)),
+                ),
+                (
+                    PhysicalOffset::new(LayoutUnit::from_i32(60), LayoutUnit::zero()),
+                    PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(270)),
+                ),
+                (
+                    PhysicalOffset::new(LayoutUnit::zero(), LayoutUnit::from_i32(290)),
+                    PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(270)),
+                ),
+                (
+                    PhysicalOffset::new(LayoutUnit::from_i32(60), LayoutUnit::from_i32(290)),
+                    PhysicalSize::new(LayoutUnit::from_i32(40), LayoutUnit::from_i32(270)),
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn vertical_inline_flex_column_shrink_wraps_logical_block_contributions() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::InlineFlex;
+                style.writing_mode = WritingMode::VerticalLr;
+                style.flex_direction = FlexDirection::Column;
+                style.row_gap = Some(Length::px(20.0));
+                style.column_gap = Some(Length::px(20.0));
+            });
+        }
+        doc.append_child(doc.root(), container);
+        for text in ["Black Panther", "Wonder Woman", "Storm", "Flash"] {
+            let child = doc.create_node(ElementTag::Div);
+            doc.update_resolved_style(child, |style| style.display = Display::Block);
+            doc.update_resolved_style(child, |style| style.writing_mode = WritingMode::VerticalLr);
+            doc.append_child(container, child);
+            let text_node = doc.create_node(ElementTag::Text);
+            doc.update_resolved_style(text_node, |style| {
+                style.writing_mode = WritingMode::VerticalLr
+            });
+            doc.node_mut(text_node).text = Some(text.to_string());
+            doc.append_child(child, text_node);
+        }
+
+        let direction = doc
+            .node(container)
+            .style
+            .direction
+            .writing_direction(WritingMode::VerticalLr);
+        let space = ConstraintSpace::for_root_with_writing_direction(
+            LayoutUnit::from_i32(208),
+            div_geometry::INDEFINITE_SIZE,
+            direction,
+        );
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        let total_child_block: LayoutUnit = fragment
+            .children
+            .iter()
+            .map(|child| child.width())
+            .fold(LayoutUnit::zero(), |sum, size| sum + size);
+        assert_eq!(
+            fragment.width(),
+            total_child_block + LayoutUnit::from_i32(60)
+        );
+        assert_eq!(
+            fragment.height(),
+            fragment
+                .children
+                .iter()
+                .map(|child| child.height())
+                .max()
+                .unwrap()
+        );
+        assert!(fragment
+            .children
+            .iter()
+            .all(|child| child.width() < child.height()));
+    }
+
+    #[test]
+    fn vertical_gap_001_through_007_patterns_preserve_logical_axes() {
+        let patterns = [
+            (Display::Flex, FlexDirection::Row, FlexWrap::Nowrap),
+            (Display::Flex, FlexDirection::Column, FlexWrap::Nowrap),
+            (Display::Flex, FlexDirection::Column, FlexWrap::Wrap),
+            (Display::InlineFlex, FlexDirection::Row, FlexWrap::Nowrap),
+            (Display::InlineFlex, FlexDirection::Column, FlexWrap::Nowrap),
+            (Display::InlineFlex, FlexDirection::Row, FlexWrap::Wrap),
+            (Display::InlineFlex, FlexDirection::Column, FlexWrap::Wrap),
+        ];
+
+        for mode in [WritingMode::VerticalLr, WritingMode::VerticalRl] {
+            for (index, (display, direction, wrap)) in patterns.into_iter().enumerate() {
+                let mut doc = Document::new();
+                let container = make_flex_container(&mut doc, 100, 100);
+                {
+                    doc.update_resolved_style(container, |style| {
+                        style.display = display;
+                        style.writing_mode = mode;
+                        style.flex_direction = direction;
+                        style.flex_wrap = wrap;
+                        style.row_gap = Some(Length::px(20.0));
+                        style.column_gap = Some(Length::px(20.0));
+                    });
+                }
+                for _ in 0..3 {
+                    let child = add_flex_child(&mut doc, container, 40, 40);
+                    doc.update_resolved_style(child, |style| {
+                        style.writing_mode = mode;
+                        style.flex_shrink = 0.0;
+                    });
+                }
+
+                let writing_direction = doc.node(container).style.direction.writing_direction(mode);
+                let space = ConstraintSpace::for_root_with_writing_direction(
+                    LayoutUnit::from_i32(100),
+                    LayoutUnit::from_i32(100),
+                    writing_direction,
+                );
+                let fragment = flex_layout_with_layout(&doc, container, &space);
+                let main_offsets: Vec<_> = fragment
+                    .children
+                    .iter()
+                    .map(|child| {
+                        if direction.is_column() {
+                            child.offset.left
+                        } else {
+                            child.offset.top
+                        }
+                    })
+                    .collect();
+                let cross_offsets: Vec<_> = fragment
+                    .children
+                    .iter()
+                    .map(|child| {
+                        if direction.is_column() {
+                            child.offset.top
+                        } else {
+                            child.offset.left
+                        }
+                    })
+                    .collect();
+
+                assert_eq!(
+                    (main_offsets[1] - main_offsets[0]).abs(),
+                    LayoutUnit::from_i32(60),
+                    "gap pattern {} failed in {mode:?}",
+                    index + 1
+                );
+                if wrap == FlexWrap::Wrap {
+                    assert_eq!(main_offsets[2], main_offsets[0]);
+                    assert_ne!(cross_offsets[2], cross_offsets[0]);
+                } else {
+                    assert_eq!(
+                        (main_offsets[2] - main_offsets[1]).abs(),
+                        LayoutUnit::from_i32(60)
+                    );
+                    assert_eq!(cross_offsets[2], cross_offsets[0]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn vertical_nowrap_matrix_preserves_axes_and_reverse_order() {
+        let modes = [WritingMode::VerticalLr, WritingMode::VerticalRl];
+        let directions = [
+            FlexDirection::Row,
+            FlexDirection::RowReverse,
+            FlexDirection::Column,
+            FlexDirection::ColumnReverse,
+        ];
+
+        for mode in modes {
+            for flex_direction in directions {
+                let mut doc = Document::new();
+                let container = make_flex_container(&mut doc, 40, 30);
+                {
+                    doc.update_resolved_style(container, |style| {
+                        style.writing_mode = mode;
+                        style.flex_direction = flex_direction;
+                        style.flex_wrap = FlexWrap::Nowrap;
+                    });
+                }
+                let mut item_ids = Vec::new();
+                for _ in 0..4 {
+                    let child = add_flex_child(&mut doc, container, 20, 15);
+                    doc.update_resolved_style(child, |style| style.writing_mode = mode);
+                    item_ids.push(child);
+                }
+
+                let direction = doc.node(container).style.direction.writing_direction(mode);
+                let space = ConstraintSpace::for_root_with_writing_direction(
+                    LayoutUnit::from_i32(30),
+                    LayoutUnit::from_i32(40),
+                    direction,
+                );
+                let fragment = flex_layout_with_layout(&doc, container, &space);
+                assert_eq!(fragment.children.len(), 4);
+                assert!(fragment.children.iter().all(|child| {
+                    if flex_direction.is_column() {
+                        child.height() == LayoutUnit::from_i32(15)
+                            && child.width() > LayoutUnit::zero()
+                    } else {
+                        child.width() == LayoutUnit::from_i32(20)
+                            && child.height() > LayoutUnit::zero()
+                    }
+                }));
+
+                let positions: Vec<_> = fragment
+                    .children
+                    .iter()
+                    .map(|child| {
+                        if flex_direction.is_column() {
+                            child.offset.left
+                        } else {
+                            child.offset.top
+                        }
+                    })
+                    .collect();
+                let physical_forward =
+                    !flex_direction.is_column() || mode == WritingMode::VerticalLr;
+                assert!(
+                    positions.windows(2).all(|pair| {
+                        if physical_forward {
+                            pair[0] < pair[1]
+                        } else {
+                            pair[0] > pair[1]
+                        }
+                    }),
+                    "unexpected nowrap order for {mode:?} {flex_direction:?}: {positions:?}"
+                );
+                if flex_direction.is_reverse() {
+                    item_ids.reverse();
+                }
+                assert_eq!(
+                    fragment
+                        .children
+                        .iter()
+                        .map(|child| child.node_id)
+                        .collect::<Vec<_>>(),
+                    item_ids
+                );
+            }
+        }
+    }
+
+    // The base is the system sans-serif strut: DejaVu Sans on Linux, Arial on
+    // Windows. Windows values are pinned Windows Chrome-for-Testing observations in
+    // docs/progress/evidence/windows-text-oracle-v1.json.
+    #[test]
+    fn vertical_column_cross_margin_reduces_fit_content_before_wrapping() {
+        fn content_base(cross_margin: i32) -> LayoutUnit {
+            let mut doc = Document::new();
+            let item = doc.create_node(ElementTag::Div);
+            {
+                doc.update_resolved_style(item, |style| {
+                    style.display = Display::Block;
+                    style.writing_mode = WritingMode::VerticalLr;
+                    style.margin_bottom = Length::px(cross_margin as f32);
+                });
+            }
+            doc.append_child(doc.root(), item);
+            for _ in 0..2 {
+                let atomic = doc.create_node(ElementTag::Span);
+                doc.update_resolved_style(atomic, |style| {
+                    style.display = Display::InlineBlock;
+                    style.writing_mode = WritingMode::VerticalLr;
+                    style.width = Length::px(15.0);
+                    style.height = Length::px(95.0);
+                });
+                doc.append_child(item, atomic);
+            }
+
+            let direction = doc
+                .node(item)
+                .style
+                .direction
+                .writing_direction(WritingMode::VerticalLr);
+            let space = ConstraintSpace::for_root_with_writing_direction(
+                LayoutUnit::from_i32(200),
+                LayoutUnit::from_i32(100),
+                direction,
+            );
+            resolve_content_based_size(
+                &doc,
+                item,
+                &doc.node(item).style,
+                true,
+                true,
+                LayoutUnit::zero(),
+                LayoutUnit::from_i32(200),
+                LayoutUnit::from_i32(100),
+                false,
+                &space,
+                ItemPosition::Stretch,
+            )
+        }
+
+        let without_margin = content_base(0);
+        let with_margin = content_base(20);
+        assert_eq!(
+            without_margin,
+            LayoutUnit::from_i32(if cfg!(windows) { 18 } else { 19 })
+        );
+        assert_eq!(with_margin, without_margin * 2);
+    }
+
+    #[test]
+    fn vertical_inline_flex_column_wrap_intrinsic_sizing_is_crash_safe() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::InlineFlex;
+                style.writing_mode = WritingMode::VerticalRl;
+                style.flex_direction = FlexDirection::Column;
+                style.flex_wrap = FlexWrap::Wrap;
+                style.max_width = Length::px(100.0);
+            });
+        }
+        doc.append_child(doc.root(), container);
+        for size in [30.0, 40.0, 50.0] {
+            let child = doc.create_node(ElementTag::Div);
+            doc.update_resolved_style(child, |style| {
+                style.display = Display::Block;
+                style.writing_mode = WritingMode::VerticalRl;
+                style.width = Length::px(size);
+                style.height = Length::px(20.0);
+            });
+            doc.append_child(container, child);
+        }
+
+        let sizes =
+            crate::intrinsic_sizing::compute_intrinsic_block_sizes_with_layout(&doc, container);
+        assert!(sizes.max_content_inline_size >= sizes.min_content_inline_size);
+        assert!(sizes.max_content_block_size >= sizes.min_content_block_size);
+    }
+
+    #[test]
+    fn stretch_cross_size_transfers_natural_ratio_to_flex_auto_minimum() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 200, 200);
+        doc.update_resolved_style(container, |style| {
+            style.flex_direction = FlexDirection::Column
+        });
+        let item = doc.create_node(ElementTag::Canvas);
+        {
+            doc.update_resolved_style(item, |style| {
+                style.display = Display::InlineBlock;
+                style.width = Length::stretch();
+                style.flex_basis = Length::zero();
+                style.align_self = ItemAlignment::new(ItemPosition::Start);
+            });
+        }
+        doc.node_mut(item).replaced = Some(div_dom::ReplacedContent {
+            resource: div_dom::ReplacedResourceKind::TransparentCanvas,
+            intrinsic_width: Some(100.0),
+            intrinsic_height: Some(100.0),
+            intrinsic_ratio: Some((100.0, 100.0)),
+        });
+        doc.append_child(container, item);
+
+        let bounds = resolve_main_axis_min_max(
+            &doc,
+            item,
+            &doc.node(item).style,
+            true,
+            false,
+            LayoutUnit::zero(),
+            LayoutUnit::from_i32(200),
+            LayoutUnit::from_i32(200),
+            LayoutUnit::zero(),
+            false,
+            ItemPosition::Start,
+        );
+        assert_eq!(bounds.min, LayoutUnit::from_i32(200));
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(200), LayoutUnit::from_i32(200));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.children[0].width(), LayoutUnit::from_i32(200));
+        assert_eq!(fragment.children[0].height(), LayoutUnit::from_i32(200));
+    }
+
+    #[test]
+    fn stretched_flex_item_resolves_percentage_replaced_descendant_for_basis() {
+        let mut doc = Document::new();
+        let container = doc.create_node(ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.display = Display::InlineFlex;
+                style.height = Length::px(100.0);
+            });
+        }
+        doc.append_child(doc.root(), container);
+        let item = doc.create_node(ElementTag::Div);
+        doc.update_resolved_style(item, |style| style.display = Display::Block);
+        doc.append_child(container, item);
+        let canvas = doc.create_node(ElementTag::Canvas);
+        {
+            doc.update_resolved_style(canvas, |style| {
+                style.display = Display::InlineBlock;
+                style.height = Length::percent(100.0);
+            });
+        }
+        doc.node_mut(canvas).replaced = Some(div_dom::ReplacedContent {
+            resource: div_dom::ReplacedResourceKind::TransparentCanvas,
+            intrinsic_width: Some(10.0),
+            intrinsic_height: Some(10.0),
+            intrinsic_ratio: Some((10.0, 10.0)),
+        });
+        doc.append_child(item, canvas);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(760), LayoutUnit::from_i32(560));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+        assert_eq!(fragment.children[0].width(), LayoutUnit::from_i32(100));
+    }
+
+    #[test]
+    fn safe_flex_start_keeps_overflowing_column_reverse_item_at_start() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 90, 90);
+        {
+            doc.update_resolved_style(container, |style| {
+                style.flex_direction = FlexDirection::ColumnReverse;
+                style.justify_content = ContentAlignment {
+                    position: ContentPosition::FlexStart,
+                    distribution: ContentDistribution::Default,
+                    overflow: OverflowAlignment::Safe,
+                };
+            });
+        }
+        let child = add_flex_child(&mut doc, container, 100, 100);
+        doc.update_resolved_style(child, |style| style.flex_shrink = 0.0);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(90), LayoutUnit::from_i32(90));
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        assert_eq!(fragment.children[0].offset.top, LayoutUnit::zero());
+    }
+
+    #[test]
+    fn gap_between_items() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(400.0);
+                s.height = Length::px(100.0);
+                s.column_gap = Some(Length::px(20.0));
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        add_flex_child(&mut doc, container, 50, 50);
+        add_flex_child(&mut doc, container, 50, 50);
+        add_flex_child(&mut doc, container, 50, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(400), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Positions: 0, 50+20=70, 70+50+20=140
+        assert_eq!(fragment.children[0].offset.left, LayoutUnit::from_i32(0));
+        assert_eq!(fragment.children[1].offset.left, LayoutUnit::from_i32(70));
+        assert_eq!(fragment.children[2].offset.left, LayoutUnit::from_i32(140));
+    }
+
+    #[test]
+    fn order_property() {
+        let mut doc = Document::new();
+        let container = make_flex_container(&mut doc, 300, 100);
+
+        let c1 = add_flex_child(&mut doc, container, 50, 50);
+        let c2 = add_flex_child(&mut doc, container, 50, 50);
+        let c3 = add_flex_child(&mut doc, container, 50, 50);
+
+        doc.update_resolved_style(c1, |style| style.order = 3);
+        doc.update_resolved_style(c2, |style| style.order = 1);
+        doc.update_resolved_style(c3, |style| style.order = 2);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Order: c2(1), c3(2), c1(3)
+        // c2 should be first (leftmost), c1 should be last (rightmost)
+        assert_eq!(fragment.children[0].node_id, c2);
+        assert_eq!(fragment.children[1].node_id, c3);
+        assert_eq!(fragment.children[2].node_id, c1);
+    }
+
+    #[test]
+    fn align_items_center() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(300.0);
+                s.height = Length::px(100.0);
+                s.align_items = ItemAlignment::new(ItemPosition::Center);
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        add_flex_child(&mut doc, container, 50, 40);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Cross space = 100 - 40 = 60, center offset = 30
+        assert_eq!(fragment.children[0].offset.top, LayoutUnit::from_i32(30));
+        assert_eq!(fragment.children[0].height(), LayoutUnit::from_i32(40));
+    }
+
+    #[test]
+    fn flex_direction_row_reverse() {
+        let mut doc = Document::new();
+        let container = doc.create_node(div_dom::ElementTag::Div);
+        {
+            doc.update_resolved_style(container, |s| {
+                s.display = Display::Flex;
+                s.width = Length::px(300.0);
+                s.height = Length::px(100.0);
+                s.flex_direction = FlexDirection::RowReverse;
+            });
+        }
+        doc.append_child(doc.root(), container);
+
+        let c1 = add_flex_child(&mut doc, container, 50, 50);
+        let c2 = add_flex_child(&mut doc, container, 80, 50);
+
+        let space = ConstraintSpace::for_root(LayoutUnit::from_i32(300), LayoutUnit::from_i32(100));
+
+        let fragment = flex_layout_with_layout(&doc, container, &space);
+
+        // Row-reverse: items reversed, justify-content flex-start means right side
+        // free_space = 300 - 130 = 170
+        // With reverse, initial offset should be at the end
+        // Items appear: c2 first (at higher x), c1 second (at lower x)
+        assert_eq!(fragment.children.len(), 2);
+        // c2 should come before c1 in the children (reversed)
+        assert_eq!(fragment.children[0].node_id, c2);
+        assert_eq!(fragment.children[1].node_id, c1);
+    }
+}
+
+// Public entry points retain the original native Document signatures.
+pub fn flex_layout(doc: &Document, node_id: NodeId, space: &ConstraintSpace) -> Fragment {
+    flex_layout_with_layout(doc, node_id, space)
+}

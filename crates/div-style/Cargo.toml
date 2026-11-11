@@ -1,0 +1,22 @@
+[package]
+name = "div-style"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Canonical typed style values and generated property metadata for Div"
+
+[dependencies]
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+div-style-derive = { version = "=0.2.0", path = "../div-style-derive", optional = true }
+proc-macro2 = { version = "1", optional = true }
+quote = { version = "1", optional = true }
+
+[features]
+# Internal to div-macros: turns values parsed at compile time into
+# constructor expressions (RFC 0001). Not part of the public API.
+constructor-tokens = ["dep:div-style-derive", "dep:proc-macro2", "dep:quote"]

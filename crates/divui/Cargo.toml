@@ -1,0 +1,59 @@
+[package]
+name = "divui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Typed reactive Linux and headless application framework over the Div engine"
+
+[lib]
+# Applications write `use div::prelude::*`.
+name = "div"
+
+[features]
+default = []
+linux = ["dep:div-platform", "div-platform/linux"]
+windows = ["dep:div-platform", "div-platform/windows"]
+# The native runtime of the host: Win32 on Windows, X11 and Wayland on Linux.
+# Platform code is gated on both the feature and the target, so enabling
+# both platform features selects the host one.
+desktop = ["linux", "windows", "async"]
+# UI and background tasks (`task`), `Signal::sender` and `create_resource`.
+async = ["dep:async-executor", "dep:async-io", "dep:async-task", "dep:blocking", "dep:futures-lite"]
+# App menus (`menu`): native on Windows; accelerators and roles everywhere.
+menu = ["desktop", "div-platform/menu"]
+# Native open, save and folder dialogs (`dialog`).
+dialog = ["desktop", "div-platform/dialog"]
+# Headless UI tests and snapshots (`testing`), for dev-dependencies.
+testing = ["async", "dep:png"]
+# An HTTP client (`http`) over ureq and rustls with the system's roots.
+http = ["async", "dep:rustls", "dep:serde", "dep:serde_json", "dep:ureq"]
+ffi-integration = []
+
+[dependencies]
+async-executor = { version = "=1.14.1", optional = true }
+async-io = { version = "=2.6.0", optional = true }
+async-task = { version = "=4.7.1", optional = true }
+blocking = { version = "=1.7.0", optional = true }
+futures-lite = { version = "=2.6.1", optional = true }
+div-compositor = { version = "=0.2.0", path = "../div-compositor" }
+div-dom = { version = "=0.2.0", path = "../div-dom" }
+div-engine = { version = "=0.2.0", path = "../div-engine" }
+div-macros = { version = "=0.2.0", path = "../div-macros" }
+div-platform = { version = "=0.2.0", path = "../div-platform", optional = true }
+div-style = { version = "=0.2.0", path = "../div-style" }
+div-text = { version = "=0.2.0", path = "../div-text" }
+png = { version = "=0.18.1", optional = true }
+# TLS uses ring, not aws-lc (which needs NASM on Windows), and the platform
+# verifier, not webpki-roots.
+rustls = { version = "=0.23.46", optional = true, default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "=1.0.228", optional = true }
+serde_json = { version = "=1.0.149", optional = true }
+ureq = { version = "=3.5.1", optional = true, default-features = false, features = ["gzip", "platform-verifier", "rustls-no-provider"] }
+
+[dev-dependencies]
+serde_json = "1.0"

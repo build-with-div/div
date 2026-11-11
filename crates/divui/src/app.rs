@@ -1,0 +1,1026 @@
+//! Fallible application and deterministic headless lifecycle APIs.
+
+use crate::context::with_document;
+use crate::scope::{create_scope, dispose_scope};
+use crate::style::{Bitmap, Error};
+use crate::view_node::{mount_view, IntoView};
+use crate::{Document, ScopeId};
+use div_engine::{EngineOptions, ViewportMetrics};
+use std::cell::Cell;
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+use std::cell::RefCell;
+use std::rc::Rc;
+
+/// Environment variable naming a PNG file: when set, [`App::run`] renders
+/// the first frame there instead of opening a window.
+pub const RENDER_PNG_ENV: &str = "DIV_RENDER_PNG";
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LogicalSize {
+    pub width: f64,
+    pub height: f64,
+}
+
+impl LogicalSize {
+    pub const fn new(width: f64, height: f64) -> Self {
+        Self { width, height }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BackendPreference {
+    #[default]
+    Auto,
+    OpenGl,
+    Software,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WindowOptions {
+    pub title: String,
+    pub size: LogicalSize,
+    pub backend: BackendPreference,
+}
+
+impl Default for WindowOptions {
+    fn default() -> Self {
+        Self {
+            title: "Div".to_owned(),
+            size: LogicalSize::new(800.0, 600.0),
+            backend: BackendPreference::Auto,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AppBuilder {
+    options: WindowOptions,
+    engine_options: EngineOptions,
+}
+
+/// Cloneable shutdown request for the application's owning UI thread.
+#[derive(Clone, Default)]
+pub struct AppExitHandle(Rc<Cell<bool>>);
+
+impl AppExitHandle {
+    pub fn request_exit(&self) {
+        self.0.set(true);
+    }
+}
+
+impl AppBuilder {
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.options.title = title.into();
+        self
+    }
+
+    pub fn size(mut self, size: LogicalSize) -> Self {
+        self.options.size = size;
+        self
+    }
+
+    pub fn backend(mut self, backend: BackendPreference) -> Self {
+        self.options.backend = backend;
+        self
+    }
+
+    /// Select immutable engine options independently of window presentation.
+    pub fn engine_options(mut self, options: EngineOptions) -> Self {
+        self.engine_options = options;
+        self
+    }
+
+    pub fn build(self) -> Result<App, Error> {
+        let viewport = ViewportMetrics::from_logical_size(
+            self.options.size.width,
+            self.options.size.height,
+            1.0,
+        )?;
+        Ok(App {
+            document: Document::with_options(viewport, self.engine_options)?,
+            options: self.options,
+            root_scope: None,
+            exit_requested: AppExitHandle::default(),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            software_compositor: RefCell::new(div_compositor::SoftwareCompositor::default()),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            platform_event_handler: None,
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            rendered_generations: Cell::new(None),
+        })
+    }
+}
+
+pub struct App {
+    document: Document,
+    options: WindowOptions,
+    root_scope: Option<ScopeId>,
+    exit_requested: AppExitHandle,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    software_compositor: RefCell<div_compositor::SoftwareCompositor>,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    platform_event_handler: Option<Box<dyn FnMut(&div_platform::PlatformEvent)>>,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    rendered_generations: Cell<Option<[u64; 5]>>,
+}
+
+impl App {
+    pub fn builder() -> AppBuilder {
+        AppBuilder::default()
+    }
+
+    pub fn options(&self) -> &WindowOptions {
+        &self.options
+    }
+
+    pub fn document(&self) -> &Document {
+        &self.document
+    }
+
+    /// Present an existing retained document, preserving its nodes and listeners.
+    pub fn from_document(document: Document, options: WindowOptions) -> Result<Self, Error> {
+        ViewportMetrics::from_logical_size(options.size.width, options.size.height, 1.0)?;
+        Ok(Self {
+            document,
+            options,
+            root_scope: None,
+            exit_requested: AppExitHandle::default(),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            software_compositor: RefCell::new(div_compositor::SoftwareCompositor::default()),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            platform_event_handler: None,
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            rendered_generations: Cell::new(None),
+        })
+    }
+
+    pub fn exit_handle(&self) -> AppExitHandle {
+        self.exit_requested.clone()
+    }
+
+    /// Observe platform events after document processing and all engine borrows.
+    /// The callback runs on the UI thread, may use retained handles, and ends
+    /// when the blocking run returns. It must not start another native run.
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    pub fn on_platform_event(
+        &mut self,
+        handler: impl FnMut(&div_platform::PlatformEvent) + 'static,
+    ) {
+        self.platform_event_handler = Some(Box::new(handler));
+    }
+
+    pub fn mount<V: IntoView>(&mut self, view: impl FnOnce() -> V) -> Result<(), Error> {
+        if let Some(scope) = self.root_scope.take() {
+            dispose_scope(scope);
+        }
+        self.document.body().remove_all_children()?;
+        let document = self.document.clone();
+        let scope = create_scope(|| {
+            let view = with_document(&document, || view().into_view());
+            mount_view(&document.body(), view);
+        });
+        self.root_scope = Some(scope);
+        self.document.update_all()
+    }
+
+    /// Run the owned native event loop.
+    pub fn run<V: IntoView>(mut self, view: impl FnOnce() -> V) -> Result<(), Error> {
+        self.mount(view)?;
+        self.run_document()
+    }
+
+    /// Block in the native event loop using the document already attached.
+    ///
+    /// When `DIV_RENDER_PNG` names a file, render the first frame there
+    /// without opening a window and return. Smoke tests and the CLI use this
+    /// to check an app's output on machines without a display. It uses the
+    /// default form-control accent, so the image does not depend on the
+    /// system theme.
+    pub fn run_document(self) -> Result<(), Error> {
+        self.document.update_all()?;
+        if let Some(path) = std::env::var_os(RENDER_PNG_ENV) {
+            return self.render_first_frame_to(path);
+        }
+        #[cfg(any(
+            all(feature = "linux", target_os = "linux"),
+            all(feature = "windows", target_os = "windows")
+        ))]
+        {
+            // The single window runs on the same runtime as `App::new`, so
+            // `window::open` works here too. The runtime applies the
+            // operating system's form-control accent, as Chromium's native
+            // theme does.
+            let defaults = crate::app_spec::Defaults {
+                title: self.options.title.clone(),
+                backend: self.options.backend,
+                engine_options: EngineOptions::default(),
+                #[cfg(feature = "menu")]
+                menu: None,
+            };
+            crate::window::adopt(self);
+            crate::app_spec::run_windows(defaults, true)
+        }
+        #[cfg(not(any(
+            all(feature = "linux", target_os = "linux"),
+            all(feature = "windows", target_os = "windows")
+        )))]
+        Err(Error::PlatformUnavailable)
+    }
+
+    pub(crate) fn render_first_frame_to(
+        &self,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), Error> {
+        self.document.begin_frame(0.0)?;
+        self.document.render_to_png(path)
+    }
+
+    pub fn request_exit(&self) {
+        self.exit_requested.request_exit();
+    }
+
+    pub fn exit_requested(&self) -> bool {
+        self.exit_requested.0.get()
+    }
+}
+
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+impl div_platform::PlatformApplication for App {
+    fn event(&mut self, event: div_platform::PlatformEvent) -> Result<(), String> {
+        use div_engine::PointerEventKind;
+        use div_platform::{PlatformEvent, PointerButton, PointerPhase};
+
+        let button = |value: PointerButton| match value {
+            PointerButton::Left => crate::MouseButton::Left,
+            PointerButton::Middle => crate::MouseButton::Middle,
+            PointerButton::Right | PointerButton::Other(_) => crate::MouseButton::Right,
+        };
+        let result = match &event {
+            PlatformEvent::BackendChanged(_) => Ok(()),
+            PlatformEvent::Resized(viewport) => self.document.set_viewport(*viewport),
+            PlatformEvent::Pointer {
+                pointer_id,
+                phase,
+                x,
+                y,
+                button: pointer,
+                modifiers: keys,
+            } => self.document.dispatch_pointer_event(
+                *pointer_id,
+                match *phase {
+                    PointerPhase::Move => PointerEventKind::Move,
+                    PointerPhase::Down => PointerEventKind::Down,
+                    PointerPhase::Up => PointerEventKind::Up,
+                    PointerPhase::Cancel | PointerPhase::Leave => PointerEventKind::Cancel,
+                },
+                *x,
+                *y,
+                button(*pointer),
+                platform_modifiers(*keys),
+                *pointer_id != 0,
+            ),
+            PlatformEvent::Wheel {
+                x,
+                y,
+                delta_x,
+                delta_y,
+                modifiers: keys,
+            } => self.document.dispatch_wheel_event(
+                *x,
+                *y,
+                *delta_x,
+                *delta_y,
+                platform_modifiers(*keys),
+            ),
+            PlatformEvent::Key {
+                phase,
+                key_code,
+                text,
+                modifiers: keys,
+                repeat,
+            } => {
+                // Compatibility injection: navigation keys have no committed
+                // text. The native adapter supplies both fields explicitly.
+                return self.key_input(div_platform::KeyboardInput {
+                    phase: *phase,
+                    key_code: *key_code,
+                    key_text: text.clone(),
+                    text: text
+                        .clone()
+                        .filter(|_| !matches!(*key_code, 8 | 9 | 13 | 27 | 33..=40 | 46)),
+                    modifiers: *keys,
+                    repeat: *repeat,
+                });
+            }
+            PlatformEvent::TextInput(text) => self.document.dispatch_text_input(&text),
+            PlatformEvent::CompositionStart => self.document.dispatch_composition_start(),
+            PlatformEvent::CompositionUpdate(text) => {
+                self.document.dispatch_composition_update(&text)
+            }
+            PlatformEvent::CompositionEnd(text) => self.document.dispatch_composition_end(&text),
+            PlatformEvent::Focused(false) => self.document.dispatch_composition_cancel(),
+            PlatformEvent::Focused(true)
+            | PlatformEvent::DroppedFile(_)
+            | PlatformEvent::HoveredFile(_)
+            | PlatformEvent::HoveredFileCancelled
+            | PlatformEvent::Presented { .. }
+            | PlatformEvent::CloseRequested => Ok(()),
+        };
+        result.map_err(|error| error.to_string())?;
+        if let Some(handler) = self.platform_event_handler.as_mut() {
+            handler(&event);
+        }
+        Ok(())
+    }
+
+    fn key_input(&mut self, input: div_platform::KeyboardInput) -> Result<(), String> {
+        use div_platform::KeyPhase;
+        self.document
+            .dispatch_key_input(
+                match input.phase {
+                    KeyPhase::Down => crate::KeyEventType::Down,
+                    KeyPhase::Up => crate::KeyEventType::Up,
+                },
+                input.key_code,
+                input.key_text.as_deref(),
+                input.text.as_deref(),
+                platform_modifiers(input.modifiers),
+            )
+            .map_err(|error| error.to_string())?;
+        if let Some(handler) = self.platform_event_handler.as_mut() {
+            handler(&input.key_event());
+        }
+        Ok(())
+    }
+
+    fn render(&mut self, time_ms: f64) -> Result<div_platform::SoftwareFrame, String> {
+        self.document
+            .begin_frame(time_ms)
+            .map_err(|error| error.to_string())?;
+        let scene = self
+            .document
+            .with_engine_mut(|engine| engine.scene())
+            .map_err(|error| error.to_string())?;
+        let frame = self
+            .software_compositor
+            .borrow_mut()
+            .render(&scene)
+            .map_err(|error| error.to_string())?;
+        self.rendered_generations.set(Some(
+            self.document
+                .with_engine(visual_generations)
+                .map_err(|error| error.to_string())?,
+        ));
+        Ok(div_platform::SoftwareFrame {
+            width: frame.width,
+            height: frame.height,
+            viewport: frame.viewport,
+            stride: frame.stride,
+            pixels: frame.pixels,
+        })
+    }
+
+    fn exit_requested(&self) -> bool {
+        self.exit_requested()
+    }
+
+    fn dispatch_pending_events(&mut self) -> Result<bool, String> {
+        self.document
+            .dispatch_pending_events()
+            .map_err(|error| error.to_string())?;
+        self.document
+            .has_pending_events()
+            .map_err(|error| error.to_string())
+    }
+
+    fn clipboard_text(&self) -> Result<String, String> {
+        self.document
+            .clipboard_text()
+            .map_err(|error| error.to_string())
+    }
+
+    fn set_clipboard_text(&mut self, text: String) -> Result<(), String> {
+        self.document
+            .set_clipboard_text(text)
+            .map_err(|error| error.to_string())
+    }
+
+    fn is_animating(&self) -> bool {
+        self.document.is_animating().unwrap_or(false)
+    }
+
+    fn needs_redraw(&self) -> bool {
+        self.document
+            .with_engine(visual_generations)
+            .is_ok_and(|generations| self.rendered_generations.get() != Some(generations))
+    }
+
+    fn cursor_icon(&mut self, x: f32, y: f32) -> Result<div_platform::CursorIcon, String> {
+        self.document
+            .with_engine_mut(|engine| {
+                let Some(target) = engine.hit_test(x, y)? else {
+                    return Ok(div_platform::CursorIcon::Default);
+                };
+                Ok(match engine.cursor(target)? {
+                    div_style::Cursor::Auto | div_style::Cursor::Default => {
+                        div_platform::CursorIcon::Default
+                    }
+                    div_style::Cursor::Pointer => div_platform::CursorIcon::Pointer,
+                    div_style::Cursor::Text => div_platform::CursorIcon::Text,
+                    div_style::Cursor::Move => div_platform::CursorIcon::Move,
+                    div_style::Cursor::NotAllowed => div_platform::CursorIcon::NotAllowed,
+                })
+            })
+            .map_err(|error| error.to_string())
+    }
+
+    fn accessibility_update(&mut self) -> Result<div_platform::TreeUpdate, String> {
+        self.document
+            .accessibility_update()
+            .map_err(|error| error.to_string())
+    }
+
+    fn accessibility_action(&mut self, request: div_platform::ActionRequest) -> Result<(), String> {
+        let (target, action) = self
+            .document
+            .with_engine(|engine| engine.accessibility_action_from_request(&request))
+            .map_err(|error| error.to_string())?
+            .map_err(|error| error.to_string())?;
+        self.document
+            .perform_accessibility_action(target, action)
+            .map_err(|error| error.to_string())
+    }
+}
+
+/// Exit the app from anywhere on the UI thread, after the current event.
+pub fn exit() {
+    crate::window::request_exit();
+}
+
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+pub(crate) fn platform_backend(backend: BackendPreference) -> div_platform::BackendPreference {
+    match backend {
+        BackendPreference::Auto => div_platform::BackendPreference::Auto,
+        BackendPreference::OpenGl => div_platform::BackendPreference::OpenGl,
+        BackendPreference::Software => div_platform::BackendPreference::Software,
+    }
+}
+
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+fn platform_modifiers(value: div_platform::Modifiers) -> crate::Modifiers {
+    let mut result = crate::Modifiers::NONE;
+    if value.shift {
+        result |= crate::Modifiers::SHIFT;
+    }
+    if value.control {
+        result |= crate::Modifiers::CTRL;
+    }
+    if value.alt {
+        result |= crate::Modifiers::ALT;
+    }
+    if value.meta {
+        result |= crate::Modifiers::META;
+    }
+    result
+}
+
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+fn visual_generations(engine: &div_engine::Engine) -> [u64; 5] {
+    let generations = engine.dirty_generations();
+    [
+        generations.tree,
+        generations.intrinsic,
+        generations.layout,
+        generations.paint,
+        generations.compositing,
+    ]
+}
+
+impl Drop for App {
+    fn drop(&mut self) {
+        if let Some(scope) = self.root_scope.take() {
+            dispose_scope(scope);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RenderOptions {
+    pub time_ms: f64,
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self { time_ms: 0.0 }
+    }
+}
+
+pub struct HeadlessApp {
+    app: App,
+}
+
+impl HeadlessApp {
+    pub fn new(viewport: ViewportMetrics) -> Result<Self, Error> {
+        Self::with_options(viewport, EngineOptions::default())
+    }
+
+    /// Create a headless application with explicit, immutable engine options.
+    pub fn with_options(viewport: ViewportMetrics, options: EngineOptions) -> Result<Self, Error> {
+        Ok(Self {
+            app: App {
+                document: Document::with_options(viewport, options)?,
+                options: WindowOptions {
+                    size: LogicalSize::new(viewport.logical_width(), viewport.logical_height()),
+                    ..WindowOptions::default()
+                },
+                root_scope: None,
+                exit_requested: AppExitHandle::default(),
+                #[cfg(any(
+                    all(feature = "linux", target_os = "linux"),
+                    all(feature = "windows", target_os = "windows")
+                ))]
+                software_compositor: RefCell::new(div_compositor::SoftwareCompositor::default()),
+                #[cfg(any(
+                    all(feature = "linux", target_os = "linux"),
+                    all(feature = "windows", target_os = "windows")
+                ))]
+                platform_event_handler: None,
+                #[cfg(any(
+                    all(feature = "linux", target_os = "linux"),
+                    all(feature = "windows", target_os = "windows")
+                ))]
+                rendered_generations: Cell::new(None),
+            },
+        })
+    }
+
+    pub fn mount<V: IntoView>(&mut self, view: impl FnOnce() -> V) -> Result<(), Error> {
+        self.app.mount(view)
+    }
+
+    pub fn document(&self) -> &Document {
+        self.app.document()
+    }
+
+    /// Run the UI tasks that are ready now, without waiting for timers or
+    /// background work.
+    #[cfg(feature = "async")]
+    pub fn run_ready_tasks(&mut self) -> Result<(), Error> {
+        while crate::task::run_turn() {}
+        self.app.document.update_all()
+    }
+
+    /// Run UI tasks ([`task::spawn_local`](crate::task::spawn_local)) until
+    /// none is queued or alive, waiting for the timers and background tasks
+    /// they await. Fails if tasks are still running after 30 s, for example
+    /// one that waits for input.
+    #[cfg(feature = "async")]
+    pub fn run_until_idle(&mut self) -> Result<(), Error> {
+        crate::task::run_until_idle(std::time::Duration::from_secs(30))
+            .map_err(Error::TasksStillRunning)?;
+        self.app.document.update_all()
+    }
+
+    pub fn render(&self, options: RenderOptions) -> Result<Bitmap, Error> {
+        self.app.document.begin_frame(options.time_ms)?;
+        self.app.document.render_to_bitmap()
+    }
+
+    pub fn render_at(&self, time_ms: f64) -> Result<Bitmap, Error> {
+        self.render(RenderOptions { time_ms })
+    }
+
+    pub fn render_png_at(&self, time_ms: f64) -> Result<Vec<u8>, Error> {
+        self.app.document.begin_frame(time_ms)?;
+        self.app.document.render_to_png_buffer()
+    }
+
+    pub fn render_png_to(
+        &self,
+        time_ms: f64,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), Error> {
+        self.app.document.begin_frame(time_ms)?;
+        self.app.document.render_to_png(path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{create_signal, view, For, Modifiers, MouseButton, MouseEventType, Show};
+
+    #[test]
+    fn invalid_builder_size_is_fallible() {
+        assert!(App::builder()
+            .size(LogicalSize::new(0.0, 10.0))
+            .build()
+            .is_err());
+    }
+
+    #[test]
+    fn headless_app_mounts_and_renders_the_typed_view_path() {
+        let mut app =
+            HeadlessApp::new(ViewportMetrics::from_logical_size(64.0, 64.0, 1.0).unwrap()).unwrap();
+        app.mount(|| {
+            view! {
+                <div style:width="32px" style:height="32px" style:background-color="red">
+                    "native"
+                </div>
+            }
+        })
+        .unwrap();
+        let first = app.render_at(0.0).unwrap();
+        let second = app.render_at(0.0).unwrap();
+        assert_eq!((first.width(), first.height()), (64, 64));
+        assert_eq!(first.pixels(), second.pixels());
+        assert!(first.pixels().iter().any(|channel| *channel != 255));
+    }
+
+    #[test]
+    fn render_png_hook_matches_the_headless_first_frame() {
+        let red_box = || {
+            view! {
+                <div style:width="32px" style:height="16px" style:background-color="red">
+                    "native"
+                </div>
+            }
+        };
+        let mut app = App::builder()
+            .size(LogicalSize::new(64.0, 48.0))
+            .build()
+            .unwrap();
+        app.mount(red_box).unwrap();
+        let path =
+            std::env::temp_dir().join(format!("div-render-png-hook-{}.png", std::process::id()));
+        app.render_first_frame_to(&path).unwrap();
+        let written = std::fs::read(&path).unwrap();
+        let _ = std::fs::remove_file(&path);
+
+        let mut headless =
+            HeadlessApp::new(ViewportMetrics::from_logical_size(64.0, 48.0, 1.0).unwrap()).unwrap();
+        headless.mount(red_box).unwrap();
+        assert_eq!(written, headless.render_png_at(0.0).unwrap());
+        assert!(written.starts_with(b"\x89PNG\r\n\x1a\n"));
+    }
+
+    #[test]
+    fn app_from_document_retains_existing_nodes_and_exit_handle() {
+        let document = Document::new(80, 40).unwrap();
+        let element = crate::Element::create(&document, "button").unwrap();
+        document.body().append_child(&element).unwrap();
+        element.set_attribute("id", "retained").unwrap();
+        let app = App::from_document(document, WindowOptions::default()).unwrap();
+        assert!(app.document().element_by_id("retained").unwrap().is_some());
+        let exit = app.exit_handle();
+        assert!(!app.exit_requested());
+        exit.request_exit();
+        assert!(app.exit_requested());
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn platform_observer_can_mutate_and_request_exit_after_render_borrows() {
+        use div_platform::{PlatformApplication, PlatformEvent};
+        let document = Document::new(80, 40).unwrap();
+        let element = crate::Element::create(&document, "div").unwrap();
+        document.body().append_child(&element).unwrap();
+        let mut app = App::from_document(document, WindowOptions::default()).unwrap();
+        let exit = app.exit_handle();
+        app.on_platform_event(move |event| {
+            if matches!(event, PlatformEvent::Presented { .. }) {
+                element.set_text("next frame").unwrap();
+                exit.request_exit();
+            }
+        });
+        assert!(app.needs_redraw());
+        let first = app.render(0.0).unwrap();
+        assert!(!app.needs_redraw());
+        app.event(PlatformEvent::Presented {
+            frame_number: 1,
+            time_ms: 0.0,
+        })
+        .unwrap();
+        assert!(app.exit_requested());
+        assert!(app.needs_redraw());
+        let second = app.render(0.0).unwrap();
+        assert_ne!(first.pixels, second.pixels);
+        assert!(!app.needs_redraw());
+        let unchanged = app.render(0.0).unwrap();
+        assert_eq!(second.pixels, unchanged.pixels);
+        assert!(!app.needs_redraw());
+    }
+
+    #[test]
+    fn event_driven_signal_updates_retarget_the_native_text_node() {
+        let count = create_signal(0_i32);
+        let mut app =
+            HeadlessApp::new(ViewportMetrics::from_logical_size(100.0, 50.0, 1.0).unwrap())
+                .unwrap();
+        app.mount(move || {
+            view! {
+                <button style:width="100px" style:height="50px"
+                    on:click={move |_| count.update(|value| *value += 1)}>
+                    {count.get()}
+                </button>
+            }
+        })
+        .unwrap();
+        let before = app.render_at(0.0).unwrap();
+        app.document()
+            .dispatch_mouse_event(
+                MouseEventType::Up,
+                5.0,
+                5.0,
+                MouseButton::Left,
+                Modifiers::NONE,
+            )
+            .unwrap();
+        let after = app.render_at(0.0).unwrap();
+        assert_eq!(count.get(), 1);
+        assert_ne!(before.pixels(), after.pixels());
+    }
+
+    #[test]
+    fn show_and_keyed_for_mutate_retained_nodes() {
+        let visible = create_signal(true);
+        let items = create_signal(vec![1_i32, 2, 3]);
+        let mut app =
+            HeadlessApp::new(ViewportMetrics::from_logical_size(120.0, 80.0, 1.0).unwrap())
+                .unwrap();
+        app.mount(move || {
+            vec![
+                Show(
+                    move || visible.get(),
+                    || view! { <div style:color="red">"hidden"</div> },
+                    || view! { <div style:color="blue">"visible"</div> },
+                ),
+                For(
+                    move || items.get(),
+                    |item| *item,
+                    |item| view! { <span>{item}</span> },
+                ),
+            ]
+        })
+        .unwrap();
+        let before = app.render_at(0.0).unwrap();
+        visible.set(false);
+        items.set(vec![3, 1, 4]);
+        let after = app.render_at(0.0).unwrap();
+        assert_ne!(before.pixels(), after.pixels());
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn normalized_platform_events_drive_the_headless_reference_path() {
+        use div_platform::{
+            KeyPhase, Modifiers as PlatformModifiers, PlatformApplication, PlatformEvent,
+        };
+
+        let mut app = App::builder()
+            .size(LogicalSize::new(100.0, 50.0))
+            .build()
+            .unwrap();
+        let input = crate::Element::create(app.document(), "input").unwrap();
+        app.document().body().append_child(&input).unwrap();
+        input.focus().unwrap();
+        PlatformApplication::event(
+            &mut app,
+            PlatformEvent::Key {
+                phase: KeyPhase::Down,
+                key_code: 'a' as i32,
+                text: Some("a".into()),
+                modifiers: PlatformModifiers::default(),
+                repeat: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(input.control_value().unwrap().as_deref(), Some("a"));
+        PlatformApplication::event(
+            &mut app,
+            PlatformEvent::Resized(ViewportMetrics::from_physical_size(480, 240, 2.0).unwrap()),
+        )
+        .unwrap();
+        let frame = PlatformApplication::render(&mut app, 0.0).unwrap();
+        assert_eq!((frame.width, frame.height), (480, 240));
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn native_ime_commits_after_empty_preview_and_cancels_on_window_focus_loss() {
+        use div_platform::{PlatformApplication, PlatformEvent};
+        let mut app = App::builder().build().unwrap();
+        let input = crate::Element::create(app.document(), "input").unwrap();
+        app.document().body().append_child(&input).unwrap();
+        input.focus().unwrap();
+        for event in [
+            PlatformEvent::CompositionStart,
+            PlatformEvent::CompositionUpdate("e".into()),
+            PlatformEvent::CompositionUpdate(String::new()),
+            PlatformEvent::CompositionEnd("é".into()),
+        ] {
+            app.event(event).unwrap();
+        }
+        assert_eq!(input.control_value().unwrap().as_deref(), Some("é"));
+        let before = app.render(0.0).unwrap();
+        app.event(PlatformEvent::CompositionStart).unwrap();
+        app.event(PlatformEvent::CompositionUpdate("preview".into()))
+            .unwrap();
+        app.render(0.0).unwrap();
+        assert!(!app.needs_redraw());
+        app.event(PlatformEvent::Focused(false)).unwrap();
+        assert!(app.needs_redraw());
+        let after = app.render(0.0).unwrap();
+        assert_eq!(input.control_value().unwrap().as_deref(), Some("é"));
+        assert_eq!(before.pixels, after.pixels);
+        assert!(!app.needs_redraw());
+        app.event(PlatformEvent::CompositionEnd("late commit".into()))
+            .unwrap();
+        assert_eq!(input.control_value().unwrap().as_deref(), Some("é"));
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn cancelled_native_keydown_does_not_insert_committed_text() {
+        use div_platform::{KeyPhase, KeyboardInput, PlatformApplication};
+        let mut app = App::builder().build().unwrap();
+        let input = crate::Element::create(app.document(), "input").unwrap();
+        app.document().body().append_child(&input).unwrap();
+        input.focus().unwrap();
+        let callback_input = input.clone();
+        input
+            .on("keydown", move |event| {
+                callback_input.set_control_value("callback").unwrap();
+                event.prevent_default();
+            })
+            .unwrap();
+        app.key_input(KeyboardInput {
+            phase: KeyPhase::Down,
+            key_code: 65,
+            key_text: Some("a".into()),
+            text: Some("a".into()),
+            modifiers: div_platform::Modifiers::default(),
+            repeat: false,
+        })
+        .unwrap();
+        assert_eq!(input.control_value().unwrap().as_deref(), Some("callback"));
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn native_named_keys_and_noneditable_controls_do_not_receive_text() {
+        use div_platform::{KeyPhase, KeyboardInput, PlatformApplication};
+        let mut app = App::builder().build().unwrap();
+        let input = crate::Element::create(app.document(), "input").unwrap();
+        app.document().body().append_child(&input).unwrap();
+        input.focus().unwrap();
+        for (key_code, key_text, text) in [
+            (27, "Escape", None),
+            (38, "ArrowUp", None),
+            (0, ".", Some(".")),
+            (0, "#", Some("#")),
+            (0, "é", Some("é")),
+        ] {
+            app.key_input(KeyboardInput {
+                phase: KeyPhase::Down,
+                key_code,
+                key_text: Some(key_text.into()),
+                text: text.map(str::to_owned),
+                modifiers: div_platform::Modifiers::default(),
+                repeat: false,
+            })
+            .unwrap();
+        }
+        assert_eq!(input.control_value().unwrap().as_deref(), Some(".#é"));
+        let checkbox = crate::Element::create(app.document(), "input").unwrap();
+        checkbox.set_attribute("type", "checkbox").unwrap();
+        app.document().body().append_child(&checkbox).unwrap();
+        checkbox.focus().unwrap();
+        app.key_input(KeyboardInput {
+            phase: KeyPhase::Down,
+            key_code: 32,
+            key_text: Some(" ".into()),
+            text: Some(" ".into()),
+            modifiers: div_platform::Modifiers::default(),
+            repeat: false,
+        })
+        .unwrap();
+        assert!(
+            !checkbox.is_checked().unwrap(),
+            "Space down does not activate"
+        );
+        app.key_input(KeyboardInput {
+            phase: KeyPhase::Up,
+            key_code: 32,
+            key_text: Some(" ".into()),
+            text: None,
+            modifiers: div_platform::Modifiers::default(),
+            repeat: false,
+        })
+        .unwrap();
+        assert!(checkbox.is_checked().unwrap());
+        app.event(div_platform::PlatformEvent::TextInput("ignored".into()))
+            .unwrap();
+        let button = crate::Element::create(app.document(), "button").unwrap();
+        app.document().body().append_child(&button).unwrap();
+        button.focus().unwrap();
+        app.event(div_platform::PlatformEvent::TextInput("ignored".into()))
+            .unwrap();
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn native_textarea_enter_inserts_one_cancelable_newline() {
+        use div_platform::{KeyPhase, KeyboardInput, PlatformApplication};
+        let mut app = App::builder().build().unwrap();
+        let textarea = crate::Element::create(app.document(), "textarea").unwrap();
+        app.document().body().append_child(&textarea).unwrap();
+        textarea.set_control_value("start").unwrap();
+        textarea.set_selection(5, 5).unwrap();
+        textarea.focus().unwrap();
+        let enter = || KeyboardInput {
+            phase: KeyPhase::Down,
+            key_code: 13,
+            key_text: Some("Enter".into()),
+            text: Some("\r".into()),
+            modifiers: div_platform::Modifiers::default(),
+            repeat: false,
+        };
+        app.key_input(enter()).unwrap();
+        assert_eq!(
+            textarea.control_value().unwrap().as_deref(),
+            Some("start\n")
+        );
+        textarea
+            .on("beforeinput", |event| event.prevent_default())
+            .unwrap();
+        app.key_input(enter()).unwrap();
+        assert_eq!(
+            textarea.control_value().unwrap().as_deref(),
+            Some("start\n")
+        );
+    }
+}
