@@ -1,0 +1,33 @@
+# Build and comparison output
+/out/
+target/
+dist/
+*.rs.bk
+*.prof*
+
+# Images the examples write (hello.png and friends)
+/*.png
+
+# Native build artifacts
+*.o
+*.a
+*.exe
+*.dll
+
+# Tooling
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.tmp
+.env*
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

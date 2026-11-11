@@ -1,0 +1,40 @@
+//! SP14 regressions for forced breaks emitted by deterministic text ports.
+
+use div_dom::{Document, ElementTag};
+use div_geometry::{LayoutUnit, Length};
+use div_layout::block::block_layout;
+use div_layout::ConstraintSpace;
+use div_style::{Display, WhiteSpace};
+
+#[test]
+fn lone_forced_break_establishes_a_nonzero_line_strut() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+
+    let break_container = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(break_container, |style| style.display = Display::Block);
+    doc.append_child(vp, break_container);
+
+    let forced_break = doc.create_node(ElementTag::Text);
+    doc.update_resolved_style(forced_break, |style| {
+        style.white_space = WhiteSpace::PreLine
+    });
+    doc.node_mut(forced_break).text = Some("\n".to_string());
+    doc.append_child(break_container, forced_break);
+
+    let following = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(following, |style| style.display = Display::Block);
+    doc.update_resolved_style(following, |style| style.height = Length::px(10.0));
+    doc.append_child(vp, following);
+
+    let space = ConstraintSpace::for_root(LayoutUnit::from_f32(200.0), LayoutUnit::from_f32(200.0));
+    let fragment = block_layout(&doc, vp, &space);
+    let break_fragment = &fragment.children[0];
+    let following_fragment = &fragment.children[1];
+
+    assert!(
+        break_fragment.size.height > LayoutUnit::zero(),
+        "a forced break must establish a line strut"
+    );
+    assert_eq!(following_fragment.offset.top, break_fragment.size.height);
+}

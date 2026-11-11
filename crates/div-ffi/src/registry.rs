@@ -1,0 +1,598 @@
+use crate::types::{DivUiEventCallback, DivUiStatus, DivUiUtf8};
+use div_engine::{
+    AccessibilityNode, AccessibilityNodeId, AnimationEvent, Engine, EngineError,
+    FontCollectionError, FontFaceHandle, NodeHandle,
+};
+use div_style::{ImageResourceId, StyleProperty, StyleValue};
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::ffi::c_void;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::rc::{Rc, Weak};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::thread::ThreadId;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HandleKind {
+    App,
+    Document,
+    Element,
+    Compound,
+    Resource,
+    FontFace,
+    Listener,
+    Buffer,
+    AccessibilitySnapshot,
+}
+
+#[derive(Clone)]
+pub(crate) struct AppState {
+    pub document: Rc<DocumentState>,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    pub title: String,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    pub backend: u32,
+    pub running: Cell<bool>,
+    pub has_run: Cell<bool>,
+    pub exit_requested: Cell<bool>,
+    pub exit_handle: RefCell<Option<div::AppExitHandle>>,
+}
+
+pub(crate) struct DocumentState {
+    pub engine: Rc<RefCell<Engine>>,
+    pub native: div::Document,
+    pub update_depth: Cell<u32>,
+    pub listeners: RefCell<Vec<ListenerRecord>>,
+    pub next_listener: Cell<u64>,
+    pub element_handles: RefCell<HashMap<NodeHandle, Vec<usize>>>,
+    pub animation_events: RefCell<Vec<AnimationEvent>>,
+}
+
+#[derive(Clone)]
+pub(crate) struct ElementRef {
+    pub document: Weak<DocumentState>,
+    pub node: NodeHandle,
+}
+
+#[derive(Clone)]
+pub(crate) struct ResourceRef {
+    pub document: Weak<DocumentState>,
+    pub resource: ImageResourceId,
+}
+
+#[derive(Clone)]
+pub(crate) struct FontFaceRef {
+    pub document: Weak<DocumentState>,
+    pub face: FontFaceHandle,
+}
+
+#[derive(Clone)]
+pub(crate) struct ListenerRef {
+    pub document: Weak<DocumentState>,
+    pub id: u64,
+}
+
+#[derive(Clone)]
+pub(crate) struct ListenerRecord {
+    pub id: u64,
+    pub native_registration_id: u64,
+    pub node: NodeHandle,
+    pub event_type: u32,
+    pub capture: bool,
+    pub callback: DivUiEventCallback,
+    pub user_data: *mut c_void,
+    pub element_address: usize,
+}
+
+#[derive(Clone)]
+pub(crate) struct AccessibilitySnapshotState {
+    pub document: Weak<DocumentState>,
+    pub generation: u64,
+    pub focus_id: u64,
+    pub reduced_motion: bool,
+    pub nodes: Vec<(AccessibilityNodeId, AccessibilityNode)>,
+    pub changed: Vec<u64>,
+    pub removed: Vec<u64>,
+    pub full_tree: bool,
+}
+
+#[derive(Clone)]
+pub(crate) enum LocalHandle {
+    App(Rc<AppState>),
+    Document(Rc<DocumentState>),
+    Element(ElementRef),
+    Compound(StyleValue),
+    PropertyCompound(StyleProperty, StyleValue),
+    Resource(ResourceRef),
+    FontFace(FontFaceRef),
+    Listener(ListenerRef),
+    Buffer(Rc<Vec<u8>>),
+    AccessibilitySnapshot(Rc<AccessibilitySnapshotState>),
+}
+
+impl LocalHandle {
+    fn kind(&self) -> HandleKind {
+        match self {
+            Self::App(_) => HandleKind::App,
+            Self::Document(_) => HandleKind::Document,
+            Self::Element(_) => HandleKind::Element,
+            Self::Compound(_) | Self::PropertyCompound(..) => HandleKind::Compound,
+            Self::Resource(_) => HandleKind::Resource,
+            Self::FontFace(_) => HandleKind::FontFace,
+            Self::Listener(_) => HandleKind::Listener,
+            Self::Buffer(_) => HandleKind::Buffer,
+            Self::AccessibilitySnapshot(_) => HandleKind::AccessibilitySnapshot,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct GlobalHandle {
+    thread: ThreadId,
+    kind: HandleKind,
+}
+
+static NEXT_TOKEN: AtomicUsize = AtomicUsize::new(0x1_0000);
+static GLOBAL_HANDLES: OnceLock<Mutex<HashMap<usize, GlobalHandle>>> = OnceLock::new();
+
+thread_local! {
+    static LOCAL_HANDLES: RefCell<HashMap<usize, LocalHandle>> = RefCell::new(HashMap::new());
+    static LAST_ERROR: RefCell<LastError> = RefCell::new(LastError::default());
+}
+
+fn global_handles() -> &'static Mutex<HashMap<usize, GlobalHandle>> {
+    GLOBAL_HANDLES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ApiError {
+    pub status: DivUiStatus,
+    pub detail: u32,
+    pub message: String,
+}
+
+impl ApiError {
+    pub fn new(status: DivUiStatus, message: impl Into<String>) -> Self {
+        Self {
+            status,
+            detail: 0,
+            message: message.into(),
+        }
+    }
+
+    pub fn detail(mut self, detail: u32) -> Self {
+        self.detail = detail;
+        self
+    }
+}
+
+impl From<EngineError> for ApiError {
+    fn from(value: EngineError) -> Self {
+        let status = match value {
+            EngineError::AllocationFailure => DivUiStatus::OutOfMemory,
+            EngineError::WrongDocument => DivUiStatus::WrongDocument,
+            EngineError::StaleHandle => DivUiStatus::StaleHandle,
+            EngineError::PropertyType { .. } => DivUiStatus::WrongValueType,
+            EngineError::InvalidViewport => DivUiStatus::InvalidArgument,
+            EngineError::Font(FontCollectionError::AllocationFailed) => DivUiStatus::OutOfMemory,
+            EngineError::Font(FontCollectionError::WrongCollection) => DivUiStatus::WrongDocument,
+            EngineError::Font(FontCollectionError::UnknownFace) => DivUiStatus::StaleHandle,
+            EngineError::Font(_) => DivUiStatus::InvalidArgument,
+            _ => DivUiStatus::InvalidState,
+        };
+        Self::new(status, value.to_string())
+    }
+}
+
+impl From<div_compositor::CompositorError> for ApiError {
+    fn from(value: div_compositor::CompositorError) -> Self {
+        Self::new(DivUiStatus::Internal, value.to_string())
+    }
+}
+
+#[derive(Default, Clone)]
+pub(crate) struct LastError {
+    pub status: i32,
+    pub detail: u32,
+    pub message: Vec<u8>,
+}
+
+pub(crate) fn last_error() -> LastError {
+    LAST_ERROR.with(|slot| slot.borrow().clone())
+}
+
+fn set_error(error: &ApiError) {
+    LAST_ERROR.with(|slot| {
+        *slot.borrow_mut() = LastError {
+            status: error.status as i32,
+            detail: error.detail,
+            message: error.message.as_bytes().to_vec(),
+        };
+    });
+}
+
+pub(crate) fn ffi_preserve(operation: impl FnOnce() -> Result<(), ApiError>) -> DivUiStatus {
+    match catch_unwind(AssertUnwindSafe(operation)) {
+        Ok(Ok(())) => DivUiStatus::Ok,
+        Ok(Err(error)) => {
+            set_error(&error);
+            error.status
+        }
+        Err(_) => {
+            let error = ApiError::new(DivUiStatus::Internal, "panic contained at C ABI boundary");
+            set_error(&error);
+            error.status
+        }
+    }
+}
+
+fn clear_error() {
+    LAST_ERROR.with(|slot| *slot.borrow_mut() = LastError::default());
+}
+
+pub(crate) fn ffi(operation: impl FnOnce() -> Result<(), ApiError>) -> DivUiStatus {
+    clear_error();
+    match catch_unwind(AssertUnwindSafe(operation)) {
+        Ok(Ok(())) => DivUiStatus::Ok,
+        Ok(Err(error)) => {
+            set_error(&error);
+            error.status
+        }
+        Err(_) => {
+            let error = ApiError::new(DivUiStatus::Internal, "panic contained at C ABI boundary");
+            set_error(&error);
+            error.status
+        }
+    }
+}
+
+pub(crate) fn ffi_value<T: Copy>(
+    fallback: T,
+    operation: impl FnOnce() -> Result<T, ApiError>,
+) -> T {
+    clear_error();
+    match catch_unwind(AssertUnwindSafe(operation)) {
+        Ok(Ok(value)) => value,
+        Ok(Err(error)) => {
+            set_error(&error);
+            fallback
+        }
+        Err(_) => {
+            set_error(&ApiError::new(
+                DivUiStatus::Internal,
+                "panic contained at C ABI boundary",
+            ));
+            fallback
+        }
+    }
+}
+
+pub(crate) fn register(handle: LocalHandle) -> Result<usize, ApiError> {
+    register_with_commit(handle, |_| Ok(()))
+}
+
+/// Acquire all fallible ownership storage before committing related state.
+/// `commit` must not invoke application callbacks or reenter the registry; an
+/// error must leave its related state unchanged. Skipped tokens are never reused.
+pub(crate) fn register_with_commit(
+    handle: LocalHandle,
+    commit: impl FnOnce(usize) -> Result<(), ApiError>,
+) -> Result<usize, ApiError> {
+    register_with_factory(|token| {
+        commit(token)?;
+        Ok(handle)
+    })
+}
+
+/// Reserve ownership storage before creating anything whose rollback would be
+/// fallible. The factory follows the same no-callback/no-reentry commit rules.
+pub(crate) fn register_with_factory(
+    create: impl FnOnce(usize) -> Result<LocalHandle, ApiError>,
+) -> Result<usize, ApiError> {
+    LOCAL_HANDLES.with(|handles| {
+        let mut local = handles
+            .try_borrow_mut()
+            .map_err(|_| ApiError::new(DivUiStatus::Reentrant, "handle registry is borrowed"))?;
+        let mut global = global_handles()
+            .lock()
+            .map_err(|_| ApiError::new(DivUiStatus::Internal, "handle registry is poisoned"))?;
+        local.try_reserve(1).map_err(|_| {
+            ApiError::new(
+                DivUiStatus::OutOfMemory,
+                "local handle registry allocation failed",
+            )
+        })?;
+        global.try_reserve(1).map_err(|_| {
+            ApiError::new(
+                DivUiStatus::OutOfMemory,
+                "global handle registry allocation failed",
+            )
+        })?;
+        let token = NEXT_TOKEN
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                value
+                    .checked_add(16)
+                    .filter(|next| *next <= isize::MAX as usize)
+            })
+            .map_err(|_| {
+                ApiError::new(DivUiStatus::OutOfMemory, "opaque handle space exhausted")
+            })?;
+        let handle = create(token)?;
+        let kind = handle.kind();
+        local.insert(token, handle);
+        global.insert(
+            token,
+            GlobalHandle {
+                thread: std::thread::current().id(),
+                kind,
+            },
+        );
+        Ok(token)
+    })
+}
+
+fn validate(address: usize, expected: HandleKind) -> Result<(), ApiError> {
+    if address == 0 {
+        return Err(ApiError::new(DivUiStatus::InvalidArgument, "null handle"));
+    }
+    let handles = global_handles()
+        .lock()
+        .map_err(|_| ApiError::new(DivUiStatus::Internal, "handle registry is poisoned"))?;
+    let metadata = handles
+        .get(&address)
+        .ok_or_else(|| ApiError::new(DivUiStatus::InvalidHandle, "unknown or destroyed handle"))?;
+    if metadata.thread != std::thread::current().id() {
+        return Err(ApiError::new(
+            DivUiStatus::WrongThread,
+            "handle used from a thread other than its owner",
+        ));
+    }
+    if metadata.kind != expected {
+        return Err(ApiError::new(
+            DivUiStatus::InvalidHandle,
+            "opaque handle has the wrong type",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn get(address: usize, expected: HandleKind) -> Result<LocalHandle, ApiError> {
+    validate(address, expected)?;
+    LOCAL_HANDLES.with(|handles| {
+        handles
+            .try_borrow()
+            .map_err(|_| ApiError::new(DivUiStatus::Reentrant, "handle registry is borrowed"))?
+            .get(&address)
+            .cloned()
+            .ok_or_else(|| ApiError::new(DivUiStatus::InvalidHandle, "handle is unavailable"))
+    })
+}
+
+pub(crate) fn destroy(address: usize, expected: HandleKind) -> Result<LocalHandle, ApiError> {
+    destroy_with_commit(address, expected, |_| Ok(()))
+}
+
+/// Like registration, destruction commits related state and both registries
+/// only after all fallible guards are held. The returned owner drops after the
+/// guards are released; no destructor or application callback runs under them.
+pub(crate) fn destroy_with_commit(
+    address: usize,
+    expected: HandleKind,
+    commit: impl FnOnce(&LocalHandle) -> Result<(), ApiError>,
+) -> Result<LocalHandle, ApiError> {
+    if address == 0 {
+        return Err(ApiError::new(DivUiStatus::InvalidArgument, "null handle"));
+    }
+    LOCAL_HANDLES.with(|handles| {
+        let mut local = handles
+            .try_borrow_mut()
+            .map_err(|_| ApiError::new(DivUiStatus::Reentrant, "handle registry is borrowed"))?;
+        let mut global = global_handles()
+            .lock()
+            .map_err(|_| ApiError::new(DivUiStatus::Internal, "handle registry is poisoned"))?;
+        let metadata = global.get(&address).ok_or_else(|| {
+            ApiError::new(DivUiStatus::InvalidHandle, "unknown or destroyed handle")
+        })?;
+        if metadata.thread != std::thread::current().id() {
+            return Err(ApiError::new(
+                DivUiStatus::WrongThread,
+                "handle used from a thread other than its owner",
+            ));
+        }
+        if metadata.kind != expected {
+            return Err(ApiError::new(
+                DivUiStatus::InvalidHandle,
+                "opaque handle has the wrong type",
+            ));
+        }
+        let owner = local
+            .get(&address)
+            .ok_or_else(|| ApiError::new(DivUiStatus::InvalidHandle, "handle is unavailable"))?;
+        commit(owner)?;
+        let removed = local
+            .remove(&address)
+            .expect("validated owner remains live without callbacks");
+        global.remove(&address);
+        Ok(removed)
+    })
+}
+
+#[cfg(test)]
+mod miri_handle_tests {
+    use super::*;
+
+    #[test]
+    fn failed_registry_commit_never_publishes_or_consumes_ownership() {
+        let minted = Cell::new(0);
+        let error = register_with_commit(LocalHandle::Buffer(Rc::new(vec![1])), |token| {
+            minted.set(token);
+            Err(ApiError::new(DivUiStatus::InvalidState, "commit rejected"))
+        })
+        .unwrap_err();
+        assert_eq!(error.status, DivUiStatus::InvalidState);
+        assert_eq!(
+            get(minted.get(), HandleKind::Buffer).err().unwrap().status,
+            DivUiStatus::InvalidHandle
+        );
+
+        let token = register(LocalHandle::Buffer(Rc::new(vec![2]))).unwrap();
+        assert_ne!(token, minted.get());
+        let error = destroy_with_commit(token, HandleKind::Buffer, |_| {
+            Err(ApiError::new(
+                DivUiStatus::Reentrant,
+                "related storage borrowed",
+            ))
+        })
+        .err()
+        .unwrap();
+        assert_eq!(error.status, DivUiStatus::Reentrant);
+        assert!(matches!(
+            get(token, HandleKind::Buffer),
+            Ok(LocalHandle::Buffer(_))
+        ));
+        destroy(token, HandleKind::Buffer).unwrap();
+    }
+
+    #[test]
+    fn borrowed_local_registry_rejects_register_and_preserves_destroy_owner() {
+        let token = register(LocalHandle::Buffer(Rc::new(vec![3]))).unwrap();
+        LOCAL_HANDLES.with(|handles| {
+            let held = handles.borrow();
+            assert_eq!(
+                register(LocalHandle::Buffer(Rc::new(vec![4])))
+                    .err()
+                    .unwrap()
+                    .status,
+                DivUiStatus::Reentrant
+            );
+            assert_eq!(
+                destroy(token, HandleKind::Buffer).err().unwrap().status,
+                DivUiStatus::Reentrant
+            );
+            assert!(held.contains_key(&token));
+        });
+        assert!(matches!(
+            get(token, HandleKind::Buffer),
+            Ok(LocalHandle::Buffer(_))
+        ));
+        destroy(token, HandleKind::Buffer).unwrap();
+    }
+
+    #[test]
+    fn opaque_handles_reject_wrong_kind_thread_and_reuse() {
+        let first = register(LocalHandle::Buffer(Rc::new(vec![1, 2, 3]))).unwrap();
+        assert_eq!(
+            get(first, HandleKind::Document).err().unwrap().status,
+            DivUiStatus::InvalidHandle
+        );
+        assert_eq!(
+            std::thread::spawn(move || get(first, HandleKind::Buffer).err().unwrap().status)
+                .join()
+                .unwrap(),
+            DivUiStatus::WrongThread
+        );
+        assert!(matches!(
+            get(first, HandleKind::Buffer),
+            Ok(LocalHandle::Buffer(_))
+        ));
+        destroy(first, HandleKind::Buffer).unwrap_or_else(|error| panic!("{}", error.message));
+        assert_eq!(
+            get(first, HandleKind::Buffer).err().unwrap().status,
+            DivUiStatus::InvalidHandle
+        );
+        let second = register(LocalHandle::Buffer(Rc::new(vec![4]))).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(
+            get(first, HandleKind::Buffer).err().unwrap().status,
+            DivUiStatus::InvalidHandle
+        );
+        destroy(second, HandleKind::Buffer).unwrap_or_else(|error| panic!("{}", error.message));
+    }
+}
+
+pub(crate) fn document(address: usize) -> Result<Rc<DocumentState>, ApiError> {
+    match get(address, HandleKind::Document)? {
+        LocalHandle::Document(value) => Ok(value),
+        _ => unreachable!("kind checked by registry"),
+    }
+}
+
+pub(crate) fn element(address: usize) -> Result<ElementRef, ApiError> {
+    match get(address, HandleKind::Element)? {
+        LocalHandle::Element(value) => Ok(value),
+        _ => unreachable!("kind checked by registry"),
+    }
+}
+
+pub(crate) fn element_document(value: &ElementRef) -> Result<Rc<DocumentState>, ApiError> {
+    value
+        .document
+        .upgrade()
+        .ok_or_else(|| ApiError::new(DivUiStatus::InvalidHandle, "owning document was destroyed"))
+}
+
+pub(crate) fn utf8(value: DivUiUtf8, label: &'static str) -> Result<String, ApiError> {
+    if value.length == 0 {
+        return Ok(String::new());
+    }
+    if value.data.is_null() || value.length > isize::MAX as usize {
+        return Err(ApiError::new(
+            DivUiStatus::InvalidArgument,
+            format!("invalid {label} UTF-8 slice"),
+        ));
+    }
+    // SAFETY: the C contract requires `data` to reference `length` readable
+    // bytes for the duration of this call; null and excessive lengths were
+    // rejected above. The bytes are copied before returning.
+    let bytes = unsafe { std::slice::from_raw_parts(value.data, value.length) };
+    let text = std::str::from_utf8(bytes).map_err(|_| {
+        ApiError::new(
+            DivUiStatus::InvalidArgument,
+            format!("{label} is not valid UTF-8"),
+        )
+    })?;
+    Ok(text.to_owned())
+}
+
+pub(crate) fn bytes(data: *const u8, length: usize) -> Result<Vec<u8>, ApiError> {
+    if length == 0 {
+        return Ok(Vec::new());
+    }
+    if data.is_null() || length > isize::MAX as usize {
+        return Err(ApiError::new(
+            DivUiStatus::InvalidArgument,
+            "invalid byte slice",
+        ));
+    }
+    let mut owned = Vec::new();
+    owned
+        .try_reserve_exact(length)
+        .map_err(|_| ApiError::new(DivUiStatus::OutOfMemory, "byte allocation failed"))?;
+    // SAFETY: the C contract requires `data` to reference `length` readable
+    // bytes for the duration of this call. The range is copied immediately.
+    owned.extend_from_slice(unsafe { std::slice::from_raw_parts(data, length) });
+    Ok(owned)
+}
+
+pub(crate) fn borrow_engine(state: &DocumentState) -> Result<std::cell::Ref<'_, Engine>, ApiError> {
+    state
+        .engine
+        .try_borrow()
+        .map_err(|_| ApiError::new(DivUiStatus::Reentrant, "document is mutably borrowed"))
+}
+
+pub(crate) fn borrow_engine_mut(
+    state: &DocumentState,
+) -> Result<std::cell::RefMut<'_, Engine>, ApiError> {
+    state
+        .engine
+        .try_borrow_mut()
+        .map_err(|_| ApiError::new(DivUiStatus::Reentrant, "document is already borrowed"))
+}

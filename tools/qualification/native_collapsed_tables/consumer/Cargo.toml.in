@@ -1,0 +1,19 @@
+[package]
+name = "openui-native-collapsed-table"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+
+[dependencies]
+divui = { version = "=0.2.0", path = "@DIV_ROOT@/crates/divui" }
+div-text = { version = "=0.2.0", path = "@DIV_ROOT@/crates/div-text" }
+serde_json = "1.0"
+
+[patch.crates-io]
+skia-safe = { git = "https://github.com/rust-skia/rust-skia.git", rev = "a31b86ba3b767344d39af3b8c30043003d8fc991" }
+skia-bindings = { git = "https://github.com/rust-skia/rust-skia.git", rev = "a31b86ba3b767344d39af3b8c30043003d8fc991" }
+skrifa = { path = "@DIV_ROOT@/vendor/skrifa-v0_40" }
+read-fonts = { path = "@DIV_ROOT@/vendor/read-fonts-v0_37" }
+font-types = { path = "@DIV_ROOT@/vendor/font-types-v0_11" }
+bytemuck = { path = "@DIV_ROOT@/vendor/bytemuck-v1" }
+bytemuck_derive = { path = "@DIV_ROOT@/vendor/bytemuck_derive-v1" }

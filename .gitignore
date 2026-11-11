@@ -1,0 +1,57 @@
+# Build and comparison output
+/out/
+target/
+dist/
+*.rs.bk
+*.prof*
+
+# Images the examples write (hello.png and friends)
+/*.png
+
+# Native build artifacts
+*.o
+*.a
+*.exe
+*.dll
+
+# Tooling
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.tmp
+.env*
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Restored by tools/fidelity_data.py from the pinned data repository
+/docs/progress/evidence/
+/docs/renderer/evidence/
+/docs/renderer/reproducers/
+/docs/v02/evidence/
+/docs/SP12.5-PLAN.md
+/docs/renderer/generated/*
+!/docs/renderer/generated/author-style-inventory.json
+!/docs/renderer/generated/javascript-mutation-audit-v4.json
+!/docs/renderer/generated/qualification-contract-v2.json
+/docs/v02/generated/*
+!/docs/v02/generated/api-inventory.json
+!/docs/v02/generated/baseline.json
+!/docs/v02/generated/dependency-policy.json
+!/docs/v02/generated/div-ffi-checksum.txt
+!/docs/v02/generated/div-ffi-layout.json
+!/docs/v02/generated/div-ffi-symbols.txt
+!/docs/v02/generated/migration-ledger.csv
+!/docs/v02/generated/style-properties.md
+!/docs/v02/generated/windows-pending-tests.txt
+/tools/accountability/data/*
+!/tools/accountability/data/fonts
+!/tools/accountability/data/wpt_assets

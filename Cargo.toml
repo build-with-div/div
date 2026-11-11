@@ -1,0 +1,68 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/div-geometry",
+    "crates/div-style",
+    "crates/div-style-derive",
+    "crates/div-dom",
+    "crates/div-layout",
+    "crates/div-paint",
+    "crates/div-compositor",
+    "crates/div-engine",
+    "crates/div-platform",
+    "crates/div-ffi",
+    "crates/div-text",
+    "crates/divui",
+    "crates/div-macros",
+    "crates/div-cli",
+    "examples/rust/hello",
+    "examples/rust/counter",
+    "examples/rust/accessibility",
+    "examples/rust/todo",
+    "examples/rust/dashboard",
+    "examples/rust/framework-test",
+    "examples/rust/multi-window",
+    "examples/rust/tasks",
+    "examples/rust/clipboard",
+    "examples/rust/dialogs",
+    "examples/rust/menus",
+    "examples/rust/fetch",
+    "tests/fidelity/pixel-compare",
+    "crates/div-components",
+    "tests/fidelity/components/render",
+]
+exclude = ["fuzz", "vendor/zbus_xml-v5_1"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/build-with-div/div"
+homepage = "https://div.build"
+categories = ["gui", "rendering"]
+keywords = ["ui", "desktop", "skia", "linux"]
+
+# Shared by the components crate and its reference renderer.
+[workspace.dependencies]
+divui = { version = "=0.2.0", path = "crates/divui" }
+div-components = { path = "crates/div-components" }
+serde_json = "1.0"
+
+[patch.crates-io]
+skia-safe = { git = "https://github.com/rust-skia/rust-skia.git", rev = "a31b86ba3b767344d39af3b8c30043003d8fc991" }
+skia-bindings = { git = "https://github.com/rust-skia/rust-skia.git", rev = "a31b86ba3b767344d39af3b8c30043003d8fc991" }
+skrifa = { path = "vendor/skrifa-v0_40" }
+read-fonts = { path = "vendor/read-fonts-v0_37" }
+font-types = { path = "vendor/font-types-v0_11" }
+bytemuck = { path = "vendor/bytemuck-v1" }
+bytemuck_derive = { path = "vendor/bytemuck_derive-v1" }
+zbus_xml = { path = "vendor/zbus_xml-v5_1" }
+
+[workspace.metadata.div.dependency-backports.zbus_xml]
+version = "5.1.0"
+path = "vendor/zbus_xml-v5_1"
+license = "MIT"
+provenance-sha256 = "62f3fc2efb28acbe25e47b7b61f61c5ef77eaf29d3ccfe9ec5a562380ace4938"
+source-inventory-sha256 = "c16fc22d85ab7e01b3b59e766bd5223627d5e6c21f9b2bdcdf347c6356998882"
+upstream-archive-sha256 = "441a0064125265655bccc3a6af6bef56814d9277ac83fce48b1cd7e160b80eac"

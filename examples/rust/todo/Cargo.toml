@@ -1,0 +1,13 @@
+[package]
+name = "todo"
+version = "0.2.0"
+edition = "2024"
+publish = false
+
+[features]
+default = []
+linux = ["divui/linux"]
+windows = ["divui/windows"]
+
+[dependencies]
+divui = { version = "=0.2.0", path = "../../../crates/divui" }

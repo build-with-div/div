@@ -1,0 +1,379 @@
+# Framework track progress
+
+Workstream B of the [alpha plan](../../alpha/plan.md): the public `openui`
+crate, `div-platform` and the CLI and tooling crates. Names are working
+names until D5 picks the product name.
+
+## Plan for alpha.1
+
+The order and verification of each PR are in
+[RFC 0002](../../alpha/rfcs/0002-cli-and-app-layout.md#6-delivery).
+
+| # | PR | State |
+| --- | --- | --- |
+| 1 | RFC 0002: CLI, app layout and async model | Merged (#90) |
+| 2 | `div-cli` skeleton: `new`, `dev`, `build`, `doctor` | Merged (#93) |
+| 3 | Multi-window runtime | Merged (#96) |
+| 4 | Async runtime integrated with the UI thread and signals | Merged (#98) |
+| 5 | Clipboard service | Merged (#99) |
+| 6 | File dialogs | Merged (#100) |
+| 7 | App menu | Merged (#101, #103) |
+| 8 | HTTP client | Merged (#105) |
+| 9 | `default` template and test utilities | Merged (#106) |
+
+## Log
+
+### 10 November 2026: `default` template and test utilities
+
+Change: `div::testing` (`testing` feature, for dev-dependencies) wraps
+`HeadlessApp` as `TestApp`: `mount`, lookups (`by_id`, `by_text`,
+`find_text`), input (`click` presses and releases the primary button at an
+element's centre through hit testing; `type_text`, `press`, `press_with`)
+and `run_until_idle`, which every helper runs after its input. Helpers
+panic with what was missing. `assert_snapshot!(app, "name")` compares exact
+RGBA, decoded with `png` 0.18.1 (already locked), with
+`tests/snapshots/name.<os>.png` in the calling crate. A missing or
+different snapshot fails unless `DIV_UPDATE_SNAPSHOTS=1`; a mismatch
+writes `name.<os>.actual.png` beside it.
+
+`div new` gains the `default` template, now the template used when none
+is named: an `App` with a shared `State`, a menu bar (Open... with a file
+dialog, Close Window, Quit, the Edit roles, Reset Count enabled reactively,
+Check Connection over HTTP, About), a root view and `tests/ui.rs` with a
+click test and a snapshot test. A small `src/lib.rs` holds the state and
+modules so the tests can import the views. Templates choose their own
+`openui` features through a new `{{framework_source}}` placeholder; `new`
+also fills `{{app_id}}` and prints template-specific next steps (recording
+the first snapshots). `tools/framework/check_cli_template.py` now checks
+both templates, and for `default` requires that `cargo test` fails on the
+missing snapshot, records it with `DIV_UPDATE_SNAPSHOTS=1`, then passes
+against it.
+
+Also fixed: `HeadlessApp::run_ready_tasks` carried `run_until_idle`'s
+documentation.
+
+Verification (Windows, MSVC, this branch): `cargo test -p div-cli`
+passes 26 tests; `cargo test -p divui --features testing --lib testing`
+passes 2. An app generated with `div new demo --framework-path .`
+(template `default`) builds; its first `cargo test` passes the click test
+and fails the snapshot test with "there is no accepted snapshot" and writes
+`first-screen.windows.actual.png`; `DIV_UPDATE_SNAPSHOTS=1 cargo test`
+passes and records `first-screen.windows.png` (5,277 bytes); a plain
+`cargo test` then passes 2 of 2, and the dev executable renders its first
+frame with `DIV_RENDER_PNG`.
+
+Not done: dialog stand-ins for headless tests, promised in the file dialog
+entry, are not in this PR.
+
+### 10 November 2026: HTTP client
+
+Change: `div::http` (`http` feature, which enables `async`) sends
+requests with `get`, `post`, `put`, `patch` and `delete`, or through a
+`Client` built with a timeout, connect timeout, default headers, user agent,
+redirect limit and body limit (10 MiB by default). A `Request` adds
+headers, percent-encoded query pairs, a timeout and a raw, text or JSON
+body. `send().await` runs it on the blocking pool; `send_blocking()` runs it
+on the calling thread. A `Response` holds the status, final URL, headers and
+whole body, with `text`, `json` and `error_for_status`; every status is a
+response until that call. Errors are a small `http::Error` enum (invalid
+URL, host not found, connect, timeout, TLS, protocol, body too large,
+status, decode, I/O).
+
+It uses ureq 3.5.1 with rustls 0.23.46 on the ring provider, passed to
+ureq explicitly so a process-wide provider set by another crate cannot
+change it, and rustls-platform-verifier, so certificates are checked
+against the Windows certificate store and the Linux system bundle. The
+lockfile gains 24 entries: 15 are built on Windows and 17 on Linux, all
+MIT, Apache-2.0, ISC or BSD-3-Clause with MSRV 1.85 or lower. The rest are
+macOS, Android or wasm32 dependencies that are locked but never built,
+including `webpki-root-certs` (CDLA-Permissive-2.0, wasm32 only). ureq's
+`json` feature is not used: it names `cookie_store` weakly, which makes
+Cargo lock cookie_store, url and ICU 2 (Rust 1.88) without building them;
+JSON goes through serde_json instead. New example: `fetch`.
+
+Verification:
+
+- `cargo test -p divui --features http --lib http --test http` (Windows):
+  query encoding and status handling; against a local server, a GET sends
+  its query, client and request headers and user agent and reads status,
+  headers and body; a JSON POST round-trips; a 404 is a response until
+  `error_for_status`; a stalled server times out, an oversized body fails,
+  a closed port and an invalid URL fail; `https` to a plain server fails in
+  TLS; a UI task awaits a request and sets a signal under
+  `HeadlessApp::run_until_idle`.
+- The same 9 tests pass on Linux (WSL2, `--features "linux http"`).
+- With `DIV_NETWORK_TESTS=1` (local only, not CI), `https://example.com/`
+  verifies against the system roots and a self-signed host is rejected as a
+  TLS error, on Windows and on WSL2.
+- The `fetch` smoke fetches from a server inside the example and exits
+  (Windows: software and auto; WSLg: software and OpenGL). CI runs the tests in `rust-parity` and
+  `windows-msvc` and the smoke on Windows, X11 and Wayland.
+
+### 10 November 2026: app menu, part 2 (drawn menu bar)
+
+Change: where the platform has no native menu bar (Linux), each window
+draws the app menu at its top (`openui/src/menu_bar.rs`). The bar is a
+`position: fixed` strip with a spacer before the app's root, so the page
+lays out below it and scrolls under it. A click, F10, or Alt with a menu's
+mnemonic opens a menu; the arrow keys move between items (skipping
+separators and disabled items) and menus, Enter or Space chooses, Escape
+closes one level, and an item's mnemonic chooses it. While a menu is open
+it takes every key, as native menus do; a full-window layer under the
+menus closes them on an outside click. Items show check marks, accelerator
+text and submenu arrows, and nested submenus open as flyouts. The bar uses
+the `MenuBar`, `Menu`, `MenuItem` and `MenuItemCheckBox` accessibility
+roles. A chosen item runs after the event's dispatch, with the window
+current, through the same path as native menu commands. Elements of an
+earlier drawing are detached during dispatch and destroyed afterwards,
+because the engine rejects an event whose target was destroyed by its own
+listener (`StaleHandle`).
+
+Remaining gaps, owned by this track unless noted:
+
+- Checked and disabled states reach assistive tools only as an
+  accessibility description ("checked", "unavailable"): the engine has no
+  toggled or disabled state for authored elements. This needs an engine
+  RFC (Workstream A).
+- The keyboard highlight does not move accessibility focus, so a screen
+  reader does not announce items as the arrows move.
+- Mnemonic underlines appear only after F10 or Alt, and Alt alone does not
+  open the bar.
+- The bar has one light appearance; it does not follow a dark theme.
+
+Verification:
+
+- `cargo test -p divui --features "windows menu" --lib menu_bar` (Windows)
+  and `--features "linux menu"` (WSL): a headless document with the drawn
+  bar is clicked through real hit testing (a top item opens its menu below
+  the bar, an item click chooses and closes, an outside click closes
+  without choosing, the closed bar renders the same pixels as before
+  opening) and driven by keys (F10, arrows, Escape, Alt+mnemonic, item
+  mnemonics, disabled items skipped).
+- `menus` smoke passes on WSLg with software and OpenGL presentation.
+
+### 10 November 2026: app menu, part 1
+
+Change: `div::menu` (`menu` feature) declares a typed menu bar:
+`Menu`, `MenuItem` (accelerator, reactive `enabled` and `checked`,
+`on_select`), `Role` (Quit, Close Window, Undo, Redo, Cut, Copy, Paste,
+Select All, About) and `Accelerator`. `AppSpec::menu(build)` gives every
+window the menu; an effect in the window's root scope re-resolves it when
+the signals it reads change. Accelerators are matched before the focused
+document sees the key. Edit roles leave their shortcuts to the document,
+which already handles them, so key behaviour is unchanged. On Windows,
+`div-platform` shows the menu natively with muda 0.19.3
+(`WindowCommand::SetMenu`, `PlatformApplication::menu_selected`). muda adds
+four crates: muda, keyboard-types, crossbeam-channel and png, all MIT or
+Apache-2.0 and MSRV 1.73 or lower. The runtime now reports F1 to F12 key
+codes. The drawn Linux menu bar is the next PR; until then Linux has the
+shortcuts and roles without a visible bar.
+
+Verification:
+
+- `cargo test -p divui --features "windows menu" --lib menu` (also on
+  Linux): resolution to entries, ids, reactive state, accelerator matching,
+  and platform labels and shortcuts.
+- Windows: `cargo test -p div-platform --features "windows menu" --test
+  menu` reads the native bar through Win32 (labels, accelerator text,
+  disabled, checked, separators), posts item commands and sees them reach
+  the window's app, then replaces and removes the bar.
+- Windows, end to end on the `menus` example: View > Large Text toggles its
+  check mark and enables Reset Text Size reactively, File > New Window opens
+  a window with the same menu, Close Window closes it and Exit ends the app.
+- `menus` smoke passes on Windows (software, auto) and WSL (software,
+  OpenGL).
+
+### 9 November 2026: file dialogs
+
+Change: `div::dialog::{open_file, save_file, pick_folder}` build native
+dialogs; `pick` and `pick_many` show one on a background thread, owned by
+the window that was current when it was built. `div-platform::dialog`
+shows the Windows common item dialog (`IFileDialog`) and, on Linux, the XDG
+desktop portal's file chooser over D-Bus, falling back to `zenity` when no
+portal answers. The runtime now gives controllers each window's native
+handle (`WindowController::window_opened`).
+
+Design change from RFC 0002: rfd 0.16.1 would add about 50 crates,
+including ICU 2.4 (Rust 1.88, above the 1.85 MSRV). The dialogs use the
+`windows` 0.62.2 and zbus 5.13 crates already locked through AccessKit, so
+the lockfile gains no packages. The RFC row is updated.
+
+Verification:
+
+- Windows: `cargo test -p div-platform --features "windows dialog" --test
+  dialog` shows real dialogs and answers them: save returns the suggested
+  non-ASCII name in the given folder, open returns the named file, the
+  folder picker returns its folder, and cancel returns nothing.
+- Windows, end to end: UI Automation clicks the `dialogs` example's "Save
+  as..." button; the dialog is owned by the app window and disables it
+  while open, and saving to a typed path writes the note.
+- Linux (WSL2): unit tests cover portal options, URI decoding and zenity
+  arguments; `dialog_portal` runs a stand-in portal on the session bus and
+  checks open, save, folder, cancel, failure responses and the zenity
+  fallback. CI runs it under `dbus-run-session`.
+- No headless test can show a dialog; `div::testing` will add stand-ins.
+
+### 9 November 2026: clipboard service
+
+Change: `div::clipboard::{read_text, write_text}` use the runtime's
+existing Win32, X11 and Wayland text clipboard, which `div-platform` now
+hands to controllers as a `Clipboard` (`WindowController::clipboard`).
+Without a native runtime they use a clipboard private to the UI thread, so
+headless code and tests behave the same. No new dependencies.
+
+Also fixed: with no windows open, an exit request waited for the next
+Windows message; the runtime now posts itself a wake when it exits.
+Controllers hold only a weak handle, so the runtime drops the clipboard
+before the display connection it came from. Before that, every Wayland app
+crashed on exit (`SIGSEGV`) when openui released its handle after the
+connection closed; the WSL example smokes caught it.
+
+Verification:
+
+- Windows: `cargo test -p div-platform --features windows --test
+  clipboard` round-trips non-ASCII text and restores the previous clipboard
+  (checked against `Get-Clipboard` before and after); `wake` and
+  `multi_window` still pass; the `clipboard` example's smoke reads back what
+  it wrote (software and auto) and restores the clipboard.
+- `cargo test -p divui --lib clipboard`: the private clipboard round-trips
+  and is per thread.
+- Linux (WSL2, WSLg Wayland): the compositor refuses clipboard access
+  without input ("no events received on any seat"), which the test reports
+  rather than fails; `wake` and `multi_window` pass. CI runs the round trip
+  and the example smoke on X11 (xvfb) and the test on headless Weston.
+
+### 9 November 2026: async runtime
+
+Change: a new `async` feature of `openui` (enabled by `desktop`; headless
+builds gain nothing without it) adds `div::task` with `spawn_local`,
+`spawn`, `spawn_blocking`, `Task<T>` (dropping cancels, `detach`) and
+`task::time::{sleep, interval}`, plus `Signal::sender()` and
+`create_resource(source, fetch)` with `get`, `loading` and `refetch`. It uses
+async-task, async-executor, async-io, blocking and futures-lite, all already in
+the lockfile (no new crates). UI tasks run on the UI thread in bounded turns
+of 8 ms; their wakers post one coalesced wake through a new
+`div-platform::LoopWaker` and `WindowController::{started, run_tasks}`.
+`Signal` and `Memo` are now `!Send`, so a signal moved into `spawn` is a
+compile error (a `compile_fail` doctest checks it). `HeadlessApp` gains
+`run_until_idle` (fails with `Error::TasksStillRunning` after 30 s) and
+`run_ready_tasks`.
+
+Differences from the RFC: a UI task cancelled with its scope never completes
+when awaited (its awaiter normally shares the scope); background tasks are
+cancelled by dropping their `Task`, not by scope; the optional `tokio` feature
+is left for a later PR.
+
+Verification on Windows (working branch):
+
+- `cargo test -p divui --features async --test tasks`: 5 passed (UI task
+  awaiting background work, a timer and blocking work; intervals; scope
+  disposal and `Task` drop cancel and drop the futures; senders from another
+  thread, including to a disposed signal; resources keep only the latest
+  result and refetch).
+- `cargo test -p divui --features async --doc task`: 2 passed, including
+  the `compile_fail` signal-in-`spawn` check.
+- `cargo test -p div-platform --features windows --test wake`: a wake
+  from another thread reaches an idle loop (5 wakes sent, coalesced).
+- `cargo check --workspace --tests`: passed with `!Send` signals.
+- The `tasks` example with `DIV_SMOKE_EXIT=1` (software, auto) exits 0 after
+  its background computation and resource fetch finish.
+- Linux (WSL2, WSLg Wayland): `wake` and `multi_window` passed with software
+  and OpenGL. CI now runs the async tests in `rust-parity` and
+  `windows-msvc`, and the `wake` test and `tasks` smoke on X11 and Wayland.
+
+### 9 November 2026: multi-window runtime
+
+Change: `div-platform` runs any number of windows on one winit event loop
+(`run_windows` with a `WindowController` that queues `WindowCommand`s); each
+window keeps its own presenter, AccessKit adapter, IME and input state.
+`openui` adds `App::new(id).name(..).window(WindowSpec, view).run()` and the
+`window` module (`open`, `current`, `all`, `WindowKey::unique`,
+`WindowHandle::{close, focus, set_title, is_open}`,
+`WindowSpec::on_close_requested` returning `Close::Allow`/`Prevent`) and
+`app::exit()`. The existing `App::builder()...run(view)` and the C ABI's
+`run_document` now adopt their `App` as one window of the same runtime, so
+`window::open` works from them too; `platform::run(app, options)` remains as a
+single-window controller.
+
+Findings:
+
+- With two animating windows on Windows, the OS delivers paint requests to the
+  top window first; re-requesting a frame as soon as a window drew starved the
+  other completely (window 2 presented 41,590 frames and window 1 none in
+  60 s). Frames are now requested in rounds: each window that wants a frame
+  draws once per round; minimized windows are left out and a round ends after
+  250 ms, so a window that is never asked to paint cannot stop the others.
+- The OpenGL presenter assumed its context stayed current. With one context
+  per window it now makes its context current before presenting and before
+  deleting its GL objects.
+- `window::all()` was added to the RFC's API. Dev-mode window geometry restore
+  (RFC section 1) moves to its own small PR.
+
+Verification on Windows (working branch):
+
+- `cargo test -p div-platform --features windows --test multi_window` with
+  `DIV_BACKEND` = auto, software and opengl: passed. Two windows open, both
+  present, opening an open id focuses it and drops the new app, retitling
+  works, closing one keeps the other presenting, and the loop exits after the
+  last.
+- `cargo test -p divui --features windows --lib window`: 5 passed (key
+  dedupe, close, close veto with `window::current()`, exit flag reset).
+- `DIV_SMOKE_EXIT=1` smokes of `hello` (software, auto) and the new
+  `multi-window` example (software, auto, opengl): exit 0.
+- `tools/platform/verify_windows_uia.ps1` against `accessibility.exe`,
+  software and auto: passed, including closing the window.
+- Linux (WSL2 Ubuntu, WSLg Wayland): the `multi_window` test passed with
+  software and OpenGL. X11 could not run there (no `libxkbcommon-x11`); CI's
+  hardening job now runs the test and the example smoke on X11 (software,
+  Mesa OpenGL) and Wayland (software), and `windows-msvc` smokes the example.
+
+### 9 November 2026: `div-cli` skeleton
+
+Change: a new `crates/div-cli` crate (binary `openui`, no new
+dependencies) with `new`, `dev`, `build` and `doctor`, and a `minimal`
+template. `div new` writes the Skia build profile from CI into the app's
+`.cargo/config.toml`, the workspace `[patch.crates-io]` table (rewritten to the
+framework's git source or a local `--framework-path`) and a lockfile seeded from
+the workspace's. `div dev` polls the app's sources, rebuilds, and restarts
+the app; it stops the old app by closing its stdin (`DIV_DEV`, handled in
+`div-platform/src/desktop.rs`). `openui` gains a `desktop` feature that
+selects the host platform, and an `DIV_RENDER_PNG` hook that writes the
+first frame of `App::run` to a PNG and exits.
+
+Verification on Windows (working branch):
+
+- `cargo test -p div-cli`: 26 passed. Two tests parse the `rust-parity`
+  and `windows-msvc` env blocks in `.github/workflows/ci.yml` so the template's
+  Skia profile cannot drift from CI.
+- `cargo test -p divui render_png_hook_matches_the_headless_first_frame`:
+  passed.
+- `python tools/framework/check_cli_template.py`: an app made by
+  `div new demo --framework-path <repo>` and built by `div build`
+  (release) and by plain `cargo build` (dev), with the Skia variables removed
+  from the environment, rendered byte-identical PNGs
+  (SHA-256 `780C6C3A…261C`). Clean builds took 327 s (release) and 325 s (dev)
+  with a cold Skia; an edit-and-rebuild took 3.7 s and the first frame
+  appeared in 0.2–0.4 s (dev) and under 0.05 s (release).
+- Linux is verified by the new `cli-template` CI job (ubuntu-24.04 and
+  windows-2025); its report is uploaded as an artifact.
+
+Follow-up for the engine track: census renders use release Skia (opt-level 3)
+while workspace CI tests use dev; the template pins `skia-bindings` to
+opt-level 3 in both profiles so apps match census.
+
+### 9 November 2026: RFC 0002
+
+Change: `docs/alpha/rfcs/0002-cli-and-app-layout.md` proposes the CLI
+commands, the project template, typed declarations of windows, menus and
+services, the async model and the PR order above. Docs only; no code changed.
+
+Findings recorded in the RFC that later PRs depend on:
+
+- A downstream app inherits neither the workspace `[patch.crates-io]` table
+  nor the CI Skia build flags, so `div new` must write both.
+- `Signal<T>` is `Send` today and panics off the UI thread
+  (`openui/src/signal.rs`); the async PR makes it `!Send`.
+- `div-platform` checks with `--features linux,windows` on Windows
+  (`cargo check -p div-platform --features linux,windows --locked`,
+  passed locally), so a single host-selecting `desktop` feature is viable;
+  Linux is checked in the CLI PR.
