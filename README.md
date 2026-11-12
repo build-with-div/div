@@ -1,7 +1,3 @@
-> **Migration in progress.** This repository is not live yet; development
-> continues at [zhuowcui/open-ui](https://github.com/zhuowcui/open-ui) until
-> cutover.
-
 # Div
 
 Everything you love about web UI, none of the weight.
