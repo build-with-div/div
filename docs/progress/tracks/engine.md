@@ -27,7 +27,7 @@ Results here are from this branch's tests unless marked otherwise.
   `PointerEventKind::Cancel` (`crates/divui/src/app.rs`), and
   `Engine::pointer_event` still hit-tests the last position for `Cancel`, so the
   hovered path loses hover without receiving `pointerleave`. Owned by A1;
-  fixed on 10 November ([record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/pointer-window-leave-2026-11-10.md)).
+  fixed on 10 November ([record](../pointer-window-leave-2026-11-10.md)).
 - `Engine::is_active` matches only the pressed element; Chromium's `:active`
   also covers its ancestors. Owned by A1.
 
@@ -75,4 +75,4 @@ on branch `components/c4-assets` and the shared findings note.
 - 11 November 2026: a pointer leaving the window dispatches `pointerleave`
   to its whole hover path and clears `:hover`, as Chromium does, instead of
   a `pointercancel`. Census and CSS Grid coverage are unchanged.
-  [Record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/pointer-window-leave-2026-11-10.md).
+  [Record](../pointer-window-leave-2026-11-10.md).
