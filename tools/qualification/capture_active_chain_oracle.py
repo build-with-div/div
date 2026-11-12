@@ -19,7 +19,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "docs/progress/evidence/active-chain-v1/chromium-windows.json"
+OUTPUT = ROOT / "tests/fidelity/fixtures/active-chain-v1/chromium-windows.json"
 VIEWPORT = 200
 
 # Every element has an id so the page can report it. The geometry is

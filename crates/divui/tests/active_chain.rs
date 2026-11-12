@@ -8,7 +8,7 @@ use div::PointerEventKind;
 use std::collections::BTreeSet;
 
 const ORACLE: &str =
-    include_str!("../../../docs/progress/evidence/active-chain-v1/chromium-windows.json");
+    include_str!("../../../tests/fidelity/fixtures/active-chain-v1/chromium-windows.json");
 
 fn boxed(
     document: &Document,

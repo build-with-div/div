@@ -9,7 +9,7 @@ Results here are from this branch's tests unless marked otherwise.
 | Unit | State |
 | --- | --- |
 | RFC 0001 typed style rules | Merged, PR #89 (`b8dcfaf8`) |
-| A1 typed style rules | In progress. Step 1, `view!` emits typed constructors: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/typed-style-constructors-2026-11-09.md). Step 2, `style!`: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/style-macro-2026-11-10.md). Step 3, selectors and Blink specificity: [record](../selector-specificity-2026-11-10.md). Step 4, matching on the element tree: [record](../selector-matching-2026-11-10.md). Next: state pseudo-classes, then `stylesheet!` and `css!` |
+| A1 typed style rules | In progress. Step 1, `view!` emits typed constructors: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/typed-style-constructors-2026-11-09.md). Step 2, `style!`: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/style-macro-2026-11-10.md). Step 3, selectors and Blink specificity: [record](../selector-specificity-2026-11-10.md). Step 4, matching on the element tree: [record](../selector-matching-2026-11-10.md). Step 5, interaction pseudo-classes: [record](../state-pseudo-classes-2026-11-10.md). Next: form and dialog states, then `stylesheet!` and `css!` |
 | A2 colors (`oklch()`, `color-mix()`) | Merged, PR #95 (`ee46e350`); 54/54 Chromium swatches exact; [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/color-functions-2026-11-09.md) |
 | A2 tokens and media | Not started; needs RFC 0002 |
 | A3 top layer and dialog | Not started |
@@ -130,3 +130,8 @@ on branch `components/c4-assets` and the shared findings note.
   playback. The Linux and Windows Chromium captures are identical. No existing crate's output
   changes.
   [Record](../canvas-core-2026-11-15.md).
+- 10 November 2026: the selector matcher matches `:hover`, `:active`,
+  `:focus`, `:focus-visible` and `:focus-within` from the engine's
+  interaction state, with Blink's `:focus-visible` heuristic, checked
+  against pinned Chromium; the fifth A1 step.
+  [Record](../state-pseudo-classes-2026-11-10.md).
