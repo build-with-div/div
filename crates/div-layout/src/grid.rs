@@ -1813,9 +1813,14 @@ fn content_alignment(
             .filter_map(|(index, track)| track.stretchable.then_some(index))
             .collect();
         if !stretchable.is_empty() {
-            let share = free / stretchable.len() as i32;
-            for index in stretchable {
-                tracks[index].base = tracks[index].base + share;
+            // Blink's StretchAutoTracks shares the free space with
+            // DistributeExtraSpaceToSetsEqually: each track takes an equal
+            // share of what is left, so the last takes the remainder.
+            let mut extra = free;
+            let mut increases = vec![LayoutUnit::zero(); tracks.len()];
+            equal_extra_space_shares(&mut extra, &stretchable, |_| None, &mut increases);
+            for (track, increase) in tracks.iter_mut().zip(increases) {
+                track.base = track.base + increase;
             }
             return (LayoutUnit::zero(), LayoutUnit::zero());
         }
@@ -3060,6 +3065,29 @@ mod tests {
         );
         assert_eq!(tracks[0].base, LayoutUnit::from_i32(150));
         assert_eq!(tracks[1].base, LayoutUnit::from_i32(350));
+    }
+
+    #[test]
+    fn stretched_auto_tracks_keep_the_remainder_of_the_free_space() {
+        // 3/64px free over two `auto` tracks: Blink's
+        // DistributeExtraSpaceToSetsEqually gives the first 1/64px and the
+        // last the remaining 2/64px, so the tracks fill the container.
+        let mut tracks = vec![auto_track(50), auto_track(50)];
+        let available = LayoutUnit::from_i32(100) + LayoutUnit::from_raw(3);
+        content_alignment(
+            ContentAlignment::default(),
+            available,
+            &mut tracks,
+            LayoutUnit::zero(),
+        );
+        assert_eq!(
+            tracks[0].base,
+            LayoutUnit::from_i32(50) + LayoutUnit::from_raw(1)
+        );
+        assert_eq!(
+            tracks[1].base,
+            LayoutUnit::from_i32(50) + LayoutUnit::from_raw(2)
+        );
     }
 
     #[test]
