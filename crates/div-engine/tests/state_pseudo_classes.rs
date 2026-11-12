@@ -5,7 +5,7 @@
 //! absolutely positioned boxes in Chromium, drove it with real mouse and
 //! keyboard input and script focus, and recorded after each step the ids
 //! `querySelectorAll` returned for each selector, in
-//! `docs/progress/evidence/state-pseudo-classes-v1/chromium-windows.json`.
+//! `tests/fidelity/fixtures/state-pseudo-classes-v1/chromium-windows.json`.
 //! This test builds the same tree, replays the steps through the engine and
 //! checks `Engine::matches_selector_list` in document order.
 //!
@@ -19,7 +19,7 @@ use div_style::{parse_literal, StyleProperty};
 use serde_json::Value;
 
 const ORACLE: &str =
-    include_str!("../../../docs/progress/evidence/state-pseudo-classes-v1/chromium-windows.json");
+    include_str!("../../../tests/fidelity/fixtures/state-pseudo-classes-v1/chromium-windows.json");
 const MOUSE: u64 = 1;
 
 fn tag(name: &str) -> ElementTag {

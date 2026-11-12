@@ -21,7 +21,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "docs/progress/evidence/state-pseudo-classes-v1/chromium-windows.json"
+OUTPUT = ROOT / "tests/fidelity/fixtures/state-pseudo-classes-v1/chromium-windows.json"
 VIEWPORT = (200, 300)
 
 # Every element has an id so the page can report it. The geometry is
