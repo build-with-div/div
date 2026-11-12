@@ -4,7 +4,7 @@
 //! controls in Chromium, changed properties and attributes step by step, and
 //! recorded after each step the ids `querySelectorAll` returned for each
 //! selector, in
-//! `docs/progress/evidence/form-state-pseudo-classes-v1/chromium-windows.json`.
+//! `tests/fidelity/fixtures/form-state-pseudo-classes-v1/chromium-windows.json`.
 //! This test builds the same tree, makes the same changes through the engine
 //! and checks `Engine::matches_selector_list` in document order.
 
@@ -14,7 +14,7 @@ use div_style::selector_parser::parse_selector_list;
 use serde_json::Value;
 
 const ORACLE: &str = include_str!(
-    "../../../docs/progress/evidence/form-state-pseudo-classes-v1/chromium-windows.json"
+    "../../../tests/fidelity/fixtures/form-state-pseudo-classes-v1/chromium-windows.json"
 );
 
 fn tag(name: &str) -> ElementTag {
