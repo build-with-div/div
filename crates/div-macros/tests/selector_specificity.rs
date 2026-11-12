@@ -1,7 +1,7 @@
 //! The selector parser against pinned Chromium 147.
 //!
 //! `tools/qualification/capture_selector_specificity_oracle.py` recorded,
-//! in `docs/progress/evidence/selector-specificity-v1/chromium-windows.json`,
+//! in `tests/fidelity/fixtures/selector-specificity-v1/chromium-windows.json`,
 //! the specificity Blink computed for each accepted selector (after nesting
 //! in its parent rules) and the selectors Chromium dropped. Every accepted
 //! selector must parse to the same specificities, and every dropped one must
@@ -11,7 +11,7 @@ use div_style::selector::Selector;
 use div_style::selector_parser::parse_selector_list;
 
 const ORACLE: &str =
-    include_str!("../../../docs/progress/evidence/selector-specificity-v1/chromium-windows.json");
+    include_str!("../../../tests/fidelity/fixtures/selector-specificity-v1/chromium-windows.json");
 
 fn oracle() -> serde_json::Value {
     serde_json::from_str(ORACLE).expect("oracle JSON")

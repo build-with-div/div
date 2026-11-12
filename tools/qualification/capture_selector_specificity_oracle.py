@@ -25,7 +25,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "docs/progress/evidence/selector-specificity-v1/chromium-windows.json"
+OUTPUT = ROOT / "tests/fidelity/fixtures/selector-specificity-v1/chromium-windows.json"
 
 # (parent chain, outermost first; selector). Keep in step with the native test.
 ACCEPTED: list[tuple[list[str], str]] = [
