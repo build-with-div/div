@@ -15,11 +15,10 @@ it.
 
 <Aside type="caution" title="Early and unpublished">
 The crate is `div-components`, in the repository's
-[`components/`](https://github.com/zhuowcui/open-ui/tree/main/components)
-folder. It is its own Cargo workspace, not part of the `divui` crate, and
-it is not published. The components are Rust reimplementations of the
+[`crates/div-components/`](https://github.com/build-with-div/div/tree/main/crates/div-components)
+folder. It is a separate crate from `divui`, and it is not published. The components are Rust reimplementations of the
 shadcn/ui designs (MIT, credited in
-[`THIRD_PARTY.md`](https://github.com/zhuowcui/open-ui/blob/main/crates/div-components/THIRD_PARTY.md)).
+[`THIRD_PARTY.md`](https://github.com/build-with-div/div/blob/main/crates/div-components/THIRD_PARTY.md)).
 Each one is compared with shadcn/ui rendered in Chrome; hover and focus
 styles, and the icons shadcn/ui draws with Lucide, are not there yet.
 </Aside>
@@ -78,7 +77,7 @@ screenshots are built from styled elements instead.
 These are not library components. They are small apps made from plain
 elements (`div`, `span` and text, styled with `style:`) plus `Button` and
 `Badge`; their source is in
-[`site/showcase/src/main.rs`](https://github.com/zhuowcui/open-ui/blob/main/site/showcase/src/main.rs).
+[`site/showcase/src/main.rs`](https://github.com/build-with-div/div/blob/main/site/showcase/src/main.rs).
 The avatars are styled `div`s with initials.
 
 <div class="ou-grid">

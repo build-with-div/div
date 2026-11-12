@@ -6,7 +6,7 @@ use div::task::spawn_local;
 
 fn latest_release() -> ViewNode {
     let status = create_signal(String::from("Checking…"));
-    let request = http::get("https://api.github.com/repos/zhuowcui/open-ui/releases/latest")
+    let request = http::get("https://api.github.com/repos/build-with-div/div/releases/latest")
         .header("accept", "application/vnd.github+json")
         .timeout(Duration::from_secs(20));
     spawn_local(async move {

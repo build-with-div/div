@@ -10,11 +10,11 @@ rename lands, so code on this site uses those names.
 **This site is HTML.** Div draws native windows, not web pages, so this
 site is built with [Astro](https://astro.build/) and
 [Starlight](https://starlight.astro.build/) and drawn by your browser. Its
-source is in [`site/`](https://github.com/zhuowcui/open-ui/tree/main/site).
+source is in [`site/`](https://github.com/build-with-div/div/tree/main/site).
 
 **The screenshots are real.** Every app image on this site is drawn by Open
 UI, headless, from the Rust in
-[`site/showcase`](https://github.com/zhuowcui/open-ui/tree/main/site/showcase),
+[`site/showcase`](https://github.com/build-with-div/div/tree/main/site/showcase),
 and shown as rendered. The browser side of the comparison on the home page
 is the same card as HTML, drawn by Chromium.
 

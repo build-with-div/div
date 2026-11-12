@@ -32,5 +32,5 @@ drawn by Chromium from HTML and by Div from Rust.
 - **Grid.** Many grid layouts match, but not all yet.
 
 The measured results, test by test, are in the repository under
-[`docs/progress`](https://github.com/zhuowcui/open-ui/tree/main/docs/progress)
+[`docs/progress`](https://github.com/build-with-div/div/tree/main/docs/progress)
 for anyone who wants the detail.

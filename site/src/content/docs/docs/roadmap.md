@@ -36,5 +36,5 @@ change.
 Not promised in alpha: a stable API, signed installers or auto-update.
 
 The detailed plan is
-[`docs/alpha/plan.md`](https://github.com/zhuowcui/open-ui/blob/main/docs/alpha/plan.md)
+[`docs/alpha/plan.md`](https://github.com/build-with-div/div/blob/main/docs/alpha/plan.md)
 in the repository.

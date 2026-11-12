@@ -78,7 +78,7 @@
     {
       "source": "brand/og/og-image.png",
       "dest": "public/og-image.png",
-      "sha256": "7ff0dfbf32eed864054904f4910eb6e940f1ff2b082cf6e6e2635e6769a92510",
+      "sha256": "64f3d86510b9cc10f1806c09e2e9726127ae84f5f12cf6c108b5ef85a1de1532",
       "use": "Open Graph and social card, 1200 x 630"
     }
   ]
