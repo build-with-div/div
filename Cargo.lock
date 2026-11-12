@@ -907,6 +907,7 @@ dependencies = [
  "div-paint",
  "div-style",
  "div-text",
+ "serde_json",
  "unicode-segmentation",
 ]
 
