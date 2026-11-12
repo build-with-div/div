@@ -16,17 +16,117 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 ## Results
 
-| Component | Fixtures | Exact | Evidence | Measured at (open-ui commit) |
+| Component | Fixtures | Exact | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 0 of 48 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 0 of 80 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
-| card | basic, with action; light, dark | 0 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 0 of 24 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
-| label | basic; light, dark | 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
-| separator | horizontal, vertical; light, dark | 16 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
+| badge | 6 variants; light, dark | 0 of 48 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 0 of 80 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| card | basic, with action; light, dark | 0 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 0 of 24 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| label | basic; light, dark | 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| separator | horizontal, vertical; light, dark | 16 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 24 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
 
 Each fixture is compared at the four census profiles (`legacy-800x600@1`,
 `mobile-375x667@2`, `desktop-1280x720@1.25`, `desktop-1920x1080@1.5`).
+
+Behavior is compared with Radix running in Chromium by the traces in
+[`traces.json`](../../../tests/fidelity/components/traces.json):
+
+| Component | Traces | Same | Evidence | Measured at |
+| --- | --- | --- | --- | --- |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6fc0c1a7`, 12 November 2026 |
+
+## 12 November 2026: tabs and the roving focus primitive (C2 group 1)
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| Primitives: Radix-like behaviors without style, ported from Radix 1.8.1 (`react-tabs`, and `react-roving-focus` 1.2.1): the roving focus group (arrow keys by orientation and direction, `Home`, `End`, `PageUp`, `PageDown`, `loop`, disabled items skipped, one tabbable item), the tabs state (automatic and manual activation, controlled or uncontrolled value) and their collection, controllable state, id and key helpers. Each sets Radix's DOM contract (`role`, `aria-*`, `data-state`, `data-orientation`, `tabindex`). The interims for what `divui` lacks are listed in [RFC 0003](../../alpha/rfcs/0003-component-primitives.md) (requests 1, 2, 3, 6, 7 and 8). | components | `crates/div-components/src/primitives/` |
+| Styled tabs (`Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`), shadcn's default variant, horizontal and vertical. The `line` variant is left out: its indicator is an `::after` box. `w-fit` and `h-fit` on the list are `align-self: flex-start` (see the findings), the trigger's `h-[calc(100%-1px)]` is the typed `calc()` length, and `flex-1` is its longhands. | components | `crates/div-components/src/tabs.rs`, `src/css.rs` |
+| Fixtures `tabs-default`, `tabs-vertical` and `tabs-password` (the second tab selected): 24 new comparisons, 216 in all. | components | `tests/fidelity/components/reference/fixtures.tsx`, `tests/fidelity/components/render/src/main.rs` |
+| Behavior traces: `reference_harness.py trace` runs each trace in `traces.json` on the interactive reference page (React and the pinned Radix bundled into `pages/interactive.js`) in Chromium and on the Div fixture (the renderer's `trace` command, which dispatches through `Document::dispatch_key_input` and `dispatch_mouse_event`), and compares the focused element and the listed attributes before and after each step. | components | `tests/fidelity/components/traces.json`, `harness/reference_harness.py`, `render/src/main.rs`, `reference/build.mjs`, `reference/interactive.tsx` |
+
+### Measurement
+
+The complete run in the census real-font environment is 16 of 216
+comparisons exact, 200 different and 0 errors
+([`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json)).
+The 192 earlier comparisons have the same images (both hashes) and status
+as in the open-ui `916d2735` run; the renderer's SHA-256 changed because
+it now includes the tabs and main's engine changes since the import. The
+first measurement, at this branch's code before its last rebase onto main
+`7e7fa67`, had the same rows and traces. All 24 tabs comparisons differ: at 800x600, 2,403 to
+2,788 pixels, all in the list and the panel, which is where the text is.
+
+4 of 5 behavior traces are the same
+([`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json)):
+the focused element and every listed attribute (`role`, `aria-selected`,
+`aria-controls`, `aria-labelledby`, `tabindex`, `data-state`, `hidden` and
+the others in `traces.json`) match after every key press and click of the
+keyboard, pointer, vertical and manual traces. `tabs-tab-out` differs at
+its last step, below.
+
+Outside the evidence, the geometry diagnostic finds every tabs element's
+border box the same as Chromium's except the panel (below); a panel hidden
+with `display: none` has no box in Div and an all-zero one in Chromium,
+which the diagnostic now counts as the same.
+
+### Remaining failures
+
+- **Leaving the document with Shift+Tab** (`tabs-tab-out`). From the first
+  tabbable element, Chromium moves focus out of the page (to `body`); Div
+  wraps to the last tabbable element, the selected panel. Div's sequential
+  navigation wraps at the ends of the document by design. Owner: engine
+  track, interaction (`crates/div-engine/src/interaction.rs`, the
+  `% candidates.len()` wrap).
+- **Text.** Every tabs page differs inside the text, as every other page
+  that draws text does. Owner: engine track, A6 real-font text.
+- **The panel is too tall.** `TabsContent` is a column flex item holding
+  one line, laid out at its min-content height (100px where Chromium gives
+  20px); the column flex finding of 9 November. Owner: engine track,
+  layout (flex).
+- **Active trigger corners (light).** The active trigger's rounded corners,
+  which sit at a fractional y (19.5px), differ by up to 8 in 42 pixels at
+  800x600; the dark active trigger's edges are exact. Owner: engine track,
+  paint.
+
+### Engine findings
+
+Found while styling the tabs; each has an interim in this change and none
+is fixed by it:
+
+- `Length::fit_content()` (`fit-content(0px)`) works on a flex item's main
+  axis (the badge), but on the cross axis of a column flex container it
+  sizes the item to its padding: the tabs list collapsed to 6px wide.
+  Interim: `align-self: flex-start`, which gives the same box here.
+  Owner: engine track, layout (flex).
+- A percentage `calc()` height whose base is indefinite (a column flex
+  container's main size) resolves against 0 instead of behaving as `auto`:
+  vertical triggers were 10px tall. Interim: vertical triggers set no
+  height. Owner: engine track, layout.
+- No user-agent rule `[hidden] { display: none }`: an inactive panel with
+  `hidden` is still laid out. Interim: an inline `display: none` (RFC 0003
+  request 8). Owner: engine track, style.
+
+### Framework notes
+
+The Div side of a trace reads only the attributes `traces.json` lists, since
+an element's attributes cannot be enumerated through `divui`; the Chromium
+side also reports any attribute it does not list, so a missing entry shows
+up there. Owner: framework track.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Comparison | `reference_harness.py compare --renderer <release div-components-render> --evidence tests/fidelity/components/evidence/reference-v1.json` in WSL at `6fc0c1a7`, under `census_lock.py --lock /mnt/e/open-ui/out/census.lock run --wait`, renderer built with the CI `SKIA_GN_ARGS` | 16 of 216 exact, 200 different, 0 errors; complete |
+| Earlier rows unchanged | each row of the new evidence compared with the open-ui `916d2735` evidence by fixture and profile | 192 of 192 the same images and status; 24 new |
+| Behavior traces | `reference_harness.py trace --renderer <release div-components-render> --output tests/fidelity/components/evidence/traces-v1.json` in WSL at `6fc0c1a7` | 4 of 5 the same; `tabs-tab-out` step 2 focuses `body` in Chromium and `tabs-content#0` in Div |
+| Renderer reproduces | `cargo clean --release -p div-components-render -p div-components`, rebuild, `sha256sum` | `1aab9e96…`, the SHA-256 in both evidence files |
+| Reference pages | `node build.mjs --check` in `tests/fidelity/components/reference` | 61 pages and 27 assets up to date |
+| Tests | `cargo test --locked -p div-components -p div-components-render` and `python3 -m unittest tests/fidelity/components/harness/test_reference_harness.py` in WSL | 18 passed; harness 24 passed |
+| Formatting | `cargo fmt --all --check` in WSL | clean |
 
 ## 12 November 2026: imported into Div
 
@@ -42,7 +142,7 @@ uses the public `divui` crate. No behavior changed.
 
 All 192 images rendered at `d98e9747` are byte-identical to the renderer's
 images in the last open-ui comparison (`reference-v1.json`, open-ui `916d2735`),
-so the results above hold for Div and the evidence was not measured again.
+so its results held for Div and the evidence was not measured again.
 
 ### Verification
 

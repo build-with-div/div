@@ -131,7 +131,9 @@ Shift+Tab from an item leaves the group.
 (`active`/`inactive`) and `data-disabled`; a primary-button `mousedown`
 without Ctrl selects it, Enter or Space selects it, and in automatic mode so
 does receiving focus. Content: `role="tabpanel"`, `aria-labelledby`,
-`tabindex="0"`, mounted only while active.
+`tabindex="0"`, `data-state`. An inactive panel stays in the tree with the
+`hidden` attribute; Radix's `Presence` unmounts only its children, which
+mount again when the tab is selected.
 
 **DismissableLayer.** Escape (for the topmost layer only), a pointer down
 outside the layer, and focus moving outside it each call a cancellable
@@ -183,6 +185,7 @@ the primitives use the interim shown.
 | 5 | The top layer, with `inert` outside a modal (A3) | engine | the modal root and `position: fixed` at the end of `<body>` |
 | 6 | Restyle on attribute change (A1), so `data-state` drives shadcn's variants | engine | components set inline styles from the state signals |
 | 7 | `Element::contains(&Element)` | framework | a parent walk |
+| 8 | The user-agent rule `[hidden] { display: none }` | engine (style) | an inactive panel also gets an inline `display: none` |
 
 Already present and used as is: `tabindex` in sequential focus order
 (negative values leave it), `focus`/`blur`, `focusin`/`focusout` with the

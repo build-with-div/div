@@ -1,6 +1,6 @@
 // Reference fixtures: each renders one shadcn/ui component state.
 //
-// The same fixture IDs are implemented with the public `openui` crate in
+// The same fixture IDs are implemented with the public `divui` crate in
 // `tests/fidelity/components/render`. Each fixture is rendered in the light and
 // the dark theme; the build appends `-light` or `-dark` to the ID.
 //
@@ -27,6 +27,7 @@ import {
 } from "./shadcn/ui/card"
 import { Label } from "./shadcn/ui/label"
 import { Separator } from "./shadcn/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./shadcn/ui/tabs"
 
 export type Fixture = {
   id: string
@@ -174,6 +175,89 @@ const labelFixtures: Fixture[] = [
   },
 ]
 
+// Tabs with two enabled triggers and a disabled one, the first selected
+// unless `defaultValue` says otherwise. Each panel holds one `text-sm` line.
+// The line variant is not a fixture: its active indicator is an `::after`
+// box, which Div cannot draw yet.
+function TabsExample({
+  orientation,
+  activationMode,
+  defaultValue = "account",
+}: {
+  orientation: "horizontal" | "vertical"
+  activationMode: "automatic" | "manual"
+  defaultValue?: string
+}) {
+  return (
+    <Tabs
+      defaultValue={defaultValue}
+      orientation={orientation}
+      activationMode={activationMode}
+    >
+      <TabsList>
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="password">Password</TabsTrigger>
+        <TabsTrigger value="billing" disabled>
+          Billing
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="account">
+        <p className="text-sm">Make changes to your account here.</p>
+      </TabsContent>
+      <TabsContent value="password">
+        <p className="text-sm">Change your password here.</p>
+      </TabsContent>
+      <TabsContent value="billing">
+        <p className="text-sm">Billing is not available.</p>
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+const tabsFixtures: Fixture[] = [
+  {
+    id: "tabs-default",
+    component: "tabs",
+    description: "Horizontal tabs, the first of three selected, the third disabled",
+    render: () => (
+      <TabsExample orientation="horizontal" activationMode="automatic" />
+    ),
+  },
+  {
+    id: "tabs-vertical",
+    component: "tabs",
+    description: "Vertical tabs, the first of three selected, the third disabled",
+    render: () => <TabsExample orientation="vertical" activationMode="automatic" />,
+  },
+  {
+    id: "tabs-password",
+    component: "tabs",
+    description: "Horizontal tabs with the second selected",
+    render: () => (
+      <TabsExample
+        orientation="horizontal"
+        activationMode="automatic"
+        defaultValue="password"
+      />
+    ),
+  },
+]
+
+// Fixtures whose behavior the trace harness compares with Radix running in
+// Chromium. Each gets an interactive page (`trace-<id>.html`) that renders
+// it with React in the browser; manual activation looks the same as
+// automatic, so it has no static page. The traces select the second tab
+// themselves, so `tabs-password` has no trace page.
+export const traceFixtures: Fixture[] = [
+  ...tabsFixtures.filter((fixture) => fixture.id !== "tabs-password"),
+  {
+    id: "tabs-manual",
+    component: "tabs",
+    description: "Horizontal tabs with manual activation",
+    render: () => <TabsExample orientation="horizontal" activationMode="manual" />,
+  },
+]
+
 export const fixtures: Fixture[] = [
   {
     id: "font-geist",
@@ -217,4 +301,5 @@ export const fixtures: Fixture[] = [
   ...badgeFixtures,
   ...cardFixtures,
   ...labelFixtures,
+  ...tabsFixtures,
 ]

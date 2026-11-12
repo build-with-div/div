@@ -9,13 +9,15 @@ RFC under `docs/alpha/rfcs/`. Measured results are in
 
 | Path | What it is |
 | --- | --- |
-| `crates/div-components/` | The components (separator, button, badge, card, label), with inline styles (`src/css.rs`) and sRGB stand-ins for the theme tokens (`src/theme.rs`), and the bundled fonts (`src/fonts.rs`). |
+| `crates/div-components/` | The components (separator, button, badge, card, label, tabs), with inline styles (`src/css.rs`), the theme tokens (`src/theme.rs`) and the bundled fonts (`src/fonts.rs`). |
+| `crates/div-components/src/primitives/` | Radix-like behaviors without style (roving focus, tabs, and their collection, controllable state, id and key helpers), ported from the pinned Radix source; see [RFC 0003](../../docs/alpha/rfcs/0003-component-primitives.md). |
 | `tests/fidelity/components/assets/` | Geist, Geist Mono, Inter and Lucide icons, copied unmodified from the locked npm packages by `reference/build.mjs`, with their licenses and `manifest.json`. |
 | `tests/fidelity/components/render/` | `div-components-render`, which renders each fixture with Div. |
 | `tests/fidelity/components/reference/` | Pinned shadcn/ui sources and the Node build of the static reference pages. |
-| `tests/fidelity/components/reference/pages/` | The generated pages, committed so captures need no Node. |
+| `tests/fidelity/components/reference/pages/` | The generated pages, committed so captures need no Node, and the interactive pages (`trace-<id>.html`, with `interactive.js`) that run Radix in Chromium for the traces. |
+| `tests/fidelity/components/traces.json` | The behavior traces: key presses and clicks on a fixture, and the attributes each snapshot records. |
 | `tests/fidelity/components/harness/` | Chromium capture, comparison and evidence (`reference_harness.py`). |
-| `tests/fidelity/components/evidence/` | Committed measurements: theme tokens and comparison results. |
+| `tests/fidelity/components/evidence/` | Committed measurements: theme tokens, comparison results and trace results. |
 | `crates/div-components/THIRD_PARTY.md` | Licenses of everything vendored or compiled in. |
 
 ## How a comparison works
@@ -25,8 +27,8 @@ RFC under `docs/alpha/rfcs/`. Measured results are in
    and a dark page. Tailwind 4 compiles shadcn's `globals.css` into
    `pages/reference.css`, scanning only the generated pages. Every input is
    pinned by `package-lock.json` and `reference/shadcn/SOURCE.md`.
-2. `reference-render` builds the same fixture IDs with `view!` and the
-   components in `div-components`.
+2. `div-components-render` builds the same fixture IDs with `view!` and
+   the components in `div-components`.
 3. `harness/reference_harness.py compare` captures each page with the pinned
    Chrome-for-Testing 147 at the four census profiles, renders the Div
    fixture at the same profile, and compares the RGBA bytes. Chromium uses
@@ -83,6 +85,20 @@ given, and boxes count as the same within half a layout unit (1/128 px):
 ```bash
 python3 tests/fidelity/components/harness/reference_harness.py geometry \
   --renderer "$CARGO_TARGET_DIR/release/div-components-render"
+```
+
+Compare behavior with Radix running in Chromium. Each trace in
+`traces.json` mounts a fixture, records the focused element and the listed
+attributes of every element with a `data-slot`, then performs each step
+(a key press or a click at the element's center) and records them again.
+Elements are named by slot and position (`tabs-trigger#1`), and id
+references (`aria-controls`) by the name they point to. It exits nonzero
+unless every trace matches:
+
+```bash
+python3 tests/fidelity/components/harness/reference_harness.py trace \
+  --renderer "$CARGO_TARGET_DIR/release/div-components-render" \
+  --output tests/fidelity/components/evidence/traces-v1.json
 ```
 
 `--fixture` and `--profile` select a subset; such a run is marked

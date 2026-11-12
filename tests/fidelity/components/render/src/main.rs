@@ -3,25 +3,33 @@
 //!     div-components-render list
 //!     div-components-render render <fixture-id> <out.png> [--viewport WxH] [--scale S]
 //!     div-components-render geometry <fixture-id> [--viewport WxH] [--scale S]
+//!     div-components-render trace <traces.json> <trace-id>
 //!
 //! `geometry` prints, as JSON, the border box of the fixture's root (the
 //! page's `<main>`) and of every element inside it, depth first, in CSS
 //! pixels. The harness compares it with Chromium's `getBoundingClientRect`
 //! to tell layout differences from paint differences.
 //!
+//! 	race runs one input script of 	ests/fidelity/components/traces.json
+//! on a trace fixture at 800x600 and prints, as JSON, the state of every
+//! element with a data-slot before the first step and after each one. The
+//! harness compares it with Radix running in Chromium.
+//!
 //! Each fixture ID matches a page built by `tests/fidelity/components/reference/build.mjs`
 //! from the pinned shadcn/ui sources. A page is `<body>` with shadcn's
 //! `bg-background text-foreground`, holding `<main class="p-4">` with the
-//! fixture inside; this binary builds the same tree with the public `openui`
+//! fixture inside; this binary builds the same tree with the public `divui`
 //! crate and renders it with Chromium's Linux LCD raster configuration.
 
 use div::prelude::*;
+use div_components::primitives::{ActivationMode, Key, TabsOptions, TabsState};
 use div_components::{
     register_fonts, with_theme, Badge, BadgeProps, BadgeVariant, Button, ButtonProps, ButtonSize,
     ButtonVariant, Card, CardAction, CardActionProps, CardContent, CardContentProps,
     CardDescription, CardDescriptionProps, CardFooter, CardFooterProps, CardHeader,
     CardHeaderProps, CardProps, CardTitle, CardTitleProps, Label, LabelProps, Orientation,
-    Separator, SeparatorProps, Theme,
+    Separator, SeparatorProps, Tabs, TabsContent, TabsContentProps, TabsList, TabsListProps,
+    TabsProps, TabsTrigger, TabsTriggerProps, Theme,
 };
 
 type Fixture = fn() -> ViewNode;
@@ -56,6 +64,16 @@ const FIXTURES: &[(&str, Fixture, bool)] = &[
     ("card-basic", card_basic, true),
     ("card-action", card_action, true),
     ("label-basic", label_basic, true),
+    ("tabs-default", tabs_default, true),
+    ("tabs-vertical", tabs_vertical, true),
+    ("tabs-password", tabs_password, true),
+];
+
+/// Fixtures of `traceFixtures` in fixtures.tsx, which `trace` runs.
+const TRACE_FIXTURES: &[(&str, Fixture)] = &[
+    ("tabs-default", tabs_default),
+    ("tabs-vertical", tabs_vertical),
+    ("tabs-manual", tabs_manual),
 ];
 
 // `FontSpecimen` in fixtures.tsx: `flex flex-col gap-1 text-sm` and a font
@@ -231,6 +249,79 @@ fn label_basic() -> ViewNode {
     }
 }
 
+// `TabsExample` in fixtures.tsx: three tabs, `selected` selected and the
+// third disabled, each panel holding one `text-sm` line. Its line height is
+// written as 20px, its computed value: the number 1.4285714 used above for
+// the font specimens gives 19.9999996px, which rounds the baseline a pixel
+// differently here.
+
+fn tabs_example(
+    orientation: Orientation,
+    activation_mode: ActivationMode,
+    selected: &str,
+) -> ViewNode {
+    let tabs = TabsState::new(TabsOptions {
+        default_value: Some(selected.to_owned()),
+        orientation,
+        activation_mode,
+        ..TabsOptions::default()
+    });
+    view! {
+        <Tabs state={tabs.clone()}>
+            <TabsList state={tabs.clone()}>
+                <TabsTrigger state={tabs.clone()} value={"account"} disabled={false}>
+                    "Account"
+                </TabsTrigger>
+                <TabsTrigger state={tabs.clone()} value={"password"} disabled={false}>
+                    "Password"
+                </TabsTrigger>
+                <TabsTrigger state={tabs.clone()} value={"billing"} disabled={true}>
+                    "Billing"
+                </TabsTrigger>
+            </TabsList>
+            <TabsContent state={tabs.clone()} value={"account"}>
+                <p style:font-size="14px" style:line-height="20px">
+                    "Make changes to your account here."
+                </p>
+            </TabsContent>
+            <TabsContent state={tabs.clone()} value={"password"}>
+                <p style:font-size="14px" style:line-height="20px">
+                    "Change your password here."
+                </p>
+            </TabsContent>
+            <TabsContent state={tabs.clone()} value={"billing"}>
+                <p style:font-size="14px" style:line-height="20px">
+                    "Billing is not available."
+                </p>
+            </TabsContent>
+        </Tabs>
+    }
+}
+
+fn tabs_default() -> ViewNode {
+    tabs_example(
+        Orientation::Horizontal,
+        ActivationMode::Automatic,
+        "account",
+    )
+}
+
+fn tabs_vertical() -> ViewNode {
+    tabs_example(Orientation::Vertical, ActivationMode::Automatic, "account")
+}
+
+fn tabs_password() -> ViewNode {
+    tabs_example(
+        Orientation::Horizontal,
+        ActivationMode::Automatic,
+        "password",
+    )
+}
+
+fn tabs_manual() -> ViewNode {
+    tabs_example(Orientation::Horizontal, ActivationMode::Manual, "account")
+}
+
 /// Mounts a fixture's view; `view!` embeds child views through components.
 #[allow(non_snake_case)]
 #[component]
@@ -306,6 +397,19 @@ fn mount_fixture(
     scale: f64,
 ) -> Result<HeadlessApp, Box<dyn std::error::Error>> {
     let (fixture, text, theme) = find_fixture(id).ok_or_else(|| format!("unknown fixture {id}"))?;
+    mount_page(id, fixture, text, theme, width, height, scale)
+}
+
+/// A page with `fixture` in its `<main>`, as `build.mjs` writes it.
+fn mount_page(
+    id: &str,
+    fixture: Fixture,
+    text: bool,
+    theme: Theme,
+    width: f64,
+    height: f64,
+    scale: f64,
+) -> Result<HeadlessApp, Box<dyn std::error::Error>> {
     let mut app = HeadlessApp::with_options(
         ViewportMetrics::from_logical_size(width, height, scale)?,
         EngineOptions {
@@ -339,6 +443,173 @@ fn mount_fixture(
         })
     })?;
     Ok(app)
+}
+
+// ── Behavior traces ─────────────────────────────────────────────────────
+
+type Json = serde_json::Value;
+
+/// Run the trace `trace_id` of the traces file at `path`.
+fn trace(path: &str, trace_id: &str) -> Result<Json, Box<dyn std::error::Error>> {
+    let traces: Json = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    let strings = |key: &str| -> Vec<String> {
+        traces[key]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_str().map(str::to_owned))
+            .collect()
+    };
+    let (attributes, references) = (strings("attributes"), strings("id_references"));
+    let script = traces["traces"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|script| script["id"] == trace_id)
+        .ok_or_else(|| format!("no trace {trace_id} in {path}"))?;
+    let fixture_id = script["fixture"]
+        .as_str()
+        .ok_or("the trace has no fixture")?;
+    let fixture = TRACE_FIXTURES
+        .iter()
+        .find_map(|(id, fixture)| (*id == fixture_id).then_some(*fixture))
+        .ok_or_else(|| format!("no trace fixture {fixture_id}"))?;
+    // The primitives spawn no tasks, so updating the document settles it.
+    let app = mount_page(fixture_id, fixture, true, Theme::LIGHT, 800.0, 600.0, 1.0)?;
+    app.document().update_all()?;
+    let mut snapshots = vec![snapshot(app.document(), &attributes, &references)?];
+    for step in script["steps"].as_array().into_iter().flatten() {
+        perform(app.document(), step)?;
+        app.document().update_all()?;
+        snapshots.push(snapshot(app.document(), &attributes, &references)?);
+    }
+    Ok(serde_json::json!({
+        "trace": trace_id,
+        "fixture": fixture_id,
+        "snapshots": snapshots,
+    }))
+}
+
+/// The elements with a `data-slot` under the fixture root, in tree order,
+/// each named `slot#k` for the k-th with that slot.
+fn slotted(document: &Document) -> Result<Vec<(String, Element)>, Box<dyn std::error::Error>> {
+    let root = document
+        .body()
+        .first_child()?
+        .ok_or("the fixture root is missing")?;
+    let mut counts = std::collections::HashMap::<String, usize>::new();
+    let mut named = Vec::new();
+    let mut stack = vec![root];
+    while let Some(element) = stack.pop() {
+        if let Some(slot) = element.get_attribute("data-slot")? {
+            let count = counts.entry(slot.clone()).or_default();
+            named.push((format!("{slot}#{count}"), element.clone()));
+            *count += 1;
+        }
+        let mut children = Vec::new();
+        let mut child = element.first_child()?;
+        while let Some(next) = child {
+            child = next.next_sibling()?;
+            children.push(next);
+        }
+        stack.extend(children.into_iter().rev());
+    }
+    Ok(named)
+}
+
+/// The state of the slotted elements and the focused element. The values
+/// of `references` attributes are ids, recorded as the elements' names.
+fn snapshot(
+    document: &Document,
+    attributes: &[String],
+    references: &[String],
+) -> Result<Json, Box<dyn std::error::Error>> {
+    let named = slotted(document)?;
+    let mut ids = std::collections::HashMap::new();
+    for (name, element) in &named {
+        if let Some(id) = element.get_attribute("id")? {
+            ids.insert(id, name.clone());
+        }
+    }
+    let mut elements = Vec::new();
+    for (name, element) in &named {
+        let mut recorded = serde_json::Map::new();
+        for attribute in attributes {
+            if let Some(value) = element.get_attribute(attribute)? {
+                let value = if references.contains(attribute) {
+                    value
+                        .split_whitespace()
+                        .map(|id| ids.get(id).map_or("?", String::as_str))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                } else {
+                    value
+                };
+                recorded.insert(attribute.clone(), Json::String(value));
+            }
+        }
+        let mut children = 0;
+        let mut child = element.first_child()?;
+        while let Some(next) = child {
+            children += 1;
+            child = next.next_sibling()?;
+        }
+        elements.push(serde_json::json!({
+            "name": name,
+            "attributes": recorded,
+            "children": children,
+        }));
+    }
+    let focused = match document.focused_element()? {
+        None => "body".to_owned(),
+        Some(focused) if focused.is_same_node(&document.body())? => "body".to_owned(),
+        Some(focused) => {
+            let mut found = "unnamed".to_owned();
+            for (name, element) in &named {
+                if element.is_same_node(&focused)? {
+                    found = name.clone();
+                }
+            }
+            found
+        }
+    };
+    Ok(serde_json::json!({ "focused": focused, "elements": elements }))
+}
+
+/// One step of a trace: `{"press": key, "shift": bool}` presses and
+/// releases a key named as `KeyboardEvent.key`; `{"click": name}` clicks
+/// the centre of a slotted element.
+fn perform(document: &Document, step: &Json) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(name) = step["press"].as_str() {
+        let key = Key::from_text(name).ok_or_else(|| format!("unknown key {name:?}"))?;
+        let modifiers = if step["shift"].as_bool() == Some(true) {
+            Modifiers::SHIFT
+        } else {
+            Modifiers::NONE
+        };
+        let (code, text) = (key.code(), key.text());
+        document.dispatch_key_input(KeyEventType::Down, code, text, text, modifiers)?;
+        document.dispatch_key_input(KeyEventType::Up, code, text, None, modifiers)?;
+        return Ok(());
+    }
+    if let Some(name) = step["click"].as_str() {
+        document.update_all()?;
+        let element = slotted(document)?
+            .into_iter()
+            .find_map(|(slotted, element)| (slotted == name).then_some(element))
+            .ok_or_else(|| format!("no element {name}"))?;
+        let rect = element.bounding_rect()?.ok_or("the element has no box")?;
+        let (x, y) = (rect.x + rect.width / 2.0, rect.y + rect.height / 2.0);
+        for kind in [
+            MouseEventType::Move,
+            MouseEventType::Down,
+            MouseEventType::Up,
+        ] {
+            document.dispatch_mouse_event(kind, x, y, MouseButton::Left, Modifiers::NONE)?;
+        }
+        return Ok(());
+    }
+    Err(format!("unknown step {step}").into())
 }
 
 /// `[--viewport WxH] [--scale S]`, defaulting to the 800x600 profile at 1x.
@@ -384,8 +655,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", geometry(id, width, height, scale)?);
             Ok(())
         }
+        Some("trace") => {
+            let path = args.get(1).ok_or("missing traces file")?;
+            let id = args.get(2).ok_or("missing trace id")?;
+            println!("{}", trace(path, id)?);
+            Ok(())
+        }
         _ => Err("usage: div-components-render list | render <id> <out.png> \
-                  [--viewport WxH] [--scale S] | geometry <id> [--viewport WxH] [--scale S]"
+                  [--viewport WxH] [--scale S] | geometry <id> [--viewport WxH] [--scale S] \
+                  | trace <traces.json> <trace-id>"
             .into()),
     }
 }
@@ -425,6 +703,76 @@ mod tests {
         reference.sort();
         ours.sort();
         assert_eq!(ours, reference);
+    }
+
+    #[test]
+    fn trace_fixture_ids_match_the_reference_manifest() {
+        let manifest: Json =
+            serde_json::from_str(include_str!("../../reference/pages/manifest.json")).unwrap();
+        let mut reference: Vec<&str> = manifest["traces"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|trace| trace["id"].as_str().unwrap())
+            .collect();
+        let mut ours: Vec<&str> = TRACE_FIXTURES.iter().map(|(id, _)| *id).collect();
+        reference.sort();
+        ours.sort();
+        assert_eq!(ours, reference);
+    }
+
+    #[test]
+    fn every_trace_records_a_snapshot_per_step() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let traces: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        for script in traces["traces"].as_array().unwrap() {
+            let id = script["id"].as_str().unwrap();
+            let result = trace(path, id).unwrap();
+            assert_eq!(
+                result["snapshots"].as_array().unwrap().len(),
+                script["steps"].as_array().unwrap().len() + 1,
+                "{id}"
+            );
+        }
+    }
+
+    #[test]
+    fn tab_enters_the_list_at_the_selected_trigger() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let result = trace(path, "tabs-keyboard").unwrap();
+        let snapshots = result["snapshots"].as_array().unwrap();
+        let focus: Vec<&str> = snapshots
+            .iter()
+            .map(|snapshot| snapshot["focused"].as_str().unwrap())
+            .collect();
+        // Ready, Tab, Right, Right (wraps past the disabled trigger), Left,
+        // End, Home, Down (cross axis), Right, Tab, Shift+Tab.
+        assert_eq!(
+            focus,
+            [
+                "body",
+                "tabs-trigger#0",
+                "tabs-trigger#1",
+                "tabs-trigger#0",
+                "tabs-trigger#1",
+                "tabs-trigger#1",
+                "tabs-trigger#0",
+                "tabs-trigger#0",
+                "tabs-trigger#1",
+                "tabs-content#1",
+                "tabs-trigger#1",
+            ]
+        );
+        let last = &snapshots[9]["elements"];
+        let panel = last
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|element| element["name"] == "tabs-content#1")
+            .unwrap();
+        assert_eq!(panel["attributes"]["data-state"], "active");
+        assert_eq!(panel["attributes"]["aria-labelledby"], "tabs-trigger#1");
+        assert_eq!(panel["children"], 1);
     }
 
     #[test]

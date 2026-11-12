@@ -126,7 +126,7 @@ function buildAssets() {
   return files
 }
 
-function page({ id, theme, title, body }) {
+function page({ id, theme, title, body, script }) {
   const htmlClass = theme === "dark" ? ' class="dark"' : ""
   return (
     "<!DOCTYPE html>\n" +
@@ -138,9 +138,35 @@ function page({ id, theme, title, body }) {
     "</head>\n" +
     "<body>\n" +
     `<main data-fixture="${id}" class="p-4">${body}</main>\n` +
+    (script ? `<script src="${script}"></script>\n` : "") +
     "</body>\n" +
     "</html>\n"
   )
+}
+
+// The trace pages' script: React, Radix and the fixtures for the browser.
+async function interactiveBundle() {
+  const result = await esbuild.build({
+    entryPoints: [path.join(ROOT, "interactive.tsx")],
+    bundle: true,
+    write: false,
+    format: "iife",
+    platform: "browser",
+    target: "chrome147",
+    jsx: "automatic",
+    minify: true,
+    legalComments: "eof",
+    // Radix's files carry no license comment; React's (`@license`) are kept.
+    banner: {
+      js:
+        "/*! Radix UI 1.8.1 primitives: MIT License, Copyright (c) 2022 WorkOS. " +
+        "See crates/div-components/THIRD_PARTY.md. */",
+    },
+    define: { "process.env.NODE_ENV": '"production"' },
+    nodePaths: [path.join(ROOT, "node_modules")],
+    logLevel: "error",
+  })
+  return result.outputFiles[0].text
 }
 
 function themeTokens(globals) {
@@ -193,7 +219,7 @@ async function loadFixtures(scratch) {
   // The bundle imports React by name; resolve it from this package.
   const linked = path.join(scratch, "node_modules")
   fs.symlinkSync(path.join(ROOT, "node_modules"), linked, "junction")
-  return (await import(pathToFileURL(outfile).href)).fixtures
+  return await import(pathToFileURL(outfile).href)
 }
 
 function compileCss(scratch, pages) {
@@ -235,14 +261,33 @@ async function build() {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "openui-reference-"))
   try {
     const { renderToStaticMarkup } = await import("react-dom/server")
-    const fixtures = await loadFixtures(scratch)
+    const { fixtures, traceFixtures } = await loadFixtures(scratch)
     const ids = new Set()
     const pages = new Map()
     const manifest = []
+    const traces = []
+    const validId = (id) => {
+      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) throw new Error(`invalid fixture id ${id}`)
+    }
+    // Trace pages are light: behavior does not depend on the theme.
+    for (const fixture of traceFixtures) {
+      validId(fixture.id)
+      const name = `trace-${fixture.id}.html`
+      if (pages.has(name)) throw new Error(`duplicate trace fixture ${fixture.id}`)
+      const body = renderToStaticMarkup(fixture.render())
+      pages.set(
+        name,
+        page({ id: fixture.id, theme: "light", title: name, body, script: "interactive.js" })
+      )
+      traces.push({
+        id: fixture.id,
+        component: fixture.component,
+        description: fixture.description,
+        page: name,
+      })
+    }
     for (const fixture of fixtures) {
-      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(fixture.id)) {
-        throw new Error(`invalid fixture id ${fixture.id}`)
-      }
+      validId(fixture.id)
       const body = renderToStaticMarkup(fixture.render())
       for (const theme of THEMES) {
         const id = `${fixture.id}-${theme}`
@@ -263,7 +308,9 @@ async function build() {
     const { css, tokens } = compileCss(scratch, pages)
     pages.set("theme-tokens.html", tokensPage(tokens))
     pages.set("reference.css", css)
+    pages.set("interactive.js", await interactiveBundle())
     manifest.sort((a, b) => a.id.localeCompare(b.id))
+    traces.sort((a, b) => a.id.localeCompare(b.id))
     const files = {}
     for (const [name, text] of [...pages].sort(([a], [b]) => a.localeCompare(b))) {
       files[name] = createHash("sha256").update(text).digest("hex")
@@ -278,6 +325,7 @@ async function build() {
           themes: THEMES,
           tokens,
           fixtures: manifest,
+          traces,
           files,
         },
         null,

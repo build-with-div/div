@@ -19,6 +19,16 @@ pub enum Orientation {
     Vertical,
 }
 
+impl Orientation {
+    /// The `data-orientation` and `aria-orientation` value.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Horizontal => "horizontal",
+            Self::Vertical => "vertical",
+        }
+    }
+}
+
 /// A decorative 1px line in the theme's border color.
 ///
 /// `orientation` is required in `view!`, which does not fill omitted

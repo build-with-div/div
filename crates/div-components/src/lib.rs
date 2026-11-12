@@ -12,7 +12,9 @@ mod card;
 mod css;
 pub mod fonts;
 mod label;
+pub mod primitives;
 mod separator;
+mod tabs;
 mod theme;
 
 pub use badge::{Badge, BadgeProps, BadgeVariant};
@@ -25,6 +27,10 @@ pub use card::{
 pub use fonts::register_fonts;
 pub use label::{Label, LabelProps};
 pub use separator::{Orientation, Separator, SeparatorProps};
+pub use tabs::{
+    Tabs, TabsContent, TabsContentProps, TabsList, TabsListProps, TabsProps, TabsTrigger,
+    TabsTriggerProps,
+};
 pub use theme::{Theme, Token};
 
 use std::cell::Cell;

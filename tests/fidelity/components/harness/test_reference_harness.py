@@ -127,6 +127,63 @@ class GeometryTests(unittest.TestCase):
         [difference] = harness.geometry_differences(chromium, openui)
         self.assertIsNone(difference["openui"])
 
+    def test_an_element_without_a_box_matches_chromium_zero_rect(self) -> None:
+        chromium = [self.box(0, None, [0, 0, 1, 1]), self.box(1, "tabs-content", [0, 0, 0, 0])]
+        openui = [self.box(0, None, [0, 0, 1, 1]), self.box(1, "tabs-content", None)]
+        self.assertEqual(harness.geometry_differences(chromium, openui), [])
+
+
+class TraceTests(unittest.TestCase):
+    @staticmethod
+    def snapshot(focused: str, state: str, unlisted: list[str] | None = None) -> dict:
+        element = {"name": "tabs-trigger#0", "attributes": {"data-state": state}, "children": 0}
+        if unlisted is not None:
+            element["unlisted"] = unlisted
+        return {"focused": focused, "elements": [element]}
+
+    def test_committed_traces_name_trace_fixtures_and_known_keys(self) -> None:
+        traces = harness.load_traces()
+        fixtures = {trace["id"] for trace in harness.load_manifest()["traces"]}
+        ids = [trace["id"] for trace in traces["traces"]]
+        self.assertEqual(len(ids), len(set(ids)))
+        for trace in traces["traces"]:
+            self.assertIn(trace["fixture"], fixtures, trace["id"])
+            for step in trace["steps"]:
+                self.assertTrue(("press" in step) != ("click" in step), step)
+                if "press" in step:
+                    self.assertIn(step["press"], harness.CDP_KEYS, step)
+        self.assertLessEqual(set(traces["id_references"]), set(traces["attributes"]))
+
+    def test_keys_with_text_type_it_and_others_are_raw(self) -> None:
+        down, up = harness.chromium_key_events({"press": "Enter"})
+        self.assertEqual((down["type"], down["text"], up["type"]), ("keyDown", "\r", "keyUp"))
+        down, _ = harness.chromium_key_events({"press": "Tab", "shift": True})
+        self.assertEqual((down["type"], down["modifiers"]), ("rawKeyDown", harness.CDP_SHIFT))
+        self.assertNotIn("text", down)
+
+    def test_equal_states_have_no_differences(self) -> None:
+        script = {"steps": [{"press": "Tab"}]}
+        chromium = [self.snapshot("body", "active", []), self.snapshot("tabs-trigger#0", "active", [])]
+        div = [self.snapshot("body", "active"), self.snapshot("tabs-trigger#0", "active")]
+        self.assertEqual(harness.trace_differences(script, chromium, div), [])
+
+    def test_reports_focus_state_and_unlisted_attributes_per_step(self) -> None:
+        script = {"steps": [{"press": "Tab"}]}
+        chromium = [self.snapshot("body", "active", []),
+                    self.snapshot("tabs-trigger#0", "inactive", ["aria-busy"])]
+        div = [self.snapshot("body", "active"), self.snapshot("body", "active")]
+        [difference] = harness.trace_differences(script, chromium, div)
+        self.assertEqual(difference["step"], 1)
+        self.assertEqual(difference["focused"], {"chromium": "tabs-trigger#0", "div": "body"})
+        self.assertEqual(difference["unlisted_attributes"], {"tabs-trigger#0": ["aria-busy"]})
+        self.assertIn("tabs-trigger#0", difference["elements"])
+
+    def test_a_missing_snapshot_is_reported(self) -> None:
+        script = {"steps": [{"press": "Tab"}]}
+        chromium = [self.snapshot("body", "active", [])] * 2
+        [difference] = harness.trace_differences(script, chromium, [self.snapshot("body", "active")])
+        self.assertTrue(difference["missing"])
+
 
 class ComparisonTests(unittest.TestCase):
     def setUp(self) -> None:
