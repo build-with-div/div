@@ -3,7 +3,9 @@
 use div_dom::{Document, ElementTag, NodeId};
 use div_geometry::{LayoutUnit, Length};
 use div_layout::{block_layout, flex_layout, ConstraintSpace, Fragment};
-use div_style::{BorderStyle, Direction, Display, FlexDirection, LineHeight, WritingMode};
+use div_style::{
+    AspectRatio, BorderStyle, Direction, Display, FlexDirection, LineHeight, WritingMode,
+};
 
 fn lu(value: i32) -> LayoutUnit {
     LayoutUnit::from_i32(value)
@@ -251,4 +253,108 @@ fn auto_height_flex_item_includes_border_padding_and_one_break_line() {
     let item_fragment = fragment_for(&fragment, item);
     assert_eq!(item_fragment.height(), lu(30));
     assert_eq!(fragment.height(), lu(42));
+}
+
+/// A column item's automatic minimum height comes from a layout at its cross
+/// size, as Blink's `BlockSizeFunc(SizeType::kContent)`, not from a layout at
+/// its min-content width. Text that fits the item's width stays on one line.
+fn column_text_item_height(basis: Length, grow: f32) -> (LayoutUnit, LayoutUnit) {
+    let mut doc = Document::new();
+    let container = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(container, |style| {
+        style.update_derived(|computed| computed.display = Display::Flex);
+        style.update_derived(|computed| computed.flex_direction = FlexDirection::Column);
+        style.update_derived(|computed| computed.width = Length::px(300.0));
+    });
+    doc.append_child(doc.root(), container);
+
+    let item = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(item, |style| {
+        style.update_derived(|computed| computed.display = Display::Block);
+        style.update_derived(|computed| computed.flex_grow = grow);
+        style.update_derived(|computed| computed.flex_basis = basis);
+        style.update_derived(|computed| computed.font_size = 20.0);
+        style.update_derived(|computed| computed.line_height = LineHeight::Length(20.0));
+    });
+    doc.append_child(container, item);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.update_resolved_style(text, |style| style.font_size = 20.0);
+    doc.update_resolved_style(text, |style| style.line_height = LineHeight::Length(20.0));
+    doc.node_mut(text).text = Some("XX XX XX".to_string());
+    doc.append_child(item, text);
+
+    let fragment = flex_layout(
+        &doc,
+        container,
+        &ConstraintSpace::for_root(lu(300), lu(300)),
+    );
+    (fragment_for(&fragment, item).height(), fragment.height())
+}
+
+#[test]
+fn column_auto_minimum_measures_text_at_the_stretched_width() {
+    assert_eq!(
+        column_text_item_height(Length::auto(), 0.0),
+        (lu(20), lu(20))
+    );
+}
+
+#[test]
+fn column_auto_minimum_with_a_zero_basis_measures_text_at_the_stretched_width() {
+    assert_eq!(
+        column_text_item_height(Length::percent(0.0), 1.0),
+        (lu(20), lu(20))
+    );
+}
+
+/// WPT `css/css-sizing/aspect-ratio/flex-aspect-ratio-050.html` and `-052`:
+/// a column item with `aspect-ratio: 2/1` and 100px of content in a 0px tall
+/// container keeps its content height as its automatic minimum, not the 50px
+/// its ratio gives.
+fn column_aspect_ratio_item_height(percent_width: bool) -> LayoutUnit {
+    let mut doc = Document::new();
+    let container = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(container, |style| {
+        style.update_derived(|computed| computed.display = Display::Flex);
+        style.update_derived(|computed| computed.flex_direction = FlexDirection::Column);
+        style.update_derived(|computed| computed.width = Length::px(100.0));
+        style.update_derived(|computed| computed.height = Length::px(0.0));
+    });
+    doc.append_child(doc.root(), container);
+
+    let item = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(item, |style| {
+        style.update_derived(|computed| computed.display = Display::Block);
+        style.update_derived(|computed| {
+            computed.aspect_ratio = Some(AspectRatio {
+                ratio: (2.0, 1.0),
+                auto_flag: false,
+            })
+        });
+        if percent_width {
+            style.update_derived(|computed| computed.width = Length::percent(100.0));
+        }
+    });
+    doc.append_child(container, item);
+
+    let content = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(content, |style| {
+        style.update_derived(|computed| computed.display = Display::Block);
+        style.update_derived(|computed| computed.height = Length::px(100.0));
+    });
+    doc.append_child(item, content);
+
+    let fragment = flex_layout(
+        &doc,
+        container,
+        &ConstraintSpace::for_root(lu(300), lu(300)),
+    );
+    fragment_for(&fragment, item).height()
+}
+
+#[test]
+fn column_aspect_ratio_item_keeps_its_content_height_as_its_minimum() {
+    assert_eq!(column_aspect_ratio_item_height(false), lu(100));
+    assert_eq!(column_aspect_ratio_item_height(true), lu(100));
 }
