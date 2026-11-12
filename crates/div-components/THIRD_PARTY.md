@@ -5,8 +5,8 @@
 | shadcn/ui component and theme sources | `shadcn@4.23.0` (`96da9cc`) | MIT | `reference/shadcn/` with [LICENSE.md](../../tests/fidelity/components/reference/shadcn/LICENSE.md) | Vendored; rendered into the reference pages. The Rust components are reimplementations of the same designs. |
 | Tailwind CSS (preflight and theme) | 4.3.5 | MIT | compiled into `reference/pages/reference.css` | Build tool; its generated CSS is committed in the reference pages. |
 | tw-animate-css | 1.4.0 | MIT | compiled into `reference/pages/reference.css` | Imported by shadcn's theme. |
-| React, React DOM | 19.3.1 | MIT | npm, `reference/package-lock.json` | Build tool; renders the fixtures to static markup. Not committed. |
-| Radix UI (`radix-ui`) | 1.8.1 | MIT | npm | Build tool; the primitives shadcn's components render. Not committed. |
+| React, React DOM | 19.3.1 | MIT, Copyright (c) Meta Platforms, Inc. and affiliates | npm, `reference/package-lock.json` | Build tool; renders the fixtures to static markup. Bundled, minified with its `@license` comments, into `reference/pages/interactive.js`, which renders the trace fixtures in Chromium. |
+| Radix UI (`radix-ui`) | 1.8.1 (`@radix-ui/react-tabs` and `react-roving-focus` 1.2.1) | MIT, Copyright (c) 2022 WorkOS | npm | The primitives shadcn's components render. Bundled, minified, into `reference/pages/interactive.js` with a license banner. `crates/div-components/src/primitives/` ports the behavior of its tabs and roving focus to Rust. |
 | class-variance-authority | 0.7.1 | Apache-2.0 | npm | Build tool. Not committed. |
 | cn | 0.5.2 | MIT | npm | Build tool. Not committed. |
 | esbuild | 0.28.2 | MIT | npm | Build tool. Not committed. |

@@ -1,0 +1,86 @@
+{
+  "schema": "div-components-traces-v1",
+  "description": "Behavior traces: input scripts run on a Radix page in Chromium (reference/pages/trace-<fixture>.html) and on the same fixture in Div (div-components-render trace). After the page is ready and after each step, both sides record every element with a data-slot (named slot#k in tree order), the listed attributes, the number of element children, and the focused element. reference_harness.py trace compares them.",
+  "attributes": [
+    "role",
+    "type",
+    "dir",
+    "tabindex",
+    "hidden",
+    "disabled",
+    "aria-selected",
+    "aria-orientation",
+    "aria-controls",
+    "aria-labelledby",
+    "data-state",
+    "data-orientation",
+    "data-disabled",
+    "data-variant",
+    "data-radix-collection-item"
+  ],
+  "id_references": ["aria-controls", "aria-labelledby"],
+  "traces": [
+    {
+      "id": "tabs-keyboard",
+      "fixture": "tabs-default",
+      "description": "Tab into the list, arrows (wrapping, skipping the disabled trigger), Home, End, a cross-axis arrow, Tab to the panel and Shift+Tab back to the trigger",
+      "steps": [
+        {"press": "Tab"},
+        {"press": "ArrowRight"},
+        {"press": "ArrowRight"},
+        {"press": "ArrowLeft"},
+        {"press": "End"},
+        {"press": "Home"},
+        {"press": "ArrowDown"},
+        {"press": "ArrowRight"},
+        {"press": "Tab"},
+        {"press": "Tab", "shift": true}
+      ]
+    },
+    {
+      "id": "tabs-tab-out",
+      "fixture": "tabs-default",
+      "description": "Shift+Tab out of the list, which is the first tabbable element: Radix makes the list untabbable while the browser moves focus back. Chromium then leaves the document (focus on body); Div wraps to the last tabbable element, the panel, by design (div-engine interaction.rs next_focus_target)",
+      "steps": [
+        {"press": "Tab"},
+        {"press": "Tab", "shift": true}
+      ]
+    },
+    {
+      "id": "tabs-pointer",
+      "fixture": "tabs-default",
+      "description": "Click the second trigger, the disabled third (the click reaches the list), the first, then Tab into the panel",
+      "steps": [
+        {"click": "tabs-trigger#1"},
+        {"click": "tabs-trigger#2"},
+        {"click": "tabs-trigger#0"},
+        {"press": "Tab"}
+      ]
+    },
+    {
+      "id": "tabs-vertical-keyboard",
+      "fixture": "tabs-vertical",
+      "description": "Vertical tabs: up and down move focus, left and right do nothing",
+      "steps": [
+        {"press": "Tab"},
+        {"press": "ArrowDown"},
+        {"press": "ArrowRight"},
+        {"press": "ArrowDown"},
+        {"press": "ArrowUp"},
+        {"press": "PageDown"}
+      ]
+    },
+    {
+      "id": "tabs-manual-keyboard",
+      "fixture": "tabs-manual",
+      "description": "Manual activation: arrows move focus only; Enter and Space select",
+      "steps": [
+        {"press": "Tab"},
+        {"press": "ArrowRight"},
+        {"press": "Enter"},
+        {"press": "ArrowLeft"},
+        {"press": " "}
+      ]
+    }
+  ]
+}

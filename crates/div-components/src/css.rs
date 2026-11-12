@@ -18,11 +18,18 @@ use div::{current_document, Element};
 /// Tailwind's preflight reset, then `declarations`.
 pub(crate) fn element(tag: &str, slot: &str, declarations: &[(&str, &str)]) -> Element {
     let element = Element::create(&current_document(), tag).expect("create element");
+    styled(&element, slot, declarations);
+    element
+}
+
+/// Give an element a primitive built shadcn's `data-slot` and Tailwind's
+/// preflight reset, then `declarations`, as [`element`] does.
+pub(crate) fn styled(element: &Element, slot: &str, declarations: &[(&str, &str)]) {
     element
         .set_attribute("data-slot", slot)
         .expect("set data-slot");
     set(
-        &element,
+        element,
         &[
             ("box-sizing", "border-box"),
             ("margin", "0"),
@@ -30,9 +37,8 @@ pub(crate) fn element(tag: &str, slot: &str, declarations: &[(&str, &str)]) -> E
         ],
     );
     // `border: 0 solid`, leaving the color at its initial `currentcolor`.
-    set_border(&element, "0");
-    set(&element, declarations);
-    element
+    set_border(element, "0");
+    set(element, declarations);
 }
 
 /// Set each `(property, value)` declaration on `element`.

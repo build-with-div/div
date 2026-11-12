@@ -374,6 +374,68 @@
       "theme": "light",
       "description": "Vertical separator in a 32px tall flex row",
       "page": "separator-vertical-light.html"
+    },
+    {
+      "id": "tabs-default-dark",
+      "component": "tabs",
+      "theme": "dark",
+      "description": "Horizontal tabs, the first of three selected, the third disabled",
+      "page": "tabs-default-dark.html"
+    },
+    {
+      "id": "tabs-default-light",
+      "component": "tabs",
+      "theme": "light",
+      "description": "Horizontal tabs, the first of three selected, the third disabled",
+      "page": "tabs-default-light.html"
+    },
+    {
+      "id": "tabs-password-dark",
+      "component": "tabs",
+      "theme": "dark",
+      "description": "Horizontal tabs with the second selected",
+      "page": "tabs-password-dark.html"
+    },
+    {
+      "id": "tabs-password-light",
+      "component": "tabs",
+      "theme": "light",
+      "description": "Horizontal tabs with the second selected",
+      "page": "tabs-password-light.html"
+    },
+    {
+      "id": "tabs-vertical-dark",
+      "component": "tabs",
+      "theme": "dark",
+      "description": "Vertical tabs, the first of three selected, the third disabled",
+      "page": "tabs-vertical-dark.html"
+    },
+    {
+      "id": "tabs-vertical-light",
+      "component": "tabs",
+      "theme": "light",
+      "description": "Vertical tabs, the first of three selected, the third disabled",
+      "page": "tabs-vertical-light.html"
+    }
+  ],
+  "traces": [
+    {
+      "id": "tabs-default",
+      "component": "tabs",
+      "description": "Horizontal tabs, the first of three selected, the third disabled",
+      "page": "trace-tabs-default.html"
+    },
+    {
+      "id": "tabs-manual",
+      "component": "tabs",
+      "description": "Horizontal tabs with manual activation",
+      "page": "trace-tabs-manual.html"
+    },
+    {
+      "id": "tabs-vertical",
+      "component": "tabs",
+      "description": "Vertical tabs, the first of three selected, the third disabled",
+      "page": "trace-tabs-vertical.html"
     }
   ],
   "files": {
@@ -419,13 +481,23 @@
     "font-geist-mono-light.html": "b9e4118ad2650ce5b3ddc395d83d2bbd9fd826d08ad152d54a7e63e3e4a99cba",
     "font-inter-dark.html": "2e72817dddd6a3a56de8f9c435a66b6c820f2f69494f3403f17e71016a69a845",
     "font-inter-light.html": "b38198e53ea22302ea4e9544a07890abfe2cff9dd3744fc55e2e86afd857a9e6",
+    "interactive.js": "779b30e8ece47b2717549ec73bebcfcaa4ea9083955c82656b9d05c74d11b532",
     "label-basic-dark.html": "78bc395f795fbb8e49b8e6e9fa1962ba5027ed702da63c93ec53817b73bb458e",
     "label-basic-light.html": "e8e584dce798e4482b8b1b54040f20b86fff45a811a89d46ce00ce54a7ec4c79",
-    "reference.css": "32f312339e3b96e081a4015237ceb84a0b2b7a6b33fee9c40144ce51ce9ee1b1",
+    "reference.css": "5f0083132bcdb406b260044c1156f67bcf672bf1cbe055d11e6eafe4345793be",
     "separator-horizontal-dark.html": "95bb49a8da4d9903a341e96b4890c17ab2d98ff0622a3b2d457ed0c81b86e2f1",
     "separator-horizontal-light.html": "ec9863927c8c7769f6a2c9797d5686f91cd230c6250d4002d05f0cce324d05d4",
     "separator-vertical-dark.html": "b979361064bbe3019425876d3fad7bf1a160e84011cf80a6bf49862946f35f7f",
     "separator-vertical-light.html": "e6b61b66142e50f93bc26af0699673f08ea54b9c0e73dcef271457beac953c9f",
-    "theme-tokens.html": "2dece6b13c6c1ab79ffeaf814e91e1ff30c23ea62c3b911d80678662fe2e82ef"
+    "tabs-default-dark.html": "81666c07e925960b3f81220512df75b6eed81caab5828eceb503274997d90d7d",
+    "tabs-default-light.html": "e68427f1103444296e39ab4d398b52ee8033521ae9c9206a7161a44046106f4f",
+    "tabs-password-dark.html": "4bb5ec905247a2dae7979f4b98772766679174718e457494f6e2e40c59d831f7",
+    "tabs-password-light.html": "34ea8fe77e4801811906a4cd5f918fa83f215a88d041d6a8d74da66690dd1de0",
+    "tabs-vertical-dark.html": "149ca425b2f0ced6059e87de7bf6ba50c8a770ea347a90e06342205ca3c7f6cc",
+    "tabs-vertical-light.html": "f25d70f513cf924e00f6e078b0454665a64228a9a87d042ab2f37881d92a9531",
+    "theme-tokens.html": "2dece6b13c6c1ab79ffeaf814e91e1ff30c23ea62c3b911d80678662fe2e82ef",
+    "trace-tabs-default.html": "73ba77698c3ddd5bbc359365953ce8267a525c53b272569fd7ef9685e3dbccfd",
+    "trace-tabs-manual.html": "730a13cc2eaf47a5139bb039ceff33356fa0bc33eb452755363254def56307d9",
+    "trace-tabs-vertical.html": "1b5829ad8ed9ad36fa0d2e3c887551649faae520a71468b14f86b584e2827041"
   }
 }

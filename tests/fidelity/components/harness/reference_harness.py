@@ -4,12 +4,17 @@
 The shadcn side is the static pages in tests/fidelity/components/reference/pages, built
 from pinned sources by tests/fidelity/components/reference/build.mjs. The Div side is
 the `div-components-render` binary, which renders the same fixture
-IDs with the public `openui` crate. Both are rasterized at the census
+IDs with the public `divui` crate. Both are rasterized at the census
 profiles and compared pixel for pixel.
+
+`trace` runs the input scripts of tests/fidelity/components/traces.json on
+Radix in Chromium (the `trace-*.html` pages, which render the fixture with
+React) and on Div, and compares the DOM state and focus after each step.
 
     reference_harness.py tokens --output tests/fidelity/components/evidence/theme-tokens-v1.json
     reference_harness.py fonts --output tests/fidelity/components/evidence/fonts-v1.json
     reference_harness.py compare --renderer PATH --evidence tests/fidelity/components/evidence/reference-v1.json
+    reference_harness.py trace --renderer PATH --output tests/fidelity/components/evidence/traces-v1.json
 
 Run it on Linux (WSL here) with the pinned Chrome-for-Testing 147. Chromium
 uses the census real-font environment (`sp16_real_font.conf` and the
@@ -634,6 +639,10 @@ def geometry_differences(
     differences = []
     for index, (expected, actual) in enumerate(zip(chromium, openui)):
         if actual["rect"] is None:
+            # An element without a box (display: none): Chromium's
+            # getBoundingClientRect is all zeros.
+            if not any(expected["rect"]):
+                continue
             differences.append({"index": index, "slot": expected["slot"],
                                 "chromium": expected["rect"], "openui": None})
             continue
@@ -690,6 +699,245 @@ def command_geometry(args: argparse.Namespace) -> int:
     return 0
 
 
+# ── Behavior traces ─────────────────────────────────────────────────────
+
+TRACES = ROOT / "tests/fidelity/components/traces.json"
+TRACES_SCHEMA = "div-components-traces-v1"
+TRACE_RESULTS_SCHEMA = "div-components-trace-results-v1"
+
+# The state `div-components-render trace` records, read from the page: the
+# elements with a data-slot under <main>, named slot#k in tree order, with
+# the listed attributes (id references as names), their element children,
+# and the focused element. Attributes outside the list are reported, so a
+# Radix attribute the list misses cannot pass unseen.
+TRACE_SNAPSHOT_SCRIPT = r"""
+((attributes, references) => {
+  const elements = [...document.querySelector('main').querySelectorAll('[data-slot]')];
+  const counts = {}, names = new Map(), ids = {};
+  for (const element of elements) {
+    const slot = element.getAttribute('data-slot');
+    const name = `${slot}#${counts[slot] ?? 0}`;
+    counts[slot] = (counts[slot] ?? 0) + 1;
+    names.set(element, name);
+    if (element.id) ids[element.id] = name;
+  }
+  const known = new Set([...attributes, 'id', 'class', 'style', 'data-slot']);
+  const focused = document.activeElement;
+  return {
+    focused: !focused || focused === document.body ? 'body' : (names.get(focused) ?? 'unnamed'),
+    elements: elements.map(element => {
+      const recorded = {};
+      for (const attribute of attributes) {
+        const value = element.getAttribute(attribute);
+        if (value === null) continue;
+        recorded[attribute] = references.includes(attribute)
+          ? value.split(/\s+/).filter(Boolean).map(id => ids[id] ?? '?').join(' ')
+          : value;
+      }
+      return {
+        name: names.get(element),
+        attributes: recorded,
+        children: element.children.length,
+        unlisted: [...element.attributes].map(a => a.name).filter(n => !known.has(n)),
+      };
+    }),
+  };
+})
+"""
+
+# Settles the page after an input: Radix moves focus in a setTimeout, and
+# React commits before the next frame.
+TRACE_SETTLE_SCRIPT = r"""
+new Promise(resolve => setTimeout(
+  () => requestAnimationFrame(() => setTimeout(resolve, 0)), 0))
+"""
+
+TRACE_READY_SCRIPT = r"""
+new Promise((resolve, reject) => {
+  const started = performance.now();
+  const poll = () => {
+    if (window.__divTraceReady) resolve(true);
+    else if (performance.now() - started > 10000) reject(new Error('the page never got ready'));
+    else setTimeout(poll, 10);
+  };
+  poll();
+})
+"""
+
+# CDP key events for the keys the traces press: (key, code, virtual key
+# code, text). Keys with text are `keyDown` (which also types it), the rest
+# `rawKeyDown`, as Chromium's own input does.
+CDP_KEYS = {
+    "Tab": ("Tab", "Tab", 9, None),
+    "Enter": ("Enter", "Enter", 13, "\r"),
+    "Escape": ("Escape", "Escape", 27, None),
+    " ": (" ", "Space", 32, " "),
+    "PageUp": ("PageUp", "PageUp", 33, None),
+    "PageDown": ("PageDown", "PageDown", 34, None),
+    "End": ("End", "End", 35, None),
+    "Home": ("Home", "Home", 36, None),
+    "ArrowLeft": ("ArrowLeft", "ArrowLeft", 37, None),
+    "ArrowUp": ("ArrowUp", "ArrowUp", 38, None),
+    "ArrowRight": ("ArrowRight", "ArrowRight", 39, None),
+    "ArrowDown": ("ArrowDown", "ArrowDown", 40, None),
+}
+CDP_SHIFT = 8
+
+
+def load_traces(path: Path = TRACES) -> dict:
+    traces = json.loads(path.read_text(encoding="utf-8"))
+    if traces.get("schema") != TRACES_SCHEMA:
+        raise SystemExit(f"{path} is not {TRACES_SCHEMA}")
+    return traces
+
+
+def evaluate(client, expression: str):
+    response = client.command(
+        "Runtime.evaluate",
+        {"expression": expression, "awaitPromise": True, "returnByValue": True},
+    )
+    if "exceptionDetails" in response:
+        raise RuntimeError(f"page script failed: {response['exceptionDetails']}")
+    return response.get("result", {}).get("value")
+
+
+def chromium_key_events(step: dict) -> list[dict[str, object]]:
+    """The CDP `Input.dispatchKeyEvent` parameters that press one key."""
+    key, code, virtual, text = CDP_KEYS[step["press"]]
+    common = {
+        "key": key, "code": code, "windowsVirtualKeyCode": virtual,
+        "nativeVirtualKeyCode": virtual,
+        "modifiers": CDP_SHIFT if step.get("shift") else 0,
+    }
+    down = {**common, "type": "keyDown", "text": text} if text else {**common, "type": "rawKeyDown"}
+    return [down, {**common, "type": "keyUp"}]
+
+
+def chromium_trace(client, script: dict, traces: dict, manifest: dict) -> list[dict]:
+    pages = {trace["id"]: trace["page"] for trace in manifest.get("traces", [])}
+    page = PAGES / pages[script["fixture"]]
+    client.command("Emulation.setDeviceMetricsOverride", {
+        "width": 800, "height": 600, "deviceScaleFactor": 1, "mobile": False,
+    })
+    client.command("Page.navigate", {"url": "file:" + urllib.request.pathname2url(str(page))})
+    evaluate(client, TRACE_READY_SCRIPT)
+    snapshot = (f"({TRACE_SNAPSHOT_SCRIPT})"
+                f"({json.dumps(traces['attributes'])}, {json.dumps(traces['id_references'])})")
+    snapshots = [evaluate(client, snapshot)]
+    for step in script["steps"]:
+        if "press" in step:
+            for event in chromium_key_events(step):
+                client.command("Input.dispatchKeyEvent", event)
+        elif "click" in step:
+            center = evaluate(client, (
+                f"(() => {{ const s = {snapshot}; const name = {json.dumps(step['click'])};"
+                " const all = [...document.querySelector('main').querySelectorAll('[data-slot]')];"
+                " const element = all[s.elements.findIndex(e => e.name === name)];"
+                " const r = element.getBoundingClientRect();"
+                " return [r.x + r.width / 2, r.y + r.height / 2]; })()"
+            ))
+            x, y = center
+            client.command("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y})
+            for kind in ("mousePressed", "mouseReleased"):
+                client.command("Input.dispatchMouseEvent", {
+                    "type": kind, "x": x, "y": y, "button": "left", "buttons": 1,
+                    "clickCount": 1,
+                })
+        else:
+            raise RuntimeError(f"unknown step {step}")
+        evaluate(client, TRACE_SETTLE_SCRIPT)
+        snapshots.append(evaluate(client, snapshot))
+    return snapshots
+
+
+def div_trace(renderer: Path, trace_id: str, traces_path: Path = TRACES) -> list[dict]:
+    completed = subprocess.run(
+        [str(renderer), "trace", str(traces_path), trace_id],
+        env=pixel_runner.openui_environment(use_real_font=True),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr.strip() or f"exit {completed.returncode}")
+    return json.loads(completed.stdout)["snapshots"]
+
+
+def trace_differences(script: dict, chromium: list[dict], div: list[dict]) -> list[dict]:
+    """Each step after which the two sides' states differ."""
+    differences = []
+    labels = ["ready", *(json.dumps(step, sort_keys=True) for step in script["steps"])]
+    for index, label in enumerate(labels):
+        expected = chromium[index] if index < len(chromium) else None
+        actual = div[index] if index < len(div) else None
+        if expected is None or actual is None:
+            differences.append({"step": index, "input": label, "missing": True})
+            continue
+        found: dict[str, object] = {}
+        unlisted = {e["name"]: e["unlisted"] for e in expected["elements"] if e["unlisted"]}
+        if unlisted:
+            found["unlisted_attributes"] = unlisted
+        if expected["focused"] != actual["focused"]:
+            found["focused"] = {"chromium": expected["focused"], "div": actual["focused"]}
+        strip = [{k: v for k, v in e.items() if k != "unlisted"} for e in expected["elements"]]
+        if strip != actual["elements"]:
+            by_name = {e["name"]: e for e in actual["elements"]}
+            elements = {}
+            for element in strip:
+                other = by_name.get(element["name"])
+                if other != element:
+                    elements[element["name"]] = {"chromium": element, "div": other}
+            for name in by_name.keys() - {e["name"] for e in strip}:
+                elements[name] = {"chromium": None, "div": by_name[name]}
+            found["elements"] = elements
+        if found:
+            differences.append({"step": index, "input": label, **found})
+    return differences
+
+
+def command_trace(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    traces = load_traces()
+    version = chromium_version(args.chrome)
+    if version != EXPECTED_CHROMIUM:
+        raise SystemExit(f"Chromium {version} is not the pinned {EXPECTED_CHROMIUM}")
+    scripts = traces["traces"]
+    if args.trace:
+        scripts = [script for script in scripts if script["id"] in set(args.trace)]
+    rows = []
+    with chromium_page(args.chrome) as client:
+        for script in scripts:
+            row = {"trace": script["id"], "fixture": script["fixture"],
+                   "steps": len(script["steps"])}
+            try:
+                chromium = chromium_trace(client, script, traces, manifest)
+                div = div_trace(args.renderer, script["id"])
+            except (RuntimeError, KeyError) as error:
+                rows.append({**row, "status": "error", "error": str(error)})
+                continue
+            differences = trace_differences(script, chromium, div)
+            rows.append({**row, "status": "different" if differences else "same",
+                         "differences": differences, "chromium": chromium})
+    if args.output:
+        write_json(args.output, {
+            "schema": TRACE_RESULTS_SCHEMA,
+            "chromium": {"version": version},
+            "renderer_sha256": sha256_file(args.renderer),
+            "repository": repository_identity(args.repository_commit),
+            "traces_sha256": sha256_file(TRACES),
+            "interactive_sha256": sha256_file(PAGES / "interactive.js"),
+            "rows": rows,
+        })
+    same = sum(1 for row in rows if row["status"] == "same")
+    print(f"{same}/{len(rows)} behavior traces match")
+    for row in rows:
+        if row["status"] == "error":
+            print(f"  error: {row['trace']}: {row['error']}")
+        for difference in row.get("differences", []):
+            print(f"  {row['trace']}: {json.dumps(difference)}")
+    return 0 if same == len(rows) else 1
+
+
 def write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=False) + "\n", encoding="utf-8")
@@ -730,6 +978,16 @@ def main(argv: list[str] | None = None) -> int:
     geometry.add_argument("--fixture", action="append", default=[])
     geometry.add_argument("--profile", action="append", default=[])
     geometry.set_defaults(func=command_geometry)
+
+    trace = sub.add_parser(
+        "trace", help="run the behavior traces on Radix in Chromium and on Div, and compare")
+    trace.add_argument("--chrome", type=Path, default=DEFAULT_CHROME)
+    trace.add_argument("--renderer", type=Path, required=True)
+    trace.add_argument("--output", type=Path)
+    trace.add_argument("--trace", action="append", default=[])
+    trace.add_argument("--repository-commit",
+                       help="the checked-out commit, when git cannot read the checkout")
+    trace.set_defaults(func=command_trace)
 
     args = parser.parse_args(argv)
     return args.func(args)
