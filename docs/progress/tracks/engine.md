@@ -9,7 +9,7 @@ Results here are from this branch's tests unless marked otherwise.
 | Unit | State |
 | --- | --- |
 | RFC 0001 typed style rules | Merged, PR #89 (`b8dcfaf8`) |
-| A1 typed style rules | In progress. Step 1, `view!` emits typed constructors: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/typed-style-constructors-2026-11-09.md). Step 2, `style!`: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/style-macro-2026-11-10.md). Next: `css!` and `stylesheet!` |
+| A1 typed style rules | In progress. Step 1, `view!` emits typed constructors: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/typed-style-constructors-2026-11-09.md). Step 2, `style!`: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/style-macro-2026-11-10.md). Step 3, selectors and Blink specificity: [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/selector-specificity-2026-11-10.md). Next: matching, then `stylesheet!` and `css!` |
 | A2 colors (`oklch()`, `color-mix()`) | Merged, PR #95 (`ee46e350`); 54/54 Chromium swatches exact; [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/color-functions-2026-11-09.md) |
 | A2 tokens and media | Not started; needs RFC 0002 |
 | A3 top layer and dialog | Not started |
@@ -70,3 +70,7 @@ on branch `components/c4-assets` and the shared findings note.
   styles at compile time, the second A1 step. [Record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/style-macro-2026-11-10.md).
 - 11 November 2026, PR #116 merged (`e80a0bc2`): `rustix` 1.1.6 fixes
   RUSTSEC-2026-0486, which failed `dependency-security` on every PR.
+- 10 November 2026: a typed selector model and a macro-time selector
+  parser, with specificity checked against 93 selectors measured in pinned
+  Chromium (and 18 it drops), the third A1 step.
+  [Record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/selector-specificity-2026-11-10.md).
