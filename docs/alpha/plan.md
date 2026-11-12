@@ -19,18 +19,18 @@ before we have to.
 
 | Asset | State |
 | --- | --- |
-| Rendering engine (style, layout, paint, text, Skia) | 94.9% pixel-exact across 23,728 comparisons in 10 CSS areas. Grid measured once at 52.8% in a separate coverage suite (PR #88). Text, tables, transforms and others are unmeasured. |
+| Rendering engine (style, layout, paint, text, Skia) | 94.9% pixel-exact across 23,728 comparisons in 10 CSS areas. Grid measured once at 52.8% in a separate coverage suite (zhuowcui/open-ui#88). Text, tables, transforms and others are unmeasured. |
 | Chromium comparison harness | Ports WPT tests, captures pinned Chromium 147, compares pixel for pixel at four scales. This is our strongest asset: we can *prove* fidelity. |
 | App authoring model | `view!` macro (JSX-like), `#[component]`, fine-grained signals and effects, `For`/`Show`, typed events (`on:click`). Inline `style:` properties only. |
 | Native element API | `Document`/`Element`: tree mutation, attributes, classes (for lookup), focus, scrolling, form controls, animations and transitions. |
 | Platforms | Linux: window, input, accessibility (AT-SPI), X11 and Wayland. Windows: builds and passes tests, DirectWrite text, experimental Win32 window. macOS: none. |
 | C ABI | 131 exports, C and C++ consumers pass. |
 | Examples | counter, todo, dashboard, accessibility, hello. |
-| Alpha RFCs | RFC 0001, typed style rules (PR #89), and RFC 0002, CLI and app layout (PR #90), are merged under `docs/alpha/rfcs/`. |
-| CLI | `div-cli` (binary `openui`) landed in PR #93: `new` writes a minimal app, `dev` rebuilds and restarts it on change, `build` packages a release into `dist/` and `doctor` checks the toolchain. A `cli-template` CI job on Linux and Windows builds the template with `div build` and with plain `cargo build` and requires identical first frames. |
-| Colors (A2) | `oklch()`, `oklab()` and `color-mix()` parse and convert as Chromium 147 does, and paint no longer clamps color channels before Skia (PR #95): 54 of 54 swatches exact against pinned Chromium on Linux and Windows. |
-| App services (B1) | Several windows on one event loop (PR #96), an async runtime on the UI thread and in the background (#98), clipboard text (#99), native open, save and folder dialogs (#100), and an app menu with accelerators and a native Windows bar (#101), drawn in the window where the platform has no menu bar (#103), and an HTTP client over rustls and the system roots (#105). |
-| Components | The shadcn/ui reference harness and the separator landed in PR #91: 8 of 16 comparisons exact. All light comparisons are exact; every dark one was off by one color level from the paint clamp that PR #95 removed, and has not been remeasured since. Geist, Inter and the Lucide icons are bundled (C4, #94), and button, badge, card and label landed in #102. Every fixture with text is still an error, because the bundled WOFF2 fonts do not load on Linux with the census FreeType (engine PR #97, open). |
+| Alpha RFCs | RFC 0001, typed style rules (zhuowcui/open-ui#89), and RFC 0002, CLI and app layout (zhuowcui/open-ui#90), are merged under `docs/alpha/rfcs/`. |
+| CLI | `div-cli` (binary `openui`) landed in zhuowcui/open-ui#93: `new` writes a minimal app, `dev` rebuilds and restarts it on change, `build` packages a release into `dist/` and `doctor` checks the toolchain. A `cli-template` CI job on Linux and Windows builds the template with `div build` and with plain `cargo build` and requires identical first frames. |
+| Colors (A2) | `oklch()`, `oklab()` and `color-mix()` parse and convert as Chromium 147 does, and paint no longer clamps color channels before Skia (zhuowcui/open-ui#95): 54 of 54 swatches exact against pinned Chromium on Linux and Windows. |
+| App services (B1) | Several windows on one event loop (zhuowcui/open-ui#96), an async runtime on the UI thread and in the background (zhuowcui/open-ui#98), clipboard text (zhuowcui/open-ui#99), native open, save and folder dialogs (zhuowcui/open-ui#100), and an app menu with accelerators and a native Windows bar (zhuowcui/open-ui#101), drawn in the window where the platform has no menu bar (zhuowcui/open-ui#103), and an HTTP client over rustls and the system roots (zhuowcui/open-ui#105). |
+| Components | The shadcn/ui reference harness and the separator (zhuowcui/open-ui#91), and button, badge, card and label (zhuowcui/open-ui#102), are measured with the font fixtures against shadcn/ui in pinned Chromium at the four census profiles: 16 of 192 comparisons exact, 176 different, 0 errors, measured at Open UI `916d2735` with fonts loading ([components track](../progress/tracks/components.md)). Every separator is exact. Every page with text still differs inside the text (A6), and the card and font layouts differ in column flex and grid layout, which the engine fixes in #12, #13 and #14 address. Geist, Inter and the Lucide icons are bundled (C4, zhuowcui/open-ui#94), and the theme tokens are shadcn's own `oklch()` values. |
 
 ### Gaps that block porting shadcn/Tailwind
 
@@ -50,10 +50,8 @@ before we have to.
   window the hovered path loses hover without receiving `pointerleave`.
   `:active` matches only the pressed element, while Chromium's also covers
   its ancestors.
-- Real fonts. WOFF2 fonts do not load on Linux with the census FreeType
-  (PR #97, open). In the components track's previews, which are not
-  measured evidence, a column flex item with text is as tall as one word per
-  line, and glyphs sit at a different height from Chromium's.
+- Real fonts. WOFF2 fonts load since zhuowcui/open-ui#97, but glyphs sit at a different
+  height from Chromium's, so every component page with text differs (A6).
 - App services: no tray, notifications or global shortcuts.
 - No hot reload (the CLI's `dev` rebuilds and restarts the app), no devtools,
   and one minimal project template.
@@ -92,7 +90,7 @@ use the narrower alpha.1 this review recommends.
    interactive component.
 3. **Tailwind v4 colors.** `oklch()` and `color-mix()` must be parsed and
    converted exactly as Chromium does (including gamut mapping), or no themed
-   component can be exact. Added to A2, and landed in PR #95.
+   component can be exact. Added to A2, and landed in zhuowcui/open-ui#95.
 4. **Overlays.** There is no top layer or anchor positioning. alpha.1 keeps
    one overlay (dialog); menus, select, tooltip and toast move to alpha.2.
 5. **Hot reload.** Rust has no cheap code reload. alpha.1 `dev` is a fast
@@ -226,7 +224,7 @@ Owns `div-style`, `div-layout`, `div-paint`, `div-text`,
 | A1 Typed style rules (D1) | `css!`/`style!` macros with compile-time validation and conflict detection; `stylesheet!` compiling selectors and variants to typed conditions; typed values emitted without runtime re-parsing; style invalidation on state change; `pointerleave` when the pointer leaves the window and `:active` on ancestors; cascade order and specificity checked against Chromium | One owner; critical path and the largest unit |
 | A2 Tokens, colors and media | Typed theme tokens for `var()`; `oklch()` and `color-mix()` converted exactly as Chromium does; typed media conditions (width, `prefers-color-scheme`, `prefers-reduced-motion`) | Colors start now; tokens and media after A1's data model |
 | A3 Top layer and dialog | Top layer, modal dialog, focus trap, dismissal and z-order for alpha.1. Popover and anchor positioning for menus and tooltips in alpha.2 | Parallel with A1 |
-| A4 Conformance by area | For alpha.1, only the areas the 10 components use. Other coverage suites (grid, merged in PR #88; tables, transforms) after alpha.1. Merges are serialized where areas share `block.rs` | Low priority until alpha.1 |
+| A4 Conformance by area | For alpha.1, only the areas the 10 components use. Other coverage suites (grid, merged in zhuowcui/open-ui#88; tables, transforms) after alpha.1. Merges are serialized where areas share `block.rs` | Low priority until alpha.1 |
 | A5 Performance and resources | Benchmark harness against Electron and Tauri (startup, idle RSS, frame time). Prove or add offscreen culling. List virtualization primitive. Results gate any published benchmark | Parallel; measure in week 0 |
 | A6 Real-font text | Baseline Geist and Inter at shadcn's sizes and weights on Linux and Windows against Chromium; repair the installed-font advance and the largest real-font differences | Parallel; on the critical path for component exactness |
 
