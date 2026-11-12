@@ -2,8 +2,9 @@
 
 Status: proposed, 10 November 2026. Owner: components track
 (Workstream C, unit C2). Consumers: shadcn components (C3). Requests to: the
-framework track (`openui`, events and context) and the engine track (A1 data
-attributes, A3 top layer).
+framework track (`divui`, events and context) and the engine track (A1 data
+attributes, A3 top layer). Updated 12 November 2026 for the Div import:
+crate names, and the primitives start as a module of `div-components`.
 
 ## Problem
 
@@ -30,8 +31,8 @@ on the same pieces.
 2. **Radix's DOM contract.** Each part renders the element, `role`, `aria-*`,
    `id` relations, `tabindex` and `data-*` attributes (`data-state`,
    `data-orientation`, `data-disabled`) that Radix renders: `radix-ui` 1.8.1
-   as pinned in `tests/fidelity/components/reference/package-lock.json`, whose packages
-   are `react-roving-focus` 1.2.1, `react-tabs` 1.2.1,
+   as pinned in `tests/fidelity/components/reference/package-lock.json`,
+   whose packages are `react-roving-focus` 1.2.1, `react-tabs` 1.2.1,
    `react-dismissable-layer` 1.2.1, `react-focus-scope` 1.3.1,
    `react-dialog` 1.3.1, `react-checkbox` 1.4.1 and `react-switch` 1.4.1.
    shadcn's variants select on these
@@ -45,19 +46,20 @@ on the same pieces.
 4. **Controlled or uncontrolled.** A value is either owned by the primitive
    (a default) or by the caller (a signal and a change callback), as Radix's
    `useControllableState`.
-5. **Public crate only.** Primitives use `openui`'s public API. What they
+5. **Public crate only.** Primitives use `divui`'s public API. What they
    cannot do with it is listed under Affected tracks, each with the interim
    used until it lands.
 
 ### Crate and module layout
 
-A new crate `openui-primitives` (working name) in the `components/`
-workspace, so an app can use the behaviors without shadcn's look, as with
-Radix's own packages. `div-components` depends on it.
+A `primitives` module of `div-components`, kept free of styling so it can
+later become its own crate (`div-primitives`, working name) that an app can
+use without shadcn's look, as with Radix's own packages. That split needs a
+row in the ownership table of `AGENTS.md`, in its own PR.
 
 ```
-components/openui-primitives/src/
-  lib.rs            re-exports
+crates/div-components/src/primitives/
+  mod.rs            re-exports
   controllable.rs   Controllable<T>: default value or Signal<T> + on_change
   id.rs             unique ids for aria-controls / aria-labelledby
   keys.rs           key names from keyboard events (request 2)
@@ -191,11 +193,11 @@ and `Show`.
 ## Migration
 
 1. This RFC merges first. It changes no code.
-2. The components track adds `openui-primitives` to the `components/`
-   workspace, one PR per group: roving focus and tabs; checkbox and switch;
-   dismissable layer, focus scope and dialog. Each uses the interims above
-   and brings its trace fixtures. `components/` is its own workspace on the
-   public crate only, so `main` stays green between these PRs.
+2. The components track adds the `primitives` module to `div-components`,
+   one PR per group: roving focus and tabs; checkbox and switch; dismissable
+   layer, focus scope and dialog. Each uses the interims above and brings
+   its trace fixtures. `div-components` uses the public `divui` crate only,
+   so `main` stays green between these PRs.
 3. As each request lands in its owning track, a components PR replaces the
    interim. Its trace and pixel results must not get worse.
 

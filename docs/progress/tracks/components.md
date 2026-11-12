@@ -2,14 +2,21 @@
 
 Workstream C of the [alpha plan](../../alpha/plan.md): shadcn/ui components
 for Div under the working name `div-components`, each measured
-against shadcn/ui rendered by pinned Chromium 147. The area is
-[`components/`](../../../crates/div-components/README.md). Results are from this
-working branch's harness; they are not census results and do not qualify the
-renderer.
+against shadcn/ui rendered by pinned Chromium 147. The code is
+[`crates/div-components`](../../../crates/div-components/README.md) and the
+reference pages, harness and evidence are in `tests/fidelity/components`.
+Results are from this track's harness; they are not census results and do
+not qualify the renderer.
+
+Entries before 12 November 2026 were recorded in the archived
+[zhuowcui/open-ui](https://github.com/zhuowcui/open-ui) repository. Their
+commit hashes and PR numbers refer to that repository; there, the track was
+a separate `components/` workspace and the public crate was `openui` (now
+`divui`).
 
 ## Results
 
-| Component | Fixtures | Exact | Evidence | Measured at |
+| Component | Fixtures | Exact | Evidence | Measured at (open-ui commit) |
 | --- | --- | --- | --- | --- |
 | badge | 6 variants; light, dark | 0 of 48 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
 | button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 0 of 80 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `916d2735`, 11 November 2026 |
@@ -21,13 +28,38 @@ renderer.
 Each fixture is compared at the four census profiles (`legacy-800x600@1`,
 `mobile-375x667@2`, `desktop-1280x720@1.25`, `desktop-1920x1080@1.5`).
 
+## 12 November 2026: imported into Div
+
+### Change
+
+The track moved with the Div import (`d98e9747`): the crate is now
+`crates/div-components` in the main workspace, the reference renderer
+`tests/fidelity/components/render` (`div-components-render`), and the
+reference pages, harness and evidence `tests/fidelity/components`. The code
+uses the public `divui` crate. No behavior changed.
+
+### Measurement
+
+All 192 images rendered at `d98e9747` are byte-identical to the renderer's
+images in the last open-ui comparison (`reference-v1.json`, open-ui `916d2735`),
+so the results above hold for Div and the evidence was not measured again.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Images unchanged | `cargo build --locked --release -p div-components-render` in WSL with the CI `SKIA_GN_ARGS`; each fixture rendered at the four profiles in the census environment and its RGBA bytes compared with the `openui.png` images of the open-ui `916d2735` run | 192 of 192 identical |
+| Crate tests | `cargo test --locked --no-fail-fast -p div-components -p div-components-render`, WSL | 10 passed |
+| Harness unit tests | `python3 -m unittest tests/fidelity/components/harness/test_reference_harness.py` | 18 passed |
+| Formatting | `cargo fmt --all --check`, WSL | clean |
+
 ## 11 November 2026: theme tokens as `oklch()`
 
 ### Change
 
 | Change | Owner | Source |
 | --- | --- | --- |
-| Each theme token is now shadcn's own value, an `oklch()` color (`Token`), which Div resolves since #95, in place of the sRGB stand-in floats. Tailwind's opacity modifier is the real `color-mix(in oklab, <token> N%, transparent)`. Custom properties are still missing, so the token's value is written where shadcn writes `var(--token)`. | components | `crates/div-components/src/theme.rs`, `src/css.rs` |
+| Each theme token is now shadcn's own value, an `oklch()` color (`Token`), which Div resolves since [open-ui#95](https://github.com/zhuowcui/open-ui/pull/95), in place of the sRGB stand-in floats. Tailwind's opacity modifier is the real `color-mix(in oklab, <token> N%, transparent)`. Custom properties are still missing, so the token's value is written where shadcn writes `var(--token)`. | components | `crates/div-components/src/theme.rs`, `src/css.rs` |
 | The theme test checks each token's value against the value Chromium's page specifies, and the color Div resolves it to against Chromium's serialized sRGB color (six significant digits). | components | `crates/div-components/tests/theme_evidence.rs` |
 
 ### Measurement
@@ -41,7 +73,7 @@ evidence was not measured again.
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Images unchanged | the release renderer, built in WSL with the CI `SKIA_GN_ARGS`, renders every fixture at the four profiles in the census environment, and each image's RGBA bytes are compared with the `openui.png` of the 916d2735 run; repeated on this branch rebased on main `c48c2e38` (#111) | 192 of 192 identical |
+| Images unchanged | the release renderer, built in WSL with the CI `SKIA_GN_ARGS`, renders every fixture at the four profiles in the census environment, and each image's RGBA bytes are compared with the `openui.png` of the 916d2735 run; repeated on this branch rebased on main `c48c2e38` ([open-ui#111](https://github.com/zhuowcui/open-ui/pull/111)) | 192 of 192 identical |
 | Workspace tests | `cargo test --locked` in `components/`, on Windows and, rebased on `c48c2e38`, in WSL | 10 passed |
 | Formatting | `cargo fmt --all --check` in `components/`, in WSL | clean |
 
@@ -51,8 +83,8 @@ evidence was not measured again.
 
 No components code changed. Main gained the engine's `oklch()`,
 `oklab()` and `color-mix()` support, which also stopped clamping color
-channels when painting (#95), and WOFF and WOFF2 decoding before the font
-scaler (#97). The evidence was measured again at main `916d2735`.
+channels when painting ([open-ui#95](https://github.com/zhuowcui/open-ui/pull/95)), and WOFF and WOFF2
+decoding before the font scaler ([open-ui#97](https://github.com/zhuowcui/open-ui/pull/97)). The evidence was measured again at main `916d2735`.
 
 ### Measurement
 
@@ -343,10 +375,11 @@ These are API requests for the framework track, not blockers.
 1. Theme tokens as custom properties, and `.dark` as a class, once typed
    style rules and tokens (A1, A2) land.
 2. Build the Radix-like primitives (C2) as proposed in
-   [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), once the
-   framework and engine tracks have reviewed its requests, then tabs,
-   dialog, checkbox and switch on them. Their `data-state` styles need
-   typed style rules (A1).
+   [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), as a
+   `primitives` module of `div-components`, on the public `divui` API and
+   the RFC's interims, starting with roving focus and tabs; then dialog,
+   checkbox and switch. Their `data-state` styles are inline until typed
+   style rules (A1) land.
 3. Lucide icons in Div: the static SVG decoder
    (`crates/div-paint/src/image_resource.rs`) draws only `<rect>`
    shapes, while every Lucide icon is stroked `<path>` data in
