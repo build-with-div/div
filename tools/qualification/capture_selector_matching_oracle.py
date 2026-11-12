@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "docs/progress/evidence/selector-matching-v1/chromium-windows.json"
+OUTPUT = ROOT / "tests/fidelity/fixtures/selector-matching-v1/chromium-windows.json"
 
 
 def element(tag: str, id_: str, attributes: dict | None = None, children: list | None = None):

@@ -2,7 +2,7 @@
 //!
 //! `tools/qualification/capture_selector_matching_oracle.py` built one
 //! element tree in Chromium and recorded, in
-//! `docs/progress/evidence/selector-matching-v1/chromium-windows.json`, the
+//! `tests/fidelity/fixtures/selector-matching-v1/chromium-windows.json`, the
 //! ids `querySelectorAll` returned for each selector. This test builds the
 //! same tree, `html > body > fixture`, and checks that
 //! `Engine::matches_selector` selects the same elements in document order.
@@ -13,7 +13,7 @@ use div_style::selector_parser::parse_selector_list;
 use serde_json::Value;
 
 const ORACLE: &str =
-    include_str!("../../../docs/progress/evidence/selector-matching-v1/chromium-windows.json");
+    include_str!("../../../tests/fidelity/fixtures/selector-matching-v1/chromium-windows.json");
 
 fn tag(name: &str) -> ElementTag {
     match name {
