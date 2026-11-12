@@ -13,7 +13,12 @@ that difference is applied with a three-way merge to a new branch
 working tree and reported; nothing is resolved automatically.
 
 Changes to data-repository paths (evidence) are listed in the report: they
-belong in a new fidelity-data commit, not in the Div branch.
+belong in a new fidelity-data commit, not in the Div branch, except test
+oracles (evidence that code includes, or that a tool writes and the import
+did not have), which stay in the branch under tests/fidelity/fixtures/. Dated progress
+notes that did not exist at the commit Div was imported from are kept in the
+branch at their own path, with relative links, since the archived Open UI
+repository has no copy of them.
 """
 
 from __future__ import annotations
@@ -38,11 +43,26 @@ def git(repo: Path, *args: str, input: bytes | None = None, check: bool = True) 
     return proc.stdout.decode(errors="replace")
 
 
+def new_progress_notes(source: Path, sha: str, link_sha: str) -> list[str]:
+    """Progress records at `sha` that did not exist at the import's commit.
+
+    The import drops dated notes under docs/progress: they stay in the archived
+    Open UI repository, at the commit Div was imported from. A note written
+    after that commit has no copy there, so a converted branch keeps it, and
+    its links, in Div."""
+    def notes(commit: str) -> set[str]:
+        names = git(source, "ls-tree", "-r", "--name-only", "-z", commit, "--", "docs/progress").split("\0")
+        return {p for p in names if p and migrate.classify(p)[0] == "drop"}
+    return sorted(notes(sha) - notes(link_sha))
+
+
 def convert(source: Path, sha: str, out: Path, data: Path, regenerate_args: list[str],
             link_sha: str) -> str:
     args = ["--source", str(source), "--sha", sha, "--out", str(out), "--data-out", str(data),
             "--no-commit", "--report", str(out.parent / f"{out.name}-report.json"),
             "--link-sha", link_sha]
+    for path in new_progress_notes(source, sha, link_sha):
+        args += ["--keep", path]
     if not regenerate_args:
         args.append("--skip-data")
     migrate.main(args + regenerate_args)
@@ -54,14 +74,18 @@ def convert(source: Path, sha: str, out: Path, data: Path, regenerate_args: list
     return commit
 
 
-def changes_by_fate(source: Path, base: str, head: str, fates: tuple[str, ...]) -> list[str]:
+def changes_by_fate(source: Path, base: str, head: str, fates: dict, wanted: tuple[str, ...]) -> list[str]:
     changed = git(source, "diff", "--name-only", "-z", base, head).split("\0")
-    out = []
-    for path in filter(None, changed):
-        fate, _ = migrate.classify(path)
-        if fate in fates:
-            out.append(path)
-    return out
+    return [path for path in filter(None, changed) if fates.get(path, (None,))[0] in wanted]
+
+
+def report_fates(work: Path) -> dict:
+    """Each Open UI path's fate as migrate.py decided it, head over base."""
+    fates = {}
+    for side in ("base", "head"):
+        report = json.loads((work / f"{side}-report.json").read_text(encoding="utf-8"))
+        fates.update({p: tuple(v) for p, v in report["paths"].items()})
+    return fates
 
 
 def main(argv=None) -> int:
@@ -89,6 +113,7 @@ def main(argv=None) -> int:
     # from, on both sides, so they do not show up as changes.
     lock = json.loads(git(args.div, "show", f"{args.onto}:fidelity-data.lock"))
     link_sha = lock["source"]["commit"]
+    kept = set(new_progress_notes(args.source, head, link_sha))
     base_commit = convert(args.source, base, work / "base", work / "base-data", regen, link_sha)
     head_commit = convert(args.source, head, work / "head", work / "head-data", regen, link_sha)
 
@@ -101,14 +126,22 @@ def main(argv=None) -> int:
     proc = subprocess.run(["git", "-C", str(args.div), "apply", "--3way", "--index", "--whitespace=nowarn"],
                           input=diff, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     conflicts = [l[3:] for l in git(args.div, "status", "--porcelain").splitlines() if l[:2] in ("UU", "AA", "DU", "UD")]
+    fates = report_fates(work)
+    changed_main = changes_by_fate(args.source, base, head, fates, ("main",))
     report = {
         "branch": args.branch, "base": base, "head": head, "div_branch": name, "onto": args.onto,
         "applied": proc.returncode == 0, "conflicts": conflicts,
         "apply_messages": proc.stderr.decode(errors="replace").splitlines()[-40:],
-        "data_repository_changes": changes_by_fate(args.source, base, head, ("gates", "archive")),
-        # Paths the import rules drop (history such as dated progress logs):
-        # the branch's changes to them are not carried over; review each.
-        "dropped_changes": changes_by_fate(args.source, base, head, ("drop",)),
+        "data_repository_changes": changes_by_fate(args.source, base, head, fates, ("gates", "archive")),
+        # Progress notes written after the import, carried at their own path.
+        "kept_progress_notes": [p for p in kept if p in changed_main],
+        # Evidence that code reads or writes, kept as fixtures in Div.
+        "fixture_changes": [p for p in changed_main if fates[p][1].startswith(migrate.FIXTURES)
+                            and migrate.classify(p)[0] in ("gates", "archive")],
+        # Other paths the import rules drop (history such as older dated
+        # progress logs): the branch's changes to them are not carried over;
+        # review each.
+        "dropped_changes": [p for p in changes_by_fate(args.source, base, head, fates, ("drop",)) if p not in kept],
         "patch_bytes": len(diff),
     }
     (work / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -119,7 +152,8 @@ def main(argv=None) -> int:
                    "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n")
         git(args.div, "commit", "--quiet", "-F", "-", input=message.encode())
     print(json.dumps({k: report[k] for k in ("applied", "conflicts", "data_repository_changes",
-                                             "dropped_changes", "patch_bytes")},
+                                             "kept_progress_notes", "fixture_changes", "dropped_changes",
+                                             "patch_bytes")},
                      indent=2))
     return 0 if report["applied"] and not conflicts else 1
 

@@ -116,6 +116,38 @@ def rename_path(path: str) -> str:
     return f"{head}/{new}" if head else new
 
 
+EVIDENCE = "docs/progress/evidence/"
+FIXTURES = "tests/fidelity/fixtures/"
+INCLUDE_RX = re.compile(r'include_(?:str|bytes)!\s*\(\s*"([^"]+)"')
+TOOL_EVIDENCE_RX = re.compile(r"docs/progress/evidence/([\w.-]+)/")
+
+
+def oracle_dirs(source: Path, entries, fates: dict, linked: set | None) -> set[str]:
+    """Evidence directories that code reads or writes: test oracles.
+
+    Evidence goes to the data repository, which a build does not have, so a
+    directory that Rust code includes with include_str!/include_bytes! stays
+    in Div under tests/fidelity/fixtures/ (as color-functions-v1 does). When
+    converting a branch (`linked` is the import's tree), a directory that is
+    new since the import and that a tool names, such as an oracle a capture
+    script writes, goes there too."""
+    code = [(obj, path) for _, obj, path in entries if fates[path][0] == "main"
+            and (path.endswith(".rs") or (linked is not None and path.startswith("tools/") and path.endswith(".py")))]
+    dirs = set()
+    for (_, path), data in zip(code, read_blobs(source, [obj for obj, _ in code])):
+        text = data.decode("utf-8", "replace")
+        if path.endswith(".rs"):
+            for included in INCLUDE_RX.findall(text):
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(path), included))
+                rest = target[len(EVIDENCE):]
+                if target.startswith(EVIDENCE) and "/" in rest:
+                    dirs.add(EVIDENCE + rest.split("/", 1)[0])
+        else:
+            dirs.update(EVIDENCE + name for name in TOOL_EVIDENCE_RX.findall(text)
+                        if EVIDENCE + name not in linked)
+    return dirs
+
+
 NO_REWRITE_RX = [re.compile(p) for p in rules.NO_REWRITE]
 IDENTS_ONLY_RX = [re.compile(p) for p in rules.CRATE_IDENTS_ONLY]
 
@@ -150,10 +182,14 @@ PROTECTED_RX = re.compile("|".join(f"(?:{p})" for p in rules.PROTECTED))
 # --------------------------------------------------------------------------- rewriting
 
 class Rewriter:
-    def __init__(self, files: dict, source_sha: str):
+    def __init__(self, files: dict, source_sha: str, linked: set | None = None,
+                 extra_prefixes: list[tuple[str, str]] = ()):
         # old path -> (fate, new path)
         self.files = files
         self.sha = source_sha
+        # Paths (files and directories) that exist at source_sha, when that is
+        # not the commit being converted; None means every path does.
+        self.linked = linked
         self.dirs = set()
         for p in files:
             parts = p.split("/")
@@ -162,10 +198,11 @@ class Rewriter:
         self.crate_roots = sorted({posixpath.dirname(p) for p in files if p.endswith("/Cargo.toml")},
                                   key=len, reverse=True)
         self.unresolved = []
+        prefixes = [*extra_prefixes, *rules.PATH_PREFIXES]
         self.prefix_rx = re.compile(
             # `fidelity/`: a path the relative pass already moved under tests/fidelity.
-            r"(?<![\w.-])(?<!fidelity/)(" + "|".join(re.escape(o) for o, _ in rules.PATH_PREFIXES) + r")(?=$|[/\s\"'`),:;\]>#*]|\\)")
-        self.prefix_map = dict(rules.PATH_PREFIXES)
+            r"(?<![\w.-])(?<!fidelity/)(" + "|".join(re.escape(o) for o, _ in prefixes) + r")(?=$|[/\s\"'`),:;\]>#*]|\\)")
+        self.prefix_map = dict(prefixes)
 
     # A directory's new location: where its files went (longest common dir).
     def map_dir(self, old_dir: str):
@@ -268,6 +305,13 @@ class Rewriter:
                 return f"{m.group(1)}{rel}{anchor}{m.group(4)}"
             if fate in ("drop", "gates", "archive"):
                 kind = "tree" if target in self.dirs else "blob"
+                if self.linked is not None and target.rstrip("/") not in self.linked:
+                    # Written after the import (a converted branch's own
+                    # evidence): Open UI has no copy at the linked commit, so
+                    # link to where the data repository's main will hold it.
+                    if fate in ("gates", "archive"):
+                        return f"{m.group(1)}{DATA_REPO_URL}/{kind}/main/{fate}/{target}{anchor}{m.group(4)}"
+                    self.unresolved.append((old_file, link, "dropped target newer than the linked commit"))
                 return f"{m.group(1)}{OLD_REPO_URL}/{kind}/{self.sha}/{target}{anchor}{m.group(4)}"
             self.unresolved.append((old_file, link, "markdown link target missing"))
             return m.group(0)
@@ -478,6 +522,9 @@ def main(argv=None):
     ap.add_argument("--report", type=Path, help="write a JSON report of every path's fate")
     ap.add_argument("--link-sha", help="Open UI commit that links to archived files point at "
                     "(default: --sha; branch conversion pins both sides to the import's commit)")
+    ap.add_argument("--keep", action="append", default=[], metavar="PATH",
+                    help="a path the rules drop that is kept at its own path instead "
+                    "(branch conversion: progress notes written after the import)")
     args = ap.parse_args(argv)
     FIXUP_USED.clear()
 
@@ -486,15 +533,33 @@ def main(argv=None):
     date = meta[0]
     entries = list_tree(args.source, sha)
 
+    link_sha = sha
+    linked = None
+    if args.link_sha:
+        link_sha = run(["git", "-C", str(args.source), "rev-parse", "--verify",
+                        args.link_sha + "^{commit}"]).stdout.decode().strip()
+    if link_sha != sha:
+        linked = set()
+        for _, _, p in list_tree(args.source, link_sha):
+            parts = p.split("/")
+            linked.update("/".join(parts[:i]) for i in range(1, len(parts) + 1))
+
     fates = {}
     unmatched = []
     for mode, obj, path in entries:
         fate, new = classify(path)
         if fate is None:
             unmatched.append(path)
+        elif fate == "drop" and path in args.keep:
+            fate, new = "main", rename_path(path)
         fates[path] = (fate, new)
     if unmatched:
         raise SystemExit("unclassified paths:\n  " + "\n  ".join(unmatched[:200]))
+    oracles = oracle_dirs(args.source, entries, fates, linked)
+    for path, (fate, _) in fates.items():
+        name = next((d for d in oracles if path.startswith(d + "/")), None)
+        if name and fate in ("gates", "archive"):
+            fates[path] = ("main", FIXTURES + path[len(EVIDENCE):])
     news = {}
     for p, (fate, new) in fates.items():
         if fate == "main":
@@ -504,11 +569,9 @@ def main(argv=None):
 
     clean_dir(args.out)
     clean_dir(args.data_out)
-    link_sha = sha
-    if args.link_sha:
-        link_sha = run(["git", "-C", str(args.source), "rev-parse", "--verify",
-                        args.link_sha + "^{commit}"]).stdout.decode().strip()
-    rw = Rewriter(fates, link_sha)
+    rw = Rewriter(fates, link_sha, linked,
+                  [(d, FIXTURES + d[len(EVIDENCE):]) for d in sorted(oracles)
+                   if d not in dict(rules.PATH_PREFIXES)])
     ws = run(["git", "-C", str(args.source), "show", f"{sha}:bindings/rust/Cargo.toml"]).stdout.decode()
     rw.old_workspace_members = re.findall(r'^    "([^"]+)",$', re.search(r"members = \[\n(.*?)\]", ws, re.S).group(0), re.M)
     manifest = []
