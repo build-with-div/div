@@ -1,0 +1,23 @@
+[package]
+name = "div-text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Deterministic font resolution, metrics, bidi, and shaping for Div"
+
+[dependencies]
+div-style = { version = "=0.2.0", path = "../div-style" }
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+skia-safe = { version = "0.94", features = ["textlayout", "freetype-woff2"] }
+unicode-script = "0.5"
+unicode-bidi = "0.3"
+unicode-segmentation = "1.10"
+skrifa = { version = "0.40.0" }
+# WOFF and WOFF2 are decoded to sfnt before the platform scaler on every
+# platform, as Chromium's OpenType Sanitizer does.
+wuff = "=0.2.9"

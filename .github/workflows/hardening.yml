@@ -1,0 +1,237 @@
+name: v0.2 Hardening
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hardening-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BINDGEN_EXTRA_CLANG_ARGS: ""
+  CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: ""
+  CC: clang
+  CXX: clang++
+  CXXFLAGS: ""
+  CARGO_TERM_COLOR: always
+  FORCE_SKIA_BUILD: "1"
+  PKG_CONFIG_SYSROOT_DIR: ""
+  SKIA_GN_ARGS: >-
+    extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP",
+    "-DSK_ENABLE_LEGACY_SHADERCONTEXT",
+    "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
+    "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
+  SKIA_NINJA_COMMAND: ninja
+
+jobs:
+  msrv:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install MSRV and native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev libwayland-dev libx11-dev \
+            libx11-xcb-dev libxcb1-dev libxkbcommon-dev ninja-build pkg-config
+          rustup toolchain install 1.85.0 --profile minimal
+          rustup default 1.85.0
+      - name: Check the public headless and Linux framework at the MSRV
+        run: |
+          cargo check --locked --package divui
+          cargo check --locked --package divui --features linux
+
+  conformance-and-platform:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install toolchain and Linux runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev libwayland-dev libx11-dev \
+            libx11-xcb-dev libxcb1-dev libxkbcommon-dev mesa-utils \
+            ninja-build pkg-config python3 weston xvfb libxkbcommon-x11-0 dbus-daemon
+          rustup toolchain install 1.94.1 --profile minimal --component rustfmt
+          rustup default 1.94.1
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            target
+          key: v02-hardening-${{ runner.os }}-1.94.1-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+      - name: Verify scenario and performance schemas
+        run: |
+          python3 tools/conformance/verify_v02.py
+          python3 tools/performance/verify_v02.py
+          python3 tools/performance/verify_v02.py \
+            tools/performance/results/local-wsl2-2026-09-13.json
+      - name: Run application conformance suite
+        run: cargo test --locked --package divui --test v02_conformance -- --test-threads=1
+      - name: Build Linux example
+        run: cargo build --locked --package hello --features linux
+      - name: Build and test the C Linux application surface
+        run: |
+          RUST_MIN_STACK=4194304 cargo test --locked --package div-ffi --features linux
+          cargo build --locked --package div-ffi --features linux
+      - name: Exercise native C and C++ windows on X11 with software and Mesa OpenGL
+        run: |
+          xvfb-run --auto-servernum python3 tools/ffi/verify_native_window.py \
+            --protocol x11 --backend software --report "$RUNNER_TEMP/native-x11-software.json"
+          xvfb-run --auto-servernum python3 tools/ffi/verify_native_window.py \
+            --protocol x11 --backend opengl --report "$RUNNER_TEMP/native-x11-opengl.json"
+      - name: Smoke-test X11 with Mesa OpenGL
+        run: xvfb-run --auto-servernum env DIV_BACKEND=opengl DIV_SMOKE_EXIT=1 target/debug/hello
+      - name: Run several windows and wake the loop from tasks on X11
+        run: |
+          cargo build --locked --package multi-window --package tasks --package clipboard --package dialogs \
+            --package menus --package fetch --features linux
+          for backend in software opengl; do
+            for test in multi_window wake clipboard; do
+              xvfb-run --auto-servernum env DIV_REQUIRE_DISPLAY=1 DIV_BACKEND="$backend" \
+                cargo test --locked --package div-platform --features linux --test "$test"
+            done
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 target/debug/multi-window
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 timeout 120 target/debug/tasks
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 target/debug/clipboard \
+              | grep -F 'Ok("Div clipboard example")'
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 target/debug/dialogs
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 target/debug/menus
+            xvfb-run --auto-servernum env DIV_BACKEND="$backend" DIV_SMOKE_EXIT=1 timeout 120 target/debug/fetch \
+              | grep -F 'fetch: 200'
+          done
+      - name: Speak the desktop portal's file chooser protocol, with a zenity fallback
+        run: |
+          cargo test --locked --package div-platform --features "linux dialog" --lib dialog
+          DIV_REQUIRE_SESSION_BUS=1 dbus-run-session -- \
+            cargo test --locked --package div-platform --features "linux dialog" --test dialog_portal
+      - name: Smoke-test pure Wayland software presentation
+        run: |
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/div-wayland"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          weston --backend=headless-backend.so --socket=wayland-div --idle-time=0 >"$RUNNER_TEMP/weston.log" 2>&1 &
+          weston_pid=$!
+          trap 'kill "$weston_pid" || true' EXIT
+          for attempt in $(seq 1 50); do
+            test -S "$XDG_RUNTIME_DIR/wayland-div" && break
+            sleep 0.1
+          done
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-div DIV_BACKEND=software DIV_SMOKE_EXIT=1 target/debug/hello
+          for test in multi_window wake clipboard; do
+            env -u DISPLAY WAYLAND_DISPLAY=wayland-div DIV_REQUIRE_DISPLAY=1 DIV_BACKEND=software \
+              cargo test --locked --package div-platform --features linux --test "$test"
+          done
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-div DIV_BACKEND=software DIV_SMOKE_EXIT=1 target/debug/multi-window
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-div DIV_BACKEND=software DIV_SMOKE_EXIT=1 timeout 120 target/debug/tasks
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-div DIV_BACKEND=software DIV_SMOKE_EXIT=1 timeout 120 target/debug/fetch \
+            | grep -F 'fetch: 200'
+          env -u DISPLAY WAYLAND_DISPLAY=wayland-div \
+            python3 tools/ffi/verify_native_window.py --protocol wayland \
+              --backend software --report "$RUNNER_TEMP/native-wayland-software.json"
+      - name: Preserve native C/C++ smoke reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-c-cpp-window-smokes
+          path: ${{ runner.temp }}/native-*.json
+          if-no-files-found: ignore
+
+  miri-handles:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev ninja-build pkg-config
+      - name: Install pinned nightly Miri
+        run: rustup toolchain install nightly-2026-09-01 --profile minimal --component miri,rust-src
+      - name: Exercise opaque handle ownership under Miri
+        run: cargo +nightly-2026-09-01 miri test --package div-ffi opaque_handles_reject_wrong_kind_thread_and_reuse
+
+  native-sanitizers:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address, leak]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev ninja-build pkg-config
+          rustup toolchain install nightly-2026-09-01 --profile minimal --component rust-src
+      - name: Run C ABI negative tests under sanitizer
+        env:
+          RUSTFLAGS: -Zsanitizer=${{ matrix.sanitizer }}
+        run: >-
+          cargo +nightly-2026-09-01 test -Zbuild-std
+          --target x86_64-unknown-linux-gnu --package div-ffi
+
+  c-undefined-sanitizer:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev lld ninja-build pkg-config
+          rustup toolchain install 1.94.1 --profile minimal
+          rustup default 1.94.1
+      - name: Build Rust library and exercise C consumers under UBSan
+        run: |
+          cargo build --manifest-path Cargo.toml --locked --package div-ffi
+          CC=clang CXX=clang++ \
+            CFLAGS=-fsanitize=undefined CXXFLAGS=-fsanitize=undefined \
+            LDFLAGS=-fsanitize=undefined \
+            python3 tools/ffi/verify_abi.py
+
+  fuzz-smoke:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install fuzz toolchain and native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential clang libclang-18-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev ninja-build pkg-config
+          rustup toolchain install nightly-2026-09-01 --profile minimal
+          cargo +nightly-2026-09-01 install cargo-fuzz --locked
+      - name: Run each fuzz target
+        working-directory: fuzz
+        run: |
+          cargo +nightly-2026-09-01 metadata --locked --format-version=1 > /dev/null
+          for target in ffi_style_values tree_mutations event_sequences resources animation_sampling; do
+            cargo +nightly-2026-09-01 fuzz run "$target" -- -max_total_time=30
+            git diff --exit-code
+          done

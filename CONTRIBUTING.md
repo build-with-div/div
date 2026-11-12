@@ -1,0 +1,100 @@
+# Contributing to Div
+
+Div v0.2 is developed in the pure-Rust Cargo workspace at the repository root.
+The GN/C++ Blink backend and the SP2 experiments stay in the archived
+[Open UI repository](https://github.com/zhuowcui/open-ui); they are not part
+of Div.
+
+## Getting started
+
+1. Fork and clone the repository.
+2. Install the prerequisites in [the development guide](docs/DEVELOPMENT.md).
+3. Create a focused branch from the latest `main`; alpha tracks work in their
+   own worktree, as described in [workspace instructions](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/AGENTS.md).
+4. Build and test the locked Rust workspace.
+
+```bash
+cargo build --workspace --locked
+cargo test --workspace --locked
+```
+
+Headless builds are the default. Use the `linux` feature when changing the
+native X11/Wayland runtime. A Chromium checkout is not required for supported
+builds or release artifacts.
+
+## Code and API rules
+
+- Format Rust with `cargo fmt`; run Clippy for changed packages.
+- Keep every public crate and internal dependency on the coordinated v0.2
+  version declared by the workspace.
+- Treat `div-style` as the only public source of style value definitions.
+- Do not add runtime property-name or CSS-value string setters.
+- Keep window-system dependencies behind Cargo features so headless consumers
+  do not acquire Linux display dependencies.
+- Document the safety contract for every unsafe block and FFI entry point, and
+  add negative tests for malformed inputs.
+- Preserve single-thread affinity for mutable engine state. Only immutable
+  scene snapshots may cross to the compositor thread.
+
+The generated C header is C11-compatible. Public symbols use the `divui_`
+prefix, opaque types use the `Oui` prefix, and exported functions return
+`DivUiStatus`. New public structs require `struct_size` and `abi_version`; UTF-8
+inputs are length-delimited.
+
+## Generated files
+
+Never hand-edit generated style, ABI, migration, or closure artifacts. Change
+their schema/source and rerun the corresponding generator. Verification must
+be read-only and deterministic.
+
+```bash
+python3 tools/style/generate_properties.py --check
+python3 tools/ffi/generate_ffi.py --check
+python3 tools/release/generate_v02_contract.py --check
+python3 tools/wpt/generate_sp20_closure.py --check
+```
+
+## Correctness and release gates
+
+Behavior changes need proportionate Rust, C ABI, conformance, and compile-fail
+coverage. Rendering changes must pass the frozen 5,731-case exact replay with
+zero tolerance. Do not introduce test-ID branches, reference substitution,
+synthetic geometry, hidden fallbacks, network access, or unclassified
+exclusions.
+
+At minimum, run the relevant package tests and:
+
+```bash
+python3 tools/release/build_v02_linux.py --verify-source
+python3 tools/ffi/verify_abi.py
+python3 tools/accountability/audit.py
+git diff --check
+```
+
+See [the CI contract](docs/CI.md) for the hosted matrix, scheduled hardening,
+and release proof. Performance and accessibility regressions in required
+scenarios are release blockers.
+
+## Pull requests and commits
+
+- Keep `main` as the authoritative experimental implementation. Integrate
+  and verify useful experiment changes in your track's checkout; do not leave
+  implementation work in side checkouts for the reviewer to merge. See [workspace
+  instructions](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/AGENTS.md) and the [17 October checkpoint](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/branch-checkpoint-2026-10-17.md).
+- Keep each change logically scoped and include tests for behavior changes.
+- Use one PR at a time per track, targeting `main`. Rebase it on the latest
+  `main` and merge it on green CI before starting the track's next task; do
+  not create PR stacks. A PR may skip the rebase only when `main` gained
+  nothing but changes to paths it cannot interact with; see the exception in
+  [AGENTS.md](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/AGENTS.md). Record failing checks honestly, including
+  any failures explicitly accepted for an experimental integration. Such an
+  integration does not waive renderer or release qualification.
+- Update API, migration, and unsupported-feature documentation together.
+- Record significant design decisions in `docs/adr/` using the template.
+- Use a concise component-oriented subject such as
+  `engine: invalidate intrinsic sizes after text mutation`.
+- Do not include build outputs or release credentials.
+
+Issue reports should include the OS and architecture, Rust/compiler versions,
+selected backend, a minimal reproduction, and screenshots or traces for visual
+and interaction failures.

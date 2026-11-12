@@ -1,0 +1,16 @@
+[package]
+name = "div-dom"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "Arena-backed native document tree for the Div renderer"
+
+[dependencies]
+div-style = { version = "=0.2.0", path = "../div-style" }
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+div-text = { version = "=0.2.0", path = "../div-text" }

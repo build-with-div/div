@@ -1,0 +1,198 @@
+{
+  "abi_version": "0x00020000",
+  "pointer_width": 64,
+  "types": {
+    "DivUiAccessibilityNodeInfo": {
+      "align": 8,
+      "size": 120
+    },
+    "DivUiAccessibilityNodeState": {
+      "align": 8,
+      "size": 112
+    },
+    "DivUiAccessibilityScrollInfoV1": {
+      "align": 8,
+      "size": 64
+    },
+    "DivUiAccessibilitySnapshotInfo": {
+      "align": 8,
+      "size": 56
+    },
+    "DivUiAccessibilityUpdate": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiAnimationAttachmentRangeV1": {
+      "align": 8,
+      "size": 80
+    },
+    "DivUiAnimationAttachmentSnapshotV1": {
+      "align": 8,
+      "size": 248
+    },
+    "DivUiAnimationEvent": {
+      "align": 8,
+      "size": 48
+    },
+    "DivUiAnimationOptions": {
+      "align": 8,
+      "size": 104
+    },
+    "DivUiAnimationOptionsV1": {
+      "align": 8,
+      "size": 64
+    },
+    "DivUiAnimationState": {
+      "align": 8,
+      "size": 48
+    },
+    "DivUiAnimationTimeline": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiAnimationTimelineSnapshotV1": {
+      "align": 8,
+      "size": 96
+    },
+    "DivUiAnimationTimelineSourceV1": {
+      "align": 8,
+      "size": 80
+    },
+    "DivUiAppConfig": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiAppRunConfig": {
+      "align": 8,
+      "size": 32
+    },
+    "DivUiBitmap": {
+      "align": 8,
+      "size": 32
+    },
+    "DivUiColor": {
+      "align": 1,
+      "size": 4
+    },
+    "DivUiDocumentConfig": {
+      "align": 8,
+      "size": 48
+    },
+    "DivUiEasing": {
+      "align": 8,
+      "size": 48
+    },
+    "DivUiEasingCurveV1": {
+      "align": 8,
+      "size": 80
+    },
+    "DivUiEditCommandV1": {
+      "align": 4,
+      "size": 32
+    },
+    "DivUiErrorInfo": {
+      "align": 8,
+      "size": 24
+    },
+    "DivUiEvent": {
+      "align": 8,
+      "size": 88
+    },
+    "DivUiEventPropertiesV1": {
+      "align": 4,
+      "size": 16
+    },
+    "DivUiFocusEventInfoV1": {
+      "align": 8,
+      "size": 24
+    },
+    "DivUiFontFaceDescriptor": {
+      "align": 8,
+      "size": 112
+    },
+    "DivUiFontFaceInfo": {
+      "align": 8,
+      "size": 152
+    },
+    "DivUiFontFeatureDefault": {
+      "align": 4,
+      "size": 8
+    },
+    "DivUiFontUnicodeRange": {
+      "align": 4,
+      "size": 8
+    },
+    "DivUiInputEventInfoV1": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiKeyframe": {
+      "align": 8,
+      "size": 80
+    },
+    "DivUiKeyframeV1": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiLength": {
+      "align": 4,
+      "size": 8
+    },
+    "DivUiLinearStopV1": {
+      "align": 8,
+      "size": 16
+    },
+    "DivUiPlatformEvent": {
+      "align": 8,
+      "size": 152
+    },
+    "DivUiRadiusAxisLengthV1": {
+      "align": 4,
+      "size": 24
+    },
+    "DivUiRect": {
+      "align": 4,
+      "size": 16
+    },
+    "DivUiScrollButtonStateV1": {
+      "align": 8,
+      "size": 56
+    },
+    "DivUiScrollMetricsV1": {
+      "align": 8,
+      "size": 40
+    },
+    "DivUiStylePayload": {
+      "align": 8,
+      "size": 8
+    },
+    "DivUiStyleValue": {
+      "align": 8,
+      "size": 16
+    },
+    "DivUiTimelineLengthV1": {
+      "align": 8,
+      "size": 24
+    },
+    "DivUiTimelineRangeBoundsV1": {
+      "align": 8,
+      "size": 16
+    },
+    "DivUiTimelineRangeOffsetV1": {
+      "align": 8,
+      "size": 32
+    },
+    "DivUiTransformOperation": {
+      "align": 4,
+      "size": 48
+    },
+    "DivUiUtf8": {
+      "align": 8,
+      "size": 16
+    },
+    "DivUiViewportMetrics": {
+      "align": 8,
+      "size": 40
+    }
+  }
+}

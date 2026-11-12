@@ -1,0 +1,22 @@
+[package]
+name = "div-engine"
+version.workspace = true
+edition.workspace = true
+description = "Retained document, interaction, and scene engine for Div"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+accesskit = "=0.25.0"
+div-compositor = { version = "=0.2.0", path = "../div-compositor" }
+div-dom = { version = "=0.2.0", path = "../div-dom" }
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
+div-layout = { version = "=0.2.0", path = "../div-layout" }
+div-paint = { version = "=0.2.0", path = "../div-paint" }
+div-style = { version = "=0.2.0", path = "../div-style" }
+div-text = { version = "=0.2.0", path = "../div-text" }
+unicode-segmentation = "1.10"

@@ -1,0 +1,106 @@
+cmake_minimum_required(VERSION 3.16)
+project(DivUiV02Examples LANGUAGES C CXX)
+
+find_package(DivUi 0.2 CONFIG REQUIRED)
+
+foreach(example IN ITEMS hello counter todo dashboard accessibility geometry scroll_metrics native_scroll_gutters scroll_into_view primitive_styles svg_viewport float_colors fragment_keywords font_units text_content edit_commands focus_notifications form_owner form_owner_guards control_keyboard control_keyboard_guards)
+  add_executable(divui_${example} ${example}.c)
+  target_link_libraries(divui_${example} PRIVATE DivUi::DivUi)
+endforeach()
+
+add_executable(divui_property_removal property_removal.c)
+target_link_libraries(divui_property_removal PRIVATE DivUi::DivUi)
+set_target_properties(divui_property_removal PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+add_executable(divui_property_removal_cpp property_removal.cc)
+target_link_libraries(divui_property_removal_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_property_removal_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_header_smoke header_smoke.cc)
+target_link_libraries(divui_header_smoke PRIVATE DivUi::DivUi)
+
+add_executable(divui_scroll_metrics_cpp scroll_metrics.cc)
+target_link_libraries(divui_scroll_metrics_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_scroll_metrics_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_primitive_styles_cpp primitive_styles.cc)
+target_link_libraries(divui_primitive_styles_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_primitive_styles_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_svg_viewport_cpp svg_viewport.cc)
+target_link_libraries(divui_svg_viewport_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_svg_viewport_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_float_colors_cpp float_colors.cc)
+target_link_libraries(divui_float_colors_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_float_colors_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_fragment_keywords_cpp fragment_keywords.cc)
+target_link_libraries(divui_fragment_keywords_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_fragment_keywords_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_text_content_cpp text_content.cc)
+target_link_libraries(divui_text_content_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_text_content_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_native_c native/window.c)
+target_link_libraries(divui_native_c PRIVATE DivUi::DivUi)
+add_executable(divui_native_cpp native/window.cc)
+target_link_libraries(divui_native_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_native_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_edit_commands_cpp edit_commands.cc)
+target_link_libraries(divui_edit_commands_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_edit_commands_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_focus_notifications_cpp focus_notifications.cc)
+target_link_libraries(divui_focus_notifications_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_focus_notifications_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+foreach(example IN ITEMS form_owner form_owner_guards control_keyboard control_keyboard_guards font_units)
+  add_executable(divui_${example}_cpp ${example}.cc)
+  target_link_libraries(divui_${example}_cpp PRIVATE DivUi::DivUi)
+  set_target_properties(divui_${example}_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+endforeach()
+
+add_executable(divui_native_scroll_gutters_cpp native_scroll_gutters.cc)
+target_link_libraries(divui_native_scroll_gutters_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_native_scroll_gutters_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_easing_curves easing_curves.c)
+target_link_libraries(divui_easing_curves PRIVATE DivUi::DivUi)
+set_target_properties(divui_easing_curves PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+add_executable(divui_easing_curves_cpp easing_curves.cc)
+target_link_libraries(divui_easing_curves_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_easing_curves_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+add_executable(divui_named_timelines named_timelines.c)
+target_link_libraries(divui_named_timelines PRIVATE DivUi::DivUi)
+set_target_properties(divui_named_timelines PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+add_executable(divui_named_timelines_cpp named_timelines.cc)
+target_link_libraries(divui_named_timelines_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_named_timelines_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+
+foreach(example IN ITEMS accessibility_scroll accessibility_scroll_info)
+  add_executable(divui_${example} ${example}.c)
+  target_link_libraries(divui_${example} PRIVATE DivUi::DivUi)
+  set_target_properties(divui_${example} PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+  add_executable(divui_${example}_cpp ${example}.cc)
+  target_link_libraries(divui_${example}_cpp PRIVATE DivUi::DivUi)
+  set_target_properties(divui_${example}_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+endforeach()
+
+foreach(example IN ITEMS native_radius_axes)
+  add_executable(divui_${example} ${example}.c)
+  target_link_libraries(divui_${example} PRIVATE DivUi::DivUi)
+  set_target_properties(divui_${example} PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+  add_executable(divui_${example}_cpp ${example}.cc)
+  target_link_libraries(divui_${example}_cpp PRIVATE DivUi::DivUi)
+  set_target_properties(divui_${example}_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+endforeach()
+
+add_executable(divui_timeline_reassignment timeline_reassignment.c)
+target_link_libraries(divui_timeline_reassignment PRIVATE DivUi::DivUi)
+set_target_properties(divui_timeline_reassignment PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+add_executable(divui_timeline_reassignment_cpp timeline_reassignment.cc)
+target_link_libraries(divui_timeline_reassignment_cpp PRIVATE DivUi::DivUi)
+set_target_properties(divui_timeline_reassignment_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)

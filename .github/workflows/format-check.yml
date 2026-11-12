@@ -1,0 +1,41 @@
+name: Format Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: format-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install clang-format
+        run: python3 -m pip install clang-format==18.1.8
+
+      - name: Check tracked C and C++ formatting
+        run: |
+          # Generated ABI/style headers are verified against their generators
+          # in python-accountability; formatting them here would make those
+          # byte-for-byte generator checks fail.
+          find include examples/c -type f \
+            \( -name '*.cc' -o -name '*.h' -o -name '*.c' \) \
+            ! -path 'include/divui.h' \
+            ! -path 'include/divui_style_properties.h' \
+            -print0 | sort -z | \
+            xargs -0 --no-run-if-empty clang-format --dry-run --Werror
+

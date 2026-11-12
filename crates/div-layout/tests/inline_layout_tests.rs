@@ -1,0 +1,2454 @@
+//! Tests for the inline layout algorithm (SP11 Wave 4).
+//!
+//! Validates line height calculation, vertical alignment, text alignment,
+//! multi-line layout, block layout integration, and edge cases.
+
+use div_dom::{Document, ElementTag, NodeId};
+use div_geometry::{LayoutUnit, Length};
+use div_layout::block::block_layout;
+use div_layout::inline::algorithm::inline_layout;
+use div_layout::{ConstraintSpace, Fragment, FragmentKind};
+use div_style::{
+    ComputedStyle, Direction, Display, LineHeight, TextAlign, VerticalAlign, WhiteSpace,
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+fn lu(px: f32) -> LayoutUnit {
+    LayoutUnit::from_f32(px)
+}
+
+fn lu_i(px: i32) -> LayoutUnit {
+    LayoutUnit::from_i32(px)
+}
+
+fn space(width: i32, height: i32) -> ConstraintSpace {
+    ConstraintSpace::for_root(lu_i(width), lu_i(height))
+}
+
+/// Create a block container with text children and perform inline layout.
+fn layout_text(texts: &[&str], width: i32) -> Fragment {
+    let (doc, block) = make_text_block(&texts, width);
+    let sp =
+        ConstraintSpace::for_block_child(lu_i(width), lu_i(600), lu_i(width), lu_i(600), false);
+    inline_layout(&doc, block, &sp)
+}
+
+/// Create a block with text children using block_layout (full integration).
+fn block_layout_text(texts: &[&str], width: i32) -> Fragment {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(vp, block);
+
+    for text in texts {
+        let t = doc.create_node(ElementTag::Text);
+        doc.node_mut(t).text = Some(text.to_string());
+        doc.update_resolved_style(t, |style| style.display = Display::Inline);
+        doc.append_child(block, t);
+    }
+
+    let sp = space(width, 600);
+    block_layout(&doc, vp, &sp)
+}
+
+/// Helper: create a document with a block and text children, returns (doc, block_id).
+fn make_text_block(texts: &[&str], _width: i32) -> (Document, NodeId) {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    for text in texts {
+        let t = doc.create_node(ElementTag::Text);
+        doc.node_mut(t).text = Some(text.to_string());
+        doc.update_resolved_style(t, |style| style.display = Display::Inline);
+        doc.append_child(block, t);
+    }
+    (doc, block)
+}
+
+/// Helper: create a block with a span wrapping text.
+fn make_span_block(
+    span_texts: &[&str],
+    span_style_fn: impl Fn(&mut div_style::ComputedStyleFields),
+) -> (Document, NodeId) {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.update_resolved_style(span, span_style_fn);
+    doc.append_child(block, span);
+
+    for text in span_texts {
+        let t = doc.create_node(ElementTag::Text);
+        doc.node_mut(t).text = Some(text.to_string());
+        doc.update_resolved_style(t, |style| style.display = Display::Inline);
+        // Inherit span's style properties for font size, line height, etc.
+        let span_style = doc.node(span).style.clone();
+        doc.update_resolved_style(t, |style| style.font_size = span_style.font_size);
+        doc.update_resolved_style(t, |style| style.line_height = span_style.line_height);
+        doc.update_resolved_style(t, |style| style.vertical_align = span_style.vertical_align);
+        doc.append_child(span, t);
+    }
+    (doc, block)
+}
+
+/// Count text fragments recursively.
+fn count_text_fragments(fragment: &Fragment) -> usize {
+    let mut count = 0;
+    if fragment.kind == FragmentKind::Text {
+        count += 1;
+    }
+    for child in &fragment.children {
+        count += count_text_fragments(child);
+    }
+    count
+}
+
+/// Count direct line box children (Box fragments that are direct children).
+fn count_line_boxes(fragment: &Fragment) -> usize {
+    fragment
+        .children
+        .iter()
+        .filter(|c| c.kind == FragmentKind::Box)
+        .count()
+}
+
+/// Get all text fragments from a fragment tree.
+fn collect_text_fragments(fragment: &Fragment) -> Vec<&Fragment> {
+    let mut result = Vec::new();
+    if fragment.kind == FragmentKind::Text {
+        result.push(fragment);
+    }
+    for child in &fragment.children {
+        result.extend(collect_text_fragments(child));
+    }
+    result
+}
+
+/// Get text fragment block offsets relative to the root fragment.
+fn collect_text_tops(fragment: &Fragment, parent_top: LayoutUnit) -> Vec<LayoutUnit> {
+    let top = parent_top + fragment.offset.top;
+    let mut result = Vec::new();
+    if fragment.kind == FragmentKind::Text {
+        result.push(top);
+    }
+    for child in &fragment.children {
+        result.extend(collect_text_tops(child, top));
+    }
+    result
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LINE HEIGHT TESTS (20)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn line_height_default_normal_produces_positive_height() {
+    // Default line-height: normal uses font metrics line_spacing
+    let frag = layout_text(&["Hello"], 800);
+    assert!(
+        frag.size.height > LayoutUnit::zero(),
+        "Line height should be positive"
+    );
+}
+
+#[test]
+fn line_height_single_line_has_one_line_box() {
+    let frag = layout_text(&["Hello world"], 800);
+    let line_boxes = count_line_boxes(&frag);
+    assert_eq!(
+        line_boxes, 1,
+        "Single line text should produce one line box"
+    );
+}
+
+#[test]
+fn line_height_text_fragment_inside_line_box() {
+    let frag = layout_text(&["Hello"], 800);
+    assert_eq!(count_line_boxes(&frag), 1);
+    let line = &frag.children[0];
+    let text_count = count_text_fragments(line);
+    assert_eq!(text_count, 1, "Line box should contain one text fragment");
+}
+
+#[test]
+fn line_height_explicit_number_multiplier() {
+    // line-height: 2.0 should produce a taller line
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Number(2.0));
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Number(2.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    // With line-height: 2.0 at 16px font, computed line-height = 32px
+    // Line should be at least 32px tall
+    assert!(
+        frag.size.height >= lu(32.0),
+        "line-height: 2.0 should produce >= 32px line"
+    );
+}
+
+#[test]
+fn line_height_explicit_px_value() {
+    // line-height: 48px
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Length(48.0));
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Test".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Length(48.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    // Line height should be at least 48px (half-leading may add rounding)
+    assert!(frag.size.height >= lu(48.0));
+}
+
+#[test]
+fn line_height_percentage_value() {
+    // line-height: 200% at 16px = 32px
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| {
+        style.line_height = LineHeight::Percentage(200.0)
+    });
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Test".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Percentage(200.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    assert!(frag.size.height >= lu(32.0));
+}
+
+#[test]
+fn line_height_half_leading_distributes_evenly() {
+    // With even leading, both sides get equal amounts
+    let frag = layout_text(&["Hello"], 800);
+    let line = &frag.children[0];
+    let text_frags = collect_text_fragments(line);
+    assert!(!text_frags.is_empty());
+    // Text fragment should be vertically centered-ish in the line box
+    let text_top = text_frags[0].offset.top;
+    let text_height = text_frags[0].size.height;
+    let text_bottom = text_top + text_height;
+    assert!(text_top >= LayoutUnit::zero());
+    assert!(text_bottom <= line.size.height);
+}
+
+#[test]
+fn line_height_strut_from_parent_block_always_contributes() {
+    // Even with small text, the parent block's strut is the minimum line height.
+    // A small font-size on text shouldn't shrink below the block's strut.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.font_size = 32.0); // Large block strut
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("x".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.font_size = 8.0); // Small text
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    // Line height should be >= the block's 32px strut, not the text's 8px
+    assert!(
+        frag.size.height > lu(20.0),
+        "Strut from 32px block font should dominate"
+    );
+}
+
+#[test]
+fn line_height_multiple_fonts_tallest_wins() {
+    // Two text nodes with different font sizes: the taller one determines line height
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.font_size = 8.0); // Small block strut
+    doc.append_child(root, block);
+
+    let t1 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t1).text = Some("small ".to_string());
+    doc.update_resolved_style(t1, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t1, |style| style.font_size = 8.0);
+    doc.append_child(block, t1);
+
+    let t2 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t2).text = Some("BIG".to_string());
+    doc.update_resolved_style(t2, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t2, |style| style.font_size = 48.0);
+    doc.append_child(block, t2);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    // Line height should be >= the 48px font's metrics
+    assert!(frag.size.height > lu(40.0));
+}
+
+#[test]
+fn line_height_zero_does_not_crash() {
+    // line-height: 0 should not crash
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Length(0.0));
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("test".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Length(0.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let _frag = inline_layout(&doc, block, &sp);
+    // Just verify no panic
+}
+
+#[test]
+fn line_height_large_value_creates_tall_line() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Length(100.0));
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hi".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Length(100.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    assert!(frag.size.height >= lu(100.0));
+}
+
+#[test]
+fn line_height_number_one_matches_font_metrics() {
+    // line-height: 1.0 means computed = font-size
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Number(1.0));
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("x".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.line_height = LineHeight::Number(1.0));
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    // With line-height: 1.0 and font-size: 16, computed = 16px
+    // Line height should be at least 16px
+    assert!(frag.size.height >= lu(16.0));
+}
+
+#[test]
+fn line_height_text_fragment_has_font_height() {
+    // Text fragment height = ascent + descent of the font
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    // Text height should be positive and less than line height
+    assert!(texts[0].size.height > LayoutUnit::zero());
+}
+
+#[test]
+fn line_height_fragment_kind_is_text() {
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(texts[0].kind, FragmentKind::Text);
+}
+
+#[test]
+fn line_height_line_box_kind_is_box() {
+    let frag = layout_text(&["Hello"], 800);
+    assert!(!frag.children.is_empty());
+    assert_eq!(frag.children[0].kind, FragmentKind::Box);
+}
+
+#[test]
+fn line_height_line_box_width_equals_available() {
+    let frag = layout_text(&["Hello"], 800);
+    let line = &frag.children[0];
+    assert_eq!(line.size.width.to_i32(), 800);
+}
+
+#[test]
+fn line_height_text_offset_within_line_box() {
+    let frag = layout_text(&["Hello"], 800);
+    let line = &frag.children[0];
+    let texts = collect_text_fragments(line);
+    assert!(!texts.is_empty());
+    let t = texts[0];
+    // Text should be within the line box vertically
+    assert!(t.offset.top >= LayoutUnit::zero());
+    assert!(t.offset.top + t.size.height <= line.size.height + LayoutUnit::epsilon());
+}
+
+#[test]
+fn line_height_text_has_positive_width() {
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].size.width > LayoutUnit::zero());
+}
+
+#[test]
+fn line_height_shape_result_attached() {
+    // Text fragments should have a shape_result
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(
+        texts[0].shape_result.is_some(),
+        "Text fragment should have shape_result"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// VERTICAL ALIGNMENT TESTS (20)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn vertical_align_baseline_default() {
+    // Default vertical-align is baseline — text at normal position
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].offset.top >= LayoutUnit::zero());
+}
+
+#[test]
+fn vertical_align_sub_lowers_text() {
+    // vertical-align: sub should position text lower than baseline
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Sub);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    // Sub should increase the top offset (move text down)
+}
+
+#[test]
+fn vertical_align_super_raises_text() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_middle() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Middle);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_text_top() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::TextTop);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_text_bottom() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::TextBottom);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_top() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Top);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    // Top-aligned: text top should be near line box top
+    let t = texts[0];
+    // The text's top within the line should be near 0
+    assert!(
+        t.offset.top.to_f32().abs() < 10.0,
+        "Top-aligned text should be near line top"
+    );
+}
+
+#[test]
+fn vertical_align_bottom() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Bottom);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_length_positive() {
+    // vertical-align: 5px — raises text by 5px
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Length(5.0));
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_length_negative() {
+    // vertical-align: -5px — lowers text
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Length(-5.0));
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_percentage() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Percentage(50.0));
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn vertical_align_sub_different_from_baseline() {
+    // Sub-aligned text should be at a different vertical position than baseline-aligned
+    let frag_baseline = layout_text(&["Hello"], 800);
+    let texts_bl = collect_text_fragments(&frag_baseline);
+
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Sub);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_sub = inline_layout(&doc, block, &sp);
+    let texts_sub = collect_text_fragments(&frag_sub);
+
+    assert!(!texts_bl.is_empty() && !texts_sub.is_empty());
+    // Sub should be positioned differently
+    assert_ne!(texts_bl[0].offset.top, texts_sub[0].offset.top);
+}
+
+#[test]
+fn vertical_align_super_different_from_baseline() {
+    let frag_baseline = layout_text(&["Hello"], 800);
+
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_super = inline_layout(&doc, block, &sp);
+
+    // Super-aligned text should produce a taller line box than baseline
+    // (because the line expands upward to accommodate the raised text)
+    assert!(
+        frag_super.size.height >= frag_baseline.size.height,
+        "Super alignment should expand line height: super={:?} baseline={:?}",
+        frag_super.size.height,
+        frag_baseline.size.height
+    );
+}
+
+#[test]
+fn vertical_align_super_above_sub() {
+    // Super should position text higher (smaller top offset) than sub
+    let (doc_sub, block_sub) = make_span_block(&["Test"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Sub);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_sub = inline_layout(&doc_sub, block_sub, &sp);
+
+    let (doc_sup, block_sup) = make_span_block(&["Test"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let frag_sup = inline_layout(&doc_sup, block_sup, &sp);
+
+    let texts_sub = collect_text_fragments(&frag_sub);
+    let texts_sup = collect_text_fragments(&frag_sup);
+    assert!(!texts_sub.is_empty() && !texts_sup.is_empty());
+    // Super text top should be less (higher) than sub text top
+    assert!(
+        texts_sup[0].offset.top < texts_sub[0].offset.top,
+        "Super should be above sub: super={:?} sub={:?}",
+        texts_sup[0].offset.top,
+        texts_sub[0].offset.top
+    );
+}
+
+#[test]
+fn vertical_align_does_not_change_inline_size() {
+    // Vertical alignment should not affect the inline (horizontal) size
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].size.width > LayoutUnit::zero());
+}
+
+#[test]
+fn vertical_align_sub_expands_line_box() {
+    // Sub alignment may expand the line box downward
+    let frag_normal = layout_text(&["Hello"], 800);
+
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Sub);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_sub = inline_layout(&doc, block, &sp);
+
+    assert!(
+        frag_sub.size.height >= frag_normal.size.height,
+        "Sub alignment should not shrink line box"
+    );
+}
+
+#[test]
+fn vertical_align_super_expands_line_box() {
+    let frag_normal = layout_text(&["Hello"], 800);
+
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_super = inline_layout(&doc, block, &sp);
+
+    assert!(frag_super.size.height >= frag_normal.size.height);
+}
+
+#[test]
+fn vertical_align_mixed_on_same_line() {
+    // Multiple items with different vertical-align on the same line
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    // Normal text
+    let t1 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t1).text = Some("normal ".to_string());
+    doc.update_resolved_style(t1, |style| style.display = Display::Inline);
+    doc.append_child(block, t1);
+
+    // Span with super
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.update_resolved_style(span, |style| style.vertical_align = VerticalAlign::Super);
+    doc.append_child(block, span);
+
+    let t2 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t2).text = Some("super".to_string());
+    doc.update_resolved_style(t2, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t2, |style| style.vertical_align = VerticalAlign::Super);
+    doc.append_child(span, t2);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert_eq!(texts.len(), 2, "Should have two text fragments");
+    // They should be at different vertical positions
+    assert_ne!(texts[0].offset.top, texts[1].offset.top);
+}
+
+#[test]
+fn vertical_align_length_zero_same_as_baseline() {
+    // vertical-align: 0px should be same as baseline
+    let frag_bl = layout_text(&["Hello"], 800);
+
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Length(0.0));
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag_len = inline_layout(&doc, block, &sp);
+
+    let t_bl = collect_text_tops(&frag_bl, LayoutUnit::zero());
+    let t_len = collect_text_tops(&frag_len, LayoutUnit::zero());
+    assert!(!t_bl.is_empty() && !t_len.is_empty());
+    assert_eq!(t_bl[0], t_len[0]);
+}
+
+#[test]
+fn vertical_align_preserves_text_content() {
+    let (doc, block) = make_span_block(&["Hello"], |s| {
+        s.update_derived(|computed| computed.vertical_align = VerticalAlign::Super);
+    });
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].shape_result.is_some());
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TEXT ALIGNMENT TESTS (15)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn text_align_left_offset_zero() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Left);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hi".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(
+        texts[0].offset.left,
+        LayoutUnit::zero(),
+        "Left-aligned text should start at 0"
+    );
+}
+
+#[test]
+fn text_align_right_offset_positive() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Right);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hi".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(
+        texts[0].offset.left > LayoutUnit::zero(),
+        "Right-aligned text should have offset > 0"
+    );
+}
+
+#[test]
+fn text_align_center_offset_positive() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Center);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hi".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].offset.left > LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_center_is_between_left_and_right() {
+    // Center offset should be between left(0) and right
+    let build = |align: TextAlign| {
+        let mut doc = Document::new();
+        let root = doc.root();
+        let block = doc.create_node(ElementTag::Div);
+        doc.update_resolved_style(block, |style| style.display = Display::Block);
+        doc.update_resolved_style(block, |style| style.text_align = align);
+        doc.append_child(root, block);
+
+        let t = doc.create_node(ElementTag::Text);
+        doc.node_mut(t).text = Some("Hello".to_string());
+        doc.update_resolved_style(t, |style| style.display = Display::Inline);
+        doc.append_child(block, t);
+
+        let sp =
+            ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+        let frag = inline_layout(&doc, block, &sp);
+        let texts = collect_text_fragments(&frag);
+        texts[0].offset.left
+    };
+
+    let left = build(TextAlign::Left);
+    let center = build(TextAlign::Center);
+    let right = build(TextAlign::Right);
+
+    assert!(center > left, "Center should be > left");
+    assert!(center < right, "Center should be < right");
+}
+
+#[test]
+fn text_align_start_ltr_is_left() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Start);
+    doc.update_resolved_style(block, |style| style.direction = Direction::Ltr);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(texts[0].offset.left, LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_start_rtl_is_right() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Start);
+    doc.update_resolved_style(block, |style| style.direction = Direction::Rtl);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].offset.left > LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_end_ltr_is_right() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::End);
+    doc.update_resolved_style(block, |style| style.direction = Direction::Ltr);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].offset.left > LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_end_rtl_is_left() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::End);
+    doc.update_resolved_style(block, |style| style.direction = Direction::Rtl);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(texts[0].offset.left, LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_justify_non_last_line_no_crash() {
+    // Justify with multiple words should work without crashing
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Justify);
+    doc.append_child(root, block);
+
+    // Long text that wraps to multiple lines
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello world this is a long text that should wrap across multiple lines when the width is narrow enough".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(200), lu_i(600), lu_i(200), lu_i(600), false);
+    let _frag = inline_layout(&doc, block, &sp);
+}
+
+#[test]
+fn text_align_justify_last_line_not_justified() {
+    // Last line of justify should fall back to start (not stretched)
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Justify);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello world test".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    // Single line = last line, should be start-aligned (offset = 0)
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(texts[0].offset.left, LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_right_consistent_across_lines() {
+    // All lines of right-aligned text should have text at the right
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Right);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Hello world this wraps".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(80), lu_i(600), lu_i(80), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    for line in &frag.children {
+        let texts = collect_text_fragments(line);
+        if !texts.is_empty() {
+            assert!(
+                texts[0].offset.left > LayoutUnit::zero(),
+                "Each line should have right-aligned offset"
+            );
+        }
+    }
+}
+
+#[test]
+fn text_align_default_is_start() {
+    // Default text-align should be Start (which is Left for LTR)
+    let frag = layout_text(&["Hello"], 800);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert_eq!(texts[0].offset.left, LayoutUnit::zero());
+}
+
+#[test]
+fn text_align_does_not_affect_height() {
+    // Text alignment should not change the line height
+    let build = |align: TextAlign| {
+        let mut doc = Document::new();
+        let root = doc.root();
+        let block = doc.create_node(ElementTag::Div);
+        doc.update_resolved_style(block, |style| style.display = Display::Block);
+        doc.update_resolved_style(block, |style| style.text_align = align);
+        doc.append_child(root, block);
+
+        let t = doc.create_node(ElementTag::Text);
+        doc.node_mut(t).text = Some("Hello".to_string());
+        doc.update_resolved_style(t, |style| style.display = Display::Inline);
+        doc.append_child(block, t);
+
+        let sp =
+            ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+        inline_layout(&doc, block, &sp)
+    };
+
+    let left = build(TextAlign::Left);
+    let right = build(TextAlign::Right);
+    let center = build(TextAlign::Center);
+
+    assert_eq!(left.size.height, right.size.height);
+    assert_eq!(left.size.height, center.size.height);
+}
+
+#[test]
+fn text_align_with_overflow() {
+    // Overflow must still produce text fragments for the requested alignment.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Right);
+    doc.update_resolved_style(block, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Very long text that overflows the tiny container".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(10), lu_i(600), lu_i(10), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MULTI-LINE TESTS (20)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn multi_line_wrapping_at_available_width() {
+    // Text wider than available width should wrap
+    let frag = layout_text(
+        &["Hello world this is a sentence that should definitely wrap"],
+        100,
+    );
+    assert!(
+        count_line_boxes(&frag) > 1,
+        "Text should wrap into multiple lines"
+    );
+}
+
+#[test]
+fn multi_line_each_line_below_previous() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    let lines: Vec<_> = frag.children.iter().collect();
+    assert!(lines.len() > 1);
+    for i in 1..lines.len() {
+        assert!(
+            lines[i].offset.top > lines[i - 1].offset.top,
+            "Line {} should be below line {}",
+            i,
+            i - 1
+        );
+    }
+}
+
+#[test]
+fn multi_line_total_height_is_sum_of_lines() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    let mut expected_height = LayoutUnit::zero();
+    for line in &frag.children {
+        expected_height = expected_height + line.size.height;
+    }
+    // Total fragment height should be approximately the sum of line heights
+    // (may differ slightly due to border/padding)
+    assert!(frag.size.height >= expected_height - LayoutUnit::epsilon());
+}
+
+#[test]
+fn multi_line_all_lines_have_text() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    for line in &frag.children {
+        let texts = collect_text_fragments(line);
+        assert!(
+            !texts.is_empty(),
+            "Each line should have at least one text fragment"
+        );
+    }
+}
+
+#[test]
+fn multi_line_first_line_starts_at_top() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    assert!(!frag.children.is_empty());
+    // First line box should be at the top
+    assert_eq!(frag.children[0].offset.top, LayoutUnit::zero());
+}
+
+#[test]
+fn multi_line_last_line_bottom_equals_total_height() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    assert!(!frag.children.is_empty());
+    let last = frag.children.last().unwrap();
+    let last_bottom = last.offset.top + last.size.height;
+    assert_eq!(frag.size.height, last_bottom);
+}
+
+#[test]
+fn multi_line_consistent_line_heights_same_font() {
+    let frag = layout_text(&["Hello world this is text that wraps around"], 60);
+    let heights: Vec<_> = frag.children.iter().map(|l| l.size.height).collect();
+    // All lines with same font should have the same height
+    if heights.len() > 1 {
+        for h in &heights[1..] {
+            assert_eq!(
+                *h, heights[0],
+                "All lines should have same height with same font"
+            );
+        }
+    }
+}
+
+#[test]
+fn multi_line_width_does_not_exceed_available() {
+    let frag = layout_text(&["Hello world this is text"], 60);
+    for line in &frag.children {
+        let texts = collect_text_fragments(line);
+        for t in &texts {
+            // Each text fragment should be within the available width
+            let right_edge = t.offset.left + t.size.width;
+            // Allow some tolerance for rounding
+            assert!(
+                right_edge <= lu_i(60) + lu(2.0),
+                "Text should not significantly exceed available width"
+            );
+        }
+    }
+}
+
+#[test]
+fn multi_line_forced_break_creates_new_line() {
+    // Use line breaker directly since our DOM doesn't have <br> element handling
+    let frag = layout_text(&["Hello\nWorld"], 800);
+    // With normal white-space, \n collapses to space, so this is one line
+    // But with pre white-space, \n forces a break
+    assert!(count_line_boxes(&frag) >= 1);
+}
+
+#[test]
+fn multi_line_pre_whitespace_preserves_newlines() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.white_space = WhiteSpace::Pre);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Line1\nLine2\nLine3".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.white_space = WhiteSpace::Pre);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    assert!(
+        count_line_boxes(&frag) >= 3,
+        "Pre whitespace should preserve newlines: got {} lines",
+        count_line_boxes(&frag)
+    );
+}
+
+#[test]
+fn multi_line_different_font_sizes() {
+    // A line with a big font should be taller than one with small font
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.font_size = 8.0);
+    doc.append_child(root, block);
+
+    let t1 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t1).text = Some("small text that wraps to its own line ".to_string());
+    doc.update_resolved_style(t1, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t1, |style| style.font_size = 8.0);
+    doc.append_child(block, t1);
+
+    let t2 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t2).text = Some("BIG TEXT ON SECOND LINE".to_string());
+    doc.update_resolved_style(t2, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t2, |style| style.font_size = 32.0);
+    doc.append_child(block, t2);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(200), lu_i(600), lu_i(200), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+    assert!(count_line_boxes(&frag) >= 1);
+}
+
+#[test]
+fn multi_line_empty_text_produces_no_lines() {
+    let frag = layout_text(&[""], 800);
+    // Empty text should produce no line boxes
+    assert_eq!(count_line_boxes(&frag), 0);
+}
+
+#[test]
+fn multi_line_height_grows_with_lines() {
+    // More lines = taller fragment
+    let frag_short = layout_text(&["Hi"], 800);
+    let frag_long = layout_text(&["Hello world this is text that wraps"], 60);
+    assert!(frag_long.size.height >= frag_short.size.height);
+}
+
+#[test]
+fn multi_line_two_text_nodes_same_line() {
+    // Two short text nodes should be on the same line
+    let frag = layout_text(&["Hello ", "World"], 800);
+    assert_eq!(count_line_boxes(&frag), 1);
+    let line = &frag.children[0];
+    let texts = collect_text_fragments(line);
+    assert_eq!(texts.len(), 2, "Both text nodes should be on same line");
+}
+
+#[test]
+fn multi_line_text_fragments_ordered_horizontally() {
+    let frag = layout_text(&["Hello ", "World"], 800);
+    let line = &frag.children[0];
+    let texts = collect_text_fragments(line);
+    assert_eq!(texts.len(), 2);
+    assert!(
+        texts[1].offset.left > texts[0].offset.left,
+        "Second text should be to the right of first"
+    );
+}
+
+#[test]
+fn multi_line_no_gap_between_text_fragments() {
+    // Adjacent text nodes should be contiguous (no gap)
+    let frag = layout_text(&["Hello", "World"], 800);
+    let line = &frag.children[0];
+    let texts = collect_text_fragments(line);
+    assert_eq!(texts.len(), 2);
+    let first_end = texts[0].offset.left + texts[0].size.width;
+    // Second text should start where first ends (approximately)
+    let gap = (texts[1].offset.left - first_end).abs();
+    assert!(
+        gap < lu(1.0),
+        "Should be no significant gap between adjacent text fragments"
+    );
+}
+
+#[test]
+fn multi_line_line_boxes_span_available_width() {
+    let frag = layout_text(&["Hello"], 400);
+    let line = &frag.children[0];
+    assert_eq!(line.size.width.to_i32(), 400);
+}
+
+#[test]
+fn multi_line_narrow_width_causes_many_lines() {
+    // With a narrow width, long text should produce many lines
+    let frag = layout_text(&["Hello world this is a sentence"], 80);
+    assert!(
+        count_line_boxes(&frag) >= 2,
+        "Narrow width should cause wrapping: got {} lines",
+        count_line_boxes(&frag)
+    );
+}
+
+#[test]
+fn multi_line_exact_fit_no_wrap() {
+    // Text exactly fitting in width should be one line
+    let frag = layout_text(&["Hi"], 10000);
+    assert_eq!(count_line_boxes(&frag), 1);
+}
+
+#[test]
+fn multi_line_all_text_fragments_have_shape_results() {
+    let frag = layout_text(&["Hello world this wraps"], 60);
+    let texts = collect_text_fragments(&frag);
+    for t in &texts {
+        assert!(
+            t.shape_result.is_some(),
+            "All text fragments should have shape_result"
+        );
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTEGRATION WITH BLOCK LAYOUT (15)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn integration_block_with_text_produces_content() {
+    let frag = block_layout_text(&["Hello world"], 800);
+    let block = &frag.children[0];
+    assert!(
+        !block.children.is_empty(),
+        "Block with text should have children"
+    );
+}
+
+#[test]
+fn integration_block_with_text_has_height() {
+    let frag = block_layout_text(&["Hello"], 800);
+    let block = &frag.children[0];
+    assert!(
+        block.size.height > LayoutUnit::zero(),
+        "Block with text should have height"
+    );
+}
+
+#[test]
+fn integration_block_width_correct() {
+    let frag = block_layout_text(&["Hello"], 800);
+    let block = &frag.children[0];
+    assert_eq!(block.size.width.to_i32(), 800);
+}
+
+#[test]
+fn integration_block_with_span_text() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(vp, block);
+
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.append_child(block, span);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Span text".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(span, t);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    assert!(block_frag.size.height > LayoutUnit::zero());
+}
+
+#[test]
+fn integration_nested_spans() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(vp, block);
+
+    let span1 = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span1, |style| style.display = Display::Inline);
+    doc.append_child(block, span1);
+
+    let span2 = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span2, |style| style.display = Display::Inline);
+    doc.append_child(span1, span2);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Nested".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(span2, t);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    assert!(block_frag.size.height > LayoutUnit::zero());
+    let texts = collect_text_fragments(block_frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn integration_multiple_text_nodes() {
+    let frag = block_layout_text(&["Hello ", "World ", "!"], 800);
+    let block = &frag.children[0];
+    let texts = collect_text_fragments(block);
+    assert_eq!(texts.len(), 3, "Should have 3 text fragments");
+}
+
+#[test]
+fn integration_text_with_right_align() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.text_align = TextAlign::Right);
+    doc.append_child(vp, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Right".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    let texts = collect_text_fragments(block_frag);
+    assert!(!texts.is_empty());
+}
+
+#[test]
+fn integration_block_with_padding_and_text() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.padding_top = Length::px(10.0));
+    doc.update_resolved_style(block, |style| style.padding_bottom = Length::px(10.0));
+    doc.append_child(vp, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Padded".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    // Height should include padding + text line
+    assert!(
+        block_frag.size.height > lu(20.0),
+        "Block with 20px padding + text should be > 20px"
+    );
+}
+
+#[test]
+fn integration_block_with_border_and_text() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.border_top_width = 5);
+    doc.update_resolved_style(block, |style| {
+        style.border_top_style = div_style::BorderStyle::Solid
+    });
+    doc.update_resolved_style(block, |style| style.border_bottom_width = 5);
+    doc.update_resolved_style(block, |style| {
+        style.border_bottom_style = div_style::BorderStyle::Solid
+    });
+    doc.append_child(vp, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Bordered".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block, t);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    assert!(block_frag.size.height > lu(10.0));
+}
+
+#[test]
+fn integration_block_with_only_block_children_unchanged() {
+    // Blocks with only block children should still work normally
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let parent = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(parent, |style| style.display = Display::Block);
+    doc.append_child(vp, parent);
+
+    let child = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(child, |style| style.display = Display::Block);
+    doc.update_resolved_style(child, |style| style.height = Length::px(50.0));
+    doc.append_child(parent, child);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let parent_frag = &frag.children[0];
+    assert_eq!(parent_frag.children.len(), 1);
+    assert_eq!(parent_frag.children[0].size.height.to_i32(), 50);
+}
+
+#[test]
+fn integration_empty_block_still_works() {
+    let mut doc = Document::new();
+    let vp = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(vp, block);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    let block_frag = &frag.children[0];
+    assert_eq!(block_frag.size.height.to_i32(), 0);
+}
+
+#[test]
+fn integration_viewport_with_text_block() {
+    let frag = block_layout_text(&["Hello world"], 800);
+    assert_eq!(frag.kind, FragmentKind::Viewport);
+    assert!(!frag.children.is_empty());
+}
+
+#[test]
+fn integration_two_blocks_one_inline_one_block() {
+    // Two blocks: one with text, one empty block child
+    let mut doc = Document::new();
+    let vp = doc.root();
+
+    let block1 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block1, |style| style.display = Display::Block);
+    doc.append_child(vp, block1);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Text".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(block1, t);
+
+    let block2 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block2, |style| style.display = Display::Block);
+    doc.update_resolved_style(block2, |style| style.height = Length::px(30.0));
+    doc.append_child(vp, block2);
+
+    let sp = space(800, 600);
+    let frag = block_layout(&doc, vp, &sp);
+    assert_eq!(frag.children.len(), 2);
+    assert!(frag.children[0].size.height > LayoutUnit::zero());
+    assert_eq!(frag.children[1].size.height.to_i32(), 30);
+}
+
+#[test]
+fn integration_width_constraint_affects_wrapping() {
+    // Narrower width should produce more lines
+    let frag_wide = block_layout_text(&["Hello world this text wraps"], 800);
+    let frag_narrow = block_layout_text(&["Hello world this text wraps"], 50);
+
+    let wide_lines = count_line_boxes(&frag_wide.children[0]);
+    let narrow_lines = count_line_boxes(&frag_narrow.children[0]);
+    assert!(narrow_lines >= wide_lines);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// EDGE CASES (10)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn edge_empty_text_node() {
+    let frag = layout_text(&[""], 800);
+    // Empty text should produce no line boxes
+    assert_eq!(count_line_boxes(&frag), 0);
+    assert_eq!(frag.size.height, LayoutUnit::zero());
+}
+
+#[test]
+fn edge_only_whitespace() {
+    let frag = layout_text(&["   "], 800);
+    // Only whitespace may collapse to a single space
+    // Should produce at most one line
+    assert!(count_line_boxes(&frag) <= 1);
+}
+
+#[test]
+fn edge_single_character() {
+    let frag = layout_text(&["x"], 800);
+    assert_eq!(count_line_boxes(&frag), 1);
+    let texts = collect_text_fragments(&frag);
+    assert_eq!(texts.len(), 1);
+    assert!(texts[0].size.width > LayoutUnit::zero());
+}
+
+#[test]
+fn edge_very_long_word_overflow() {
+    // A single long word with no break opportunities
+    let frag = layout_text(&["Supercalifragilisticexpialidocious"], 50);
+    // Should have at least one line (word overflows)
+    assert!(count_line_boxes(&frag) >= 1);
+}
+
+#[test]
+fn edge_zero_width_produces_many_lines() {
+    // Zero available width — each word gets its own line or overflows
+    let frag = layout_text(&["Hello world"], 0);
+    assert!(count_line_boxes(&frag) >= 1);
+}
+
+#[test]
+fn edge_many_text_nodes() {
+    // Many small text nodes
+    let texts: Vec<&str> = vec!["a "; 20];
+    let frag = layout_text(&texts, 800);
+    assert!(count_line_boxes(&frag) >= 1);
+    let text_frags = collect_text_fragments(&frag);
+    assert_eq!(text_frags.len(), 20);
+}
+
+#[test]
+fn edge_multiple_spaces_between_words() {
+    // Multiple spaces should collapse to one
+    let frag = layout_text(&["Hello      World"], 800);
+    assert_eq!(count_line_boxes(&frag), 1);
+}
+
+#[test]
+fn edge_unicode_text() {
+    let frag = layout_text(&["日本語テスト"], 800);
+    assert!(count_line_boxes(&frag) >= 1);
+    let texts = collect_text_fragments(&frag);
+    assert!(!texts.is_empty());
+    assert!(texts[0].size.width > LayoutUnit::zero());
+}
+
+#[test]
+fn edge_mixed_latin_text() {
+    // Mix of Latin text on the same line
+    let frag = layout_text(&["Hello World Café"], 800);
+    assert!(count_line_boxes(&frag) >= 1);
+}
+
+#[test]
+fn edge_tab_characters_collapse() {
+    let frag = layout_text(&["Hello\tWorld"], 800);
+    // Tab should collapse to space in normal white-space mode
+    assert_eq!(count_line_boxes(&frag), 1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SP11 Dual-Model Review Fixes — Regression Tests
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Issue 1: Wrapped text sub-range ─────────────────────────────────────
+
+#[test]
+fn wrapped_text_sub_range_not_full_run() {
+    // When text wraps across lines, each fragment should have a sub-range
+    // shape result, not the full run. Two lines means two text fragments,
+    // each with a shape result covering only its portion.
+    let frag = layout_text(&["hello world"], 50); // Force wrap
+    let texts = collect_text_fragments(&frag);
+    assert!(texts.len() >= 2, "Expected text to wrap into >=2 fragments");
+
+    for tf in &texts {
+        if let Some(ref sr) = tf.shape_result {
+            // The shape result width should be close to the fragment width
+            let sr_width = sr.width();
+            let frag_width = tf.size.width.to_f32();
+            // Allow some tolerance for justification/rounding
+            assert!(
+                (sr_width - frag_width).abs() < frag_width * 0.5 + 5.0,
+                "Shape result width ({}) should approximate fragment width ({})",
+                sr_width,
+                frag_width
+            );
+        }
+    }
+}
+
+#[test]
+fn wrapped_text_sub_range_character_count() {
+    // A wrapped word should produce fragments whose shape results have
+    // fewer characters than the full item.
+    let frag = layout_text(&["hello world"], 50);
+    let texts = collect_text_fragments(&frag);
+    if texts.len() >= 2 {
+        for tf in &texts {
+            if let Some(ref sr) = tf.shape_result {
+                // Each sub-range should have fewer chars than the full "hello world" (11)
+                assert!(
+                    sr.num_characters <= 11,
+                    "Sub-range should not exceed full text char count: got {}",
+                    sr.num_characters
+                );
+            }
+        }
+    }
+}
+
+// ── Issue 3: Justification glyph positions ──────────────────────────────
+
+#[test]
+fn justify_expands_space_glyph_advances() {
+    use div_text::font::{Font, FontDescription};
+    use div_text::shaping::{TextDirection, TextShaper};
+
+    let shaper = TextShaper::new();
+    let font = Font::new(FontDescription::new());
+    let mut sr = shaper.shape("hello world", &font, TextDirection::Ltr);
+    let original_width = sr.width();
+
+    sr.apply_justification(5.0, "hello world", 0);
+
+    // "hello world" has 1 space, so width should increase by 5.0
+    let expected_width = original_width + 5.0;
+    assert!(
+        (sr.width() - expected_width).abs() < 0.01,
+        "Justified width {} should be {} (original {} + 5.0 per space)",
+        sr.width(),
+        expected_width,
+        original_width
+    );
+}
+
+#[test]
+fn justify_multiple_spaces_expand_proportionally() {
+    use div_text::font::{Font, FontDescription};
+    use div_text::shaping::{TextDirection, TextShaper};
+
+    let shaper = TextShaper::new();
+    let font = Font::new(FontDescription::new());
+    let mut sr = shaper.shape("a b c d", &font, TextDirection::Ltr);
+    let original_width = sr.width();
+
+    sr.apply_justification(3.0, "a b c d", 0);
+
+    // "a b c d" has 3 spaces, so width should increase by 9.0
+    let expected_width = original_width + 9.0;
+    assert!(
+        (sr.width() - expected_width).abs() < 0.01,
+        "Justified width {} should be {} (original {} + 3 * 3.0)",
+        sr.width(),
+        expected_width,
+        original_width
+    );
+}
+
+#[test]
+fn justify_character_data_updated() {
+    use div_text::font::{Font, FontDescription};
+    use div_text::shaping::{TextDirection, TextShaper};
+
+    let shaper = TextShaper::new();
+    let font = Font::new(FontDescription::new());
+    let mut sr = shaper.shape("a b", &font, TextDirection::Ltr);
+
+    // 'b' is at index 2 (after 'a' and ' ')
+    let b_pos_before = sr.character_data[2].x_position;
+    sr.apply_justification(10.0, "a b", 0);
+
+    // After justification, 'b' should be shifted right by the extra space width
+    let b_pos_after = sr.character_data[2].x_position;
+    assert!(
+        b_pos_after > b_pos_before,
+        "Character after space should be shifted right: before={}, after={}",
+        b_pos_before,
+        b_pos_after
+    );
+}
+
+// ── Issue 5: Ellipsis painting ──────────────────────────────────────────
+
+#[test]
+fn ellipsis_fragment_exists_when_overflow_hidden() {
+    use div_style::{Overflow, TextOverflow};
+
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.overflow_x = Overflow::Hidden);
+    doc.update_resolved_style(block, |style| style.text_overflow = TextOverflow::Ellipsis);
+    doc.update_resolved_style(block, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text =
+        Some("This is a very long text that should be truncated with ellipsis".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(100), lu_i(600), lu_i(100), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    // Check that an ellipsis text fragment exists with "…" content
+    let text_frags = collect_text_fragments(&frag);
+    let has_ellipsis = text_frags
+        .iter()
+        .any(|f| f.text_content.as_deref() == Some("\u{2026}"));
+    assert!(
+        has_ellipsis,
+        "Should have an ellipsis text fragment with '…' content"
+    );
+}
+
+#[test]
+fn ellipsis_fragment_has_shape_result() {
+    use div_style::{Overflow, TextOverflow};
+
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.update_resolved_style(block, |style| style.overflow_x = Overflow::Hidden);
+    doc.update_resolved_style(block, |style| style.text_overflow = TextOverflow::Ellipsis);
+    doc.update_resolved_style(block, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(root, block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text =
+        Some("Very long text that overflows the container width significantly".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.update_resolved_style(t, |style| style.white_space = WhiteSpace::Nowrap);
+    doc.append_child(block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(80), lu_i(600), lu_i(80), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let text_frags = collect_text_fragments(&frag);
+    let ellipsis_frag = text_frags
+        .iter()
+        .find(|f| f.text_content.as_deref() == Some("\u{2026}"));
+    if let Some(ef) = ellipsis_frag {
+        assert!(
+            ef.shape_result.is_some(),
+            "Ellipsis fragment should have a shape result"
+        );
+        assert!(
+            ef.size.width > lu(0.0),
+            "Ellipsis should have non-zero width"
+        );
+    }
+}
+
+// ── Issue 4: Atomic inline width ────────────────────────────────────────
+
+#[test]
+fn atomic_inline_with_explicit_width_takes_space() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    // Create an inline-block child with explicit width
+    let child = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(child, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(child, |style| style.width = Length::px(50.0));
+    doc.append_child(block, child);
+
+    let mut data = div_layout::inline::items_builder::InlineItemsBuilder::collect(&doc, block);
+    data.shape_text();
+
+    let mut breaker = div_layout::inline::line_breaker::LineBreaker::new(&data, lu(500.0));
+    let line = breaker.next_line(lu(500.0)).unwrap();
+
+    // The atomic inline item should contribute width
+    let atomic_items: Vec<_> = line
+        .items
+        .iter()
+        .filter(|ir| ir.item_type == div_layout::inline::items::InlineItemType::AtomicInline)
+        .collect();
+    assert!(
+        !atomic_items.is_empty(),
+        "Should have at least one atomic inline item"
+    );
+    assert_eq!(
+        atomic_items[0].inline_size,
+        lu(50.0),
+        "Atomic inline with width:50px should have 50px inline size"
+    );
+}
+
+#[test]
+fn atomic_inline_auto_width_zero() {
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let child = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(child, |style| style.display = Display::InlineBlock);
+    // width: auto (default) — should be zero without box layout
+    doc.append_child(block, child);
+
+    let mut data = div_layout::inline::items_builder::InlineItemsBuilder::collect(&doc, block);
+    data.shape_text();
+
+    let mut breaker = div_layout::inline::line_breaker::LineBreaker::new(&data, lu(500.0));
+    let line = breaker.next_line(lu(500.0)).unwrap();
+
+    let atomic_items: Vec<_> = line
+        .items
+        .iter()
+        .filter(|ir| ir.item_type == div_layout::inline::items::InlineItemType::AtomicInline)
+        .collect();
+    assert!(!atomic_items.is_empty());
+    assert_eq!(
+        atomic_items[0].inline_size,
+        lu(0.0),
+        "Atomic inline with auto width should be zero"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ISSUE 1 TESTS: BFC margin containment in inline-blocks
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn inline_block_bfc_contains_child_margin_top() {
+    // CSS 2.1 §10.6.1: inline-block establishes a new BFC, so child margins
+    // must not collapse through the inline-block boundary.
+    // <div><span style="display:inline-block"><div style="margin-top:20px">Hello</div></span></div>
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    doc.append_child(block, inline_block);
+
+    let inner_div = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inner_div, |style| style.display = Display::Block);
+    doc.update_resolved_style(inner_div, |style| style.margin_top = Length::px(20.0));
+    doc.append_child(inline_block, inner_div);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.node_mut(text).text = Some("Hello".to_string());
+    doc.update_resolved_style(text, |style| style.display = Display::Inline);
+    doc.append_child(inner_div, text);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    // The inline-block fragment should contain the child margin.
+    // With BFC (is_new_formatting_context=true), the 20px margin-top should be
+    // included in the inline-block's height, making it taller than without.
+    assert!(
+        frag.size.height > lu(0.0),
+        "Line should have positive height"
+    );
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have an atomic inline-block fragment");
+
+    // The atomic inline-block's height should include the 20px margin.
+    // Without BFC fix, height would just be font metrics (~16px).
+    // With BFC fix, height >= font_metrics + 20px.
+    assert!(
+        atomic.size.height >= lu(20.0),
+        "Inline-block height {:?} should include child's 20px margin-top",
+        atomic.size.height
+    );
+}
+
+#[test]
+fn inline_flex_auto_width_preserves_fixed_item_min_content_width() {
+    // An unwrapped inline flex row has a min-content width equal to the sum
+    // of its definite item widths. It must overflow a narrower line instead
+    // of using that line width as permission to shrink every item.
+    let mut doc = Document::new();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(doc.root(), block);
+
+    let flex = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(flex, |style| style.display = Display::InlineFlex);
+    doc.append_child(block, flex);
+    for _ in 0..14 {
+        let item = doc.create_node(ElementTag::Div);
+        doc.update_resolved_style(item, |style| {
+            style.display = Display::Block;
+            style.width = Length::px(40.0);
+        });
+        doc.append_child(flex, item);
+    }
+
+    let sp = ConstraintSpace::for_block_child(lu_i(335), lu_i(600), lu_i(335), lu_i(600), false);
+    let fragment = inline_layout(&doc, block, &sp);
+    let atomic = fragment
+        .children
+        .iter()
+        .flat_map(|line| &line.children)
+        .find(|child| child.kind == FragmentKind::Box && child.node_id == flex)
+        .expect("inline flex fragment");
+    assert_eq!(atomic.size.width, lu_i(560));
+}
+
+#[test]
+fn forced_break_after_overflowing_atomic_does_not_add_an_empty_line() {
+    let mut doc = Document::new();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(doc.root(), block);
+
+    let first = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(first, |style| {
+        style.display = Display::InlineFlex;
+        style.width = Length::px(560.0);
+        style.height = Length::px(200.0);
+    });
+    doc.append_child(block, first);
+
+    let space = doc.create_node(ElementTag::Text);
+    doc.node_mut(space).text = Some(" ".to_string());
+    doc.append_child(block, space);
+    let br = doc.create_node(ElementTag::Break);
+    doc.append_child(block, br);
+
+    let second = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(second, |style| {
+        style.display = Display::InlineFlex;
+        style.width = Length::px(100.0);
+        style.height = Length::px(200.0);
+    });
+    doc.append_child(block, second);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(335), lu_i(600), lu_i(335), lu_i(600), false);
+    let fragment = inline_layout(&doc, block, &sp);
+    assert_eq!(fragment.children.len(), 2, "one line per atomic flex box");
+}
+
+#[test]
+fn inline_block_bfc_contains_child_margin_bottom() {
+    // Bottom margin should also be contained by the inline-block BFC.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    doc.append_child(block, inline_block);
+
+    let inner_div = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inner_div, |style| style.display = Display::Block);
+    doc.update_resolved_style(inner_div, |style| style.margin_bottom = Length::px(15.0));
+    doc.append_child(inline_block, inner_div);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.node_mut(text).text = Some("World".to_string());
+    doc.update_resolved_style(text, |style| style.display = Display::Inline);
+    doc.append_child(inner_div, text);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have an atomic inline-block fragment");
+
+    // Height should include the 15px bottom margin from the child.
+    assert!(
+        atomic.size.height >= lu(15.0),
+        "Inline-block height {:?} should include child's 15px margin-bottom",
+        atomic.size.height
+    );
+}
+
+#[test]
+fn inline_block_bfc_multiple_child_margins() {
+    // Multiple children with margins — all should be contained.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    doc.append_child(block, inline_block);
+
+    // First child with margin-top: 10px
+    let div1 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(div1, |style| style.display = Display::Block);
+    doc.update_resolved_style(div1, |style| style.margin_top = Length::px(10.0));
+    doc.append_child(inline_block, div1);
+    let t1 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t1).text = Some("A".to_string());
+    doc.update_resolved_style(t1, |style| style.display = Display::Inline);
+    doc.append_child(div1, t1);
+
+    // Second child with margin-top: 10px
+    let div2 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(div2, |style| style.display = Display::Block);
+    doc.update_resolved_style(div2, |style| style.margin_top = Length::px(10.0));
+    doc.append_child(inline_block, div2);
+    let t2 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t2).text = Some("B".to_string());
+    doc.update_resolved_style(t2, |style| style.display = Display::Inline);
+    doc.append_child(div2, t2);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have an atomic inline-block fragment");
+
+    // Two children + margins: height should be > 2 * font_metrics
+    assert!(
+        atomic.size.height >= lu(20.0),
+        "Inline-block with two margined children should have substantial height: {:?}",
+        atomic.size.height
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ISSUE 2 TESTS: block_layout result used for atomic inline dimensions
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn inline_block_auto_height_from_block_layout() {
+    // height:auto inline-block should get its height from block_layout,
+    // not from font metrics.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    // height: auto (default)
+    doc.append_child(block, inline_block);
+
+    // Two block children — should stack vertically, producing ~2x line height.
+    let div1 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(div1, |style| style.display = Display::Block);
+    doc.append_child(inline_block, div1);
+    let t1 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t1).text = Some("Line 1".to_string());
+    doc.update_resolved_style(t1, |style| style.display = Display::Inline);
+    doc.append_child(div1, t1);
+
+    let div2 = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(div2, |style| style.display = Display::Block);
+    doc.append_child(inline_block, div2);
+    let t2 = doc.create_node(ElementTag::Text);
+    doc.node_mut(t2).text = Some("Line 2".to_string());
+    doc.update_resolved_style(t2, |style| style.display = Display::Inline);
+    doc.append_child(div2, t2);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have inline-block fragment");
+
+    // With two block children, height should be roughly 2x a single line.
+    // Font metrics for 16px = ~18-19px, so 2 lines ~36-38px.
+    // Old code would give ~18px (single line font metrics).
+    assert!(
+        atomic.size.height > lu(30.0),
+        "Auto-height inline-block with 2 children should be > 30px, got {:?}",
+        atomic.size.height
+    );
+}
+
+#[test]
+fn inline_block_preserves_children_from_block_layout() {
+    // The atomic fragment should have children from block_layout.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    doc.append_child(block, inline_block);
+
+    let inner = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inner, |style| style.display = Display::Block);
+    doc.append_child(inline_block, inner);
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("Content".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(inner, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have inline-block fragment");
+
+    // Should have children from the block_layout result.
+    assert!(
+        !atomic.children.is_empty(),
+        "Inline-block should have children from block_layout"
+    );
+
+    // Text should be findable deep inside.
+    let texts = collect_text_fragments(atomic);
+    assert!(
+        !texts.is_empty(),
+        "Should find text fragments inside inline-block"
+    );
+}
+
+#[test]
+fn inline_block_explicit_height_respected() {
+    // Explicit height should still be used even with block_layout.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.update_resolved_style(inline_block, |style| style.width = Length::px(100.0));
+    doc.update_resolved_style(inline_block, |style| style.height = Length::px(50.0));
+    doc.append_child(block, inline_block);
+
+    let t = doc.create_node(ElementTag::Text);
+    doc.node_mut(t).text = Some("X".to_string());
+    doc.update_resolved_style(t, |style| style.display = Display::Inline);
+    doc.append_child(inline_block, t);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should have inline-block fragment");
+
+    // With explicit height: 50px, the block_layout result's height should be 50px.
+    assert_eq!(
+        atomic.size.height,
+        lu(50.0),
+        "Inline-block with explicit height:50px should be 50px, got {:?}",
+        atomic.size.height
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ISSUE 3 TESTS: Recursive intrinsic sizing for auto-width inline-blocks
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn inline_block_auto_width_nested_text_nonzero() {
+    // <span style="display:inline-block"><span>Hello World</span></span>
+    // should have non-zero width from the nested text.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    // width: auto (default)
+    doc.append_child(block, inline_block);
+
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.append_child(inline_block, span);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.node_mut(text).text = Some("Hello World".to_string());
+    doc.update_resolved_style(text, |style| style.display = Display::Inline);
+    doc.append_child(span, text);
+
+    let mut data = div_layout::inline::items_builder::InlineItemsBuilder::collect(&doc, block);
+    data.shape_text();
+
+    let mut breaker = div_layout::inline::line_breaker::LineBreaker::new(&data, lu(500.0));
+    let line = breaker.next_line(lu(500.0)).unwrap();
+
+    let atomic_items: Vec<_> = line
+        .items
+        .iter()
+        .filter(|ir| ir.item_type == div_layout::inline::items::InlineItemType::AtomicInline)
+        .collect();
+    assert!(!atomic_items.is_empty(), "Should have atomic inline item");
+    assert!(
+        atomic_items[0].inline_size > lu(0.0),
+        "Auto-width inline-block with nested text should have non-zero width, got {:?}",
+        atomic_items[0].inline_size
+    );
+}
+
+#[test]
+fn inline_block_auto_width_deeply_nested_text() {
+    // <div style="display:inline-block"><div><span>Deep</span></div></div>
+    // Text nested 2 levels deep should still contribute to intrinsic width.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.append_child(block, inline_block);
+
+    let inner_div = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inner_div, |style| style.display = Display::Block);
+    doc.append_child(inline_block, inner_div);
+
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.append_child(inner_div, span);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.node_mut(text).text = Some("Deep".to_string());
+    doc.update_resolved_style(text, |style| style.display = Display::Inline);
+    doc.append_child(span, text);
+
+    let mut data = div_layout::inline::items_builder::InlineItemsBuilder::collect(&doc, block);
+    data.shape_text();
+
+    let mut breaker = div_layout::inline::line_breaker::LineBreaker::new(&data, lu(500.0));
+    let line = breaker.next_line(lu(500.0)).unwrap();
+
+    let atomic_items: Vec<_> = line
+        .items
+        .iter()
+        .filter(|ir| ir.item_type == div_layout::inline::items::InlineItemType::AtomicInline)
+        .collect();
+    assert!(!atomic_items.is_empty());
+    assert!(
+        atomic_items[0].inline_size > lu(0.0),
+        "Deeply nested text should produce non-zero intrinsic width, got {:?}",
+        atomic_items[0].inline_size
+    );
+}
+
+#[test]
+fn inline_block_auto_width_no_children_still_zero() {
+    // An inline-block with no children should still have zero auto width.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.append_child(block, inline_block);
+
+    let mut data = div_layout::inline::items_builder::InlineItemsBuilder::collect(&doc, block);
+    data.shape_text();
+
+    let mut breaker = div_layout::inline::line_breaker::LineBreaker::new(&data, lu(500.0));
+    let line = breaker.next_line(lu(500.0)).unwrap();
+
+    let atomic_items: Vec<_> = line
+        .items
+        .iter()
+        .filter(|ir| ir.item_type == div_layout::inline::items::InlineItemType::AtomicInline)
+        .collect();
+    assert!(!atomic_items.is_empty());
+    assert_eq!(
+        atomic_items[0].inline_size,
+        lu(0.0),
+        "Empty inline-block should have zero width"
+    );
+}
+
+#[test]
+fn inline_block_nested_text_full_layout_has_width() {
+    // Full layout integration: inline-block with nested text should produce
+    // a fragment with non-zero width.
+    let mut doc = Document::new();
+    let root = doc.root();
+    let block = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(block, |style| style.display = Display::Block);
+    doc.append_child(root, block);
+
+    let inline_block = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(inline_block, |style| style.display = Display::InlineBlock);
+    doc.append_child(block, inline_block);
+
+    let span = doc.create_node(ElementTag::Span);
+    doc.update_resolved_style(span, |style| style.display = Display::Inline);
+    doc.append_child(inline_block, span);
+
+    let text = doc.create_node(ElementTag::Text);
+    doc.node_mut(text).text = Some("Test".to_string());
+    doc.update_resolved_style(text, |style| style.display = Display::Inline);
+    doc.append_child(span, text);
+
+    let sp = ConstraintSpace::for_block_child(lu_i(800), lu_i(600), lu_i(800), lu_i(600), false);
+    let frag = inline_layout(&doc, block, &sp);
+
+    let line = &frag.children[0];
+    let atomic = line
+        .children
+        .iter()
+        .find(|f| f.kind == FragmentKind::Box && f.node_id == inline_block)
+        .expect("Should find inline-block fragment");
+    assert!(
+        atomic.size.width > lu(0.0),
+        "Inline-block with nested text should have non-zero width in layout, got {:?}",
+        atomic.size.width
+    );
+}

@@ -1,0 +1,24 @@
+[package]
+name = "pixel-compare"
+version = "0.1.0"
+edition = "2021"
+description = "Renders test patterns to PNG for pixel comparison with Chromium"
+
+[features]
+default = []
+ganesh-gl = ["div-compositor/ganesh-gl", "skia-safe/gl"]
+
+[[bin]]
+name = "pixel_compare"
+path = "src/main.rs"
+
+[dependencies]
+div-style = { path = "../../../crates/div-style" }
+div-geometry = { path = "../../../crates/div-geometry" }
+div-layout = { path = "../../../crates/div-layout" }
+div-dom = { path = "../../../crates/div-dom" }
+div-paint = { path = "../../../crates/div-paint" }
+div-text = { path = "../../../crates/div-text" }
+div-engine = { path = "../../../crates/div-engine" }
+div-compositor = { path = "../../../crates/div-compositor" }
+skia-safe = "0.94"
