@@ -83,3 +83,8 @@ on branch `components/c4-assets` and the shared findings note.
   census is unchanged; CSS Grid coverage gains 9 exact references and loses
   none.
   [Record](../grid-auto-track-max-2026-11-10.md).
+- 10 November 2026: a column flex item's automatic minimum height is
+  measured at its used cross size, as Chromium measures it, not at its
+  min-content width, where wrapped text made the item taller than its
+  content. Census and CSS Grid coverage are unchanged.
+  [Record](../column-flex-min-size-2026-11-10.md).
