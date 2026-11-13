@@ -44,8 +44,8 @@ each, small fixes first, in the order 1, 2, 5, 6, RFC 0003 requests 3 and
 
 | # | Gap | State |
 | --- | --- | --- |
-| 1 | `on:` on a component tag was silently dropped | In review |
-| 2 | `{expr}` children that are views (`For`, `Show`) | Not started |
+| 1 | `on:` on a component tag was silently dropped | Merged (#29) |
+| 2 | `{expr}` children that are views (`For`, `Show`) | In review |
 | 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
 | 4 | Headless pointer events and pointer capture for drags | Not started |
 | 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
@@ -53,6 +53,38 @@ each, small fixes first, in the order 1, 2, 5, 6, RFC 0003 requests 3 and
 | 7 | Public SVG drawing, for icons (boundary with the engine track first) | Not started |
 
 ## Log
+
+### 13 November 2026: views as `{expr}` children (dogfood gap 2)
+
+Problem: `view!` turned every `{expr}` child into text through `ToString`,
+so `{For(..)}`, `{Show(..)}` and `{children}` could not be children. The
+sample app wrapped them in a `Slot` component.
+
+Change: the expression's type decides. Text (`ToString`) is a text node
+re-run in an effect, as before; a view (`IntoView`) is built once and
+mounted as itself; anything else is a compile error naming the type.
+`view!` evaluates the expression into the doc-hidden
+`div::__view_child::Value` and method resolution picks the impl (autoref
+specialization). A closure's `Fn`/`FnOnce` kind cannot steer that choice,
+so the macro reads the expression by its shape: a variable moves into a
+held value the closure borrows (text reads it in place, a view takes it
+once), another place such as `{props.title}` is borrowed as before (text
+only), and any other expression is evaluated by value. Text expressions
+that compiled before compile to the same text.
+
+Verification (Windows, MSVC, this branch rebased on `565db46a`): `cargo
+test --locked -p divui --test view_children` passes 4 tests (`For` and
+`Show` children updating with their signals, a top-level `For`, text from
+a signal, a variable, a `Path::display()`, a field behind an `Rc` and an
+owned field staying reactive or static as before with no wrapper
+elements, and a `ViewNode` variable, a borrowing `Vec<ViewNode>`, an
+`Option<ViewNode>` and a `children: Vec<ViewNode>` prop as views). With
+the `view!` from before this change the same file fails to compile, with
+7 errors of the form "`ViewNode: ToString` is not satisfied". `cargo test
+--locked -p div-macros` passes. A `Signal` written as `{count}` reports
+"`Signal<i32>` in a `view!` `{..}` child is neither text (`ToString`) nor a
+view (`IntoView`)". The full framework test set and the example builds
+pass on Windows.
 
 ### 13 November 2026: `on:` on a component tag (dogfood gap 1)
 
