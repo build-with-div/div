@@ -29,12 +29,35 @@ one PR each, smallest first.
 
 | RFC request | Change | State |
 | --- | --- | --- |
-| 7 | `Element::contains` | In review |
-| 2 | Key names on keyboard events, and `repeat` | Not started |
+| 7 | `Element::contains` | Merged (#25) |
+| 2 | Key names on keyboard events, and `repeat` | In review |
 | 3 | `view!` fills omitted optional props | Not started |
 | 1 | `provide_context` / `use_context` | Not started |
 
 ## Log
+
+### 12 November 2026: key names and `repeat` (RFC 0003, request 2)
+
+Change: one always-compiled `div::Key` (it was `menu::Key`, behind the
+`menu` feature, plus a copy in `testing`; both now re-export it, and it is
+in the prelude). `Event::key()` answers as the DOM's `KeyboardEvent.key`
+for `keydown` and `keyup`: named keys come from the key code, the space bar
+is `Space`, and a character keeps the case it was typed in, falling back to
+the code for a letter or digit sent without text. `Event::repeat` is true
+for a `keydown` the platform repeats; `App` now passes winit's flag on
+instead of dropping it. `Document::dispatch_key(event_type, key, modifiers,
+repeat)` sends a key as the native adapter does (code, DOM name as key
+text, typed text on keydown), and `TestApp::press` uses it, so headless and
+native named keys carry the same key text.
+
+Verification (Windows, MSVC, this branch, rebased on `322db82`):
+`cargo test --locked -p divui --features "menu testing windows" --lib --
+keyboard native_key_repeat menu:: testing::` passes the new tests (the key
+table both ways, dispatched names and repeat on keydown and keyup, key
+input with and without key text, a click reporting no key, characters and
+Space typing into an input, native repeat reaching keydown listeners) and
+the existing menu accelerator and `TestApp` tests. The Windows CI test set
+passes.
 
 ### 12 November 2026: `Element::contains` (RFC 0003, request 7)
 
