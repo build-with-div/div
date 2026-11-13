@@ -641,6 +641,31 @@ impl Element {
         )
     }
 
+    /// Whether `other` is this element or one of its descendants, as the
+    /// DOM's `Node.contains`. An element of another document is never
+    /// contained. Detached subtrees answer the same way, and the query runs
+    /// no layout. Either element being removed is a `StaleHandle` error.
+    pub fn contains(&self, other: &Element) -> Result<bool, Error> {
+        self.document
+            .with_engine(|engine| self.handle.downgrade().upgrade(engine))??;
+        other
+            .document
+            .with_engine(|engine| other.handle.downgrade().upgrade(engine))??;
+        if !Rc::ptr_eq(&self.document.inner.engine, &other.document.inner.engine) {
+            return Ok(false);
+        }
+        Ok(self.document.with_engine(|engine| {
+            let mut node = Some(other.handle);
+            while let Some(current) = node {
+                if current == self.handle {
+                    return Ok(true);
+                }
+                node = engine.parent(current)?;
+            }
+            Ok::<_, div_engine::EngineError>(false)
+        })??)
+    }
+
     pub fn get_attribute(&self, name: &str) -> Result<Option<String>, Error> {
         self.document
             .with_engine(|engine| {
@@ -1692,6 +1717,42 @@ mod native_node_query_guards {
             a.is_same_node(&replacement),
             replacement.is_same_node(&a),
         ] {
+            assert!(matches!(
+                result,
+                Err(Error::Engine(div_engine::EngineError::StaleHandle))
+            ));
+        }
+    }
+
+    #[test]
+    fn contains_is_inclusive_and_follows_the_parent_chain() {
+        let document = Document::new(64, 64).unwrap();
+        let body = document.body();
+        let outer = Element::create(&document, "div").unwrap();
+        let inner = Element::create(&document, "span").unwrap();
+        let sibling = Element::create(&document, "div").unwrap();
+        body.append_child(&outer).unwrap();
+        outer.append_child(&inner).unwrap();
+        body.append_child(&sibling).unwrap();
+
+        assert!(outer.contains(&outer).unwrap(), "inclusive, as the DOM");
+        assert!(outer.contains(&inner.clone()).unwrap());
+        assert!(body.contains(&inner).unwrap());
+        assert!(!inner.contains(&outer).unwrap());
+        assert!(!outer.contains(&sibling).unwrap());
+        assert!(!sibling.contains(&inner).unwrap());
+
+        // A detached subtree keeps its own relations.
+        outer.detach().unwrap();
+        assert!(outer.contains(&inner).unwrap());
+        assert!(!body.contains(&inner).unwrap());
+
+        let other = Document::new(64, 64).unwrap();
+        assert!(!other.body().contains(&inner).unwrap());
+        assert!(!inner.contains(&other.body()).unwrap());
+
+        inner.remove().unwrap();
+        for result in [outer.contains(&inner), inner.contains(&outer)] {
             assert!(matches!(
                 result,
                 Err(Error::Engine(div_engine::EngineError::StaleHandle))
