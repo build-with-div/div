@@ -3,11 +3,11 @@
 //! A column flex container lays each item out once to find its
 //! content-based flex basis and again at its final size, and its intrinsic
 //! sizing asks for each item's intrinsic block sizes more than once. Chromium
-//! keeps such results on the box (`LayoutBox::CachedLayoutResult` and the
-//! intrinsic sizes cache), so a nested item whose inputs are unchanged is
-//! measured once. Div kept no such results, so each level of nested column
-//! containers doubled the work below it: six nested columns laid their
-//! innermost items out 32 times.
+//! keeps layout results on the box (`LayoutBox::CachedLayoutResult`), and it
+//! measures block sizes by layout, so a nested item whose constraints are
+//! unchanged is laid out once. Div kept no such results, so each level of
+//! nested column containers doubled the work below it: six nested columns
+//! laid their innermost items out 32 times.
 //!
 //! The memo lives while the outermost flex container on this thread is being
 //! laid out. The document is borrowed immutably for that whole time, and both
