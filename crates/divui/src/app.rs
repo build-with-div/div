@@ -388,7 +388,7 @@ impl div_platform::PlatformApplication for App {
     fn key_input(&mut self, input: div_platform::KeyboardInput) -> Result<(), String> {
         use div_platform::KeyPhase;
         self.document
-            .dispatch_key_input(
+            .dispatch_key_input_repeat(
                 match input.phase {
                     KeyPhase::Down => crate::KeyEventType::Down,
                     KeyPhase::Up => crate::KeyEventType::Up,
@@ -397,6 +397,7 @@ impl div_platform::PlatformApplication for App {
                 input.key_text.as_deref(),
                 input.text.as_deref(),
                 platform_modifiers(input.modifiers),
+                input.repeat,
             )
             .map_err(|error| error.to_string())?;
         if let Some(handler) = self.platform_event_handler.as_mut() {
@@ -965,6 +966,49 @@ mod tests {
         app.event(PlatformEvent::CompositionEnd("late commit".into()))
             .unwrap();
         assert_eq!(input.control_value().unwrap().as_deref(), Some("é"));
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn native_key_repeat_reaches_keydown_listeners() {
+        use div_platform::{KeyPhase, KeyboardInput, PlatformApplication};
+        let mut app = App::builder().build().unwrap();
+        let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        for event_type in ["keydown", "keyup"] {
+            let seen = seen.clone();
+            app.document()
+                .body()
+                .on(event_type, move |event| {
+                    seen.borrow_mut().push((event.key(), event.repeat));
+                })
+                .unwrap();
+        }
+        let input = crate::Element::create(app.document(), "input").unwrap();
+        app.document().body().append_child(&input).unwrap();
+        input.focus().unwrap();
+        for (phase, repeat) in [
+            (KeyPhase::Down, false),
+            (KeyPhase::Down, true),
+            (KeyPhase::Up, false),
+        ] {
+            app.key_input(KeyboardInput {
+                phase,
+                key_code: 39,
+                key_text: Some("ArrowRight".into()),
+                text: None,
+                modifiers: div_platform::Modifiers::default(),
+                repeat,
+            })
+            .unwrap();
+        }
+        let right = Some(crate::Key::ArrowRight);
+        assert_eq!(
+            *seen.borrow(),
+            [(right, false), (right, true), (right, false)]
+        );
     }
 
     #[cfg(any(

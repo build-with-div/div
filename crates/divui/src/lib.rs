@@ -80,6 +80,7 @@ pub use animation_timeline::AnimationTimelineBinding;
 pub mod document;
 pub mod element;
 pub mod events;
+mod keyboard;
 pub mod scroll_button;
 pub mod style;
 pub mod text_node;
@@ -136,6 +137,7 @@ pub use events::{
     Event, EventPhase, InputEventInfo, InputType, KeyEventType, Modifiers, MouseButton,
     MouseEventType,
 };
+pub use keyboard::Key;
 pub use scroll_button::{
     ScrollButton, ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState,
     ScrollSnapStrictness,
