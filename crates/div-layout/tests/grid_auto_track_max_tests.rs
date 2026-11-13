@@ -1,0 +1,206 @@
+//! Grid columns with an intrinsic maximum grow toward their growth limits
+//! (CSS Grid's maximize step) before flexible columns take the rest.
+
+use div_dom::{Document, ElementTag, NodeId};
+use div_geometry::{LayoutUnit, Length, PhysicalOffset};
+use div_layout::intrinsic_sizing::compute_child_intrinsic_contribution;
+use div_layout::{block_layout, ConstraintSpace, Fragment};
+use div_style::{
+    ContentAlignment, ContentPosition, Display, GridLine, GridPlacement, GridTrackBreadth,
+    GridTrackComponent, GridTrackList, GridTrackSize, LineHeight, WritingMode,
+};
+
+fn lu(value: i32) -> LayoutUnit {
+    LayoutUnit::from_i32(value)
+}
+
+fn fragment_for(parent: &Fragment, node_id: NodeId) -> &Fragment {
+    parent
+        .children
+        .iter()
+        .find(|fragment| fragment.node_id == node_id)
+        .unwrap_or_else(|| panic!("missing fragment for {node_id:?}"))
+}
+
+fn track(breadth: GridTrackBreadth) -> GridTrackComponent {
+    GridTrackComponent::Track(GridTrackSize::Breadth(breadth))
+}
+
+/// A block holding wrappable text at a 20px font and line height.
+fn text_item(doc: &mut Document, parent: NodeId, content: &str) -> NodeId {
+    let item = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(item, |style| {
+        style.display = Display::Block;
+        style.font_size = 20.0;
+        style.line_height = LineHeight::Length(20.0);
+    });
+    doc.append_child(parent, item);
+    let text = doc.create_node(ElementTag::Text);
+    doc.update_resolved_style(text, |style| {
+        style.font_size = 20.0;
+        style.line_height = LineHeight::Length(20.0);
+    });
+    doc.node_mut(text).text = Some(content.to_string());
+    doc.append_child(item, text);
+    item
+}
+
+fn grid(doc: &mut Document, columns: Vec<GridTrackComponent>) -> NodeId {
+    let grid = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(grid, |style| {
+        style.display = Display::Grid;
+        style.width = Length::px(300.0);
+        style.column_gap = Some(Length::px(8.0));
+        style.grid_template_columns = GridTrackList::Tracks(columns);
+    });
+    doc.append_child(doc.root(), grid);
+    grid
+}
+
+fn layout(doc: &Document, grid: NodeId) -> Fragment {
+    block_layout(
+        doc,
+        grid,
+        &ConstraintSpace::for_block_child(lu(300), lu(600), lu(300), lu(600), false),
+    )
+}
+
+/// The components track's card header: `grid-template-columns: 1fr auto`
+/// in a definite width. Chromium sizes the `auto` column to its item's
+/// max-content width, so the text stays on one line; the `1fr` column takes
+/// the rest.
+#[test]
+fn an_auto_column_beside_a_flexible_column_takes_its_max_content_width() {
+    let mut doc = Document::new();
+    let grid = grid(
+        &mut doc,
+        vec![
+            track(GridTrackBreadth::Flex(1.0)),
+            track(GridTrackBreadth::Auto),
+        ],
+    );
+    let first = doc.create_node(ElementTag::Div);
+    doc.update_resolved_style(first, |style| style.display = Display::Block);
+    doc.append_child(grid, first);
+    let action = text_item(&mut doc, grid, "XX XX");
+
+    let intrinsic = compute_child_intrinsic_contribution(&doc, action);
+    assert!(
+        intrinsic.min_content_inline_size < intrinsic.max_content_inline_size,
+        "the text must be able to wrap for this test to mean anything"
+    );
+    let max_content = intrinsic.max_content_inline_size;
+
+    let fragment = layout(&doc, grid);
+    let action_fragment = fragment_for(&fragment, action);
+    assert_eq!(action_fragment.size.width, max_content);
+    assert_eq!(
+        action_fragment.offset,
+        PhysicalOffset::new(lu(300) - max_content, LayoutUnit::zero())
+    );
+    assert_eq!(action_fragment.size.height, lu(20));
+    assert_eq!(
+        fragment_for(&fragment, first).size.width,
+        lu(292) - max_content
+    );
+}
+
+/// Two `auto` columns: the maximize step fills each to its max-content
+/// width, then the remaining space is shared equally, so the wider item's
+/// column stays wider. Content alignment alone would make them equal.
+#[test]
+fn auto_columns_grow_to_max_content_before_stretching_equally() {
+    let mut doc = Document::new();
+    let grid = grid(
+        &mut doc,
+        vec![track(GridTrackBreadth::Auto), track(GridTrackBreadth::Auto)],
+    );
+    let narrow = text_item(&mut doc, grid, "XX");
+    let wide = text_item(&mut doc, grid, "XX XX XX");
+    let narrow_max = compute_child_intrinsic_contribution(&doc, narrow).max_content_inline_size;
+    let wide_max = compute_child_intrinsic_contribution(&doc, wide).max_content_inline_size;
+    assert!(narrow_max + wide_max + lu(8) < lu(300));
+
+    let fragment = layout(&doc, grid);
+    let leftover = lu(300) - lu(8) - narrow_max - wide_max;
+    let narrow_width = fragment_for(&fragment, narrow).size.width;
+    let wide_width = fragment_for(&fragment, wide).size.width;
+    assert_eq!(narrow_width, narrow_max + leftover / 2);
+    assert_eq!(narrow_width + wide_width, lu(292));
+}
+
+/// An item in a vertical writing mode is orthogonal to a horizontal grid's
+/// columns. Blink's `ContributionSizeForGridItem` gives such an item one
+/// contribution, its laid-out block size, for both the intrinsic and the
+/// max-content maximum steps, so the maximize step does not widen its
+/// `auto` column past the base size its min-content contribution gave it.
+/// The Chromium oracle is WPT `css-grid/subgrid/orthogonal-writing-mode-004-ref`
+/// in the coverage run; this test checks only that the column is not widened.
+#[test]
+fn an_orthogonal_item_does_not_widen_its_auto_column_past_its_block_size() {
+    let mut doc = Document::new();
+    let grid = grid(
+        &mut doc,
+        vec![track(GridTrackBreadth::Auto), track(GridTrackBreadth::Auto)],
+    );
+    doc.update_resolved_style(grid, |style| {
+        style.justify_content = ContentAlignment::new(ContentPosition::Start);
+    });
+    let item = text_item(&mut doc, grid, "XX XX XX");
+    doc.update_resolved_style(item, |style| style.writing_mode = WritingMode::VerticalLr);
+    let text = doc.node(item).first_child;
+    doc.update_resolved_style(text, |style| style.writing_mode = WritingMode::VerticalLr);
+
+    let intrinsic = compute_child_intrinsic_contribution(&doc, item);
+    let fragment = layout(&doc, grid);
+    let width = fragment_for(&fragment, item).size.width;
+    assert!(intrinsic.min_content_inline_size < intrinsic.max_content_inline_size);
+    assert_eq!(width, intrinsic.min_content_inline_size);
+}
+
+/// An orthogonal item with `min-width: 10px` spanning three `auto` columns
+/// gives their base sizes 10px. Blink would raise their growth limits by the
+/// item's `BlockContributionSize`, its block size laid out at the size of
+/// its rows; this engine does not measure that, so the item contributes the
+/// same 10px to the growth limits and the maximize step leaves the columns
+/// as they were. Contributing the min-content size measured another way
+/// widened the vertical items of WPT
+/// `css-grid/subgrid/orthogonal-writing-mode-004-ref` past Chromium's.
+#[test]
+fn an_orthogonal_spanning_item_contributes_its_base_size_to_the_growth_limits() {
+    let mut doc = Document::new();
+    let grid = grid(
+        &mut doc,
+        vec![
+            track(GridTrackBreadth::Auto),
+            track(GridTrackBreadth::Auto),
+            track(GridTrackBreadth::Auto),
+        ],
+    );
+    doc.update_resolved_style(grid, |style| {
+        style.column_gap = Some(Length::px(0.0));
+        style.justify_content = ContentAlignment::new(ContentPosition::Start);
+    });
+    let item = text_item(&mut doc, grid, "XX XX XX");
+    doc.update_resolved_style(item, |style| {
+        style.writing_mode = WritingMode::VerticalLr;
+        style.min_width = Length::px(10.0);
+        style.grid_column = GridPlacement {
+            start: GridLine::Line {
+                index: 1,
+                name: None,
+            },
+            end: GridLine::Span {
+                count: 3,
+                name: None,
+            },
+        };
+    });
+    let text = doc.node(item).first_child;
+    doc.update_resolved_style(text, |style| style.writing_mode = WritingMode::VerticalLr);
+
+    let intrinsic = compute_child_intrinsic_contribution(&doc, item);
+    assert!(intrinsic.min_content_inline_size > lu(10));
+    let fragment = layout(&doc, grid);
+    assert_eq!(fragment_for(&fragment, item).size.width, lu(10));
+}

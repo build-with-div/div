@@ -76,3 +76,10 @@ on branch `components/c4-assets` and the shared findings note.
   to its whole hover path and clears `:hover`, as Chromium does, instead of
   a `pointercancel`. Census and CSS Grid coverage are unchanged.
   [Record](../pointer-window-leave-2026-11-10.md).
+- 10 November 2026: grid columns with intrinsic maximums grow toward their
+  growth limits (Blink's `MaximizeTracks`) when the container's inline size
+  is definite, so an `auto` column reaches its max-content size. Stretched
+  `auto` tracks keep the remainder of the free space, as in Chromium. The
+  census is unchanged; CSS Grid coverage gains 9 exact references and loses
+  none.
+  [Record](../grid-auto-track-max-2026-11-10.md).
