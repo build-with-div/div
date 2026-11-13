@@ -39,20 +39,48 @@ one PR each, smallest first.
 Gaps the first dogfood app, `build-with-div/sample-git`, found in the
 framework (its capability probe, run against `03573e7d`, and its
 `docs/framework-gaps.md`). One PR
-each, small fixes first, in the order 1, 2, 5, 6, RFC 0003 requests 3 and
+each, small fixes first, in the order 1, 2, 6, 5, RFC 0003 requests 3 and
 1, then 3, 4 and 7.
 
 | # | Gap | State |
 | --- | --- | --- |
 | 1 | `on:` on a component tag was silently dropped | Merged (#29) |
-| 2 | `{expr}` children that are views (`For`, `Show`) | In review |
+| 2 | `{expr}` children that are views (`For`, `Show`) | Merged (#30) |
 | 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
 | 4 | Headless pointer events and pointer capture for drags | Not started |
 | 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
-| 6 | zbus fails to build with a fresh lockfile (sample-git 24) | Not started |
+| 6 | zbus fails to build with a fresh lockfile (sample-git 24) | In review |
 | 7 | Public SVG drawing, for icons (boundary with the engine track first) | Not started |
 
 ## Log
+
+### 13 November 2026: zbus builds with a fresh lockfile (sample-git gap 24)
+
+Problem: `div-platform` pinned `zbus = "=5.13.0"` (the Linux `dialog`
+feature) but not the crates zbus asks for with caret ranges, so an app
+that resolved its own lockfile took `zbus_macros` 5.19.0 and `zvariant`
+5.15.1, and zbus failed to compile on Linux with 8 errors (`E0425`,
+`E0433`: `DispatchResult2` missing from `zbus::object_server`). Div's CI
+never met this, because every build, the cli-template job included, used
+Div's lockfile.
+
+Change: `div-platform` pins `zbus_macros = "=5.13.0"`, `zvariant =
+"=5.9.0"` and `zvariant_derive = "=5.9.0"` beside zbus, Linux-only and
+behind `dialog`, at the versions in Div's lockfile. `Cargo.lock` gains only
+the three dependency lines. `tools/framework/check_cli_template.py` gains
+step 5: for the `default` template it discards the seeded lockfile, runs
+`cargo generate-lockfile` and `cargo check --all-targets`, and reports
+which packages resolved differently from Div's lockfile. It runs in the
+existing cli-template job on Ubuntu and Windows.
+
+Verification (this branch rebased on `92ea25a0`): a scratch app depending
+only on `div-platform` with `dialog` (`out/zbus-probe`), with a fresh
+lockfile, in WSL (Ubuntu): on `main` `cargo check` fails with the 8 zbus
+errors; with the pins the resolve takes `zbus_macros` 5.13.0, `zvariant`
+5.9.0 and `zvariant_derive` 5.9.0 and `cargo check` passes (12.6 s).
+`cargo check --locked -p div-platform` passes with `linux,dialog,menu`
+(WSL) and `windows dialog menu` (Windows, MSVC). The full step 5 runs in
+the PR's cli-template jobs.
 
 ### 13 November 2026: views as `{expr}` children (dogfood gap 2)
 
