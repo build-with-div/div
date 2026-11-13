@@ -181,6 +181,9 @@ pub struct Event {
     pub mouse_button: i32,
     pub key_code: i32,
     pub key_text: String,
+    /// True for a `keydown` the platform repeats while the key is held, as
+    /// the DOM's `KeyboardEvent.repeat`. False for every other event.
+    pub repeat: bool,
     pub modifiers: i32,
     pub pointer_id: u64,
     pub is_composing: bool,
@@ -239,6 +242,7 @@ impl Event {
             mouse_button: button as i32,
             key_code: 0,
             key_text: String::new(),
+            repeat: false,
             modifiers: modifiers.bits() as i32,
             pointer_id,
             is_composing: false,
@@ -263,6 +267,7 @@ impl Event {
             mouse_button: -1,
             key_code,
             key_text: key_text.unwrap_or_default().to_owned(),
+            repeat: false,
             modifiers: modifiers.bits() as i32,
             pointer_id: 0,
             is_composing: false,
@@ -278,6 +283,18 @@ impl Event {
             .expect("new event state")
             .timestamp_ns = timestamp_ns;
         event
+    }
+
+    /// The key of a `keydown` or `keyup` event, as the DOM's
+    /// `KeyboardEvent.key`: named keys from the key code, so native and
+    /// headless input agree; `Space` for the space bar; `Char` for a key that
+    /// produces one character, in the case it was typed. `None` for other
+    /// event types and for keys Div does not name.
+    pub fn key(&self) -> Option<crate::Key> {
+        if !matches!(self.event_type.as_str(), "keydown" | "keyup") {
+            return None;
+        }
+        crate::Key::from_code_and_text(self.key_code, &self.key_text)
     }
 
     /// Timestamp supplied by the native event source, or zero when unavailable.

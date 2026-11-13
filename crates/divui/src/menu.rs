@@ -289,102 +289,7 @@ impl std::ops::BitOr for Modifiers {
     }
 }
 
-/// A key of an [`Accelerator`]. Letters are `Key::A` to `Key::Z`, or
-/// `Key::Char` for any character.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum Key {
-    /// A character key; letters match either case.
-    Char(char),
-    Enter,
-    Escape,
-    Tab,
-    Space,
-    Backspace,
-    Delete,
-    Home,
-    End,
-    PageUp,
-    PageDown,
-    ArrowUp,
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
-    /// A function key, `Function(1)` to `Function(24)`.
-    Function(u8),
-}
-
-macro_rules! letter_keys {
-    ($($letter:ident)*) => {
-        impl Key {
-            $(
-                #[doc = concat!("The ", stringify!($letter), " key.")]
-                pub const $letter: Key = Key::Char(stringify!($letter).as_bytes()[0] as char);
-            )*
-        }
-    };
-}
-
-letter_keys!(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z);
-
-impl Key {
-    /// The platform key code this key arrives with, if it has one.
-    fn code(self) -> Option<i32> {
-        Some(match self {
-            Self::Char(character) if character.is_ascii_alphanumeric() => {
-                character.to_ascii_uppercase() as i32
-            }
-            Self::Char(_) => return None,
-            Self::Enter => 13,
-            Self::Escape => 27,
-            Self::Tab => 9,
-            Self::Space => 32,
-            Self::Backspace => 8,
-            Self::Delete => 46,
-            Self::Home => 36,
-            Self::End => 35,
-            Self::PageUp => 33,
-            Self::PageDown => 34,
-            Self::ArrowLeft => 37,
-            Self::ArrowUp => 38,
-            Self::ArrowRight => 39,
-            Self::ArrowDown => 40,
-            Self::Function(number @ 1..=24) => 111 + i32::from(number),
-            Self::Function(_) => return None,
-        })
-    }
-
-    fn matches(self, key_code: i32, text: Option<&str>) -> bool {
-        match (self.code(), self) {
-            (Some(code), _) => code == key_code,
-            (None, Self::Char(character)) => {
-                text.is_some_and(|text| text.chars().eq(std::iter::once(character)))
-            }
-            (None, _) => false,
-        }
-    }
-
-    fn name(self) -> String {
-        match self {
-            Self::Char(' ') | Self::Space => "Space".into(),
-            Self::Char(character) => character.to_uppercase().collect(),
-            Self::Enter => "Enter".into(),
-            Self::Escape => "Esc".into(),
-            Self::Tab => "Tab".into(),
-            Self::Backspace => "Backspace".into(),
-            Self::Delete => "Del".into(),
-            Self::Home => "Home".into(),
-            Self::End => "End".into(),
-            Self::PageUp => "PgUp".into(),
-            Self::PageDown => "PgDn".into(),
-            Self::ArrowUp => "Up".into(),
-            Self::ArrowDown => "Down".into(),
-            Self::ArrowLeft => "Left".into(),
-            Self::ArrowRight => "Right".into(),
-            Self::Function(number) => format!("F{number}"),
-        }
-    }
-}
+pub use crate::keyboard::Key;
 
 /// A shortcut that chooses a menu item from the keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -411,7 +316,7 @@ impl Accelerator {
                 parts.push(name.to_owned());
             }
         }
-        parts.push(self.key.name());
+        parts.push(self.key.accelerator_name());
         parts.join("+")
     }
 

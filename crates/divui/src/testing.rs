@@ -144,13 +144,11 @@ impl TestApp {
     /// Press and release `key` while holding `modifiers`.
     pub fn press_with(&mut self, modifiers: Modifiers, key: Key) {
         let document = self.document().clone();
-        let (code, text) = key.code_and_text();
-        let text = text.as_deref();
         document
-            .dispatch_key_input(KeyEventType::Down, code, text, text, modifiers)
+            .dispatch_key(KeyEventType::Down, key, modifiers, false)
             .expect("the key dispatches");
         document
-            .dispatch_key_input(KeyEventType::Up, code, text, None, modifiers)
+            .dispatch_key(KeyEventType::Up, key, modifiers, false)
             .expect("the key dispatches");
         self.run_until_idle();
     }
@@ -253,48 +251,8 @@ macro_rules! assert_snapshot {
     };
 }
 
-/// A key for [`TestApp::press`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Key {
-    /// A character key; it also types the character.
-    Char(char),
-    Enter,
-    Escape,
-    Tab,
-    Space,
-    Backspace,
-    Delete,
-    Home,
-    End,
-    ArrowLeft,
-    ArrowUp,
-    ArrowRight,
-    ArrowDown,
-    /// A function key, `Function(1)` to `Function(12)`.
-    Function(u8),
-}
-
-impl Key {
-    fn code_and_text(self) -> (i32, Option<String>) {
-        match self {
-            Self::Char(character) => (key_code_of(character), Some(character.to_string())),
-            Self::Enter => (13, Some("\r".into())),
-            Self::Escape => (27, None),
-            Self::Tab => (9, Some("\t".into())),
-            Self::Space => (32, Some(" ".into())),
-            Self::Backspace => (8, None),
-            Self::Delete => (46, None),
-            Self::Home => (36, None),
-            Self::End => (35, None),
-            Self::ArrowLeft => (37, None),
-            Self::ArrowUp => (38, None),
-            Self::ArrowRight => (39, None),
-            Self::ArrowDown => (40, None),
-            Self::Function(number) => (111 + i32::from(number.clamp(1, 12)), None),
-        }
-    }
-}
+/// A key for [`TestApp::press`]: the crate's [`Key`](crate::Key).
+pub use crate::Key;
 
 /// The key code a character's key reports: its upper-case letter or digit,
 /// else 0.

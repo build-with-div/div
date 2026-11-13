@@ -1166,8 +1166,36 @@ impl Document {
         key_text: Option<&str>,
         modifiers: Modifiers,
     ) -> Result<(), Error> {
-        self.dispatch_key_event_default(event_type, key_code, key_text, modifiers)
+        self.dispatch_key_event_default(event_type, key_code, key_text, modifiers, false)
             .map(|_| ())
+    }
+
+    /// Dispatch `key` as the native adapter does: a `keydown` or `keyup`
+    /// with the key's code and DOM name, and on keydown the text a `Char`
+    /// or `Space` key types, through the same cancelable defaults as
+    /// [`Self::dispatch_key_input`]. `repeat` marks a keydown the platform
+    /// repeats while the key is held; it is ignored for keyup.
+    pub fn dispatch_key(
+        &self,
+        event_type: KeyEventType,
+        key: crate::Key,
+        modifiers: Modifiers,
+        repeat: bool,
+    ) -> Result<(), Error> {
+        let key = match key {
+            crate::Key::Char(' ') => crate::Key::Space,
+            key => key,
+        };
+        let key_text = key.dom_text();
+        let text = key.typed_text();
+        self.dispatch_key_input_repeat(
+            event_type,
+            key.code().unwrap_or(0),
+            Some(&key_text),
+            text.as_deref(),
+            modifiers,
+            repeat,
+        )
     }
 
     /// Dispatch a logical key and its separately committed text through the
@@ -1181,7 +1209,21 @@ impl Document {
         text: Option<&str>,
         modifiers: Modifiers,
     ) -> Result<(), Error> {
-        let allowed = self.dispatch_key_event_default(event_type, key_code, key_text, modifiers)?;
+        self.dispatch_key_input_repeat(event_type, key_code, key_text, text, modifiers, false)
+    }
+
+    /// [`Self::dispatch_key_input`] with the platform's key repeat flag.
+    pub(crate) fn dispatch_key_input_repeat(
+        &self,
+        event_type: KeyEventType,
+        key_code: i32,
+        key_text: Option<&str>,
+        text: Option<&str>,
+        modifiers: Modifiers,
+        repeat: bool,
+    ) -> Result<(), Error> {
+        let allowed =
+            self.dispatch_key_event_default(event_type, key_code, key_text, modifiers, repeat)?;
         if allowed
             && event_type == KeyEventType::Down
             && !modifiers.contains(Modifiers::CTRL)
@@ -1202,6 +1244,7 @@ impl Document {
         key_code: i32,
         key_text: Option<&str>,
         modifiers: Modifiers,
+        repeat: bool,
     ) -> Result<bool, Error> {
         // A committed character is text input, not an input notification.
         // The shared path emits beforeinput and then input only after an edit.
@@ -1220,7 +1263,8 @@ impl Document {
                 document: self.inner.clone(),
                 activation: self.inner.keyboard_activation.get(),
             });
-        let event = Event::keyboard(event_type.name(), key_code, key_text, modifiers);
+        let mut event = Event::keyboard(event_type.name(), key_code, key_text, modifiers);
+        event.repeat = repeat && event_type == KeyEventType::Down;
         self.dispatch_to(target, &event)?;
         if let Some(release) = release {
             let armed = release.activation.map(|(node, _)| node);

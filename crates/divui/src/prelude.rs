@@ -13,6 +13,7 @@ pub use crate::context::{current_document, with_document};
 pub use crate::document::Document;
 pub use crate::element::{Element, WeakElement};
 pub use crate::events::*;
+pub use crate::keyboard::Key;
 pub use crate::renderer::{DynChild, For, Show};
 pub use crate::scroll_button::{
     ScrollButton, ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState,
