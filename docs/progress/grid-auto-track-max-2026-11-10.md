@@ -54,6 +54,8 @@ is on the same branch as the pinned 147.0.7727.50.
 | With a definite container inline size, columns use these two steps in place of `maximize_fixed_max_tracks`. With an indefinite inline size, and for rows, nothing changes. | `div-layout` | same |
 | An item whose writing mode is orthogonal to the grid's gives both maximum steps the contribution it gave the base sizes (`base_size_contribution`, shared with `size_intrinsic_tracks`), so it does not grow its columns past them. Blink's `ContributionSizeForGridItem` gives such an item one contribution for `kForIntrinsicMaximums` and `kForMaxContentMaximums` alike, `BlockContributionSize()`: its block size laid out at the size of its rows. This engine does not measure that size. | `div-layout` | same |
 
+| Stretching `auto` tracks gives each an equal share of what is left of the free space, so the last takes the remainder, as Blink's `StretchAutoTracks` does with `DistributeExtraSpaceToSetsEqually`. It had given each track `free / n`, truncated, and dropped the remainder. Found in Div when this branch's two-`auto`-column test failed on Linux, whose text metrics left an odd free space: the columns summed to 291.98px, not 292px. This applies to rows as well. | `div-layout` | same |
+
 Rows are not changed: `size_row_tracks_from_layout` already gives a row the
 laid-out block size of its items, which for block contributions is both the
 min-content and the max-content contribution.
@@ -79,6 +81,10 @@ The evidence files are in
 | CSS Grid coverage (WSL) | coverage matrix, base `04d1eeab`, head `1ac22538` | 2,218 to 2,227 of 4,204 exact: 9 gained, 0 lost ([delta](evidence/grid-auto-track-max-coverage-v1.json)) |
 | Div: layout crate | `cargo test --locked -p div-layout --no-fail-fast` (Windows) | 5,958 passed, 0 failed, 5 ignored (as in Open UI) |
 | Div: generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check` | pass |
+| Div: stretch remainder | `cargo test --locked -p div-layout --lib grid::tests` (Windows) | 5 passed. `stretched_auto_tracks_keep_the_remainder_of_the_free_space` fails without the fix: the last track is 50.0156px, not 50.0312px |
+| Div: layout crate with the stretch fix | `cargo test --locked -p div-layout --no-fail-fast` (Windows), head `ee5cc5a8` | 5,959 passed, 0 failed, 5 ignored |
+| Div: expanded census of the stretch fix (WSL) | `run_renderer_matrix.py --suite expanded`, head `ee5cc5a8`, against Open UI head `1ac22538` | 0 of 23,728 Div images changed ([delta](evidence/grid-auto-track-stretch-census-v1.json)). Exact rises from 22,517 to 22,519 only because 8 Chromium images of `css2_floats/float-nowrap-*` tests differ between the runs: their cache identity differs in Div, so Chromium recaptured them. Captures of these tests are already known to vary: [the renderer contract](../renderer/contract.md) records two Chromium images of `float-nowrap-3` with one oracle identity. No Div image of them changed |
+| Div: CSS Grid coverage of the stretch fix (WSL) | coverage matrix, head `ee5cc5a8`, against Open UI head `1ac22538` | 2,227 of 4,204 exact before and after; 0 gained, 0 lost. 6 images that were already different changed: `subgrid/writing-directions-002` and its reference at 1280x720 and 1920x1080 improved (by 739 to 2,472 pixels), `subgrid/line-names-005-ref` at 1280x720 has the same count, and `subgrid/repeat-auto-fill-005-ref` at 1280x720 has 12 more ([delta](evidence/grid-auto-track-stretch-coverage-v1.json)) |
 
 The text tests live in `crates/div-layout/tests/`, not in `grid.rs`: the
 renderer contract counts a style field named in a source file as consumed
