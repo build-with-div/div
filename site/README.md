@@ -2,9 +2,12 @@
 
 The Div website: a landing page, docs and a components page, built with
 [Astro](https://astro.build/) 7.3.8 and
-[Starlight](https://starlight.astro.build/) 0.42.8, with Pagefind search. It
-is published to GitHub Pages at <https://div.build/> (`public/CNAME`) by
-`.github/workflows/site.yml`.
+[Starlight](https://starlight.astro.build/) 0.42.8, with Pagefind search.
+
+It is not published yet. <https://div.build/> (`public/CNAME`) serves a
+coming-soon cover instead, from `cover/index.html`, deployed to GitHub Pages
+by `.github/workflows/site.yml`. The full site is still built and checked
+on every pull request; see [Publishing](#publishing).
 
 The project's name, domain and repository URL are set once, in
 `src/lib/project.mjs`. Code samples use the names the code has on `main`
@@ -20,6 +23,7 @@ cd site
 npm ci
 npm run dev       # http://localhost:4321/
 npm run build     # static site in dist/
+npm run build:cover   # the coming-soon cover in dist-cover/
 npm run preview   # serve dist/
 npm run check-assets
 npm run reference         # regenerate src/data/elements.json
@@ -27,11 +31,33 @@ npm run check-reference   # fail if elements.json is out of date (CI runs this)
 ```
 
 `dev` and `build` first run `scripts/sync-assets.mjs`, which copies Geist and
-Geist Mono from `tests/fidelity/components/assets/fonts/geist/`, and the Div wordmarks,
-favicons, web manifest icons and Open Graph image from `brand/`, after
-checking the SHA-256 recorded in `scripts/assets.json`. When `brand/build.py`
+Geist Mono from `tests/fidelity/components/assets/fonts/geist/`, and the Div
+wordmarks, favicons, web manifest icons and Open Graph image from `brand/`,
+after checking the SHA-256 recorded in `scripts/assets.json`. When `brand/build.py`
 changes an asset, update its digest there. `public/site.webmanifest` is
 written by hand.
+
+## Publishing
+
+GitHub Pages publishes one directory, named by `PAGES_DIR` in
+`.github/workflows/site.yml`:
+
+```yaml
+PAGES_DIR: site/dist-cover   # the coming-soon cover
+```
+
+To publish the full site, change that one line to `site/dist`. Both are
+built on every run either way, and only pushes to `main` deploy.
+
+The cover is `cover/index.html`, a single page with the wordmark and
+"Coming soon.", marked `noindex`. `scripts/build-cover.mjs` copies it into
+`dist-cover/` with the favicons, wordmarks, Geist and `CNAME` (all from
+where `scripts/sync-assets.mjs` put them after checking their digests),
+and fails if the page refers to a file it does not copy or to any other
+host. Its asset URLs are relative, so it also works at
+`https://build-with-div.github.io/div/`.
+
+## Colors
 
 The accent is Div blue (`#266efb`), set in `src/styles/theme.css`. It has
 4.46:1 on both backgrounds, so it is used for graphics only; text uses a

@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  The coming-soon cover that GitHub Pages publishes while the full site
+  matures. scripts/build-cover.mjs copies this file and the assets it uses
+  into dist-cover/. Asset URLs are relative so the page works both at
+  https://div.build/ and at https://build-with-div.github.io/div/.
+  See site/README.md for switching Pages to the full site.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>Div. Coming soon.</title>
+    <meta name="description" content="Div. Coming soon." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Div" />
+    <meta property="og:title" content="Div" />
+    <meta property="og:description" content="Div. Coming soon." />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" href="favicon.ico" sizes="32x32" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      @font-face {
+        font-family: 'Geist';
+        src: url('fonts/Geist-Variable.woff2') format('woff2');
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      /* The site's colors (src/styles/theme.css): zinc neutrals. */
+      :root {
+        --bg: #ffffff;
+        --muted: #52525b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #09090b;
+          --muted: #a1a1aa;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+      }
+      main {
+        min-height: 100vh;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 32px 16px;
+        font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        margin: 0;
+        line-height: 0;
+      }
+      h1 img {
+        display: block;
+        width: clamp(168px, 42vw, 280px);
+        height: auto;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(17px, 2.2vw, 20px);
+        font-weight: 450;
+        letter-spacing: -0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>
+        <picture>
+          <source srcset="div-wordmark-dark.svg" media="(prefers-color-scheme: dark)" />
+          <img src="div-wordmark.svg" alt="Div" width="280" height="125" />
+        </picture>
+      </h1>
+      <p>Coming soon.</p>
+    </main>
+  </body>
+</html>

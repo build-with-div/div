@@ -12,6 +12,7 @@
     "dev": "astro dev",
     "prebuild": "node scripts/sync-assets.mjs",
     "build": "astro build",
+    "build:cover": "node scripts/sync-assets.mjs && node scripts/build-cover.mjs",
     "preview": "astro preview"
   },
   "dependencies": {
