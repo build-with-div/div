@@ -71,9 +71,12 @@ the three dependency lines. `tools/framework/check_cli_template.py` gains
 step 5: for the `default` template it discards the seeded lockfile, runs
 `cargo generate-lockfile` and `cargo check --all-targets`, and reports
 which packages resolved differently from Div's lockfile. It runs in the
-existing cli-template job on Ubuntu and Windows.
+existing cli-template job on Ubuntu and Windows. The lockfile hash in
+`docs/v02/generated/dependency-policy.json` is regenerated with
+`python3 tools/release/generate_v02_contract.py`; without it the first CI
+run failed `--check` in windows-msvc and python-accountability.
 
-Verification (this branch rebased on `92ea25a0`): a scratch app depending
+Verification (this branch rebased on `ac4f40d8`): a scratch app depending
 only on `div-platform` with `dialog` (`out/zbus-probe`), with a fresh
 lockfile, in WSL (Ubuntu): on `main` `cargo check` fails with the 8 zbus
 errors; with the pins the resolve takes `zbus_macros` 5.13.0, `zvariant`
