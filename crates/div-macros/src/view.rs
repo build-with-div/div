@@ -654,9 +654,16 @@ fn gen_component_node(tag: &Ident, attrs: &[Attr], children: &[ViewNode]) -> Tok
 }
 
 /// Generate the actual component function call expression.
+///
+/// `on:` attributes are forwarded to the element the component returns (see
+/// `div::__forward_listener`). Attributes a component cannot take, `style:`
+/// and valueless ones, are compile errors rather than dropped.
 fn gen_component_call_expr(tag: &Ident, attrs: &[Attr], children: &[ViewNode]) -> TokenStream {
     let props_type = format_ident!("{}Props", tag);
+    let tag_str = tag.to_string();
 
+    let mut errors = TokenStream::new();
+    let mut listeners = Vec::new();
     let fields: Vec<_> = attrs
         .iter()
         .filter_map(|attr| match attr {
@@ -668,9 +675,35 @@ fn gen_component_call_expr(tag: &Ident, attrs: &[Attr], children: &[ViewNode]) -
                 let field = format_ident!("{}", name);
                 Some(quote! { #field: ::std::string::ToString::to_string(&#value) })
             }
-            _ => None,
+            Attr::Event {
+                name,
+                handler,
+                span,
+            } => {
+                listeners.push(quote_spanned! {*span=>
+                    let __view = ::div::__forward_listener(__view, #tag_str, #name, #handler);
+                });
+                None
+            }
+            Attr::StyleStatic { prop, span, .. } | Attr::StyleDynamic { prop, span, .. } => {
+                let message = format!(
+                    "`style:{prop}` does not apply to the component `<{tag_str}>`;                      style the element it renders, or give it a prop"
+                );
+                errors.extend(syn::Error::new(*span, message).to_compile_error());
+                None
+            }
+            Attr::Bool { name, span } => {
+                let message = format!(
+                    "the component prop `{name}` on `<{tag_str}>` needs a value,                      for example `{name}=true`"
+                );
+                errors.extend(syn::Error::new(*span, message).to_compile_error());
+                None
+            }
         })
         .collect();
+    if !errors.is_empty() {
+        return quote! {{ #errors ::div::ViewNode::Empty }};
+    }
 
     // If there are children, collect them into a `children` field
     let children_field = if children.is_empty() {
@@ -682,9 +715,17 @@ fn gen_component_call_expr(tag: &Ident, attrs: &[Attr], children: &[ViewNode]) -
 
     let all_fields: Vec<_> = fields.into_iter().chain(children_field).collect();
 
-    quote! {
+    let call = quote! {
         #tag(#props_type { #(#all_fields),* })
+    };
+    if listeners.is_empty() {
+        return call;
     }
+    quote! {{
+        let __view = ::div::IntoView::into_view(#call);
+        #(#listeners)*
+        __view
+    }}
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────
@@ -1114,6 +1155,30 @@ mod tests {
             output_str
         );
         assert!(!output_str.contains("as_raw"));
+    }
+
+    #[test]
+    fn codegen_component_forwards_listeners() {
+        let body = parse_ok(quote! { <Button label="Go" on:click=|_| {} /> });
+        let output = generate(&body).to_string();
+        assert!(output.contains("__forward_listener"), "{output}");
+        assert!(output.contains("\"Button\" , \"click\""), "{output}");
+        assert!(output.contains("label :"), "{output}");
+    }
+
+    #[test]
+    fn codegen_component_rejects_style_and_valueless_attributes() {
+        let body = parse_ok(quote! { <Button style:color="red" /> });
+        let output = generate(&body).to_string();
+        assert!(output.contains("compile_error"), "{output}");
+        assert!(
+            output.contains("does not apply to the component `<Button>`"),
+            "{output}"
+        );
+        let body = parse_ok(quote! { <Button disabled /> });
+        let output = generate(&body).to_string();
+        assert!(output.contains("needs a value"), "{output}");
+        assert!(output.contains("`disabled=true`"), "{output}");
     }
 
     #[test]
