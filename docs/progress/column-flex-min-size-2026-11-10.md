@@ -75,6 +75,8 @@ The evidence files are in
 | CSS Grid coverage (WSL) | coverage matrix, base `04d1eeab` | 2,218 of 4,204 exact before and after; 0 changed |
 | Div: layout crate | `cargo test --locked -p div-layout --no-fail-fast` (Windows), rebased on `main` at `774cf940` | 5,962 passed, 0 failed, 5 ignored: `main`'s 5,959 plus this change's 3 tests |
 | Div: generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check` | pass |
+| Div: expanded census (WSL) | `run_renderer_matrix.py --suite expanded`, head `5b7b8e47`, against Div `main` at `ee5cc5a8` | 22,519 of 23,728 exact before and after; 0 Div images changed ([delta](evidence/column-flex-min-size-div-census-v1.json)) |
+| Div: CSS Grid coverage (WSL) | coverage matrix, head `5b7b8e47`, against Div `main` at `ee5cc5a8` | 2,227 of 4,204 exact before and after; 0 Div images changed ([delta](evidence/column-flex-min-size-div-coverage-v1.json)) |
 
 The paired expanded census in WSL has no change. The base is `9d7bccf6`,
 the recorded census base; the head is `0fba067e`, this change. Both are
@@ -92,6 +94,16 @@ In all 4,204 measured comparisons the status and the Open UI image are
 unchanged: 2,218 exact before and after. The two references that the
 baseline lists as unmeasured, whose renderer memory is unbounded, are left
 out of both runs.
+
+The Div census reran both suites on this change in Div. The head is
+`5b7b8e47`, this branch rebased on `main` at `774cf940`; the base is the run
+of `ee5cc5a8`, the stretch fix of build-with-div/div#12. Chromium is
+identical in all 23,728 expanded comparisons and no Div image changed:
+22,519 exact before and after. In CSS Grid coverage the status and the Div
+image are unchanged in all 4,204 comparisons: 2,227 exact. The branch was
+later rebased on `565db46a` (build-with-div/div#29), which changes only
+`div-macros`, `divui` and documentation, so the measured engine code is the
+same as the head's.
 
 The components track also previewed this change. That preview is not
 evidence: it used the system FreeType so that WOFF2 text loads, and its base
