@@ -5,6 +5,8 @@ Status: proposed, 10 November 2026. Owner: components track
 framework track (`divui`, events and context) and the engine track (A1 data
 attributes, A3 top layer). Updated 12 November 2026 for the Div import:
 crate names, and the primitives start as a module of `div-components`.
+Requests 1, 2, 3 and 7 agreed with the framework track on 12 November 2026,
+with the signatures under [Agreed framework API](#agreed-framework-api).
 
 ## Problem
 
@@ -192,6 +194,75 @@ Already present and used as is: `tabindex` in sequential focus order
 related element, `Document::focused_element`, `Document::advance_focus`,
 `Document::set_modal_root`, capture-phase listeners (`Element::on_capture`)
 and `Show`.
+
+### Agreed framework API
+
+The framework track designed requests 1, 2, 3 and 7 against `main` at
+`ad4da5d`, and the components track agreed on 12 November 2026. They land
+in this order, one PR each: 7, 2, 3, 1.
+
+**7. `Element::contains`.** Inclusive, as the DOM's `Node.contains`; false
+for elements of different documents; `StaleHandle` if either is gone, as
+`is_same_node`. A walk up `other`'s parents.
+
+```rust
+impl Element {
+    pub fn contains(&self, other: &Element) -> Result<bool, Error>;
+}
+```
+
+**2. Key names and `repeat`.** One always-compiled `divui::Key`
+(`divui::menu::Key` and `divui::testing::Key` become aliases of it).
+`Event::key()` reads the key code first, so native and headless input give
+the same names; it is `None` for other events and unnamed keys.
+
+```rust
+#[non_exhaustive]
+pub enum Key {
+    Char(char), Enter, Escape, Tab, Space, Backspace, Delete,
+    Home, End, PageUp, PageDown, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
+    Function(u8),
+}
+impl Event {
+    pub fn key(&self) -> Option<Key>; // keydown and keyup
+}
+// new field `pub repeat: bool` on Event: true for a platform-repeated keydown
+impl Document {
+    pub fn dispatch_key(&self, event_type: KeyEventType, key: Key,
+                        modifiers: Modifiers, repeat: bool) -> Result<(), Error>;
+}
+```
+
+`dispatch_key_input` and `dispatch_key_event` keep their signatures and
+send `repeat: false`. Modifiers stay `event.modifiers`.
+
+**3. Optional props.** `#[component]` generates a props builder and `view!`
+calls it, so an omitted `#[prop(optional)]` prop takes `Default::default()`,
+a new `#[prop(default = expr)]` takes the expression, a given prop is its
+plain value (not `Some(..)`), and a missing required prop is still a
+compile error. Radix's `loop` is a Rust keyword; the primitives call it
+`looping` (`#[prop(default = true)] looping: bool`).
+
+**1. Context.** Re-exported from `divui` and the prelude:
+
+```rust
+pub fn provide_context<T: Clone + 'static>(value: T);
+pub fn use_context<T: Clone + 'static>() -> Option<T>;
+pub fn expect_context<T: Clone + 'static>() -> T;
+
+/// A component's children, built when the component calls `build()`.
+pub struct Children(/* Box<dyn FnOnce() -> Vec<ViewNode>> */);
+impl Children { pub fn build(self) -> Vec<ViewNode>; }
+```
+
+`view!` passes children as a closure. A part that provides context (the
+root: `Tabs`, `Dialog`) takes `children: Children` and calls `build()`
+after `provide_context`; `children: Vec<ViewNode>` stays eager. Each
+component runs in its own child scope, and an effect re-runs in the scope
+that created it, so content built later by `Show`, `For` or `DynChild`
+finds its context. Context is read in a component's body or an effect, not
+in a listener or after an `.await`: the primitives clone what they need
+into their listeners.
 
 ## Migration
 
