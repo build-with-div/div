@@ -6,7 +6,8 @@ framework track (`divui`, events and context) and the engine track (A1 data
 attributes, A3 top layer). Updated 12 November 2026 for the Div import:
 crate names, and the primitives start as a module of `div-components`.
 Requests 1, 2, 3 and 7 agreed with the framework track on 12 November 2026,
-with the signatures under [Agreed framework API](#agreed-framework-api).
+with the signatures under [Agreed framework API](#agreed-framework-api);
+`Children` corrected to borrow its caller (`Children<'a>`) the same day.
 
 ## Problem
 
@@ -251,13 +252,24 @@ pub fn use_context<T: Clone + 'static>() -> Option<T>;
 pub fn expect_context<T: Clone + 'static>() -> T;
 
 /// A component's children, built when the component calls `build()`.
-pub struct Children(/* Box<dyn FnOnce() -> Vec<ViewNode>> */);
-impl Children { pub fn build(self) -> Vec<ViewNode>; }
+pub struct Children<'a>(Box<dyn FnOnce() -> Vec<ViewNode> + 'a>);
+impl<'a> Children<'a> {
+    pub fn new(build: impl FnOnce() -> Vec<ViewNode> + 'a) -> Self;
+    pub fn build(self) -> Vec<ViewNode>;
+}
+impl IntoView for Children<'_> { /* builds the children */ }
+impl Default for Children<'_> { /* no children */ }
 ```
 
-`view!` passes children as a closure. A part that provides context (the
-root: `Tabs`, `Dialog`) takes `children: Children` and calls `build()`
-after `provide_context`; `children: Vec<ViewNode>` stays eager. Each
+`view!` passes children as a closure that borrows rather than moves, so
+locals used inside the children stay usable after the `view!` without a
+clone. A part that provides context (the root: `Tabs`, `Dialog`) writes
+`children: Children`, `#[component]` adds the lifetime, and it calls
+`build()` after `provide_context`; `children: Vec<ViewNode>` stays eager.
+Because the closure borrows the caller, a component builds its children
+before it returns; it cannot keep them to build later. A `ChildrenFn` that
+can be stored and built again (for content `Show` creates later) would be a
+separate addition if a component needs it. Each
 component runs in its own child scope, and an effect re-runs in the scope
 that created it, so content built later by `Show`, `For` or `DynChild`
 finds its context. Context is read in a component's body or an effect, not
