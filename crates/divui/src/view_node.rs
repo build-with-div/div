@@ -66,6 +66,45 @@ impl<T: IntoView> IntoView for Option<T> {
     }
 }
 
+/// Attach an `on:` listener written on a component to the view it returned.
+///
+/// `view!` calls this for `<Component on:event=handler>`. The listener goes
+/// on the component's root element, or on each top-level element of a
+/// fragment, so events from inside the component bubble to it as they do to
+/// a listener on that element. (`Show`, `For` and `DynChild` render a
+/// `display: contents` container, which receives it.) A view with no element
+/// to receive it (only text, nothing, or dynamic text) panics naming the
+/// component, rather than dropping the listener.
+#[doc(hidden)]
+pub fn __forward_listener(
+    view: ViewNode,
+    component: &str,
+    event_type: &str,
+    handler: impl Fn(&crate::Event) + 'static,
+) -> ViewNode {
+    fn roots<'a>(view: &'a ViewNode, found: &mut Vec<&'a Element>) {
+        match view {
+            ViewNode::Element(element) => found.push(element),
+            ViewNode::Fragment(nodes) => nodes.iter().for_each(|node| roots(node, found)),
+            ViewNode::Text(_) | ViewNode::Empty | ViewNode::MountFn(_) => {}
+        }
+    }
+    let mut elements = Vec::new();
+    roots(&view, &mut elements);
+    assert!(
+        !elements.is_empty(),
+        "`<{component} on:{event_type}>`: `{component}` returns no element to          attach the listener to; give it a handler prop instead"
+    );
+    let handler = std::rc::Rc::new(handler);
+    for element in elements {
+        let handler = handler.clone();
+        element
+            .on(event_type, move |event| handler(event))
+            .expect("forward a component listener");
+    }
+    view
+}
+
 /// Mount a [`ViewNode`] as a child of `parent`.
 ///
 /// Elements are appended and then "forgotten" (ownership transfers to the

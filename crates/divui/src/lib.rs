@@ -167,6 +167,8 @@ pub use div_text::{
 
 pub use context::{current_document, with_document};
 pub use renderer::{DynChild, For, Show};
+#[doc(hidden)]
+pub use view_node::__forward_listener;
 pub use view_node::{mount_view, IntoView, ViewNode};
 
 // ─── Re-exports: application shell ─────────────────────────

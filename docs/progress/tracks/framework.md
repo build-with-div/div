@@ -30,11 +30,56 @@ one PR each, smallest first.
 | RFC request | Change | State |
 | --- | --- | --- |
 | 7 | `Element::contains` | Merged (#25) |
-| 2 | Key names on keyboard events, and `repeat` | In review |
+| 2 | Key names on keyboard events, and `repeat` | Merged (#27) |
 | 3 | `view!` fills omitted optional props | Not started |
 | 1 | `provide_context` / `use_context` | Not started |
 
+## Dogfood gaps (sample-git)
+
+Gaps the first dogfood app, `build-with-div/sample-git`, found in the
+framework (its capability probe, run against `03573e7d`, and its
+`docs/framework-gaps.md`). One PR
+each, small fixes first, in the order 1, 2, 5, 6, RFC 0003 requests 3 and
+1, then 3, 4 and 7.
+
+| # | Gap | State |
+| --- | --- | --- |
+| 1 | `on:` on a component tag was silently dropped | In review |
+| 2 | `{expr}` children that are views (`For`, `Show`) | Not started |
+| 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
+| 4 | Headless pointer events and pointer capture for drags | Not started |
+| 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
+| 6 | zbus fails to build with a fresh lockfile (sample-git 24) | Not started |
+| 7 | Public SVG drawing, for icons (boundary with the engine track first) | Not started |
+
 ## Log
+
+### 13 November 2026: `on:` on a component tag (dogfood gap 1)
+
+Problem: `view!` dropped every `on:` attribute on a component tag, so
+`<Button on:click=...>` compiled and the handler never ran. `style:` and
+valueless attributes were dropped the same way.
+
+Choice: forward the listener rather than reject it. `on:event=handler` on a
+component goes on the element the component returns, or on each top-level
+element of a fragment, through the doc-hidden `div::__forward_listener`.
+Reasons: it is what the attribute says when the component renders one
+element (as in Leptos), it makes `div-components`' `Button` and every other
+component clickable without a handler prop in each, so the components
+track needs no API change, and bubbling means clicks inside the component
+reach it. `Show`, `For` and `DynChild` render a `display: contents`
+container, which receives the listener. A component that returns no
+element (only text, or nothing) panics when built, naming the component
+and event, instead of dropping the listener. `style:` and valueless
+attributes on a component are now compile errors naming the component.
+
+Verification (Windows, MSVC, this branch rebased on `774cf940`):
+`cargo test --locked -p divui --test component_events` passes 4 tests (a
+root element, clicks bubbling from inside it, each element of a fragment,
+a `Show` container, the panic). With the forwarding switched off, as on
+`main`, all 4 fail (no clicks recorded; no panic). `cargo test --locked -p
+div-macros` passes, including new tests of the forwarding and the two
+compile errors.
 
 ### 12 November 2026: key names and `repeat` (RFC 0003, request 2)
 

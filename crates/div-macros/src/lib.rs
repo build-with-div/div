@@ -37,6 +37,16 @@ mod view;
 /// - Component instantiation via PascalCase tags
 /// - Multiple root nodes (returns a `Fragment`)
 ///
+/// ## Components
+///
+/// On a component tag, `name=value` and `name="text"` set props. An
+/// `on:event=handler` is attached to the element the component returns (each
+/// top-level element of a fragment), so `<Button on:click=...>` handles
+/// clicks on the button it renders. A component that returns no element (only
+/// text, or nothing) panics when built with a listener; give it a handler
+/// prop instead. `style:` and valueless attributes are compile errors
+/// on a component: style the element it renders, or write `name=true`.
+///
 /// ## Note
 ///
 /// Expressions containing bare `>` (comparison) in attribute values must
