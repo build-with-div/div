@@ -19,7 +19,7 @@ mod view;
 ///     <div class="container">
 ///         <h1>"Hello!"</h1>
 ///         <button on:click=move |_| count.set(count.get() + 1)>
-///             "Count: " {count}
+///             "Count: " {count.get()}
 ///         </button>
 ///     </div>
 /// }
@@ -29,7 +29,7 @@ mod view;
 ///
 /// - Static HTML elements with children and self-closing tags
 /// - String literal text nodes: `"text"`
-/// - Dynamic text interpolation: `{expression}`
+/// - Expression children: `{expression}` (see below)
 /// - Event handlers: `on:click=expr`
 /// - Static styles: `style:width="100px"`
 /// - Dynamic typed styles: `style:opacity={signal.get()}`
@@ -46,6 +46,22 @@ mod view;
 /// text, or nothing) panics when built with a listener; give it a handler
 /// prop instead. `style:` and valueless attributes are compile errors
 /// on a component: style the element it renders, or write `name=true`.
+///
+/// ## Expression children
+///
+/// A `{expression}` child shows text or a view, chosen by its type:
+///
+/// - Text (`ToString`, such as `{count.get()}` or `{name}`) becomes a text
+///   node, re-run in an effect so it follows the signals it reads. Its
+///   expression must be `'static`, as the effect keeps it.
+/// - A view (`IntoView`: `ViewNode`, `Vec<ViewNode>`, `Option<..>`), such as
+///   `{For(..)}`, `{Show(..)}`, `{children}` or
+///   `{items.iter().map(..).collect::<Vec<_>>()}`, is built once and mounted
+///   as itself. It may borrow locals.
+///
+/// A variable moves into the view, as text always did. A field or other
+/// place (`{props.title}`) is borrowed, so it shows as text; to show a view
+/// stored in a field, move it out with `{props.content.into_view()}`.
 ///
 /// ## Note
 ///

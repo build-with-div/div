@@ -87,6 +87,9 @@ pub mod text_node;
 
 // ─── View system modules ────────────────────────────────────
 
+#[doc(hidden)]
+#[path = "view_child.rs"]
+pub mod __view_child;
 pub mod context;
 pub mod renderer;
 pub mod view_node;

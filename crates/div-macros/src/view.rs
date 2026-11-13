@@ -465,29 +465,61 @@ fn gen_html_element(tag: &Ident, attrs: &[Attr], children: &[ViewNode]) -> Token
     }}
 }
 
-/// Generate code for a dynamic view node (reactive text).
+/// Generate code for a `{expr}` node, which returns a `ViewNode`.
 ///
-/// Returns a `ViewNode::MountFn` that creates a DOM Text node on the parent
-/// during mount. This avoids wrapper elements like `<span>`.
+/// The expression's type decides what it shows (see `div::__view_child`):
+/// text (`ToString`) becomes a DOM Text node, re-run in an effect; any other
+/// view (`IntoView`), such as `For(..)` or `Show(..)`, is built once and
+/// mounted as itself. A variable moves into a held value the closure
+/// borrows, another place is borrowed (so it is text, as before), and any
+/// other expression is evaluated by value.
 fn gen_dynamic_view_node(expr: &Expr, span: Span) -> TokenStream {
+    let (hold, value) = if is_variable(expr) {
+        (
+            quote_spanned! {span=> let __value = ::div::__view_child::Value::new(#expr); },
+            quote_spanned! {span=> __value },
+        )
+    } else if is_place(expr) {
+        (
+            TokenStream::new(),
+            quote_spanned! {span=> ::div::__view_child::Value::new(&(#expr)) },
+        )
+    } else {
+        (
+            TokenStream::new(),
+            quote_spanned! {span=> ::div::__view_child::Value::new(#expr) },
+        )
+    };
     quote_spanned! {span=> {
-        ::div::ViewNode::MountFn(Box::new(move |__el: &::div::Element| {
-            let __text_node = __el.create_text_child(
-                &::std::string::ToString::to_string(&(#expr))
-            ).expect("create dynamic text node");
-            let __text_weak = __text_node.downgrade();
-            ::div::on_cleanup(move || { drop(__text_node); });
-            ::div::create_effect({
-                let __text_weak = __text_weak;
-                move || {
-                    if let Some(__node_ref) = __text_weak.upgrade() {
-                        let __val = ::std::string::ToString::to_string(&(#expr));
-                        __node_ref.set_data(&__val).expect("update dynamic text");
-                    }
-                }
-            });
-        }))
+        #[allow(unused_imports)]
+        use ::div::__view_child::traits::*;
+        #hold
+        (&&::div::__view_child::Child::new(move || (&&&#value).__child_value())).__into_view()
     }}
+}
+
+/// A single-segment path: a local variable (or constant).
+fn is_variable(expr: &Expr) -> bool {
+    match expr {
+        Expr::Path(path) => {
+            path.qself.is_none()
+                && path.path.leading_colon.is_none()
+                && path.path.segments.len() == 1
+                && path.path.segments[0].arguments.is_none()
+        }
+        Expr::Paren(inner) => is_variable(&inner.expr),
+        _ => false,
+    }
+}
+
+/// A place expression other than a variable: a path, field, index or deref.
+fn is_place(expr: &Expr) -> bool {
+    match expr {
+        Expr::Path(_) | Expr::Field(_) | Expr::Index(_) => true,
+        Expr::Unary(unary) => matches!(unary.op, syn::UnOp::Deref(_)),
+        Expr::Paren(inner) => is_place(&inner.expr),
+        _ => false,
+    }
 }
 
 /// Generate an attribute-setting statement (runs in scope where `__el` exists).
@@ -591,24 +623,10 @@ fn gen_child_stmt(child: &ViewNode) -> TokenStream {
             }
         }
         ViewNode::Dynamic { expr, span } => {
-            quote_spanned! {*span=> {
-                let __text_node = __el.create_text_child(
-                    &::std::string::ToString::to_string(&(#expr))
-                ).expect("create dynamic text node");
-                let __text_weak = __text_node.downgrade();
-                // Transfer ownership to scope cleanup so the text node is
-                // removed from the DOM when the enclosing scope is disposed.
-                ::div::on_cleanup(move || { drop(__text_node); });
-                ::div::create_effect({
-                    let __text_weak = __text_weak;
-                    move || {
-                        if let Some(__node_ref) = __text_weak.upgrade() {
-                            let __val = ::std::string::ToString::to_string(&(#expr));
-                            __node_ref.set_data(&__val).expect("update dynamic text");
-                        }
-                    }
-                });
-            }}
+            let view = gen_dynamic_view_node(expr, *span);
+            quote_spanned! {*span=>
+                ::div::mount_view(&__el, #view);
+            }
         }
     }
 }
@@ -1116,45 +1134,45 @@ mod tests {
     }
 
     #[test]
-    fn codegen_dynamic_child_uses_text_node() {
+    fn codegen_dynamic_child_dispatches_on_its_type() {
+        // Text or view is decided by `div::__view_child`; the text path
+        // there makes a Text node, never a <span> wrapper.
         let body = parse_ok(quote! { <p>{val}</p> });
-        let output = generate(&body);
-        let output_str = output.to_string();
+        let output_str = generate(&body).to_string();
+        assert!(output_str.contains("mount_view (& __el"), "{output_str}");
         assert!(
-            output_str.contains("create_text_child"),
-            "expected 'create_text_child' in: {}",
-            output_str
+            output_str.contains("__view_child :: Child :: new (move ||"),
+            "{output_str}"
         );
         assert!(
-            output_str.contains("set_data"),
-            "expected 'set_data' (not set_text) in: {}",
-            output_str
+            output_str.contains("let __value = :: div :: __view_child :: Value :: new (val)"),
+            "{output_str}"
         );
-        assert!(
-            !output_str.contains("create(__doc, \"span\")"),
-            "must not create a <span> wrapper for dynamic text: {}",
-            output_str
-        );
-        assert!(output_str.contains("downgrade"));
-        assert!(!output_str.contains("from_raw"));
+        assert!(output_str.contains("__into_view"), "{output_str}");
+        assert!(!output_str.contains("\"span\""), "{output_str}");
     }
 
     #[test]
-    fn codegen_standalone_dynamic_uses_mount_fn() {
+    fn codegen_dynamic_child_reads_by_expression_shape() {
+        let output = generate(&parse_ok(quote! { <p>{props.title}</p> })).to_string();
+        assert!(
+            output.contains("Value :: new (& (props . title))"),
+            "{output}"
+        );
+        let output = generate(&parse_ok(quote! { <p>{For(a, b, c)}</p> })).to_string();
+        assert!(
+            output.contains("Value :: new (For (a , b , c))"),
+            "{output}"
+        );
+        assert!(!output.contains("let __value"), "{output}");
+    }
+
+    #[test]
+    fn codegen_standalone_dynamic_returns_the_dispatched_view() {
         let body = parse_ok(quote! { {val} });
-        let output = generate(&body);
-        let output_str = output.to_string();
-        assert!(
-            output_str.contains("MountFn"),
-            "expected 'MountFn' in standalone dynamic: {}",
-            output_str
-        );
-        assert!(
-            output_str.contains("create_text_child"),
-            "expected 'create_text_child' in: {}",
-            output_str
-        );
-        assert!(!output_str.contains("as_raw"));
+        let output_str = generate(&body).to_string();
+        assert!(output_str.contains("__into_view"), "{output_str}");
+        assert!(!output_str.contains("mount_view"), "{output_str}");
     }
 
     #[test]
