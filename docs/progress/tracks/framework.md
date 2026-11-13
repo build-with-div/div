@@ -21,7 +21,36 @@ The order and verification of each PR are in
 | 8 | HTTP client | Merged (#105) |
 | 9 | `default` template and test utilities | Merged (#106) |
 
+## RFC 0003 requests
+
+The framework's part of
+[RFC 0003](../../alpha/rfcs/0003-component-primitives.md#affected-tracks),
+one PR each, smallest first.
+
+| RFC request | Change | State |
+| --- | --- | --- |
+| 7 | `Element::contains` | In review |
+| 2 | Key names on keyboard events, and `repeat` | Not started |
+| 3 | `view!` fills omitted optional props | Not started |
+| 1 | `provide_context` / `use_context` | Not started |
+
 ## Log
+
+### 12 November 2026: `Element::contains` (RFC 0003, request 7)
+
+Change: `Element::contains(&self, other: &Element) -> Result<bool, Error>`
+answers as the DOM's `Node.contains`: inclusive, true for any descendant,
+false for an element of another document. It walks `other`'s parents in the
+engine, so a detached subtree answers the same way, and it runs no layout.
+Either element being removed is a `StaleHandle` error, as for
+`is_same_node`. The components track's dismissable layer can replace its
+parent walk with it.
+
+Verification (Windows, MSVC, this branch):
+`cargo test --locked -p divui --lib contains` passes
+`element::tests::contains_is_inclusive_and_follows_the_parent_chain`
+(self, child, grandchild, sibling, reversed order, a detached subtree,
+another document, removed elements).
 
 ### 10 November 2026: `default` template and test utilities
 
