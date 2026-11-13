@@ -1,0 +1,60 @@
+---
+title: Introduction
+description: What Div is, how an app is put together, and where to read next.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Snippet from '../../../components/Snippet.astro';
+
+Div is a framework for building native desktop apps in Rust. You
+describe the interface with a `view!` macro that reads like HTML, style it
+with CSS properties, and ship one native binary. Div lays out and
+paints your views itself, with Skia.
+
+**Div is not a browser.** There is no HTML document, no JavaScript and
+no webview. The tags in `view!` are Div's own native elements, which
+borrow HTML's names; the set is closed, they start unstyled, and
+some behave differently from their HTML namesakes. Knowing the elements is
+the first step, so they have [their own reference](/elements/).
+
+<Aside type="caution" title="Alpha">
+Div is an experimental alpha for Windows and Linux. The first alpha
+release is still in progress, APIs change without notice, and nothing is
+on crates.io yet. macOS is planned.
+</Aside>
+
+## What an app looks like
+
+<Snippet name="app_minimal" title="src/main.rs" />
+
+- **Elements.** `div`, `button`, `input` and the other
+  [base elements](/elements/) are what every view is made of.
+- **Views** are Rust functions that return `view!` markup. Components are
+  functions marked `#[component]`.
+- **Styles** are CSS properties and values, set on each element and
+  checked when the app compiles.
+- **State** lives in signals. When a signal changes, the text and styles
+  that read it update.
+- **App services**: windows, menus, file dialogs, clipboard, HTTP and async
+  tasks are part of the framework.
+
+## Where to read next
+
+- [Getting started](/docs/getting-started/): install the CLI and
+  run your first app.
+- **Core concepts**: [views and `view!`](/docs/concepts/views/),
+  [elements](/docs/concepts/elements/),
+  [styling](/docs/concepts/styling/),
+  [layout](/docs/concepts/layout/),
+  [text and fonts](/docs/concepts/text-and-fonts/),
+  [events and state](/docs/concepts/events-and-state/) and
+  [apps and windows](/docs/concepts/windows/).
+- [Elements reference](/elements/): every element, its attributes,
+  events and differences from HTML, with rendered examples.
+- [Styling reference](/reference/properties/): every supported
+  property and value.
+- [Components](/components/): a library based on shadcn/ui
+  designs, built on the elements and still in progress.
+
+The Rust API reference is not published yet; `cargo doc --open` in your
+app builds it locally.
