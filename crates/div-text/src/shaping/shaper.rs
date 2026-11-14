@@ -487,6 +487,7 @@ pub struct TextShaper {
 impl TextShaper {
     /// Create a new TextShaper with the default Skia shaper (HarfBuzz backend).
     pub fn new() -> Self {
+        crate::initialize_skia();
         Self {
             shaper: Shaper::new(None),
         }

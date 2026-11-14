@@ -2,6 +2,9 @@
 //!
 //! Verifies that paint_fragment clips children when overflow: hidden is set.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use skia_safe::{surfaces, Color as SkColor, Surface};

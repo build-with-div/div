@@ -4,6 +4,9 @@
 //! These tests use real system fonts (via Skia's `SkFontMgr`) to produce
 //! pixel-level verification of the paint output.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use skia_safe::{

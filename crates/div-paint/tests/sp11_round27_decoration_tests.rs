@@ -4,6 +4,9 @@
 //! UPDATED in Round 30: Blink actually always uses UnderlineThickness() for
 //! from-font, and does NOT round the result. These tests are updated accordingly.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_style::TextDecorationThickness;
 use div_text::font::FontMetrics;
 

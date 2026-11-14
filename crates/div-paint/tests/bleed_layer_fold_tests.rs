@@ -6,6 +6,9 @@
 //! SaveLayerAlpha -> DrawPath -> Restore into that one draw. The border is
 //! painted straight through the antialiased clip with no intermediate layer.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_dom::{Document, ElementTag};
 use div_geometry::{LayoutUnit, Length, PhysicalOffset, PhysicalSize};
 use div_layout::Fragment;

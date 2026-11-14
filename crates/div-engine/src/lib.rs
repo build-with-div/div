@@ -394,6 +394,7 @@ impl Engine {
         font_collection: Arc<FontCollection>,
         options: EngineOptions,
     ) -> Result<Self, EngineError> {
+        div_paint::initialize_skia();
         let document = NativeDocument::new_with_raster_configuration(
             font_collection,
             options.raster_configuration,
