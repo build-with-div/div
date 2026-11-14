@@ -128,6 +128,18 @@ impl LayoutUnit {
         Self(clamped as i32)
     }
 
+    /// From double pixels, rounding to the nearest unit, halves away from
+    /// zero. Matches Blink's `FromDoubleRound(double)`: `round()`, then a
+    /// saturating cast (NaN becomes 0).
+    #[inline]
+    pub fn from_f64_round(value: f64) -> Self {
+        let scaled = (value * DENOMINATOR as f64).round();
+        if scaled.is_nan() {
+            return Self(0);
+        }
+        Self(scaled.clamp(RAW_MIN as f64, RAW_MAX as f64) as i32)
+    }
+
     /// From float, rounding UP (ceiling).
     /// Matches Blink's `FromFloatCeil(float)`.
     #[inline]

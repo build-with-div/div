@@ -114,57 +114,39 @@ impl<'a> LineFlexer<'a> {
     fn freeze_items(&mut self) {
         self.total_flex_factor = 0.0;
         self.free_space = self.main_axis_inner_size - self.gap_total;
-
-        // Compute total weighted flex shrink factor for shrink mode
         let mut total_weighted_flex_shrink: f64 = 0.0;
 
         for &idx in self.line_indices {
-            let item = &self.items[idx];
-            if item.state == FlexerState::Frozen {
-                // Frozen items: subtract their flexed margin-box size from free space
-                self.free_space = self.free_space - item.flexed_margin_box_size();
-            } else {
-                // Unfrozen items: subtract their base margin-box size from free space
-                self.free_space = self.free_space - item.flex_base_margin_box_size();
-
-                match self.mode {
-                    FlexMode::Grow => {
-                        self.total_flex_factor += item.flex_grow as f64;
-                    }
-                    FlexMode::Shrink => {
-                        self.total_flex_factor += item.flex_shrink as f64;
-                        // Scaled flex shrink factor = flex_shrink × base_content_size
-                        // Blink line_flexer.cc:64
-                        total_weighted_flex_shrink +=
-                            item.flex_shrink as f64 * item.base_content_size.to_f64();
-                    }
-                }
-            }
-        }
-
-        // Compute free_space_fraction for each unfrozen item (Blink line_flexer.cc:68-82)
-        for &idx in self.line_indices {
             let item = &mut self.items[idx];
             if item.state == FlexerState::Frozen {
+                self.free_space = self.free_space - item.flexed_margin_box_size();
                 continue;
             }
-            item.free_space_fraction = match self.mode {
+
+            // Blink resets an unfrozen item to its hypothetical size here.
+            item.flexed_content_size = item.hypothetical_content_size;
+
+            // Each item's fraction is taken against the running sum of the
+            // factors so far, not the line's total (line_flexer.cc:70-81).
+            // `resolve_flexible_lengths` walks the items in reverse, so each
+            // takes its share of what the later items left, and the first
+            // (fraction 1) takes the rest.
+            match self.mode {
                 FlexMode::Grow => {
-                    if self.total_flex_factor > 0.0 {
-                        item.flex_grow as f64 / self.total_flex_factor
-                    } else {
-                        0.0
-                    }
+                    let flex_factor = item.flex_grow as f64;
+                    self.total_flex_factor += flex_factor;
+                    item.free_space_fraction = flex_factor / self.total_flex_factor;
                 }
                 FlexMode::Shrink => {
-                    if total_weighted_flex_shrink > 0.0 {
-                        (item.flex_shrink as f64 * item.base_content_size.to_f64())
-                            / total_weighted_flex_shrink
-                    } else {
-                        0.0
-                    }
+                    let flex_factor = item.flex_shrink as f64;
+                    self.total_flex_factor += flex_factor;
+                    let weighted_flex_shrink = flex_factor * item.base_content_size.to_f64();
+                    total_weighted_flex_shrink += weighted_flex_shrink;
+                    item.free_space_fraction = weighted_flex_shrink / total_weighted_flex_shrink;
                 }
-            };
+            }
+
+            self.free_space = self.free_space - item.flex_base_margin_box_size();
         }
     }
 
@@ -174,73 +156,47 @@ impl<'a> LineFlexer<'a> {
     fn resolve_flexible_lengths(&mut self) -> bool {
         // Step a: Fractional flex factors (Blink line_flexer.cc:97-107)
         // If total_flex_factor < 1.0, limit distribution.
-        let mut used_free_space = self.free_space;
+        let mut free_space = self.free_space;
         if self.total_flex_factor > 0.0 && self.total_flex_factor < 1.0 {
-            let limited =
+            // `LayoutUnit(double)` truncates, as `from_f64` does.
+            let fractional =
                 LayoutUnit::from_f64(self.initial_free_space.to_f64() * self.total_flex_factor);
-            match self.mode {
-                FlexMode::Grow => {
-                    if limited < self.free_space {
-                        used_free_space = limited;
-                    }
-                }
-                FlexMode::Shrink => {
-                    if limited > self.free_space {
-                        used_free_space = limited;
-                    }
-                }
+            if fractional.to_f64().abs() < free_space.to_f64().abs() {
+                free_space = fractional;
             }
         }
 
-        // Step b: Early exit if no space to distribute (Blink line_flexer.cc:109-115)
-        if self.mode == FlexMode::Grow && used_free_space <= LayoutUnit::zero() {
-            for &idx in self.line_indices {
-                if self.items[idx].state != FlexerState::Frozen {
-                    self.items[idx].state = FlexerState::Frozen;
-                    self.items[idx].flexed_content_size = self.items[idx].base_content_size;
-                }
-            }
+        // Step b: Early exit if no space to distribute (Blink line_flexer.cc:109-115).
+        // Unfrozen items keep the hypothetical size `freeze_items` gave them.
+        if self.mode == FlexMode::Grow && free_space <= LayoutUnit::zero() {
             return false;
         }
-        if self.mode == FlexMode::Shrink && used_free_space >= LayoutUnit::zero() {
-            for &idx in self.line_indices {
-                if self.items[idx].state != FlexerState::Frozen {
-                    self.items[idx].state = FlexerState::Frozen;
-                    self.items[idx].flexed_content_size = self.items[idx].base_content_size;
-                }
-            }
+        if self.mode == FlexMode::Shrink && free_space >= LayoutUnit::zero() {
             return false;
         }
 
-        // Step c: Distribute free space (Blink line_flexer.cc:139-168)
-        // Iterate in reverse to avoid rounding drift (cumulative fraction approach).
+        // Step c: Distribute free space (Blink line_flexer.cc:139-168). In
+        // reverse, each item takes its fraction of the space the later items
+        // left, rounded to the nearest unit, and the first takes the rest.
         let mut total_violation = LayoutUnit::zero();
-        let mut cumulative_fraction: f64 = 0.0;
 
-        // Collect unfrozen indices in reverse order
-        let unfrozen_reversed: Vec<usize> = self
-            .line_indices
-            .iter()
-            .rev()
-            .copied()
-            .filter(|&idx| self.items[idx].state != FlexerState::Frozen)
-            .collect();
-
-        let free_space_f64 = used_free_space.to_f64();
-
-        for (_i, &idx) in unfrozen_reversed.iter().enumerate() {
+        for &idx in self.line_indices.iter().rev() {
             let item = &mut self.items[idx];
+            if item.state == FlexerState::Frozen {
+                continue;
+            }
 
-            cumulative_fraction += item.free_space_fraction;
-
-            // Cumulative fraction approach: each item's share is the difference
-            // between the cumulative chunk including this item and the previous.
-            // This naturally distributes rounding errors to the first-in-forward
-            // (last-in-reverse) item since its cumulative_fraction == 1.0.
-            let prev_cumulative = cumulative_fraction - item.free_space_fraction;
-            let current_chunk = LayoutUnit::from_f64(free_space_f64 * cumulative_fraction);
-            let prev_chunk = LayoutUnit::from_f64(free_space_f64 * prev_cumulative);
-            let extra_size = current_chunk - prev_chunk;
+            let extra_size = if item.free_space_fraction == 1.0 {
+                free_space
+            } else {
+                let extra = free_space.to_f64() * item.free_space_fraction;
+                if extra.is_finite() {
+                    LayoutUnit::from_f64_round(extra)
+                } else {
+                    LayoutUnit::zero()
+                }
+            };
+            free_space = free_space - extra_size;
 
             let unclamped = item.base_content_size + extra_size;
             let clamped = item.main_axis_min_max.clamp(unclamped);
@@ -582,5 +538,78 @@ mod tests {
         assert_eq!(items[0].flexed_content_size, LayoutUnit::from_i32(50));
         assert_eq!(items[1].flexed_content_size, LayoutUnit::from_i32(100));
         assert_eq!(items[2].flexed_content_size, LayoutUnit::from_i32(450));
+    }
+    fn flex_line(items: &mut [FlexItem], container: i32) {
+        let indices: Vec<usize> = (0..items.len()).collect();
+        let sum_hyp = items.iter().fold(LayoutUnit::zero(), |sum, item| {
+            sum + item.hypothetical_content_size
+        });
+        LineFlexer::new(
+            items,
+            &indices,
+            LayoutUnit::from_i32(container),
+            sum_hyp,
+            LayoutUnit::zero(),
+        )
+        .run();
+    }
+
+    fn raw_sizes(items: &[FlexItem]) -> Vec<i32> {
+        items
+            .iter()
+            .map(|item| item.flexed_content_size.raw())
+            .collect()
+    }
+
+    /// Fractional grow factors split space as Chromium 147 does: 276px and
+    /// 120px, measured by sample-interactions in Chrome for Testing. Truncating
+    /// shares of the total gave 276.015625 and 119.984375.
+    #[test]
+    fn fractional_grow_rounds_each_share_like_blink() {
+        let mut items = vec![
+            make_test_item(0, 0, 69.697, 1.0),
+            make_test_item(1, 0, 30.303, 1.0),
+        ];
+        flex_line(&mut items, 396);
+        assert_eq!(raw_sizes(&items), vec![276 * 64, 120 * 64]);
+    }
+
+    /// Grow 10, 70 and 20 over 792px. In reverse, the last item takes
+    /// round(792 x 20/100) = 158.40625, the middle one round(633.59375 x
+    /// 70/80) = 554.390625, and the first the rest, 79.203125, as in
+    /// Chromium 147. Shares of the total, truncated, gave 79.1875, 554.40625
+    /// and 158.390625.
+    #[test]
+    fn grow_shares_are_taken_from_what_later_items_left() {
+        let mut items = vec![
+            make_test_item(0, 0, 10.0, 1.0),
+            make_test_item(1, 0, 70.0, 1.0),
+            make_test_item(2, 0, 20.0, 1.0),
+        ];
+        flex_line(&mut items, 792);
+        assert_eq!(raw_sizes(&items), vec![5069, 35481, 10138]);
+    }
+
+    /// Shrink weights each factor by the base size against the running sum,
+    /// as Blink's `FreezeItems` does: 100px and 200px bases in 200px give the
+    /// second item round(-100 x 200/300) = -66.671875 and the first the rest,
+    /// -33.328125.
+    #[test]
+    fn shrink_shares_are_taken_from_what_later_items_left() {
+        let mut items = vec![
+            make_test_item(0, 100, 1.0, 1.0),
+            make_test_item(1, 200, 1.0, 1.0),
+        ];
+        flex_line(&mut items, 200);
+        assert_eq!(raw_sizes(&items), vec![100 * 64 - 2133, 200 * 64 - 4267]);
+    }
+
+    #[test]
+    fn from_f64_round_matches_blink_from_double_round() {
+        assert_eq!(LayoutUnit::from_f64_round(119.99988).raw(), 120 * 64);
+        assert_eq!(LayoutUnit::from_f64_round(0.5 / 64.0).raw(), 1);
+        assert_eq!(LayoutUnit::from_f64_round(-0.5 / 64.0).raw(), -1);
+        assert_eq!(LayoutUnit::from_f64_round(f64::NAN).raw(), 0);
+        assert_eq!(LayoutUnit::from_f64_round(f64::INFINITY).raw(), i32::MAX);
     }
 }
