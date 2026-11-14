@@ -4,6 +4,9 @@
 //!          (Blink uses UnderlineThickness() for ALL decoration types).
 //! Issue 2: `auto` decoration thickness should NOT round (Blink returns raw).
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_paint::decoration_painter::{paint_text_decorations, DecorationPhase};
 
 use div_style::ComputedStyle;

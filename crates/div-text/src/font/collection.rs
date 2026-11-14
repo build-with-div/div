@@ -357,6 +357,9 @@ impl FontCollection {
 
     /// Construct a production collection backed by installed system fonts.
     pub fn system() -> Arc<Self> {
+        // Every document owns a collection, so this orders Skia's
+        // initialization before any layout, paint or decode for one.
+        crate::initialize_skia();
         let cache_lifetime = FontCacheLifetime::new();
         Arc::new(Self {
             id: NEXT_COLLECTION_ID.fetch_add(1, Ordering::Relaxed),
@@ -841,6 +844,7 @@ impl FontCollection {
 
 impl Default for FontCollection {
     fn default() -> Self {
+        crate::initialize_skia();
         let cache_lifetime = FontCacheLifetime::new();
         Self {
             id: NEXT_COLLECTION_ID.fetch_add(1, Ordering::Relaxed),

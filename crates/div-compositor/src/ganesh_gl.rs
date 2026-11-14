@@ -28,6 +28,7 @@ pub struct GaneshGlCompositor {
 
 impl GaneshGlCompositor {
     pub fn new() -> Result<Self, CompositorError> {
+        div_paint::initialize_skia();
         let mut devices = Device::query_devices()
             .map_err(raster_error)?
             .collect::<Vec<_>>();

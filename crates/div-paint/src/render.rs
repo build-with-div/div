@@ -537,6 +537,7 @@ fn record_fragment_impl(
     ),
     String,
 > {
+    crate::initialize_skia();
     crate::painter::reset_picture_paint_state();
     let width = logical_dimension(viewport.logical_width())?;
     let height = logical_dimension(viewport.logical_height())?;

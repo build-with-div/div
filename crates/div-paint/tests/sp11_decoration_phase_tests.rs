@@ -3,6 +3,9 @@
 //! CSS spec requires line-through to be painted AFTER text glyphs (in front),
 //! while underline and overline are painted BEFORE text glyphs (behind).
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use div_paint::decoration_painter::{paint_text_decorations, DecorationPhase};
