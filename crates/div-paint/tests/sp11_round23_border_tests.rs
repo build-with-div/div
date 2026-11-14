@@ -4,6 +4,9 @@
 //! Issue 4: 3D border styles (inset, outset, groove, ridge) have
 //! side-dependent shading: top+left vs bottom+right.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_dom::{Document, ElementTag};
 use div_geometry::{LayoutUnit, Length, PhysicalOffset, PhysicalSize};
 use div_layout::Fragment;

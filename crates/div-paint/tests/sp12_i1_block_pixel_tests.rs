@@ -10,6 +10,9 @@
 //! cargo test --package div-paint --test sp12_i1_block_pixel_tests
 //! ```
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use skia_safe::Surface;
 
 use div_dom::{Document, ElementTag, NodeId};

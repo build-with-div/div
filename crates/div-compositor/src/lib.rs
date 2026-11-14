@@ -292,13 +292,25 @@ struct CachedLayeredFrame {
     frame: Frame,
 }
 
-#[derive(Default)]
 pub struct SoftwareCompositor {
     last_presented: Option<SceneGeneration>,
     last_frame: Option<CachedFrame>,
     last_layered_frame: Option<CachedLayeredFrame>,
     last_source_frame: Option<(Arc<div_paint::SourceLayerPaintCapture>, Frame)>,
     stats: CompositorStats,
+}
+
+impl Default for SoftwareCompositor {
+    fn default() -> Self {
+        div_paint::initialize_skia();
+        Self {
+            last_presented: None,
+            last_frame: None,
+            last_layered_frame: None,
+            last_source_frame: None,
+            stats: CompositorStats::default(),
+        }
+    }
 }
 
 impl SoftwareCompositor {
@@ -515,6 +527,10 @@ impl SceneMailbox {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // `embedded_scene_replays_preserve_host_composition_at_each_device_scale`
+    // draws with `skia_safe` directly.
+    div_paint::initialize_skia_at_load!();
 
     fn recorded_scene(
         viewport: ViewportMetrics,

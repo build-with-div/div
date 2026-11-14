@@ -4,6 +4,9 @@
 //! These tests complement the existing `text_paint_tests.rs` by focusing on
 //! decoration-specific scenarios with synthetic metrics and pixel verification.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use skia_safe::{surfaces, Color as SkColor, Surface};

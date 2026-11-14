@@ -4,6 +4,9 @@
 //! Covers: enum values, default behavior, CJK detection, intercept computation,
 //! gap geometry (padding, dilation cap), merge logic, edge cases.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use skia_safe::{surfaces, Color as SkColor, Surface};
