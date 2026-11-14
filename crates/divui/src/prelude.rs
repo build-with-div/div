@@ -4,6 +4,7 @@
 //! use div::prelude::*;
 //! ```
 
+pub use crate::animation_frame::AnimationFrameHandle;
 pub use crate::app::{
     App, AppBuilder, AppExitHandle, BackendPreference, HeadlessApp, LogicalSize, RenderOptions,
     WindowOptions,

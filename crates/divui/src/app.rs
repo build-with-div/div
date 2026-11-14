@@ -460,6 +460,7 @@ impl div_platform::PlatformApplication for App {
 
     fn is_animating(&self) -> bool {
         self.document.is_animating().unwrap_or(false)
+            || self.document.has_animation_frame_callbacks()
     }
 
     fn needs_redraw(&self) -> bool {
@@ -643,6 +644,28 @@ impl HeadlessApp {
         self.app.document.update_all()
     }
 
+    /// Run one frame `delta_ms` after the document's current animation time,
+    /// without painting: animations and their events, the animation frame
+    /// callbacks, then style and layout, as
+    /// [`Document::begin_frame`] runs them.
+    pub fn advance_frame(&self, delta_ms: f64) -> Result<(), Error> {
+        if !delta_ms.is_finite() || delta_ms < 0.0 {
+            return Err(Error::InvalidArgument(
+                "frame delta must be finite and not negative",
+            ));
+        }
+        let document = &self.app.document;
+        document.begin_frame(document.get_time()? + delta_ms)
+    }
+
+    /// Run `count` frames, each `delta_ms` after the one before.
+    pub fn advance_frames(&self, count: usize, delta_ms: f64) -> Result<(), Error> {
+        for _ in 0..count {
+            self.advance_frame(delta_ms)?;
+        }
+        Ok(())
+    }
+
     pub fn render(&self, options: RenderOptions) -> Result<Bitmap, Error> {
         self.app.document.begin_frame(options.time_ms)?;
         self.app.document.render_to_bitmap()
@@ -738,6 +761,24 @@ mod tests {
         assert!(!app.exit_requested());
         exit.request_exit();
         assert!(app.exit_requested());
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn a_pending_animation_frame_callback_asks_the_window_for_a_frame() {
+        use div_platform::PlatformApplication;
+        let document = Document::new(80, 40).unwrap();
+        let ran = std::rc::Rc::new(Cell::new(None));
+        let seen = ran.clone();
+        document.request_animation_frame(move |time_ms| seen.set(Some(time_ms)));
+        let mut app = App::from_document(document, WindowOptions::default()).unwrap();
+        assert!(app.is_animating());
+        app.render(25.0).unwrap();
+        assert_eq!(ran.get(), Some(25.0));
+        assert!(!app.is_animating());
     }
 
     #[cfg(any(

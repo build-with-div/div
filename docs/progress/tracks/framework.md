@@ -49,10 +49,86 @@ each, small fixes first, in the order 1, 2, 6, 5, RFC 0003 requests 3 and
 | 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
 | 4 | Headless pointer events and pointer capture for drags | Not started |
 | 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
-| 6 | zbus fails to build with a fresh lockfile (sample-git 24) | In review |
-| 7 | Public SVG drawing, for icons (boundary with the engine track first) | Not started |
+| 6 | zbus fails to build with a fresh lockfile (sample-git 24) | Merged (#31) |
+| 7 | Public SVG drawing, for icons | Folded into RFC 0009 (inline SVG); the framework part is F1 below |
+
+## Platform plan, Tier 0
+
+The framework's foundations from the platform plan (six sample
+investigations, consolidated on 13 November 2026), with the API of
+[RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md).
+They come before the remaining dogfood gaps and RFC 0003 requests, which
+jump the queue only when they block a sample, in the order 0.9, 0.10,
+0.11, 0.12, then keyboard scrolling.
+
+| # | Item | State |
+| --- | --- | --- |
+| 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Not started |
+| 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | In review |
+| 0.11 | `ResizeObserver`, with the engine's part (O1) | Not started |
+| 0.12 | Pointer Events and test input (I1, T1), with sample-git gap 29 and sample-canvas gap 16 (focus on `mousedown`) | Not started |
+| I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
+
+## After Tier 0
+
+Queued after keyboard scrolling, in this order, unless one blocks a sample
+outright. F1 moves up to follow 0.10 once the engine's E1 (namespaces in
+element identity) merges, because the samples' icons are written in `view!`.
+
+| # | Item | State |
+| --- | --- | --- |
+| editor 26 | `innerWidth` and `innerHeight` on `Document` | Not started |
+| editor 27 | `offsetWidth`, `offsetHeight` and `offsetParent` | Not started |
+| editor 23 | `attributes` and `attribute_names` in insertion order | Not started |
+| editor 25 | `createElement` for any tag, `nodeName` and `tagName` (waits on the engine's `HTMLUnknownElement`; designed with F1) | Not started |
+| editor 24 | Node type, `childNodes`, `insertBefore` over all node types, identity | Not started |
+| editor 22 | Inline `style` and `cssText` (waits on the engine's R0b; with decision 2's runtime custom-property writes) | Not started |
+| charts TZ1 | System time zone in `div-platform` | Not started |
+| F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 13 November 2026: `requestAnimationFrame` (Tier 0 item 0.10)
+
+Problem: Div had no `requestAnimationFrame`. The nearest hook,
+`PlatformEvent::Presented`, ran after a frame was shown and only for
+`App::builder()` windows, and a headless test could render at a time but
+not step frames. Five of the six sample investigations need it (R1).
+
+Change, as [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 2 specifies:
+
+- `Document::request_animation_frame(FnOnce(f64)) -> AnimationFrameHandle`
+  and `cancel_animation_frame`. `Document::begin_frame` runs the callbacks
+  after the animations and their events and before style and layout, in
+  request order, each with the frame's time. A callback requested during
+  the run waits for the next frame, and a cancel stops a callback due
+  later in the same frame. Callbacks run with their document current and
+  untracked (`runtime::untracked`, new and crate-private).
+- A pending callback makes the window want a frame
+  (`PlatformApplication::is_animating`), so it works in every window,
+  `App::builder()` and `AppSpec` alike. `Document::is_animating` keeps its
+  meaning (engine animations only).
+- `HeadlessApp::advance_frame(delta_ms)` and `advance_frames`, and the same
+  on `TestApp` (which then runs the ready UI tasks). `TestApp::render_png`
+  now renders at the last frame's time instead of 0, so stepping frames
+  and then rendering does not rewind the animations.
+
+Verification (Windows, MSVC, this branch on `dd8ba04d`): `cargo test
+--locked -p divui --features "windows testing" --test animation_frames`
+passes 7 tests: request order and frame time, a callback that requests
+itself running once per frame, cancel before and during the frame and of
+stale or foreign handles, the document current and its animation time
+already advanced, no subscription for the effect that runs the frame,
+headless `advance_frame(s)`, and `TestApp` stepping a callback that
+resizes an element and rendering at that time. With the callback step
+removed from `begin_frame`, 6 of the 7 fail; without `untracked`, the
+seventh fails. The `divui` unit test
+`a_pending_animation_frame_callback_asks_the_window_for_a_frame` passes.
+The full framework test set and the example builds pass on Windows, and
+`cargo fmt --all --check` passes. WPT `html/webappapis/animation-frames`
+is testharness script, so its cases wait for the translation in
+[RFC 0005](../../alpha/rfcs/0005-wpt-script-translation.md).
 
 ### 13 November 2026: zbus builds with a fresh lockfile (sample-git gap 24)
 

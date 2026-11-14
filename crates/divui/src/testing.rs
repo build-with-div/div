@@ -159,9 +159,28 @@ impl TestApp {
         self.app.run_until_idle().expect("tasks finish within 30 s");
     }
 
-    /// The current frame as PNG bytes.
+    /// Run one frame `delta_ms` milliseconds after the last: animations,
+    /// the callbacks of
+    /// [`Document::request_animation_frame`](crate::Document::request_animation_frame),
+    /// style and layout. Then run the UI tasks the frame made ready. The app
+    /// starts at time 0.
+    pub fn advance_frame(&mut self, delta_ms: f64) {
+        self.app.advance_frame(delta_ms).expect("the frame runs");
+        self.app.run_ready_tasks().expect("the frame's tasks run");
+    }
+
+    /// Run `count` frames, each `delta_ms` after the one before.
+    pub fn advance_frames(&mut self, count: usize, delta_ms: f64) {
+        for _ in 0..count {
+            self.advance_frame(delta_ms);
+        }
+    }
+
+    /// The current frame as PNG bytes, at the time of the last frame
+    /// ([`advance_frame`](Self::advance_frame)).
     pub fn render_png(&self) -> Vec<u8> {
-        self.app.render_png_at(0.0).expect("the frame renders")
+        let time_ms = self.document().get_time().expect("the document answers");
+        self.app.render_png_at(time_ms).expect("the frame renders")
     }
 
     /// Compare the current frame with snapshot `name` in `directory`. Used
