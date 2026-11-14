@@ -10,20 +10,21 @@ logs and the agent memory. Link to it for history; do not copy it back.
 
 Work is split into tracks (decision D2 in the [alpha plan](docs/alpha/plan.md)).
 Each track works in its own git worktree on its own branch, with one focused
-PR open at a time. Before merging, rebase the PR on the latest `main` and
-rerun its checks; merge it once CI is green, then start the next PR from the
-new `main`. Do not create PR stacks, merge another track's PR, force-push
-`main` or leave integration work for the user.
+PR open at a time. Do not create PR stacks, merge or queue another track's
+PR, force-push `main` or leave integration work for the user.
 
-Exception: if every commit `main` gained since the PR's last green run only
-touches paths the PR cannot interact with (`brand/`, `site/`, or Markdown
-documentation outside generated and checked files), the PR may merge on its
-existing green run without a rebase, provided GitHub reports no conflict.
-Rebase and rerun when `main` gained any change to Rust code under `crates/`,
-`examples/` or `tests/`, `Cargo.toml` or `Cargo.lock`, generators or
-generated files, `tools/`, fixtures, `fidelity-data.lock` or
-`.github/workflows`, and whenever in doubt. Never enable GitHub auto-merge:
-`main` has no required checks, so it merges before CI finishes.
+`main` changes only through the GitHub merge queue:
+
+- When a PR's own CI is green, add it to the queue with
+  `gh pr merge <number> --merge`. The queue runs the required checks on the
+  PR merged with the latest `main` and the PRs ahead of it, and merges it
+  when they pass.
+- The PR needs no manual rebase unless GitHub reports a conflict or its queue
+  run fails.
+- If the queue run fails, the PR leaves the queue. Fix it (rebase when the
+  failure comes from `main`), wait for its own CI, and queue it again.
+- Never merge with `--admin`, use `--auto`, or otherwise bypass the queue.
+- Start the track's next PR from the new `main`.
 
 Keep temporary builds and comparison output under the ignored `out/`
 directory, and give each worktree its own `CARGO_TARGET_DIR` there (for
@@ -43,7 +44,7 @@ and invalidate each other.
 
 Paths no track owns (the workspace `Cargo.toml` and `Cargo.lock`,
 `.github/workflows`, `examples`, `vendor`) may be changed by any track in a
-focused PR; keep such edits minimal and rebase before merging.
+focused PR; keep such edits minimal.
 
 A change to an API or behavior that another track depends on goes through a
 one-page RFC under `docs/alpha/rfcs/` (problem, proposal, affected tracks,

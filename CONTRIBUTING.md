@@ -82,11 +82,12 @@ scenarios are release blockers.
   implementation work in side checkouts for the reviewer to merge. See [workspace
   instructions](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/AGENTS.md) and the [17 October checkpoint](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/branch-checkpoint-2026-10-17.md).
 - Keep each change logically scoped and include tests for behavior changes.
-- Use one PR at a time per track, targeting `main`. Rebase it on the latest
-  `main` and merge it on green CI before starting the track's next task; do
-  not create PR stacks. A PR may skip the rebase only when `main` gained
-  nothing but changes to paths it cannot interact with; see the exception in
-  [AGENTS.md](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/AGENTS.md). Record failing checks honestly, including
+- Use one PR at a time per track, targeting `main`; do not create PR stacks.
+  When its CI is green, add it to the merge queue
+  (`gh pr merge <number> --merge`), which tests it against the latest `main`
+  and the PRs ahead of it and merges it; rebase only on a conflict or a
+  failed queue run, and never bypass the queue. See
+  [AGENTS.md](AGENTS.md). Record failing checks honestly, including
   any failures explicitly accepted for an experimental integration. Such an
   integration does not waive renderer or release qualification.
 - Update API, migration, and unsupported-feature documentation together.
