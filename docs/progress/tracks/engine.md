@@ -88,3 +88,11 @@ on branch `components/c4-assets` and the shared findings note.
   min-content width, where wrapped text made the item taller than its
   content. Census and CSS Grid coverage are unchanged.
   [Record](../column-flex-min-size-2026-11-10.md).
+- 13 November 2026, build-with-div/div#13 merged (`7e0a2674`).
+- 13 November 2026: nested column flex containers lay each item out once
+  per pass. A per-pass memo of flex item layouts and intrinsic block sizes
+  stands in for Chromium's layout cache, so the work no longer doubles at
+  each nesting level: 100 rows in six nested columns went from 7.2 s to
+  0.13 s in release, with the same geometry. Census and CSS Grid coverage
+  are unchanged.
+  [Record](../flex-pass-cache-2026-11-13.md).

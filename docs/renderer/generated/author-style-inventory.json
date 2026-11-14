@@ -1033,6 +1033,7 @@
         "crates/div-layout/src/logical_geometry.rs",
         "crates/div-layout/src/new_formatting_context.rs",
         "crates/div-layout/src/out_of_flow.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/relative.rs",
         "crates/div-layout/src/scroll_area.rs",
         "crates/div-layout/src/scrollbars.rs",
@@ -1167,6 +1168,7 @@
         "crates/div-layout/src/fieldset.rs",
         "crates/div-layout/src/flex/algorithm.rs",
         "crates/div-layout/src/intrinsic_sizing.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/scroll_area.rs",
         "crates/div-layout/src/scrollbars.rs"
       ],
@@ -1183,6 +1185,7 @@
         "crates/div-layout/src/flex/algorithm.rs",
         "crates/div-layout/src/flex/line_flexer.rs",
         "crates/div-layout/src/intrinsic_sizing.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/table.rs"
       ],
       "css_name": "flex-grow",
@@ -1689,6 +1692,7 @@
         "crates/div-layout/src/intrinsic_sizing.rs",
         "crates/div-layout/src/logical_geometry.rs",
         "crates/div-layout/src/out_of_flow.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/scroll_area.rs",
         "crates/div-layout/src/scrollbars.rs",
         "crates/div-layout/src/sticky.rs",
@@ -2190,6 +2194,7 @@
         "crates/div-layout/src/intrinsic_sizing.rs",
         "crates/div-layout/src/logical_geometry.rs",
         "crates/div-layout/src/out_of_flow.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/scrollbars.rs",
         "crates/div-layout/src/table.rs"
       ],
@@ -3656,6 +3661,7 @@
         "crates/div-layout/src/multicol/mod.rs",
         "crates/div-layout/src/new_formatting_context.rs",
         "crates/div-layout/src/out_of_flow.rs",
+        "crates/div-layout/src/pass_cache.rs",
         "crates/div-layout/src/resolved_table_borders.rs",
         "crates/div-layout/src/scroll_area.rs",
         "crates/div-layout/src/scrollbars.rs",

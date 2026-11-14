@@ -940,6 +940,16 @@ fn compute_intrinsic_block_sizes_impl(
     node_id: NodeId,
     used_border: Option<BoxStrut>,
 ) -> IntrinsicSizes {
+    crate::pass_cache::intrinsic_block_sizes(doc, node_id, used_border, || {
+        compute_intrinsic_block_sizes_uncached(doc, node_id, used_border)
+    })
+}
+
+fn compute_intrinsic_block_sizes_uncached(
+    doc: &dyn LayoutDocument,
+    node_id: NodeId,
+    used_border: Option<BoxStrut>,
+) -> IntrinsicSizes {
     let node = doc.node(node_id);
     let style = &node.style;
     let tag = node.tag;

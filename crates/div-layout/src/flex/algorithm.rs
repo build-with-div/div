@@ -203,6 +203,7 @@ pub(crate) fn flex_layout_contents(
     node_id: NodeId,
     space: &ConstraintSpace,
 ) -> Fragment {
+    let _pass_cache = crate::pass_cache::enter();
     let style = &doc.node(node_id).style;
 
     // ── Axis orientation (Blink constructor, line 170-191) ───────────
@@ -1560,6 +1561,16 @@ fn layout_flex_item(
     child_id: NodeId,
     space: &ConstraintSpace,
 ) -> Fragment {
+    crate::pass_cache::flex_item(doc, child_id, space, || {
+        layout_flex_item_uncached(doc, child_id, space)
+    })
+}
+
+fn layout_flex_item_uncached(
+    doc: &dyn LayoutDocument,
+    child_id: NodeId,
+    space: &ConstraintSpace,
+) -> Fragment {
     if doc.node(child_id).tag == ElementTag::Text {
         let anonymous_run = anonymous_flex_text_run(doc, child_id);
         let mut fragment = crate::inline::algorithm::inline_layout_for_children_with_layout(
@@ -2680,16 +2691,30 @@ fn resolve_content_based_size(
             // size. A measurement document provides that style override while
             // retaining the actual cross size, so wrapping, floats, controls,
             // and replaced descendants all contribute through normal layout.
-            let measurement_style = doc.node(child_id).style.derive(|style| {
-                if is_main_axis_horizontal {
-                    style.width = Length::auto();
-                } else {
-                    style.height = Length::auto();
-                }
-            });
-            let measurement_context =
-                crate::layout_context::NodeStyleContext::new(doc, child_id, measurement_style);
-            let child_fragment = layout_flex_item(&measurement_context, child_id, &child_space);
+            let authored_style = &doc.node(child_id).style;
+            let authored_main_size = if is_main_axis_horizontal {
+                authored_style.width
+            } else {
+                authored_style.height
+            };
+            let child_fragment = if authored_main_size == Length::auto() {
+                // The substitution would change nothing, so the document is
+                // already the measurement document. Laying the item out in it
+                // lets the item memo share this layout with the item's other
+                // passes; a substituted style never shares one.
+                layout_flex_item(doc, child_id, &child_space)
+            } else {
+                let measurement_style = authored_style.derive(|style| {
+                    if is_main_axis_horizontal {
+                        style.width = Length::auto();
+                    } else {
+                        style.height = Length::auto();
+                    }
+                });
+                let measurement_context =
+                    crate::layout_context::NodeStyleContext::new(doc, child_id, measurement_style);
+                layout_flex_item(&measurement_context, child_id, &child_space)
+            };
             if is_main_axis_horizontal {
                 child_fragment.width()
             } else {

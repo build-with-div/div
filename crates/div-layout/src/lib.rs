@@ -25,6 +25,7 @@ pub mod margin_collapsing;
 pub mod multicol;
 pub mod new_formatting_context;
 pub mod out_of_flow;
+mod pass_cache;
 pub mod relative;
 mod resolved_table_borders;
 pub mod ruby;
