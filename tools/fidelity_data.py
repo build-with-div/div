@@ -32,6 +32,7 @@ LOCK = ROOT / "fidelity-data.lock"
 STATE = ROOT / "out" / "fidelity-data"
 STAMP = STATE / "restored.json"
 PROFILES = ("gates", "archive")
+CLONE_CONFIG = (("core.autocrlf", "false"), ("core.longpaths", "true"))
 
 
 def fail(message: str) -> None:
@@ -81,12 +82,19 @@ def fetch(profile: str, source: str | None) -> None:
     url = source or os.environ.get("DIV_FIDELITY_DATA_URL") or lock["repository"]
     if not (clone / ".git").is_dir():
         clone.parent.mkdir(parents=True, exist_ok=True)
-        git("clone", "--quiet", "--no-checkout", "--filter=blob:none", "--sparse", url, str(clone))
-    git("-c", "core.longpaths=true", "sparse-checkout", "set", "--no-cone", "/MANIFEST.sha256", "/SOURCE.json",
+        git("clone", "--quiet", "--no-checkout", "--filter=blob:none", "--sparse",
+            *[f"--config={k}={v}" for k, v in CLONE_CONFIG], url, str(clone))
+    # The files are hashed byte for byte, so every git call that writes them,
+    # including `sparse-checkout set` when a later fetch adds a profile, must
+    # skip line-ending conversion whatever the user's global config says.
+    # Set it in the clone's own config, which also repairs older clones.
+    for key, value in CLONE_CONFIG:
+        git("config", key, value, cwd=clone)
+    git("sparse-checkout", "set", "--no-cone", "/MANIFEST.sha256", "/SOURCE.json",
         "/README.md", *[f"/{p}/" for p in profiles], cwd=clone)
     if git("rev-parse", "--verify", "--quiet", f"{lock['commit']}^{{commit}}", cwd=clone).strip() != lock["commit"]:
         git("fetch", "--quiet", "--filter=blob:none", "origin", lock["commit"], cwd=clone)
-    git("-c", "core.longpaths=true", "-c", "core.autocrlf=false", "checkout", "--quiet", "--detach", lock["commit"], cwd=clone)
+    git("checkout", "--quiet", "--detach", lock["commit"], cwd=clone)
     head = git("rev-parse", "HEAD", cwd=clone).strip()
     if head != lock["commit"]:
         fail(f"data checkout is at {head}, the lock pins {lock['commit']}")
@@ -102,11 +110,24 @@ def fetch(profile: str, source: str | None) -> None:
             fail(f"profile {p!r} listing does not match fidelity-data.lock")
 
     rows = parse_manifest(manifest_text, profiles)
+
+    def matches(path: str, digest: str, size: int) -> bool:
+        src = clone / path
+        return src.is_file() and src.stat().st_size == size and sha256_file(src) == digest
+
+    # A clone made before core.autocrlf was set in its config may hold files
+    # written with CRLF; git considers them current, so write them again.
+    stale = [path for path, digest, size in rows if not matches(path, digest, size)]
+    if stale:
+        for path in stale:
+            (clone / path).unlink(missing_ok=True)
+        subprocess.run(["git", "checkout", "--quiet", "HEAD", "--pathspec-from-file=-", "--pathspec-file-nul"],
+                       cwd=clone, input="\0".join(stale), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     tracked = set(git("ls-files", "-z", cwd=ROOT).split("\0"))
     restored = []
     for path, digest, size in rows:
         src = clone / path
-        if not src.is_file() or src.stat().st_size != size or sha256_file(src) != digest:
+        if not matches(path, digest, size):
             fail(f"{path} does not match MANIFEST.sha256")
         rel = path.split("/", 1)[1]
         if rel in tracked:
