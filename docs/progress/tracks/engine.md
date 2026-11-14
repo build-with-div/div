@@ -88,6 +88,14 @@ on branch `components/c4-assets` and the shared findings note.
   min-content width, where wrapped text made the item taller than its
   content. Census and CSS Grid coverage are unchanged.
   [Record](../column-flex-min-size-2026-11-10.md).
+- 13 November 2026: flexible lengths are distributed as Blink distributes
+  them: fractions against the running sum of the flex factors, items
+  walked in reverse, each share rounded with `FromDoubleRound`. Fractional
+  `flex-grow` no longer leaves items 1/64 px off Chromium
+  (sample-interactions F21: its probe went from 3 to 24 of 24 boxes). The
+  census gains one exact reference and loses none; CSS Grid coverage is
+  unchanged.
+  [Record](../flex-grow-rounding-2026-11-13.md).
 - 13 November 2026, build-with-div/div#13 merged (`7e0a2674`).
 - 13 November 2026: nested column flex containers lay each item out once
   per pass. A per-pass memo of flex item layouts and intrinsic block sizes
