@@ -16,9 +16,15 @@ PR, force-push `main` or leave integration work for the user.
 `main` changes only through the GitHub merge queue:
 
 - When a PR's own CI is green, add it to the queue with
-  `gh pr merge <number> --merge`. The queue runs the required checks on the
-  PR merged with the latest `main` and the PRs ahead of it, and merges it
-  when they pass.
+  `python tools/enqueue_pr.py <number>`. The queue runs the required checks
+  on the PR merged with the latest `main` and the PRs ahead of it, and merges
+  it when they pass.
+- The script runs the `enqueuePullRequest` GraphQL mutation (the "Add to
+  merge queue" button) with the PR's node id and head commit from
+  `gh pr view <number> --json id,headRefOid`:
+  `gh api graphql -f query='mutation($id:ID!,$sha:GitObjectID){enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$sha}){mergeQueueEntry{state position}}}' -f id=<node id> -f sha=<head sha>`.
+  `gh pr merge --merge` fails here: gh asks GitHub for auto-merge, which this
+  repository does not allow.
 - The PR needs no manual rebase unless GitHub reports a conflict or its queue
   run fails.
 - If the queue run fails, the PR leaves the queue. Fix it (rebase when the
@@ -35,7 +41,7 @@ and invalidate each other.
 
 | Track | Owns |
 | --- | --- |
-| setup | `AGENTS.md`, `docs/alpha/plan.md`, `docs/progress/tracks/README.md`, `tools/skia_prebuilt.py`, `tools/qualification/census_lock.py`, `tools/fidelity_data.py`, `tools/migrate/` |
+| setup | `AGENTS.md`, `docs/alpha/plan.md`, `docs/progress/tracks/README.md`, `tools/skia_prebuilt.py`, `tools/qualification/census_lock.py`, `tools/fidelity_data.py`, `tools/enqueue_pr.py`, `tools/migrate/` |
 | engine | `crates/div-{style,style-derive,layout,paint,text,engine,geometry,dom,compositor}`, `tests/fidelity/pixel-compare` and the qualification tooling (`tools/qualification`, `tools/coverage`, `tools/wpt`, `tools/accountability`) |
 | framework | `crates/divui`, `crates/div-platform`, `crates/div-macros`, `crates/div-cli`, `crates/div-ffi` |
 | components | `crates/div-components` and `tests/fidelity/components`, using the public `divui` crate only |
