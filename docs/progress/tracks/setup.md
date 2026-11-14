@@ -1,5 +1,37 @@
 # Setup track progress
 
+## Merge queue 14 November 2026
+
+The user chose a GitHub merge queue for `main`, to replace the rule that
+every PR rebases and reruns CI whenever `main` gains code. `AGENTS.md` and
+`CONTRIBUTING.md` now describe the queue process: a PR whose own CI is green
+is queued with `gh pr merge <number> --merge`, the queue tests it on top of
+`main` and the PRs ahead of it, and it is rebased only on a conflict or a
+failed queue run. The ruleset is switched on separately, after this change
+merges.
+
+The two workflows that produce the eight required checks, `ci.yml`
+(`rust-parity`, `windows-msvc`, `python-accountability`,
+`historical-pixel-audit`, `dependency-security`, both `cli-template` legs)
+and `format-check.yml` (`clang-format`), also run on `merge_group`
+(`checks_requested`). Audit of what could differ in a queue run:
+
+- No required job has an `if:` condition or a path filter, so none can be
+  skipped without reporting. The path-filtered `components.yml` and
+  `site.yml` and `hardening.yml` produce no required check and stay off the
+  queue; `hardening.yml`'s non-PR jobs (MSRV, Miri, sanitizers, fuzzing)
+  would otherwise start running on every queue entry.
+- Both concurrency groups key on `github.ref`, which is unique per queue
+  entry (`refs/heads/gh-readonly-queue/main/…`), not on `github.head_ref`.
+- No step or tool reads the pull request base, `GITHUB_BASE_REF`,
+  `GITHUB_HEAD_REF` or the event payload; the only diff is
+  `git diff --exit-code` against the checked-out commit.
+
+Verification: both workflows parse with PyYAML and list `merge_group` with
+`types: [checks_requested]` and the same jobs and names;
+`python tools/accountability/audit.py --repository-only` passes;
+`git diff --check` is clean. `actionlint` is not installed on this host.
+
 ## Plan update: RFC corrections and status 10 November 2026
 
 `docs/alpha/plan.md` records the following:
