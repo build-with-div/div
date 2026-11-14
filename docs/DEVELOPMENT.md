@@ -236,6 +236,16 @@ shared `out\cargo-win-a8` holds about 35 GB in `debug\deps`. Each worktree
 still needs its own target directory, because concurrent builds in one
 directory wait for each other's lock and rebuild each other's crates.
 
+The `windows-msvc` CI job uses the same archives through
+`python tools/skia_prebuilt.py --cache-dir out/skia-prebuilt cargo -- <cargo args>`,
+which runs one cargo command with them installed. When no archive exists
+for the feature set that command requests, it compiles Skia from source in
+that command (as `FORCE_SKIA_BUILD` does) and packs the result, so later
+commands and later runs install it. After every command it checks each
+installed archive's files against the hashes of the build that produced
+it. The job keeps `out/skia-prebuilt` in the GitHub Actions cache under the
+inputs hash and `Cargo.lock`.
+
 ## Fuzzing and sanitizers
 
 The isolated `fuzz` workspace has targets for FFI values, tree
