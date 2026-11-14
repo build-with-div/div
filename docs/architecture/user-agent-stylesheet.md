@@ -30,7 +30,8 @@ to land first. The same cascade serves:
   decision 2);
 - `var()` resolution in item 0.5.
 
-It is one engine step before 0.4: **R0, the rule cascade**.
+It is one engine step, **R0, the rule cascade**. It comes right after the
+selector work and before items 0.3 and 0.4, as agreed on 13 November 2026.
 
 ## R0: the rule cascade
 
@@ -78,7 +79,9 @@ until a sheet is adopted.
 **Source.** RFC 0004's rule stands. The sheet is written from the WHATWG
 HTML Rendering section, and its values are checked against Chromium 147's
 computed style. No text is taken from Chromium's `html.css`, which is
-LGPL. It lives as one CSS file in `div-style`.
+LGPL. Chromium 147's computed style is the gate. Where Chromium's sheet
+deviates from WHATWG, the Div sheet follows Chromium and cites the
+Chromium source next to the rule. It lives as one CSS file in `div-style`.
 
 **Compilation.** It is compiled at build time by the same compile-time
 parser as `stylesheet!`, in strict mode: it is Div's own sheet, so every
