@@ -96,3 +96,11 @@ on branch `components/c4-assets` and the shared findings note.
   0.13 s in release, with the same geometry. Census and CSS Grid coverage
   are unchanged.
   [Record](../flex-pass-cache-2026-11-13.md).
+- 14 November 2026: Skia is initialized where Div creates its Skia users
+  (font collections and so every document, shapers, paint recording,
+  compositors and engines), not lazily on the first paint, so no thread
+  can draw while `SkGraphics::Init` swaps Skia's function tables. The
+  `div-compositor` lib tests aborted with heap corruption in 18 of 900
+  parallel runs on `main` and in none with this change. Census and CSS
+  Grid coverage are unchanged.
+  [Record](../skia-init-order-2026-11-14.md).
