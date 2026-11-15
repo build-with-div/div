@@ -41,7 +41,8 @@ Blink. So this is a port of Blink, not a new design.
 
 `crates/div-canvas` is a new engine crate. It depends on `div-geometry`,
 `div-style` (colour and font parsing), `div-text` (fonts, shaping, text
-blobs) and `skia-safe`, and on nothing that knows about documents.
+blobs), `div-svg` (RFC 0009's path-data parser, for `Path2D` strings only)
+and `skia-safe`, and on nothing that knows about documents.
 
 | Layer | Owns |
 | --- | --- |
@@ -123,9 +124,9 @@ let pixels = ctx.get_image_data(0, 0, 10, 10)?;
 
 The port follows Chromium 147.0.7727.50, the version every Div oracle uses.
 The local Chromium tree (`out/chromium-src`) is a partial checkout at
-`09d377d9`, which is 147.0.7727.24, without the canvas file contents. The
-sample-canvas WPT census used that same tree. Before the first port, the
-file list below and the census are both re-taken at the 147.0.7727.50 tag.
+`09d377d9`, which is 147.0.7727.24, without the canvas file contents. Before
+the first port, the file list below is re-taken at the 147.0.7727.50 tag.
+The WPT tests are a separate pin (§7).
 
 | Blink source (Chromium 147) | Div module | Content |
 | --- | --- | --- |
@@ -164,17 +165,28 @@ files and the Chromium version.
 - A file under LGPL or GPL is not read past its header. The behaviour is
   written from the specification, and any difference measured against
   Chromium is recorded as a fidelity gap.
+- **Porting stops at the boundary.** Porting stops at any call into a file
+  that has not been cleared as permissive. That callee is either cleared
+  first, or written from the specification, or replaced by Div's own code.
+  For example, canvas font resolution leads into Blink's
+  `core/css/resolver/font_builder.cc`, which is LGPL. So the canvas `font`
+  is resolved by `div-style`'s font shorthand and `div-text`, never by a
+  port of that file.
 
-The one copyleft risk known now is SVG path data for `new Path2D(d)`. Blink
-parses it in `core/svg/svg_path_parser.cc`, part of a directory inherited
-from KDE, so its licence is checked before anyone opens it. Either way,
-`Path2D` uses the single permissive parser the inline SVG lane writes from
-the SVG specification, not a second one.
+**SVG path data is LGPL in Blink.** `core/svg/svg_path_parser.cc` is LGPL,
+as RFC 0009's licence table and a header scan both confirm. So
+`new Path2D(d)` waits for RFC 0009's migration step 2, which lands
+`div-svg` with its clean-room path-data parser written from the SVG
+specification. `Path2D` uses that parser and no other. Only the parser is
+shared. Canvas `arc()` and `ellipse()` keep their own path code (§5),
+because the canvas arc rules are not SVG's elliptical-arc conversion.
 
-Arcs call `sin` and `cos` from C++. Chromium for Linux gets them from glibc,
-which is never ported. Div uses Rust's platform maths. Any last-bit
-difference found on either OS is fixed with a permissive, correctly rounded
-implementation, or else recorded as a gap.
+**Maths.** The goal is to match Chromium's result on each OS, using
+permissive code only. Arcs call `sin` and `cos` from C++. On Linux,
+Chromium takes them from glibc's libm, which is copyleft and is never read
+or ported. Where Chromium's result comes from copyleft libm code, Div uses
+its own or a permissive implementation. It measures the result against
+Chromium on that OS and records any mismatch as a gap.
 
 ### 5. Backing store, text, images, readback, shadows, `Path2D`, compositing
 
@@ -206,8 +218,23 @@ implementation, or else recorded as a gap.
   a canvas drawn onto itself is snapshotted first), and later an
   `ImageBitmap` (C6). Blink's source-rectangle clipping and its mapping of
   `imageSmoothingEnabled`/`imageSmoothingQuality` to sampling options are
-  ported. Div has no cross-origin content, so a canvas is never tainted and
-  `SecurityError` never occurs; this is recorded, not stubbed.
+  ported. Drawing an SVG image (`image/svg+xml`) depends on RFC 0009's
+  static-image painter: `drawImage` rasters it through that painter at the
+  destination size, as Chromium does, and is not supported for SVG sources
+  before it lands.
+- **Origin-clean (tainting).** The API is designed now and implemented when
+  H1 (`<img src>` from URLs) lands.
+  - Each canvas has an origin-clean flag, set to true on creation and on
+    reset. `CanvasImageSource` reports whether a source is origin-clean.
+  - Drawing a source that is not origin-clean (`drawImage`, a pattern)
+    clears the flag, under HTML's rules.
+  - Readback of a canvas that is not origin-clean fails with `SecurityError`:
+    `get_image_data` returns `Err(DomException)`, and so do C4's
+    `to_data_url` and `to_blob`.
+  - The signatures already return `Result`, so the API does not change when
+    H1 lands.
+  - Until then every source is a local resource, so it is origin-clean and
+    the flag never clears. This is recorded as a gap, not stubbed.
 - **Readback.** `getImageData` converts the premultiplied surface to
   unpremultiplied RGBA8 with the same Skia conversion Chromium uses, so the
   lossy alpha round trip matches. `putImageData` ignores the transform,
@@ -219,7 +246,8 @@ implementation, or else recorded as a gap.
   shadow-and-foreground image filters, converting blur to sigma Blink's way.
   The offset and blur ignore the current transform.
 - **`Path2D` and hit tests.** `Path2d::new`, from another path, from SVG
-  path data (§4), and `add_path` with a matrix. `isPointInPath` and
+  path data (`div-svg`'s parser, after RFC 0009 step 2; §4), and `add_path`
+  with a matrix. `isPointInPath` and
   `isPointInStroke` map the point through the inverse transform and use
   Blink's `Path::Contains` and `StrokeContains`, with the current line
   state.
@@ -261,7 +289,9 @@ implementation, or else recorded as a gap.
   - Whether a 2D canvas is a foreign layer is copied from Chromium.
     Chromium's own layer tree (`LayersAsJSON`) for a software 2D canvas
     under `--disable-gpu` decides it, since Div must layerize as Chromium
-    does.
+    does. RFC 0006 C1 currently lists every canvas as a foreign layer and
+    needs a one-line amendment to match. That amendment goes to the engine
+    track.
   - A WebGPU canvas (C5) is always a foreign layer: the same element and
     slot mechanism, holding a GPU texture instead of a CPU image.
     `div-canvas` does not depend on wgpu.
@@ -272,20 +302,31 @@ implementation, or else recorded as a gap.
 
 ### 7. Fidelity plan
 
-The target is exact RGBA at every required profile. Every result that is
-not exact is recorded with its cause and its owning subsystem, and no
-exactness gate is weakened.
+The target is exact RGBA everywhere below. Every result that is not exact
+is recorded with its cause and its owning subsystem, and no exactness gate
+is weakened. The required profiles are defined as follows:
+
+- **Bitmap results** (what a context draws, and every read) do not depend
+  on viewport or device scale, because the bitmap size comes from `width`
+  and `height`. They are captured once per OS, on Linux and on Windows, and
+  must be exact on both.
+- **Page results** (sizing, `object-fit`, scaling, stacking, slots) use the
+  renderer contract's four required profiles: 800×600@1, 1280×720@1.25,
+  1920×1080@1.5 and 375×667@2. Like the contract, they are captured on
+  Linux with the `chromium_linux_lcd` raster configuration.
 
 1. **Oracles.** Chromium 147.0.7727.50 for Testing, `--headless
-   --disable-gpu`, on Linux (WSL) and Windows, at the scale factors the
-   test sets. They use the existing capture paths: `run_all_pixel_comparisons.py`'s
-   `render_chrome` and `windows_chrome.py`. Two captures:
+   --disable-gpu`, using the existing capture paths:
+   `run_all_pixel_comparisons.py`'s `render_chrome` and
+   `windows_chrome.py`. Two captures:
    - the **bitmap**, read with `getImageData` over the whole canvas, which
      is exact and independent of page compositing;
    - the **page screenshot**, for sizing, `object-fit`, scaling and stacking.
 2. **WPT, generated** (decision 8; RFC 0005 migration step 5). The 1,157
-   YAML tests are taken from the 147.0.7727.50 tree. Each generated test has
-   two independent results:
+   YAML tests come from RFC 0005's pinned WPT revision, Chromium
+   `09d377d9`, so the project has one WPT pin. A later bump moves every
+   suite together, and the YAML is never taken from the .50 tree. Each
+   generated test has two independent results:
    - WPT's own assertions, with WPT's own tolerances;
    - an exact comparison of the whole bitmap with Chromium's capture of
      the same test.
@@ -304,8 +345,11 @@ exactness gate is weakened.
      bit for bit: getters, `measureText`, `getImageData`, `isPointIn*`.
    - **Why it is clean.** Traces record argument values, so differences in
      JavaScript maths in the packages never reach the comparison.
-   - **Sources.** Konva, rough.js and the board sample exist already;
-     Chart.js and ECharts are recorded next.
+   - **Sources.** Konva, rough.js and the board sample traces exist
+     already. Some of them came from Node oracles rather than Chromium.
+     Each one is re-recorded with Chromium 147.0.7727.50 and
+     `--disable-gpu` before it becomes a gate. Chart.js and ECharts are
+     recorded next, the same way.
    - **Storage.** Small traces and their oracles go in
      `tests/fidelity/fixtures/canvas-traces-v1/`; bulk captures go in
      `div-fidelity-data`.
@@ -313,7 +357,22 @@ exactness gate is weakened.
    implementation PR brings Rust tests that draw with the crate directly and
    compare the bitmap with a Chromium capture of the same calls. The tests
    use the format from item 3, so they become the first traces.
-5. **No regression.** Census fixtures that contain `<canvas>` are listed in
+5. **The element gate (C1).** The element PR must pass, exactly at the four
+   page profiles, the plan's WPT `canvas-host` tests and the sizing and
+   rendering reftests at the same pin:
+   - `html/canvas/element/canvas-host/` (81 files);
+   - `html/rendering/replaced-elements/attributes-for-embedded-content-and-images/canvas-aspect-ratio.html`
+     and `canvas-dimension-attributes.html`;
+   - `html/rendering/replaced-elements/embedded-content-rendering-rules/`:
+     `canvas-fallback`, `canvas-update-with-border-object-fit`,
+     `canvas_scale` and `canvas_without_context_a`;
+   - the `context.*` and `fallback.*` tests in
+     `html/semantics/embedded-content/the-canvas-element/`, and its
+     `canvas-descendants-focusability-*` tests for W16.
+
+   Any of these that cannot be expressed through the public API is listed
+   with its reason, never dropped silently.
+6. **No regression.** Census fixtures that contain `<canvas>` are listed in
    the element PR. Their pixel changes are reported as moves toward
    Chromium (D4).
 
@@ -321,11 +380,11 @@ exactness gate is weakened.
 
 | Track | What changes |
 | --- | --- |
-| engine | Agrees the boundary in §1. Reviews the `ReplacedResourceKind::Canvas` variant, the canvas table in `div-engine`, the canvas paint in `div-paint`, and slot chunks on A2. The Canvas 2D lane writes these; integration requests go through the parent |
+| engine | Agrees the boundary in §1. The Canvas 2D lane opens its own PRs that touch `div-dom`, `div-engine` and `div-paint`: the `ReplacedResourceKind::Canvas` variant, the canvas table, canvas paint and slot chunks on A2. Each such PR names the engine-track files it touches. The coordinator orders them with the engine track, and the merge queue tests them together. RFC 0006 C1 gets the one-line foreign-layer amendment (§6). Glyph-origin snapping (S12, engine text) comes before canvas text |
 | framework | Owns the `divui` surface in §3 (`HtmlCanvasElement`, `CanvasRenderingContext2d`, value types), C4 export, `devicePixelRatio` (W12), `FontFace` (W15), `node_ref` and WebGPU (C5) |
 | components | RFC 0005's canvas YAML generator (its step 5) targets the §3 API, and reports per YAML file |
-| inline SVG lane | One permissive SVG path-data parser, shared with `Path2D` |
-| fidelity lane | Glyph-origin snapping (S12), which canvas text needs, and the fonts the oracles use |
+| inline SVG lane | `div-svg`'s clean-room path-data parser (RFC 0009 step 2), shared with `Path2D`; the static-image painter, which `drawImage` of an SVG image uses. Arc code is not shared |
+| fidelity lane | The fonts the oracles use |
 | samples | Replace the `image/x-openui-rgba8` workaround with the context, member by member, and record Chart.js and ECharts traces |
 
 ## Migration
@@ -345,11 +404,17 @@ reports its own measurements.
    - the canvas replaced kind, the size rules and the P1 fix;
    - the canvas table, and canvas paint before slots;
    - the `divui` types (framework review);
-   - the census check for fixtures that contain `<canvas>`.
+   - the census check for fixtures that contain `<canvas>`;
+   - the element gate in §7 item 5.
 4. Gradients and patterns.
 5. The WPT YAML ledger, once RFC 0005's generator lands.
-6. C3, in the plan's order: text (after S12), readback, shadows, `Path2D`
-   (with the shared parser), `drawImage`.
+6. C3, in the plan's order:
+   - text (after S12);
+   - readback;
+   - shadows;
+   - `Path2D`, whose path-data constructor waits for RFC 0009 step 2;
+   - `drawImage`, where SVG sources wait for RFC 0009's static-image
+     painter.
 7. Canvas slots on RFC 0006 A2 (its step 6).
 8. C4 export (framework); later C6 (`OffscreenCanvas`, `ImageBitmap`,
    `filter`, layers, `reset`, colour spaces).
