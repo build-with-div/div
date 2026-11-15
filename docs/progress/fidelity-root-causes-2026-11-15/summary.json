@@ -1,0 +1,739 @@
+{
+ "census": {
+  "commit": "18fffb9ce36f413cca898e1cb2967fc7ab083232",
+  "profile_result_sha256": [
+   "0ffe367adc5f1a87d3ba3709c2b2c98480f51741644dff5c79239c8dfd013bef",
+   "c9c33aef65c2bef28e798b09895998db5a7961482a0fb823457dd2a04d4b62a1",
+   "bcd6d13cc76a58a8c35939a93c730d03bfef131a117f15bf8701c53a10db39c8",
+   "f5b1d49dad2472b9eca6ace1b1fb70b2f0788bb688385db93378e74e5e7f21f1"
+  ],
+  "results": {
+   "different": 1209,
+   "errors": 0,
+   "exact": 22519,
+   "profile_result_sha256": "688b533a4bb91156193a583809977ab9717c99ebd4d09e579af603a4af595004",
+   "total": 23728
+  }
+ },
+ "estimated": {
+  "A": {
+   "rows_estimate": 116.8,
+   "tests_95": 34.3,
+   "tests_estimate": 43.5
+  },
+  "B": {
+   "rows_estimate": 12.7,
+   "tests_95": 6.1,
+   "tests_estimate": 5.9
+  },
+  "C": {
+   "rows_estimate": 92.4,
+   "tests_95": 17.0,
+   "tests_estimate": 34.1
+  },
+  "F": {
+   "rows_estimate": 617.1,
+   "tests_95": 65.7,
+   "tests_estimate": 445.3
+  },
+  "I": {
+   "rows_estimate": 180.5,
+   "tests_95": 60.1,
+   "tests_estimate": 97.6
+  },
+  "L": {
+   "rows_estimate": 115.8,
+   "tests_95": 13.8,
+   "tests_estimate": 37.1
+  },
+  "P": {
+   "rows_estimate": 6.4,
+   "tests_95": 6.1,
+   "tests_estimate": 5.9
+  },
+  "T": {
+   "rows_estimate": 67.4,
+   "tests_95": 13.7,
+   "tests_estimate": 33.7
+  }
+ },
+ "measured": {
+  "rows": 1209,
+  "rows_by_font_profile": {
+   "deterministic-test-collection": 257,
+   "registered-ahem": 867,
+   "registered-real-font": 85
+  },
+  "rows_by_profile": {
+   "desktop-1280x720@1.25": 598,
+   "desktop-1920x1080@1.5": 402,
+   "legacy-800x600@1": 44,
+   "mobile-375x667@2": 165
+  },
+  "strata": {
+   "area": {
+    "rows": 108,
+    "tests": 44
+   },
+   "fractional-thin": {
+    "rows": 684,
+    "tests": 490
+   },
+   "other-thin": {
+    "rows": 332,
+    "tests": 121
+   },
+   "real-font": {
+    "rows": 85,
+    "tests": 48
+   }
+  },
+  "tests": 703,
+  "tests_by_failing_scales": {
+   "1": 7,
+   "1,1.25": 1,
+   "1,1.25,1.5,2": 34,
+   "1,1.5,2": 2,
+   "1.25": 252,
+   "1.25,1.5": 205,
+   "1.25,1.5,2": 83,
+   "1.25,2": 23,
+   "1.5": 73,
+   "1.5,2": 5,
+   "2": 18
+  }
+ },
+ "sample": [
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-round-1-ref",
+   "index": 0,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/table_table-grid-paint-htb-ltr-ref",
+   "index": 1,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/multicol-span-all-children-height-005-ref",
+   "index": 2,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/grid_grid-item-oof-006",
+   "index": 3,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/widows-orphans-021",
+   "index": 4,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-round-1c",
+   "index": 5,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/multicol-span-auto-size-in-vertical-writing-mode-001",
+   "index": 6,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_position/static-position_vlr-ltr-rtl.tentative",
+   "index": 7,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_flexbox/flexbox-align-self-vert-003-ref",
+   "index": 8,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-space-4-ref",
+   "index": 9,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_overflow/scroll-markers_scroll-marker-003",
+   "index": 10,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_flexbox/flex-container-max-content-001-ref",
+   "index": 11,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/flexbox_multi-line-row-flex-fragmentation-028",
+   "index": 12,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_flexbox/flexbox-align-self-vert-rtl-004",
+   "index": 13,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/out-of-flow-in-multicolumn-038",
+   "index": 14,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-round-1a",
+   "index": 15,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/table_table-border-008",
+   "index": 16,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_overflow/scroll-markers_scroll-marker-group-011-ref",
+   "index": 17,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_flexbox/flexbox-min-height-auto-003",
+   "index": 18,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/table_table-cell-multicol-nested-001",
+   "index": 19,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_overflow/overflow-clip-margin-002",
+   "index": 20,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/flexbox_multi-line-column-flex-fragmentation-051",
+   "index": 21,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/grid_monolithic-overflow-008",
+   "index": 22,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css2_floats/floats-wrap-bfc-outside-001-ref",
+   "index": 23,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/table_repeated-section_forced-break-before-repeated-footer-002.tentative",
+   "index": 24,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/overflow-clip-012",
+   "index": 25,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/flexbox_single-line-row-flex-fragmentation-036",
+   "index": 26,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_overflow/rounded-overflow-clip-visible",
+   "index": 27,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/multicol-span-all-004-ref",
+   "index": 28,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/multicol-span-all-018",
+   "index": 29,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "fractional-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_backgrounds/border-radius-content-edge-001",
+   "index": 30,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_overflow/scroll-markers_scroll-buttons-enabled-vertical-ltr",
+   "index": 31,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-size_background-size-contain",
+   "index": 32,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-space-3",
+   "index": 33,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_sizing/range-percent-intrinsic-size-1-ref",
+   "index": 34,
+   "profile": "legacy-800x600@1",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_backgrounds/background-clip_clip-padding-box_with_size",
+   "index": 35,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_position/resources_position-sticky-fixed-ancestor-iframe-child",
+   "index": 36,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_backgrounds/background-clip_clip-padding-box_with_position",
+   "index": 37,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-round-3",
+   "index": 38,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_multicol/multicol-overflow-clip-positioned",
+   "index": 39,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-space-8",
+   "index": 40,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_break/transform-006",
+   "index": 41,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_flexbox/percentage-descendant-of-anonymous-flex-item",
+   "index": 42,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-space-1c",
+   "index": 43,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_position/position-absolute-semi-replaced-stretch-input",
+   "index": 44,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_flexbox/flexbox-basic-textarea-vert-001-ref",
+   "index": 45,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_break/transform-007",
+   "index": 46,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/underflow-from-next-page-print-ref",
+   "index": 47,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_break/transform-008",
+   "index": 48,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_overflow/scroll-markers_scroll-buttons-enabled-vertical-ltr-ref",
+   "index": 49,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_display/display-contents-details-001-ref",
+   "index": 50,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-clip_clip-padding-box_with_radius",
+   "index": 51,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_overflow/scroll-markers_root-scroll-button-ref",
+   "index": 52,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_backgrounds/background-attachment-local_attachment-local-clipping-color-6-ref",
+   "index": 53,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat-space-5",
+   "index": 54,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_display/display-contents-dynamic-fieldset-legend-001",
+   "index": 55,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/parallel-flow-trailing-margin-003-crash",
+   "index": 56,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "I",
+   "id": "wpt/css_backgrounds/background-repeat_background-repeat-repeat-x",
+   "index": 57,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_overflow/scrollbar-gutter-vertical-lr-002",
+   "index": 58,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_overflow/line-clamp_line-clamp-026",
+   "index": 59,
+   "profile": "mobile-375x667@2",
+   "stratum": "other-thin"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_sizing/slice-nowrap-intrinsic-size-bidi",
+   "index": 60,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css2_floats/float-nowrap-4-ref",
+   "index": 61,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_backgrounds/box-shadow_slice-inline-fragmentation-001",
+   "index": 62,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_sizing/clone-intrinsic-size",
+   "index": 63,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/out-of-flow-in-multicolumn-048",
+   "index": 64,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_multicol/multicol-breaking-005",
+   "index": 65,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_break/block-max-height-003b",
+   "index": 66,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css2_floats/floats-line-wrap-shifted-001-ref",
+   "index": 67,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_sizing/clone-nowrap-intrinsic-size-bidi-ref",
+   "index": 68,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_sizing/clone-nowrap-intrinsic-size",
+   "index": 69,
+   "profile": "legacy-800x600@1",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "F",
+   "id": "wpt/css_flexbox/flexbox-paint-ordering-001",
+   "index": 70,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_flexbox/flexbox-align-self-baseline-horiz-001a",
+   "index": 71,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css2_floats/float-nowrap-4-ref2",
+   "index": 72,
+   "profile": "mobile-375x667@2",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_sizing/slice-nowrap-intrinsic-size-ref",
+   "index": 73,
+   "profile": "legacy-800x600@1",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "T",
+   "id": "wpt/css_sizing/slice-nowrap-intrinsic-size",
+   "index": 74,
+   "profile": "legacy-800x600@1",
+   "stratum": "real-font"
+  },
+  {
+   "cause": "P",
+   "id": "wpt/css_overflow/overflow-clip-content-visual-overflow-ref",
+   "index": 75,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "area"
+  },
+  {
+   "cause": "B",
+   "id": "wpt/css_sizing/fit-content-block-size-fixedpos-ref",
+   "index": 76,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_flexbox/flexbox-align-self-baseline-horiz-008",
+   "index": 77,
+   "profile": "desktop-1920x1080@1.5",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_display/display-contents-dynamic-fieldset-legend-001-ref",
+   "index": 78,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "P",
+   "id": "wpt/css_overflow/overflow-clip-content-visual-overflow",
+   "index": 79,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_break/out-of-flow-in-multicolumn-039",
+   "index": 80,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_sizing/vert-block-size-small-or-larger-than-container-with-min-or-max-content-1",
+   "index": 81,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "B",
+   "id": "wpt/css_sizing/fit-content-block-size-fixedpos",
+   "index": 82,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "area"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_overflow/scroll-markers_scroll-buttons-appearance",
+   "index": 83,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "C",
+   "id": "wpt/css_break/flexbox_button-in-multicol-crash",
+   "index": 84,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_overflow/scroll-markers_targeted-column-scroll-marker-selection-003-ref",
+   "index": 85,
+   "profile": "desktop-1280x720@1.25",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_multicol/crashtests_oof-in-spanner-in-relpos-in-multicol-in-relpos-multicol-002",
+   "index": 86,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "A",
+   "id": "wpt/css_break/transform-009-ref",
+   "index": 87,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_break/table_repeated-section_variable-fragmentainer-size-003-crash",
+   "index": 88,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  },
+  {
+   "cause": "L",
+   "id": "wpt/css_backgrounds/box-shadow_box-shadow-blur-definition-001",
+   "index": 89,
+   "profile": "mobile-375x667@2",
+   "stratum": "area"
+  }
+ ],
+ "schema_version": 1
+}
