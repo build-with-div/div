@@ -1,3 +1,6 @@
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_dom::{Document, ElementTag};
 use div_geometry::ViewportMetrics;
 use div_paint::{rasterize_picture, record_document, RecordedPicture};

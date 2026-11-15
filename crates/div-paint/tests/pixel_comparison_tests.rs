@@ -21,6 +21,9 @@
 //! cargo test --package div-paint --test pixel_comparison_tests
 //! ```
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::path::{Path, PathBuf};
 
 use skia_safe::Surface;

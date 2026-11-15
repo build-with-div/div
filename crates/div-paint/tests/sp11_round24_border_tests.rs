@@ -3,6 +3,9 @@
 //! Issue 5: Non-uniform border corners use overlapping rectangles instead of trapezoids.
 //! The fix draws each border side as a 4-point polygon with diagonal corner joins.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_dom::{Document, ElementTag};
 use div_geometry::{LayoutUnit, Length, PhysicalOffset, PhysicalSize};
 use div_layout::Fragment;

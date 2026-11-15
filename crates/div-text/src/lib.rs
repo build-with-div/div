@@ -54,6 +54,46 @@ pub use shaping::{
     TextShaper,
 };
 
+/// Installs Skia's CPU-specific raster stages, as Chromium does at startup
+/// through `SkGraphics::Init`. Without it Skia keeps its baseline SSE
+/// stages, while Chromium runs the AVX2 and FMA stages on a CPU that has
+/// them, and their rounding differs.
+///
+/// `SkGraphics::Init` replaces process-wide function tables, so it must
+/// happen before any thread uses Skia: a thread drawing through the
+/// baseline stages while another installs the CPU-specific ones corrupts
+/// the heap. Div calls this wherever it creates a Skia user (every font
+/// collection, and so every document; shapers; engines; compositors; paint
+/// recording and rasterization), and the `Once` makes that call
+/// happen-before everything the caller does next. Code that draws with
+/// `skia_safe` before creating any of those calls it first. It is safe to
+/// call again.
+pub fn initialize_skia() {
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(skia_safe::graphics::init);
+}
+
+/// Runs [`initialize_skia`] when the binary loads, before `main` and before
+/// any test thread starts. Only for test binaries that draw with `skia_safe`
+/// directly; library code calls [`initialize_skia`] where it creates Skia
+/// users.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! initialize_skia_at_load {
+    () => {
+        #[used]
+        #[cfg_attr(target_os = "linux", link_section = ".init_array")]
+        #[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
+        #[cfg_attr(target_os = "windows", link_section = ".CRT$XCU")]
+        static INITIALIZE_SKIA_AT_LOAD: extern "C" fn() = {
+            extern "C" fn initialize() {
+                $crate::initialize_skia();
+            }
+            initialize
+        };
+    };
+}
+
 pub use hyphenation::{
     find_soft_hyphens, is_soft_hyphen, last_soft_hyphen_before, strip_soft_hyphens, Hyphenation,
     HyphenationDictionaryHandle, HyphenationRegistry, HyphenationRegistryError, SOFT_HYPHEN,

@@ -4,6 +4,9 @@
 //! Validates `paint_with_overflow_clip()`, `compute_clip_rect()`, border-radius
 //! `clip_rrect`, scroll offset stubs, and canvas save/restore balance.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use std::sync::Arc;
 
 use skia_safe::{surfaces, Color as SkColor, Surface};

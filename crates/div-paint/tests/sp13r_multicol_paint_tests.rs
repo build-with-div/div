@@ -1,5 +1,8 @@
 //! SP13-R paint regressions for fragmented stacking and decoration.
 
+// These tests draw with `skia_safe` directly.
+div_paint::initialize_skia_at_load!();
+
 use div_dom::{Document, ElementTag};
 use div_geometry::Length;
 use div_paint::render_to_surface;
