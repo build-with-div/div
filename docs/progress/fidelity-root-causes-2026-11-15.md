@@ -299,10 +299,63 @@ neither the fractional scales nor real fonts. **Div's real-font text on Windows,
 rasterized with DirectWrite in Chromium, has never been compared**, so
 Windows text fidelity is unqualified.
 
-A measurement at the current head is running: the same comparison at all
-four profiles, a sample of real-font tests at 1x and 1.25, and the causes
-of rows exact on Linux but not on Windows. Its results will be added to
-this section before the PR merges.
+### Measured at `9168ac9`, 15 November 2026
+
+The renderer sources at `9168ac9` are those of `main`. Windows 11 with MSVC,
+`cargo build --release --locked -p pixel-compare` with the CI Skia flags and
+`-USK_GAMMA_APPLY_TO_A8`, against Windows Chrome for Testing 147.0.7727.50.
+The comparisons ran under the Windows text harness, one run per profile:
+
+```sh
+python tools/qualification/compare_windows_text.py --pixel-compare <pixel_compare.exe>   --chrome <chrome-win64/chrome.exe> --profile <profile>   --linux-summary <expanded-summary.json> --output <report.json>
+```
+
+Registered Ahem, the 2,927 text-port tests at each profile:
+
+| Profile | Exact | Different | Errors | Exact on Linux, different on Windows |
+| --- | --- | --- | --- | --- |
+| 1 | 2,877 | 50 | 0 | 22 |
+| 2 | 2,788 | 139 | 0 | 10 |
+| 1.25 | 2,500 | 425 | 2 | 15 |
+| 1.5 | 2,620 | 305 | 2 | 12 |
+
+- **Errors.** The two errors are `css_overflow/overflow-replaced-element-002` and
+  its reference: Chrome's screenshots did not settle. Both also differ on
+  Linux.
+- **The same tests fail.** Almost every Windows difference is a test that also
+  differs on Linux.
+- **Rows exact on Linux but not on Windows: harness and fonts.** Most of these
+  (14 at 1x, 9 at 2x, 8 at 1.25 and 8 at 1.5, reviewed one by one) are the
+  harness or font environment, not Div's rendering:
+  - pages decoded as windows-1252 because no charset is declared;
+  - the harness's injected `@font-face` style painted as text under
+    `display: contents`;
+  - iframe documents and generic families resolving to Windows' default
+    fonts.
+- **The rest are Div:**
+  - native controls and scroll buttons;
+  - one glyph a device row taller in Chrome (10px Ahem at 1.25);
+  - a sticky box 1–2 device pixels off at 1.5.
+
+**Real fonts**, a sample of 38 of the 226 real-font tests (every sixth), with
+the census's `chromium-linux-lcd` configuration:
+
+| Profile | Exact | Different | Exact on Linux, different on Windows |
+| --- | --- | --- | --- |
+| 1 | 12 | 26 | 24 |
+| 1.25 | 10 | 28 | 24 |
+
+These are estimates of the review, not counts of all real-font rows:
+
+- **About 15 tests: different LCD colour values.** Glyph shapes and positions
+  match, but the subpixel colour values on the glyph edges differ, mostly by
+  32 or less. Div's DirectWrite path uses the Linux gamma and contrast (1.2
+  and 0.2); what Windows Chrome uses has not been measured.
+- **About 9 tests: different generic families.** Windows Chrome resolves
+  `monospace`, `sans-serif` and `serif` to Consolas, Arial and Times New
+  Roman. Div's test collection maps them to DejaVu.
+
+**Windows text fidelity is therefore not qualified.**
 
 ## Licence
 
