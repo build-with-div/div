@@ -84,11 +84,12 @@ scenarios are release blockers.
 - Keep each change logically scoped and include tests for behavior changes.
 - Use one PR at a time per track, targeting `main`; do not create PR stacks.
   When its CI is green, add it to the merge queue
-  (`gh pr merge <number> --merge`), which tests it against the latest `main`
-  and the PRs ahead of it and merges it; rebase only on a conflict or a
-  failed queue run, and never bypass the queue. See
-  [AGENTS.md](AGENTS.md). Record failing checks honestly, including
-  any failures explicitly accepted for an experimental integration. Such an
+  (`python tools/enqueue_pr.py <number>`; `gh pr merge` cannot queue here,
+  because this repository does not allow auto-merge), which tests it against
+  the latest `main` and the PRs ahead of it and merges it; rebase only on a
+  conflict or a failed queue run, and never bypass the queue. See
+  [AGENTS.md](AGENTS.md). Record failing checks honestly, including any
+  failures explicitly accepted for an experimental integration. Such an
   integration does not waive renderer or release qualification.
 - Update API, migration, and unsupported-feature documentation together.
 - Record significant design decisions in `docs/adr/` using the template.

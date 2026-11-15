@@ -5,9 +5,9 @@
 The user chose a GitHub merge queue for `main`, to replace the rule that
 every PR rebases and reruns CI whenever `main` gains code. `AGENTS.md` and
 `CONTRIBUTING.md` now describe the queue process: a PR whose own CI is green
-is queued with `gh pr merge <number> --merge`, the queue tests it on top of
-`main` and the PRs ahead of it, and it is rebased only on a conflict or a
-failed queue run. The ruleset is switched on separately, after this change
+is queued with `python tools/enqueue_pr.py <number>` (see below), the queue
+tests it on top of `main` and the PRs ahead of it, and it is rebased only on
+a conflict or a failed queue run. The ruleset is switched on separately, after this change
 merges.
 
 The two workflows that produce the eight required checks, `ci.yml`
@@ -31,6 +31,18 @@ Verification: both workflows parse with PyYAML and list `merge_group` with
 `types: [checks_requested]` and the same jobs and names;
 `python tools/accountability/audit.py --repository-only` passes;
 `git diff --check` is clean. `actionlint` is not installed on this host.
+
+### Queueing a pull request
+
+`gh pr merge <number> --merge` does not queue a pull request here: gh 2.102.0
+calls `enablePullRequestAutoMerge`, and GitHub answers "Auto merge is not
+allowed for this repository". Auto-merge stays disabled.
+`tools/enqueue_pr.py <number>` instead runs the `enqueuePullRequest`
+mutation behind the "Add to merge queue" button, with the node id and head
+commit from `gh pr view <number> --json id,headRefOid`, and
+`expectedHeadOid` set so that a push after the lookup is refused rather than
+queued unseen. `AGENTS.md` and `CONTRIBUTING.md` name the script and the
+mutation.
 
 ## Plan update: RFC corrections and status 10 November 2026
 
