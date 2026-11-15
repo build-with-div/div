@@ -16,6 +16,12 @@ For each template:
 4. If the template has UI tests: `cargo test` must fail on the missing
    snapshot, `DIV_UPDATE_SNAPSHOTS=1 cargo test` must record it, and a
    plain `cargo test` must then pass against it.
+5. For the `default` template, which enables the most features: discard
+   the seeded lockfile, resolve the dependencies afresh as an app without
+   Div's lockfile (or `cargo install`) does, and `cargo check` the app.
+   Pins in the framework's manifests must be enough on their own; a
+   transitive crate that floats to a release that does not build fails
+   here. This costs one more Skia build, so it runs for one template.
 
 Writes a JSON report with the build times.
 """
@@ -39,6 +45,8 @@ EXE = ".exe" if os.name == "nt" else ""
 # Variables the app's .cargo/config.toml must supply on its own.
 SKIA_VARS = ("FORCE_SKIA_BUILD", "SKIA_GN_ARGS", "SKIA_NINJA_COMMAND")
 UPDATE_SNAPSHOTS = "DIV_UPDATE_SNAPSHOTS"
+# Templates checked again with a freshly resolved lockfile.
+FRESH_LOCKFILE_TEMPLATES = ("default",)
 
 
 def run(command: list[str], cwd: Path, env: dict[str, str]) -> float:
@@ -93,7 +101,38 @@ def check_template(template: str, cli: str, work: Path, env: dict[str, str]) -> 
     }
     if (app / "tests" / "ui.rs").exists():
         report.update(check_snapshots(app, app_env))
+    if template in FRESH_LOCKFILE_TEMPLATES:
+        report.update(check_fresh_lockfile(app, app_env))
     return report
+
+
+def locked_versions(lockfile: str) -> set[tuple[str, str]]:
+    """The (name, version) pairs of a Cargo.lock."""
+    packages = set()
+    name = None
+    for line in lockfile.splitlines():
+        if line.startswith("name = "):
+            name = line.split('"')[1]
+        elif line.startswith("version = ") and name is not None:
+            packages.add((name, line.split('"')[1]))
+            name = None
+    return packages
+
+
+def check_fresh_lockfile(app: Path, env: dict[str, str]) -> dict:
+    """Resolve the app's dependencies afresh and check that it builds."""
+    lockfile = app / "Cargo.lock"
+    seeded = locked_versions(lockfile.read_text(encoding="utf-8"))
+    lockfile.unlink()
+    started = time.monotonic()
+    run(["cargo", "generate-lockfile"], app, env)
+    run(["cargo", "check", "--all-targets"], app, env)
+    fresh = locked_versions(lockfile.read_text(encoding="utf-8"))
+    return {
+        "fresh_lockfile_check_seconds": round(time.monotonic() - started, 1),
+        # Packages whose resolved version differs from Div's lockfile.
+        "fresh_lockfile_changed": sorted(f"{name} {version}" for name, version in fresh - seeded),
+    }
 
 
 def check_snapshots(app: Path, env: dict[str, str]) -> dict:
