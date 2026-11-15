@@ -92,14 +92,6 @@ jobs:
           rustup toolchain install 1.94.1 --profile minimal --component rustfmt
           rustup default 1.94.1
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: rust-parity-v1-${{ runner.os }}-1.94.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
-
       - name: Check Rust formatting
         run: cargo fmt --all --check
 
@@ -142,6 +134,11 @@ jobs:
         "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
         "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
       SKIA_NINJA_COMMAND: ninja
+      # Runs cargo with Skia installed from out/skia-prebuilt, a byte copy of
+      # a FORCE_SKIA_BUILD compile with these exact inputs; a Skia feature set
+      # without an archive is compiled from source once and packed. Each
+      # cargo command otherwise recompiles Skia for its feature set.
+      SKIA_CARGO: python tools/skia_prebuilt.py --cache-dir out/skia-prebuilt cargo --new-archives out/skia-new-archives.txt --
     defaults:
       run:
         shell: bash
@@ -229,6 +226,7 @@ jobs:
             tools.qualification.test_compare_windows_text \
             tools.qualification.test_scrollbar_probe_tools \
             tools.style.test_generate_properties \
+            tools.test_skia_prebuilt \
             tools.release.test_v02_packaging \
             tools.release.test_windows_sdk \
             tools.release.test_dependency_security
@@ -249,31 +247,38 @@ jobs:
           python tools/ffi/generate_control_keyboard_cases.py --check
           python tools/accountability/audit.py --repository-only
 
-      - uses: actions/cache@v5
+      # The archive directory is named by a hash of the Skia build inputs
+      # rust-skia's own key leaves out (SKIA_GN_ARGS, compilers, clang version,
+      # runner image); Cargo.lock pins rust-skia, bindgen and cc. Every archive
+      # under a matching key is valid, so a run restores the newest one and
+      # saves only when it packed a new feature set.
+      - name: Name the prebuilt Skia inputs
+        id: skia
+        run: echo "inputs=$(python tools/skia_prebuilt.py --cache-dir out/skia-prebuilt id)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            out/cargo-win
-          key: windows-msvc-v1-1.94.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
+          path: out/skia-prebuilt
+          key: skia-prebuilt-v1-${{ steps.skia.outputs.inputs }}-${{ hashFiles('Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: skia-prebuilt-v1-${{ steps.skia.outputs.inputs }}-${{ hashFiles('Cargo.lock') }}-
 
       - name: Build the headless workspace
-        run: cargo build --workspace --locked
+        run: $SKIA_CARGO build --workspace --locked
 
       - name: Build and verify the C ABI DLL and consumers
         run: |
-          cargo build --locked --package div-ffi
+          $SKIA_CARGO build --locked --package div-ffi
           python tools/ffi/verify_abi.py --library "$CARGO_TARGET_DIR/debug/div_ffi.dll"
 
       - name: Build and smoke the Win32 desktop runtime
         run: |
           features="div-platform/windows divui/windows div-ffi/windows hello/windows multi-window/windows tasks/windows clipboard/windows dialogs/windows menus/windows fetch/windows"
-          cargo build --locked \
+          $SKIA_CARGO build --locked \
             --package div-ffi --package hello --package multi-window --package tasks --package clipboard \
             --package dialogs --package menus --package fetch --features "$features"
           # Includes the dialog test, which answers real common item dialogs,
           # and the menu test, which reads and chooses a native menu bar.
-          cargo test --locked --no-fail-fast \
+          $SKIA_CARGO test --locked --no-fail-fast \
             --package div-platform --package divui --package div-ffi \
             --features "div-platform/windows div-platform/dialog div-platform/menu divui/windows divui/async divui/dialog divui/menu divui/http divui/testing div-ffi/windows"
           DIV_BACKEND=software DIV_SMOKE_EXIT=1 "$CARGO_TARGET_DIR/debug/hello.exe"
@@ -291,7 +296,7 @@ jobs:
 
       - name: Drive the accessibility example through UI Automation
         run: |
-          cargo build --locked \
+          $SKIA_CARGO build --locked \
             --package accessibility --features windows
           DIV_BACKEND=software pwsh -NoProfile -File tools/platform/verify_windows_uia.ps1 \
             -Executable "$CARGO_TARGET_DIR/debug/accessibility.exe" -TimeoutSeconds 120
@@ -306,7 +311,7 @@ jobs:
 
       - name: Run the headless workspace tests
         run: >-
-          cargo test --locked --no-fail-fast
+          $SKIA_CARGO test --locked --no-fail-fast
           --package div-style
           --package div-text
           --package div-layout
@@ -321,6 +326,13 @@ jobs:
 
       - name: Confirm LF checkout bytes are unchanged
         run: git diff --exit-code
+
+      - name: Save new prebuilt Skia archives
+        if: always() && hashFiles('out/skia-new-archives.txt') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: out/skia-prebuilt
+          key: skia-prebuilt-v1-${{ steps.skia.outputs.inputs }}-${{ hashFiles('Cargo.lock') }}-${{ github.run_id }}
 
   historical-pixel-audit:
     name: historical-pixel-audit
@@ -420,6 +432,7 @@ jobs:
             tools.qualification.test_compare_windows_text \
             tools.qualification.test_scrollbar_probe_tools \
             tools.style.test_generate_properties \
+            tools.test_skia_prebuilt \
             tools.ci.test_check_platform_scoped_tests
 
       - name: Verify immutable closure ledgers
