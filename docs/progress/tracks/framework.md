@@ -58,15 +58,20 @@ The framework's foundations from the platform plan (six sample
 investigations, consolidated on 13 November 2026), with the API of
 [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md).
 They come before the remaining dogfood gaps and RFC 0003 requests, which
-jump the queue only when they block a sample, in the order 0.9, 0.10,
-0.11, 0.12, then keyboard scrolling.
+jump the queue only when they block a sample, in the order 0.10, 0.11,
+0.12 A, 0.9, 0.12 B, 0.12 C, then keyboard scrolling. (0.12 was split in
+three and 0.9 moved after 0.12 A on 16 November 2026, agreed through the
+parent session: 0.12 A brings passive listeners, which the wheel work
+uses.)
 
 | # | Item | State |
 | --- | --- | --- |
 | 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Not started |
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
-| 0.12 | Pointer Events and test input (I1, T1), with sample-git gap 29 and sample-canvas gap 16 (focus on `mousedown`) | Not started |
+| 0.12 A | Listener handles and options (sample-editor gap 29) | In review |
+| 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Not started |
+| 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
 ## After Tier 0
@@ -87,6 +92,54 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 16 November 2026: listener handles and options (Tier 0 item 0.12 A)
+
+Problem (sample-editor gap 29): `Element::on` and `on_capture` returned
+nothing, and `remove_event(type)` removed every listener of the type, so a
+port could not remove one listener, as `removeEventListener` does. There
+were no listener options: `once` and `passive` were missing.
+
+Change, following Chromium 147's `EventTarget` (`event_target.cc`, BSD:
+`FireEventListeners` and `SetDefaultAddEventListenerOptions`):
+
+- `on` and `on_capture` return a `ListenerHandle`. It is a plain handle:
+  dropping it leaves the listener, and `remove()` removes exactly that
+  listener. Removing it again, after its element was removed or after the
+  document is gone does nothing. `el.on(..)?;` still compiles.
+- `Element::on_with(type, ListenerOptions { capture, once, passive },
+  callback)`:
+  - a `once` listener is removed before it is called, as Chromium does,
+    so a nested dispatch doesn't reach it;
+  - `prevent_default` inside a passive listener does nothing (the DOM's
+    "in passive listener flag");
+  - `passive: None` is the web's default: `touchstart`, `touchmove`,
+    `wheel` and `mousewheel` listeners on a top-level node are passive.
+    Documents made through `divui` are native, so their root stands for
+    the window, document, `<html>` and `<body>`.
+- **Behavior change:** a `wheel`, `mousewheel`, `touchstart` or
+  `touchmove` listener added with `on` to `Document::body()` can no longer
+  cancel the event, as in Chromium; pass `passive: Some(false)` to cancel.
+- A listener removed during a dispatch is not called for the rest of it;
+  one added during a dispatch waits for the next, as before.
+- `remove_event(type)` stays and is documented as having no web
+  equivalent. Listeners added through the C ABI keep their behavior (the
+  ABI is frozen for v0.2).
+
+WPT `dom/events` (`AddEventListenerOptions-once.any.js`,
+`AddEventListenerOptions-passive.any.js`) is testharness script, so its
+cases wait for RFC 0005; the tests cover the same behavior.
+
+Verification (Windows, MSVC, this branch on main `33f1828d`): `cargo test
+--locked -p divui --features "windows testing" --test listener_options`
+passes 7 tests: a handle removes exactly its listener, dropping a handle
+keeps the listener, removal during dispatch, `once`, passive
+`prevent_default`, Chromium's passive defaults on the root (and `passive:
+Some(false)` overriding them), and `capture` in the options. Disabling each
+of `once` removal (the nested dispatch then recurses until the test aborts),
+the passive flag, the passive default and removal by id fails the tests that
+cover it. The full framework test set, the example builds and `cargo fmt
+--all --check` pass.
 
 ### 16 November 2026: observing the native root leaves the viewport scrollbars out
 
