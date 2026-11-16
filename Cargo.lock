@@ -1022,6 +1022,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "div-svg"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+ "skia-safe",
+]
+
+[[package]]
 name = "div-text"
 version = "0.2.0"
 dependencies = [
