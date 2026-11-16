@@ -640,7 +640,7 @@ impl Document {
     /// Create a detached text node that can be attached through an element.
     pub fn create_text_node(&self, data: &str) -> Result<crate::TextNode, Error> {
         let handle = self.with_engine_mut(|engine| engine.create_text(data))?;
-        Ok(crate::TextNode::from_handle(self.clone(), handle, false))
+        Ok(crate::TextNode::from_handle(self.clone(), handle))
     }
 
     /// Find the first attached element with this ID in document order.

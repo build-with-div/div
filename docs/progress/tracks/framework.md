@@ -65,7 +65,7 @@ jump the queue only when they block a sample, in the order 0.9, 0.10,
 | --- | --- | --- |
 | 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Not started |
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
-| 0.11 | `ResizeObserver`, with the engine's part (O1) | In review |
+| 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
 | 0.12 | Pointer Events and test input (I1, T1), with sample-git gap 29 and sample-canvas gap 16 (focus on `mousedown`) | Not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
@@ -87,6 +87,35 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 16 November 2026: dropping a `TextNode` no longer removes it
+
+Problem (reported by the fidelity lane): a text node made with
+`Element::create_text_child` never painted, even directly under `body`,
+while `set_text` with the same text did. `create_text_child` returned a
+`TextNode` whose `Drop` removed the node from the document
+(`remove_on_drop`, set only there), so `element.create_text_child("…")?;`
+removed the text when the statement ended, and a named handle removed it
+at the end of its scope. The only code relying on this was `view!`'s
+dynamic text (`view_child.rs`), which dropped its handle in `on_cleanup`.
+
+Change: `TextNode` is a plain handle, as `Element` is and as a reference to
+a node is on the web. Dropping it never removes the node; `remove()` does.
+The `remove_on_drop` flag and `TextNode`'s `Drop` are gone, and the dynamic
+text's scope cleanup calls `TextNode::remove()`. No other handle type
+removes on drop: `Element`, `WeakElement`, `WeakTextNode` and
+`ScrollButton` have no `Drop`, and `divui` has no comment or fragment
+handles.
+
+Verification (Windows, MSVC, this branch on main `154d0a72`): `cargo test
+--locked -p divui --features windows --test text_child_ownership` passes 3
+tests: a dropped or discarded text child stays (text content `droppedkept`),
+a text child renders the same PNG as `set_text` with the same text (and not
+a blank one), and `view!`'s dynamic text is removed when its scope is
+disposed and no longer updates. On main's code the first two fail and the
+third passes. With the fix and a cleanup that only drops the handle, the
+third fails. The full framework test set, the example builds and `cargo fmt
+--all --check` pass.
 
 ### 15 November 2026: `ResizeObserver` (Tier 0 item 0.11)
 

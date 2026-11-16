@@ -1,4 +1,8 @@
 //! Mutable text-node handles.
+//!
+//! A [`TextNode`] is a handle, as an [`Element`](crate::Element) is: the
+//! document owns the node, and dropping the handle never removes it. Remove
+//! a node with [`TextNode::remove`].
 
 use crate::document::{Document, DocumentInner};
 use crate::style::Error;
@@ -8,7 +12,6 @@ use std::rc::{Rc, Weak};
 pub struct TextNode {
     pub(crate) document: Document,
     pub(crate) handle: NodeHandle,
-    remove_on_drop: bool,
 }
 
 #[derive(Clone)]
@@ -25,21 +28,13 @@ impl WeakTextNode {
             .with_engine(|engine| self.handle.upgrade(engine))
             .ok()?
             .ok()?;
-        Some(TextNode::from_handle(document, handle, false))
+        Some(TextNode::from_handle(document, handle))
     }
 }
 
 impl TextNode {
-    pub(crate) fn from_handle(
-        document: Document,
-        handle: NodeHandle,
-        remove_on_drop: bool,
-    ) -> Self {
-        Self {
-            document,
-            handle,
-            remove_on_drop,
-        }
+    pub(crate) fn from_handle(document: Document, handle: NodeHandle) -> Self {
+        Self { document, handle }
     }
 
     pub fn downgrade(&self) -> WeakTextNode {
@@ -68,24 +63,14 @@ impl TextNode {
     }
 
     /// Detach this text node while keeping its handle and data for later
-    /// reattachment. The document owns it until it is removed or dropped.
+    /// reattachment. The document owns it until it is removed.
     pub fn detach(&mut self) -> Result<(), Error> {
         self.document
-            .with_engine_mut(|engine| engine.detach(self.handle))?;
-        self.remove_on_drop = false;
-        Ok(())
+            .with_engine_mut(|engine| engine.detach(self.handle))
     }
 
-    pub fn remove(mut self) -> Result<(), Error> {
-        self.remove_on_drop = false;
+    /// Remove this text node from the document and invalidate its handles.
+    pub fn remove(self) -> Result<(), Error> {
         self.document.remove_node(self.handle)
-    }
-}
-
-impl Drop for TextNode {
-    fn drop(&mut self) {
-        if self.remove_on_drop {
-            let _ = self.document.remove_node(self.handle);
-        }
     }
 }

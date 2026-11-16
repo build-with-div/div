@@ -132,9 +132,11 @@ impl<F: Fn() -> Text + 'static> __ChildText for &Child<F> {
                 .create_text_child(&evaluate().0)
                 .expect("create dynamic text node");
             let text_weak = text_node.downgrade();
-            // Transfer ownership to scope cleanup so the text node is
-            // removed from the DOM when the enclosing scope is disposed.
-            crate::on_cleanup(move || drop(text_node));
+            // The enclosing scope owns the text: its cleanup removes the
+            // node. (Dropping a `TextNode` handle leaves the node in place.)
+            crate::on_cleanup(move || {
+                let _ = text_node.remove();
+            });
             crate::create_effect(move || {
                 if let Some(node) = text_weak.upgrade() {
                     node.set_data(&evaluate().0).expect("update dynamic text");
