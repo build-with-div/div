@@ -302,6 +302,8 @@ struct Slot {
     authored: AuthoredStyleDeclarations,
     /// Presentational hints, which rank below every author rule.
     presentational_hints: AuthoredStyleDeclarations,
+    /// The parsed `style` attribute, if the element has one.
+    style_attribute: Option<Box<rule_cascade::StyleAttribute>>,
     authored_pseudo: [Option<Style>; 4],
     // The current unanimated computed source is distinct from presentation.
     // It survives inactive/forwards-filled effects until the final owner leaves.
@@ -454,6 +456,7 @@ impl Engine {
             native_source: NativeStyleSource::Defaults(document.node(root_node).style.clone()),
             authored: AuthoredStyleDeclarations::default(),
             presentational_hints: AuthoredStyleDeclarations::default(),
+            style_attribute: None,
             authored_pseudo: Default::default(),
             animation_base_style: None,
             animation_properties: BTreeSet::new(),
@@ -842,6 +845,7 @@ impl Engine {
                 NativeStyleSource::Defaults(self.document.node(node).style.clone());
             slot.authored = AuthoredStyleDeclarations::default();
             slot.presentational_hints = AuthoredStyleDeclarations::default();
+            slot.style_attribute = None;
             slot.authored_pseudo = Default::default();
             slot.animation_base_style = None;
             slot.animation_properties.clear();
@@ -854,6 +858,7 @@ impl Engine {
                 native_source: NativeStyleSource::Defaults(self.document.node(node).style.clone()),
                 authored: AuthoredStyleDeclarations::default(),
                 presentational_hints: AuthoredStyleDeclarations::default(),
+                style_attribute: None,
                 authored_pseudo: Default::default(),
                 animation_base_style: None,
                 animation_properties: BTreeSet::new(),
@@ -1143,6 +1148,8 @@ impl Engine {
                 [original.index as usize]
                 .presentational_hints
                 .clone();
+            self.slots[duplicate.index as usize].style_attribute =
+                self.slots[original.index as usize].style_attribute.clone();
             self.slots[duplicate.index as usize].authored_pseudo =
                 self.slots[original.index as usize].authored_pseudo.clone();
             if let Some(mut control) = control {
@@ -1308,6 +1315,7 @@ impl Engine {
                 slot.native_source = NativeStyleSource::Defaults(ComputedStyle::initial());
                 slot.authored = AuthoredStyleDeclarations::default();
                 slot.presentational_hints = AuthoredStyleDeclarations::default();
+                slot.style_attribute = None;
                 slot.authored_pseudo = Default::default();
                 slot.animation_base_style = None;
                 slot.animation_properties.clear();
@@ -1425,6 +1433,9 @@ impl Engine {
                 StyleValue::Renderer(RendererStyleValue::Locale(Some(value.clone()))),
             )?;
         }
+        if name == "style" {
+            self.sync_style_attribute(handle, node, Some(&value))?;
+        }
         self.sync_control_attribute(handle, &name, &value);
         let table_span = self.sync_table_span_attribute(node, &name, Some(&value));
         self.restyle_for_selectors(SelectorChange::Element(node))?;
@@ -1470,6 +1481,9 @@ impl Engine {
                     StyleProperty::Locale,
                     StyleValue::Renderer(RendererStyleValue::Locale(None)),
                 )?;
+            }
+            if name.eq_ignore_ascii_case("style") {
+                self.sync_style_attribute(handle, node, None)?;
             }
             self.remove_control_attribute(handle, &name.to_ascii_lowercase());
             let table_span = self.sync_table_span_attribute(node, &name.to_ascii_lowercase(), None);

@@ -689,9 +689,12 @@ fn length(input: &str) -> Option<LengthValue> {
                 ("ex", LengthValue::Ex),
                 ("lh", LengthValue::Lh),
             ] {
+                // The number and its unit form one CSS dimension token:
+                // `10 px` is two tokens, and no length.
                 if let Some(number) = input
                     .strip_suffix(suffix)
-                    .and_then(|v| v.trim().parse::<f32>().ok())
+                    .filter(|v| crate::inline_style::is_css_number(v))
+                    .and_then(|v| v.parse::<f32>().ok())
                     .filter(|value| value.is_finite())
                 {
                     return Some(make(number));
@@ -2078,7 +2081,7 @@ pub fn parse_literal(property: StyleProperty, input: &str) -> Result<StyleValue,
             }
         }
         P::Opacity | P::FlexGrow | P::FlexShrink | P::LetterSpacing | P::WordSpacing => {
-            if input == "normal" {
+            if input == "normal" && matches!(property, P::LetterSpacing | P::WordSpacing) {
                 Some(StyleValue::Number(0.0))
             } else if matches!(property, P::LetterSpacing | P::WordSpacing) {
                 length(input).and_then(|value| match value {
@@ -2087,8 +2090,20 @@ pub fn parse_literal(property: StyleProperty, input: &str) -> Result<StyleValue,
                     }
                     _ => None,
                 })
-            } else {
+            } else if let Some(percent) = input
+                .strip_suffix('%')
+                .filter(|_| property == P::Opacity)
+                .filter(|number| crate::inline_style::is_css_number(number))
+            {
+                // CSS Color 4: `<opacity-value>` is a number or a percentage.
+                percent
+                    .parse::<f32>()
+                    .ok()
+                    .map(|percent| StyleValue::Number(percent / 100.0))
+            } else if crate::inline_style::is_css_number(input) {
                 input.parse().ok().map(StyleValue::Number)
+            } else {
+                None
             }
         }
         P::ZIndex => input.parse().ok().map(StyleValue::Integer),

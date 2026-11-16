@@ -12,9 +12,12 @@
 //! 1. user-agent normal rules;
 //! 2. presentational hints (author origin, before every author rule);
 //! 3. author normal rules;
-//! 4. the element's own declarations, which rank as the `style` attribute;
+//! 4. the `style` attribute's normal declarations, then the element's own
+//!    declarations (`view!`'s `style:` and the typed setters), which rank
+//!    with the `style` attribute and override it;
 //! 5. author `!important` rules;
-//! 6. user-agent `!important` rules.
+//! 6. the `style` attribute's `!important` declarations;
+//! 7. user-agent `!important` rules.
 //!
 //! Within an origin and importance, rules are ordered by layer, then by the
 //! specificity of the most specific selector of the rule that matches, then
@@ -37,8 +40,8 @@ use div_dom::NodeId;
 use div_style::selector::{PseudoClass, Selector, SimpleSelector, Specificity};
 use div_style::stylesheet::{CascadeOrigin, StyleSheet};
 use div_style::{
-    AuthoredStyleDeclarations, CanonicalStyleFields, InvalidationClass, Style, StyleProperty,
-    StyleValue,
+    AuthoredStyleDeclarations, CanonicalStyleFields, DroppedDeclaration, InvalidationClass, Style,
+    StyleProperty, StyleValue,
 };
 
 use crate::selector_match::{is_html_space, local_name, SelectorMatchError};
@@ -340,6 +343,14 @@ struct Matched {
     specificity: Specificity,
 }
 
+/// An element's parsed `style` attribute.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct StyleAttribute {
+    normal: AuthoredStyleDeclarations,
+    important: AuthoredStyleDeclarations,
+    dropped: Vec<DroppedDeclaration>,
+}
+
 /// An element's cascaded declarations, and the fields `!important`
 /// declarations own, which animations must not override.
 pub(crate) struct Cascaded<'a> {
@@ -452,6 +463,72 @@ impl Engine {
         Ok(())
     }
 
+    /// Parse and apply the element's `style` attribute, or clear it with
+    /// `None`. Declarations Div cannot use are dropped, as Chromium drops
+    /// them, and kept for [`Engine::dropped_style_declarations`].
+    pub(crate) fn sync_style_attribute(
+        &mut self,
+        handle: NodeHandle,
+        node: NodeId,
+        value: Option<&str>,
+    ) -> Result<(), EngineError> {
+        let candidate = match value {
+            None => None,
+            Some(text) => {
+                let parsed = div_style::parse_style_attribute(text);
+                let mut attribute = StyleAttribute {
+                    dropped: parsed.dropped,
+                    ..StyleAttribute::default()
+                };
+                for declaration in parsed.declarations {
+                    if !div_style::value_matches_property(declaration.property, &declaration.value)
+                    {
+                        return Err(EngineError::PropertyType {
+                            property: declaration.property,
+                        });
+                    }
+                    let target = if declaration.important {
+                        &mut attribute.important
+                    } else {
+                        &mut attribute.normal
+                    };
+                    target
+                        .try_set_validated(declaration.property, declaration.value)
+                        .map_err(|_| EngineError::AllocationFailure)?;
+                }
+                Some(Box::new(attribute))
+            }
+        };
+        let previous = std::mem::replace(
+            &mut self.slots[handle.index as usize].style_attribute,
+            candidate,
+        );
+        if previous.is_none() && self.slots[handle.index as usize].style_attribute.is_none() {
+            return Ok(());
+        }
+        if let Err(error) = self.publish_native_cascade(node) {
+            self.slots[handle.index as usize].style_attribute = previous;
+            return Err(error);
+        }
+        self.dirty.hit_test = true;
+        self.mark_dirty(InvalidationClass::Subtree);
+        Ok(())
+    }
+
+    /// The declarations the element's `style` attribute dropped, in source
+    /// order, each with the reason. Chromium drops the same declarations
+    /// silently, except where Div lacks a property or value Chromium has.
+    pub fn dropped_style_declarations(
+        &self,
+        handle: NodeHandle,
+    ) -> Result<&[DroppedDeclaration], EngineError> {
+        self.resolve(handle)?;
+        Ok(self.slots[handle.index as usize]
+            .style_attribute
+            .as_ref()
+            .map_or(&[], |attribute| &attribute.dropped))
+    }
+
     fn restyle_document_for_rules(&mut self) -> Result<(), EngineError> {
         self.selector_restyle_pending = false;
         self.publish_native_cascade(self.document.root())?;
@@ -562,7 +639,10 @@ impl Engine {
     /// before animations.
     pub(crate) fn cascaded_declarations(&self, index: u32) -> Result<Cascaded<'_>, EngineError> {
         let slot = &self.slots[index as usize];
-        if self.rule_set.is_empty() && slot.presentational_hints.contributions().is_empty() {
+        if self.rule_set.is_empty()
+            && slot.presentational_hints.contributions().is_empty()
+            && slot.style_attribute.is_none()
+        {
             return Ok(Cascaded {
                 declarations: Cow::Borrowed(&slot.authored),
                 important: CanonicalStyleFields::EMPTY,
@@ -615,9 +695,15 @@ impl Engine {
         for m in ordered(CascadeOrigin::Author, false) {
             apply(&rule(m).normal, &mut out, None)?;
         }
+        if let Some(attribute) = &slot.style_attribute {
+            apply(&attribute.normal, &mut out, None)?;
+        }
         apply(&slot.authored, &mut out, None)?;
         for m in ordered(CascadeOrigin::Author, true) {
             apply(&rule(m).important, &mut out, Some(&mut important))?;
+        }
+        if let Some(attribute) = &slot.style_attribute {
+            apply(&attribute.important, &mut out, Some(&mut important))?;
         }
         for m in ordered(CascadeOrigin::UserAgent, true) {
             apply(&rule(m).important, &mut out, Some(&mut important))?;

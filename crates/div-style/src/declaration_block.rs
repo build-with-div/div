@@ -3,9 +3,9 @@
 //! `style!` hands its CSS text to [`parse_declaration_block`], which splits it
 //! into declarations the way CSS Syntax Level 3 does and parses each value
 //! with the same [`parse_literal`] the runtime uses. The set of accepted values
-//! is therefore exactly what `parse_literal` accepts. This module exists only
-//! with the internal `constructor-tokens` feature: the runtime never reads CSS
-//! text.
+//! is therefore exactly what `parse_literal` accepts. The runtime reads the
+//! `style` attribute with the browser-compatible parser in `inline_style`,
+//! which shares this module's value handling.
 
 use std::ops::Range;
 
@@ -111,7 +111,7 @@ fn parse_declaration(text: &str, source: Range<usize>) -> Result<BlockDeclaratio
 
 /// The value without a trailing `!important` (any ASCII case, with optional
 /// whitespace after the `!`), and whether it had one.
-fn split_important(value: &str) -> (&str, bool) {
+pub(crate) fn split_important(value: &str) -> (&str, bool) {
     let bytes = value.as_bytes();
     const IMPORTANT: &[u8] = b"important";
     if bytes.len() >= IMPORTANT.len()
@@ -260,7 +260,7 @@ fn is_css_whitespace(character: char) -> bool {
 
 /// Each run of CSS whitespace outside strings becomes one space, as the CSS
 /// tokenizer makes it one whitespace token.
-fn collapse_whitespace(value: &str) -> String {
+pub(crate) fn collapse_whitespace(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     let mut quote = None;
     let mut escaped = false;

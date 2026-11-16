@@ -1,0 +1,544 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "probes": [
+  "color",
+  "background-color",
+  "display",
+  "opacity",
+  "padding",
+  "width",
+  "font-size",
+  "font-weight",
+  "font-family"
+ ],
+ "style": [
+  {
+   "style": "color: red",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red; display: flex; opacity: 0.5",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    },
+    "opacity": {
+     "value": "0.5",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "COLOR: Red; Display: FLEX",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red; colr: blue; display: flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "display: sideways; color: red",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red; color: blue",
+   "kept": {
+    "color": {
+     "value": "blue",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red !important; color: blue",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "color: red; color: blue !important",
+   "kept": {
+    "color": {
+     "value": "blue",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "color: red !IMPORTANT",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "color: red ! important",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "color: red !ie; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red !important !important; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color /* c */ : /* c */ red /* c */ ; display: flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red; display: flex /* open",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "font-family: \"a;b\"; color: red",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "font-family": {
+     "value": "\"a;b\"",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "font-family: \"open; color: red",
+   "kept": {
+    "font-family": {
+     "value": "\"open; color: red\"",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "font-family: 'a\nb'; color: red",
+   "kept": {}
+  },
+  {
+   "style": "color: rgb(255, 0, 0; display: flex",
+   "kept": {}
+  },
+  {
+   "style": "color: rgb(255, 0, 0",
+   "kept": {
+    "color": {
+     "value": "rgb(255, 0, 0)",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red); display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red; } display: flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "{color: red}; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "@foo; color: red",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "@foo { x: y } color: red; display: flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color:red;display:flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": ";;color: red;;",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color",
+   "kept": {}
+  },
+  {
+   "style": "color:; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": ": red; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color red; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "--x: 1; color: red",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: var(--x); display: flex",
+   "kept": {
+    "color": {
+     "value": "var(--x)",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: inherit; display: flex",
+   "kept": {
+    "color": {
+     "value": "inherit",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "padding: 8px 16px",
+   "kept": {
+    "padding": {
+     "value": "8px 16px",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "padding: 8px 16px 4px 2px 1px; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 10; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 0",
+   "kept": {
+    "width": {
+     "value": "0px",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 10 px; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 10PX",
+   "kept": {
+    "width": {
+     "value": "10px",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "font-size: 12px; font-weight: bold",
+   "kept": {
+    "font-size": {
+     "value": "12px",
+     "important": false
+    },
+    "font-weight": {
+     "value": "bold",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color:\n\tred;\n display:\tflex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red !important; color: blue !important",
+   "kept": {
+    "color": {
+     "value": "blue",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "background-color: #ff000080",
+   "kept": {
+    "background-color": {
+     "value": "rgba(255, 0, 0, 0.5)",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "display: flex; display: grid; display: bogus",
+   "kept": {
+    "display": {
+     "value": "grid",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red /**/ !important",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": true
+    }
+   }
+  },
+  {
+   "style": "1color: red; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "color: red;; ; display: flex",
+   "kept": {
+    "color": {
+     "value": "red",
+     "important": false
+    },
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "opacity: .5",
+   "kept": {
+    "opacity": {
+     "value": "0.5",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "opacity: 5e-1",
+   "kept": {
+    "opacity": {
+     "value": "0.5",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 1e1px",
+   "kept": {
+    "width": {
+     "value": "10px",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "width: 10.px; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "opacity: 50%",
+   "kept": {
+    "opacity": {
+     "value": "0.5",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "opacity: normal; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  },
+  {
+   "style": "opacity: 0.5e; display: flex",
+   "kept": {
+    "display": {
+     "value": "flex",
+     "important": false
+    }
+   }
+  }
+ ]
+}

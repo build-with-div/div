@@ -14,11 +14,11 @@ mod computed;
 #[cfg(feature = "constructor-tokens")]
 #[doc(hidden)]
 pub mod constructor_tokens;
-#[cfg(feature = "constructor-tokens")]
 #[doc(hidden)]
 pub mod declaration_block;
 mod enums;
 mod font_types;
+mod inline_style;
 mod layout_systems;
 mod property;
 mod radius_axes;
@@ -47,6 +47,7 @@ pub use computed::{
 pub use div_geometry::Length;
 pub use enums::*;
 pub use font_types::*;
+pub use inline_style::*;
 pub use layout_systems::*;
 pub use property::*;
 pub use radius_axes::*;
