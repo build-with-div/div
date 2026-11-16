@@ -1,0 +1,515 @@
+# Licence headers at Chromium 147.0.7727.50, by tools/svg/licence_audit.py.
+# Header only: no file body was printed, stored or read.
+path	class	first_copyright
+third_party/blink/renderer/core/css/css_properties.json5	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/css/svg.css	BSD	Copyright (C) 2005, 2006 Apple Computer, Inc.  All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_block.cc	LGPL	Copyright (C) 2006 Apple Computer, Inc.
+third_party/blink/renderer/core/layout/svg/layout_svg_block.h	LGPL	Copyright (C) 2006 Apple Computer, Inc.
+third_party/blink/renderer/core/layout/svg/layout_svg_container.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_container.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_container_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_ellipse.cc	BSD	Copyright (C) 2012 Google, Inc.
+third_party/blink/renderer/core/layout/svg/layout_svg_ellipse.h	BSD	Copyright (C) 2012 Google, Inc.
+third_party/blink/renderer/core/layout/svg/layout_svg_filter_primitive.cc	BSD	Copyright (C) 2010 University of Szeged
+third_party/blink/renderer/core/layout/svg/layout_svg_filter_primitive.h	BSD	Copyright (C) 2010 University of Szeged
+third_party/blink/renderer/core/layout/svg/layout_svg_foreign_object.cc	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_foreign_object.h	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_foreign_object_test.cc	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_hidden_container.cc	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_hidden_container.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_image.cc	LGPL	Copyright (C) 2006 Alexander Kellett <lypanov@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_image.h	LGPL	Copyright (C) 2006 Alexander Kellett <lypanov@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_image_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_inline.cc	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_inline.h	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_inline_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_inline_text.cc	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_inline_text.h	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_model_object.cc	BSD	Copyright (c) 2009, Google Inc. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_model_object.h	BSD	Copyright (c) 2009, Google Inc. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_path.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_path.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_rect.cc	BSD	Copyright (C) 2011 University of Szeged
+third_party/blink/renderer/core/layout/svg/layout_svg_rect.h	BSD	Copyright (C) 2011 University of Szeged
+third_party/blink/renderer/core/layout/svg/layout_svg_rect_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_clipper.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_clipper.h	LGPL	Copyright (C) Research In Motion Limited 2009-2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_container.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_container.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_filter.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_filter.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_gradient.cc	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_gradient.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_linear_gradient.cc	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_linear_gradient.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_marker.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_marker.h	LGPL	Copyright (C) Research In Motion Limited 2009-2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_masker.cc	LGPL	Copyright (C) Research In Motion Limited 2009-2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_masker.h	LGPL	Copyright (C) Research In Motion Limited 2009-2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_paint_server.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_paint_server.h	LGPL	Copyright (C) Research In Motion Limited 2009-2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_pattern.cc	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_pattern.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_radial_gradient.cc	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_resource_radial_gradient.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_root.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_root.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_root_test.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_shape.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_shape.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_shape_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_text.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_text.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_text_path.cc	LGPL	Copyright (C) 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_text_path.h	LGPL	Copyright (C) 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_text_test.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/layout_svg_transformable_container.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_transformable_container.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_tspan.cc	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_tspan.h	LGPL	Copyright (C) 2006 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/layout/svg/layout_svg_viewport_container.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_viewport_container.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/layout/svg/layout_svg_viewport_container_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/resolved_text_layout_attributes_iterator.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_character_data.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_character_data.h	LGPL	Copyright (C) Research In Motion Limited 2010-2011. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_content_container.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_content_container.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_hit_test_perftest.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_inline_node_data.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_layout_info.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_layout_support.cc	LGPL	Copyright (C) 2007, 2008 Rob Buis <buis@kde.org>
+third_party/blink/renderer/core/layout/svg/svg_layout_support.h	LGPL	Copyright (C) 2007 Rob Buis <buis@kde.org>
+third_party/blink/renderer/core/layout/svg/svg_layout_support_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_layout_tree_as_text.cc	BSD	Copyright (C) 2004, 2005, 2007, 2009 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_layout_tree_as_text.h	BSD	Copyright (C) 2004, 2005, 2009 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_marker_data.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_marker_data.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_resources.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_resources.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/layout/svg/svg_text_layout_algorithm.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_layout_algorithm.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_layout_algorithm_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_layout_attributes_builder.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_layout_attributes_builder.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_layout_attributes_builder_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_query.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/svg_text_query.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/transform_helper.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/transform_helper.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/transformed_hit_test_location.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/svg/transformed_hit_test_location.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/clip_path_clipper.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/paint/clip_path_clipper.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/paint/clip_path_clipper_test.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/outline_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/outline_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/outline_painter_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_background_paint_context.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_background_paint_context.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_container_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_container_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_container_painter_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_foreign_object_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_foreign_object_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_image_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_image_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_mask_painter.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_mask_painter.h	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_model_object_painter.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_model_object_painter.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_object_painter.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_object_painter.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_root_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_root_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_shape_painter.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/svg_shape_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/text_fragment_painter.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_fragment_painter.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_fragment_painter_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/style/style_svg_resource.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/style/style_svg_resource.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/style/svg_paint.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/style/svg_paint.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/animation/element_smil_animations.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/element_smil_animations.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/priority_queue.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/priority_queue_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/smil_animation_effect_parameters.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/smil_animation_sandwich.cc	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_animation_sandwich.h	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_animation_value.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/smil_repeat_count.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/smil_time.cc	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_time.h	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_time_container.cc	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_time_container.h	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/smil_time_container_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/svg/animation/svg_smil_element.cc	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/svg_smil_element.h	BSD	Copyright (C) 2008 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/animation/svg_smil_element_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/svg/gradient_attributes.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/graphics/filters/svg_fe_image.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/graphics/filters/svg_fe_image.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/graphics/filters/svg_filter_builder.cc	LGPL	Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
+third_party/blink/renderer/core/svg/graphics/filters/svg_filter_builder.h	LGPL	Copyright (C) 2008 Alex Mathews <possessedpenguinbob@gmail.com>
+third_party/blink/renderer/core/svg/graphics/isolated_svg_document_host.cc	BSD	Copyright (C) 2006 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/graphics/isolated_svg_document_host.h	BSD	Copyright (C) 2006 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/graphics/svg_image.cc	BSD	Copyright (C) 2006 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/graphics/svg_image.h	BSD	Copyright (C) 2006 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.cc	BSD	Copyright (C) 2012 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/graphics/svg_image_chrome_client.h	BSD	Copyright (C) 2012 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/graphics/svg_image_for_container.cc	LGPL	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/graphics/svg_image_for_container.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/graphics/svg_image_test.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/svg/linear_gradient_attributes.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/pattern_attributes.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/properties/svg_animated_property.cc	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_animated_property.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_list_property.cc	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_list_property.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_list_property_helper.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_list_property_tear_off_helper.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_listable_property.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_property.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_property_info.h	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_property_tear_off.cc	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/properties/svg_property_tear_off.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/radial_gradient_attributes.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_a_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_a_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_a_element_test.cc	BSD	Copyright 2026 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_angle.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_angle.h	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_angle_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_angle_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animate_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_animate_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_animate_motion_element.cc	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_animate_motion_element.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_animate_transform_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_animate_transform_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_animated_angle.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_angle.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_boolean.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_color.cc	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_color.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_enumeration.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_enumeration_base.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_enumeration_base.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_href.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_animated_href.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_animated_integer.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_integer.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_integer_optional_integer.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_integer_optional_integer.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_length.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_length.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_length_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_number.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_number.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_number_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_number_optional_number.cc	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_number_optional_number.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_path.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_path.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_point_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_preserve_aspect_ratio.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_rect.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_string.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_animated_string.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animated_transform_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_animation_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_animation_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_attribute_names.json5	NONE	
+third_party/blink/renderer/core/svg/svg_boolean.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_boolean.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_circle_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_circle_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_clip_path_element.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_clip_path_element.h	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_component_transfer_function_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_component_transfer_function_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_defs_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_defs_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_desc_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_desc_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_document_extensions.cc	LGPL	Copyright (C) 2006 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_document_extensions.h	LGPL	Copyright (C) 2006 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_document_resource_tracker.cc	LGPL	Copyright (C) 2010 Rob Buis <rwlbuis@gmail.com>
+third_party/blink/renderer/core/svg/svg_document_resource_tracker.h	LGPL	Copyright (C) 2010 Rob Buis <rwlbuis@gmail.com>
+third_party/blink/renderer/core/svg/svg_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_element_rare_data.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_element_rare_data.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_element_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_ellipse_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_ellipse_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_enumeration.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_enumeration.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_enumeration_map.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_enumeration_map.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_fe_blend_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_blend_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_color_matrix_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_color_matrix_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_component_transfer_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_component_transfer_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_composite_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_composite_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_convolve_matrix_element.cc	LGPL	Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
+third_party/blink/renderer/core/svg/svg_fe_convolve_matrix_element.h	LGPL	Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
+third_party/blink/renderer/core/svg/svg_fe_diffuse_lighting_element.cc	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_diffuse_lighting_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_displacement_map_element.cc	LGPL	Copyright (C) 2006 Oliver Hunt <oliver@nerget.com>
+third_party/blink/renderer/core/svg/svg_fe_displacement_map_element.h	LGPL	Copyright (C) 2006 Oliver Hunt <oliver@nerget.com>
+third_party/blink/renderer/core/svg/svg_fe_distant_light_element.cc	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_distant_light_element.h	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_drop_shadow_element.cc	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_fe_drop_shadow_element.h	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_fe_flood_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_flood_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_a_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_a_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_b_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_b_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_g_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_g_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_r_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_func_r_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_gaussian_blur_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_gaussian_blur_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_image_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_image_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_light_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_light_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_merge_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_merge_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_merge_node_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_merge_node_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_morphology_element.cc	LGPL	Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
+third_party/blink/renderer/core/svg/svg_fe_morphology_element.h	LGPL	Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
+third_party/blink/renderer/core/svg/svg_fe_offset_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_offset_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_point_light_element.cc	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_point_light_element.h	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_specular_lighting_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_specular_lighting_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_spot_light_element.cc	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_spot_light_element.h	LGPL	Copyright (C) 2005 Oliver Hunt <ojh16@student.canterbury.ac.nz>
+third_party/blink/renderer/core/svg/svg_fe_tile_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_tile_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_turbulence_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fe_turbulence_element.h	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_filter_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_filter_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_filter_element_test.cc	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_filter_primitive_standard_attributes.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_filter_primitive_standard_attributes.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fit_to_view_box.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_fit_to_view_box.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_foreign_object_element.cc	LGPL	Copyright (C) 2006 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_foreign_object_element.h	LGPL	Copyright (C) 2006 Apple Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_foreign_object_element_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_g_element.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_g_element.h	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_geometry_element.cc	BSD	Copyright (C) 2013 Samsung Electronics. All rights reserved.
+third_party/blink/renderer/core/svg/svg_geometry_element.h	BSD	Copyright (C) 2013 Samsung Electronics. All rights reserved.
+third_party/blink/renderer/core/svg/svg_gradient_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_gradient_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_graphics_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_graphics_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_image_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_image_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_image_loader.cc	LGPL	Copyright (C) 2005, 2005 Alexander Kellett <lypanov@kde.org>
+third_party/blink/renderer/core/svg/svg_image_loader.h	LGPL	Copyright (C) 2006 Alexander Kellett <lypanov@kde.org>
+third_party/blink/renderer/core/svg/svg_integer.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_integer.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_integer_optional_integer.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_integer_optional_integer.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length.cc	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_length.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_length_context.cc	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_length_context.h	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length_functions.cc	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_length_functions.h	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length_list.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_length_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length_list_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_length_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_line_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_line_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_linear_gradient_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_linear_gradient_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_marker_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_marker_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_mask_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_mask_element.h	LGPL	Copyright (C) 2005 Alexander Kellett <lypanov@kde.org>
+third_party/blink/renderer/core/svg/svg_matrix_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_matrix_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_metadata_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_metadata_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_mpath_element.cc	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_mpath_element.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_number.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_list.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_number_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_list_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_optional_number.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_optional_number.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_number_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_parser_utilities.cc	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_parser_utilities.h	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_parser_utilities_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_parsing_error.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_parsing_error.h	BSD	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_path.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_blender.cc	LGPL	Copyright (C) Research In Motion Limited 2010, 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_blender.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_builder.cc	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_path_builder.h	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_path_byte_stream.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_byte_stream_builder.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_byte_stream_builder.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_byte_stream_source.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_byte_stream_source.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_consumer.h	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_path_data.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_path_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_path_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_path_parser.cc	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_path_parser.h	LGPL	Copyright (C) 2002, 2003 The Karbon Developers
+third_party/blink/renderer/core/svg/svg_path_parser_fuzzer.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_path_parser_test.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_path_query.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_path_query.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_path_query_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_path_string_builder.cc	LGPL	Copyright (C) Research In Motion Limited 2010-2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_string_builder.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_string_source.cc	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_string_source.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_utilities.cc	LGPL	Copyright (C) Research In Motion Limited 2010, 2012. All rights reserved.
+third_party/blink/renderer/core/svg/svg_path_utilities.h	LGPL	Copyright (C) Research In Motion Limited 2010, 2012. All rights reserved.
+third_party/blink/renderer/core/svg/svg_pattern_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_pattern_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_point.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_point.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_point_list.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_point_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_point_list_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_point_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_point_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_poly_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_poly_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_polygon_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_polygon_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_polyline_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_polyline_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_preserve_aspect_ratio.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_preserve_aspect_ratio.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_preserve_aspect_ratio_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_preserve_aspect_ratio_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_radial_gradient_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_radial_gradient_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_rect.cc	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_rect.h	LGPL	Copyright (C) Research In Motion Limited 2010. All rights reserved.
+third_party/blink/renderer/core/svg/svg_rect_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_rect_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_rect_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_rect_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_resource.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource_client.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource_document_content.cc	LGPL	Copyright (C) 2010 Rob Buis <rwlbuis@gmail.com>
+third_party/blink/renderer/core/svg/svg_resource_document_content.h	LGPL	Copyright (C) 2010 Rob Buis <rwlbuis@gmail.com>
+third_party/blink/renderer/core/svg/svg_resource_document_content_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource_document_observer.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource_scheduler_registry.cc	BSD	Copyright 2026 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_resource_scheduler_registry.h	BSD	Copyright 2026 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_script_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_script_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_set_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_set_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_static_string_list.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_static_string_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_stop_element.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_stop_element.h	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_string.cc	LGPL	Copyright (C) Research In Motion Limited 2011. All rights reserved.
+third_party/blink/renderer/core/svg/svg_string.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_string_list.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_string_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_string_list_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_string_list_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_style_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_style_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_svg_element.cc	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_svg_element.h	LGPL	Copyright (C) 2004, 2005, 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_svg_element_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_switch_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_switch_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_symbol_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_symbol_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_tag_names.json5	NONE	
+third_party/blink/renderer/core/svg/svg_tests.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_tests.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_content_element.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_content_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_content_element_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_text_element.cc	LGPL	Copyright (C) 2004, 2005, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_path_element.cc	LGPL	Copyright (C) 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_path_element.h	LGPL	Copyright (C) 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_positioning_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_text_positioning_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_title_element.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_title_element.h	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_transform.cc	LGPL	Copyright (C) 2004, 2005 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_transform.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_transform_distance.cc	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_transform_distance.h	LGPL	Copyright (C) 2007 Eric Seidel <eric@webkit.org>
+third_party/blink/renderer/core/svg/svg_transform_list.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_transform_list.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_transform_list_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_transform_list_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_transform_tear_off.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_transform_tear_off.h	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_transformable_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_transformable_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_tree_scope_resources.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_tree_scope_resources.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_tspan_element.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_tspan_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_unit_types.cc	BSD	Copyright (C) 2014 Google Inc. All rights reserved.
+third_party/blink/renderer/core/svg/svg_unit_types.h	LGPL	Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_unknown_element.cc	BSD	Copyright (C) 2013 Samsung Electronics. All rights reserved.
+third_party/blink/renderer/core/svg/svg_unknown_element.h	BSD	Copyright (C) 2013 Samsung Electronics. All rights reserved.
+third_party/blink/renderer/core/svg/svg_uri_reference.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_uri_reference.h	LGPL	Copyright (C) 2004, 2005, 2008, 2009 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_use_element.cc	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_use_element.h	LGPL	Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann
+third_party/blink/renderer/core/svg/svg_use_element_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_view_element.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_view_element.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_view_spec.cc	LGPL	Copyright (C) 2007, 2010 Rob Buis <buis@kde.org>
+third_party/blink/renderer/core/svg/svg_view_spec.h	LGPL	Copyright (C) 2007 Rob Buis <buis@kde.org>
+third_party/blink/renderer/core/svg/svg_viewport_container_element.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_viewport_container_element.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/svg/svg_zoom_and_pan.cc	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/svg_zoom_and_pan.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
+third_party/blink/renderer/core/svg/unsafe_svg_attribute_sanitization_test.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/core/svg/xlink_attribute_names.json5	NONE	
+third_party/blink/renderer/platform/geometry/path.cc	BSD	Copyright (C) 2003, 2006 Apple Computer, Inc.  All rights reserved.
+third_party/blink/renderer/platform/geometry/path.h	BSD	Copyright (C) 2003, 2006, 2009 Apple Inc. All rights reserved.
+third_party/blink/renderer/platform/geometry/path_builder.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/geometry/path_builder.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/geometry/path_builder_test.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/geometry/stroke_data.cc	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/geometry/stroke_data.h	BSD	Copyright (C) 2013 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/graphics/gradient.cc	BSD	Copyright (C) 2006, 2007, 2008, 2010 Apple Inc. All rights reserved.
+third_party/blink/renderer/platform/graphics/gradient.h	BSD	Copyright (C) 2006, 2007, 2008, 2011 Apple Inc. All rights reserved.
+third_party/blink/renderer/platform/graphics/graphics_context.cc	BSD	Copyright (C) 2003, 2004, 2005, 2006, 2009 Apple Inc. All rights reserved.
+third_party/blink/renderer/platform/graphics/graphics_context.h	BSD	Copyright (C) 2003, 2006, 2007, 2008, 2009 Apple Inc. All rights reserved.

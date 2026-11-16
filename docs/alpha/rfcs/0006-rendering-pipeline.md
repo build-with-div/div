@@ -199,7 +199,7 @@ The pseudo-element tree and its styles are engine work outside this RFC.
 | engine | Owns A1, A2, A4, B, C1, C2 and D in `div-paint`, `div-engine`, `div-compositor` and `div-style` |
 | framework | A3 in `div-platform` (damage-aware present). Frame statistics (record, raster, present times and damage area), which the motion sample asked for, as public API in `divui`. `requestAnimationFrame` (decision 4) runs before A's style pass. C2 adds a compositor thread to the event loop |
 | canvas session | Builds canvas slots on A2, and GPU canvases as foreign layers on C1 |
-| SVG session | None beyond painting into chunks like any other box |
+| SVG session | Paints into chunks; each painting SVG element is a chunk client like a box, as [RFC 0009](0009-inline-svg.md) amends A1's chunk definition |
 | components | None. Pixels must not change |
 
 There is no public API change before A3's statistics. The damage list in
