@@ -263,17 +263,16 @@ impl Element {
             .insert_element_before(self.handle, child.handle, before.handle)
     }
 
+    /// Create a text node with `text` and append it to this element. The
+    /// returned handle edits it; dropping the handle leaves the node in the
+    /// document, as dropping an [`Element`] does.
     pub fn create_text_child(&self, text: &str) -> Result<crate::TextNode, Error> {
         let handle = self
             .document
             .with_engine_mut(|engine| engine.create_text(text))?;
         self.document
             .with_engine_mut(|engine| engine.append_child(self.handle, handle))?;
-        Ok(crate::TextNode::from_handle(
-            self.document.clone(),
-            handle,
-            true,
-        ))
+        Ok(crate::TextNode::from_handle(self.document.clone(), handle))
     }
 
     pub fn set_property(&self, property: StyleProperty, value: StyleValue) -> Result<(), Error> {
