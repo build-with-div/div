@@ -10,6 +10,7 @@
 //! stroking, which Chromium also does with Skia. It has no dependency on
 //! the DOM, style, layout or paint.
 
+mod arc;
 pub mod geometry;
 pub mod length;
 mod number;

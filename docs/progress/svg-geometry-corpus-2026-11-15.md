@@ -15,9 +15,16 @@ sizing of the outer `svg`, `view!`).
   ported.
 - `tools/svg/geometry_corpus.py`: 125 cases, queried in Chromium through
   web APIs only.
-- `tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json`: the
-  capture from Linux CfT 147.0.7727.50 (WSL). The Windows CfT capture is
-  byte-identical apart from the timestamp.
+- `tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json` and
+  `chromium-windows.json`: captures from Linux CfT 147.0.7727.50 (WSL,
+  glibc 2.43) and Windows CfT 147.0.7727.50. They are identical apart
+  from their timestamp and platform, and each OS is tested against its
+  own.
+- `crates/div-svg/src/arc.rs`: a port of Skia's SVG `arcTo` (BSD), with
+  trig computed in double precision and rounded to single, so that arcs
+  do not depend on the C library's single-precision trig. The first CI run
+  (glibc on the runner) differed from Chromium on `arc/rotation--60`'s
+  box by a few ulps when calling Skia's `arcTo` directly.
 - `known-gaps.txt` next to it, with the cause and owner of each
   remaining difference.
 
@@ -27,8 +34,8 @@ sizing of the outer `svg`, `view!`).
 cargo test --locked --package div-svg
 ```
 
-Windows MSVC, CI Skia flags, 15 November: 10 unit tests and the corpus
-test pass. 76 of 125 cases are exact in every field. In the other 49,
+Windows MSVC and Linux (WSL, glibc 2.43), CI Skia flags, 16 November:
+10 unit tests and the corpus test pass on both. 76 of 125 cases are exact in every field. In the other 49,
 the 80 differing fields are each listed with their cause in
 `known-gaps.txt`. Every bounding box and every fill and stroke hit grid
 is exact in all 125 cases. CI adds `div-svg` to the Linux and Windows

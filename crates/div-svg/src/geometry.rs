@@ -1,12 +1,12 @@
 //! Skia paths for SVG geometry, and the queries Chromium answers with Skia:
 //! length, point at length, bounding box, and fill and stroke containment.
 
+use crate::arc::{arc_pieces, ArcPiece};
 use crate::path_data::{PathData, Segment};
 use crate::{Point, Rect};
-use skia_safe::path_builder::ArcSize;
 use skia_safe::{
     path_utils, ContourMeasureIter, Paint, PaintCap, PaintJoin, PaintStyle, Path, PathBuilder,
-    PathDirection, PathEffect, PathFillType,
+    PathEffect, PathFillType,
 };
 
 /// `fill-rule` and `clip-rule`.
@@ -60,24 +60,31 @@ impl Default for StrokeStyle {
     }
 }
 
-/// Builds the Skia path for parsed path data. Arcs are Skia's SVG arcs
-/// (conics, exact ellipse segments): Chromium's arc bounding boxes in the
-/// corpus are the exact ellipse extremes.
+/// Builds the Skia path for parsed path data. Arcs are conics, as Skia's
+/// SVG `arcTo` builds them (`crate::arc`): Chromium's arc bounding boxes in
+/// the corpus are the exact ellipse extremes.
 pub fn path_from_data(data: &PathData) -> Path {
     let mut builder = PathBuilder::new();
+    let mut current = Point::default();
+    let mut subpath_start = Point::default();
     for segment in &data.segments {
         match *segment {
             Segment::MoveTo(p) => {
                 builder.move_to((p.x, p.y));
+                subpath_start = p;
+                current = p;
             }
             Segment::LineTo(p) => {
                 builder.line_to((p.x, p.y));
+                current = p;
             }
             Segment::QuadTo(c, p) => {
                 builder.quad_to((c.x, c.y), (p.x, p.y));
+                current = p;
             }
             Segment::CubicTo(c1, c2, p) => {
                 builder.cubic_to((c1.x, c1.y), (c2.x, c2.y), (p.x, p.y));
+                current = p;
             }
             Segment::ArcTo {
                 radii,
@@ -86,24 +93,21 @@ pub fn path_from_data(data: &PathData) -> Path {
                 sweep,
                 to,
             } => {
-                builder.arc_to_radius(
-                    (radii.x, radii.y),
-                    rotation,
-                    if large {
-                        ArcSize::Large
-                    } else {
-                        ArcSize::Small
-                    },
-                    if sweep {
-                        PathDirection::CW
-                    } else {
-                        PathDirection::CCW
-                    },
-                    (to.x, to.y),
-                );
+                for piece in arc_pieces(current, radii.x, radii.y, rotation, large, sweep, to) {
+                    match piece {
+                        ArcPiece::Line(p) => {
+                            builder.line_to((p.x, p.y));
+                        }
+                        ArcPiece::Conic(c, p, w) => {
+                            builder.conic_to((c.x, c.y), (p.x, p.y), w);
+                        }
+                    }
+                }
+                current = to;
             }
             Segment::Close => {
                 builder.close();
+                current = subpath_start;
             }
         }
     }

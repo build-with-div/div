@@ -35,24 +35,35 @@ Exceptions are recorded as data.
 | `stroke/` | 14 | caps, joins (including `arcs` and `miter-clip`), miter limits, dashes and `evenodd`, through `isPointInStroke` and `isPointInFill` |
 | `viewbox/`, `transform/` | 32 | all 19 `preserveAspectRatio` values, an offset `viewBox`, zero and negative sizes, commas, a missing size, a nested `svg`, and `transform` lists including invalid ones |
 
-**Evidence** is `tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json`,
-captured from Linux CfT 147.0.7727.50 in WSL (the census oracle). It is a
-tracked fixture because `crates/div-svg/tests/geometry_corpus.rs` reads it
-with `include_str!`. The read-only Windows CfT 147.0.7727.50 (`out\chrome-win` in the main
-checkout) gives a byte-identical capture apart from the timestamp.
+**Evidence** is one capture per OS in `tests/fidelity/fixtures/svg-geometry-v1/`:
 
-To recapture (Linux, in WSL):
+- `chromium-linux.json`, from Linux CfT 147.0.7727.50 in WSL (Ubuntu
+  26.04, glibc 2.43), the census oracle;
+- `chromium-windows.json`, from the read-only Windows CfT 147.0.7727.50
+  (`out\chrome-win` in the main checkout).
+
+`crates/div-svg/tests/geometry_corpus.rs` checks each OS against its own
+capture (through `include_str!`, so the captures are tracked fixtures),
+and asserts the capture's platform. The two captures are identical
+apart from their timestamp and platform.
+
+To recapture:
 
 ```sh
+# Linux, in WSL
 python3 tools/svg/geometry_corpus.py capture \
   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome \
   --output tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json
+# Windows
+python tools/svg/geometry_corpus.py capture \
+  --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe \
+  --output tests/fidelity/fixtures/svg-geometry-v1/chromium-windows.json
 ```
 
 ### What `div-svg` matches
 
 `cargo test --locked --package div-svg` compares every value exactly. On
-this capture, 76 of 125 cases match in every field. In the other 49, 80
+Windows (MSVC) and on Linux (WSL), 76 of 125 cases match in every field. In the other 49, 80
 fields differ, and each is listed with its cause in
 `tests/fidelity/fixtures/svg-geometry-v1/known-gaps.txt`. The other fields
 of those cases are still checked exactly. Every bounding box and every
@@ -63,6 +74,14 @@ Chromium:
 
 - Arcs in the drawn path are Skia's SVG arcs (conics). Every arc
   bounding box and hit grid then matches, rotated arcs included.
+  `div-svg` ports Skia's SVG `arcTo` (BSD) in `src/arc.rs` rather than
+  calling it. Skia's version uses the C library's single-precision `sin`,
+  `cos`, `tan` and `atan2`, which differ between C libraries: on the CI
+  runner's glibc, `arc/rotation--60`'s box came out a few ulps from
+  Chromium's. The port keeps Skia's float operations and their order, but
+  computes each trig call in double precision and rounds it to single.
+  That is the correctly rounded result on every OS, which is what
+  Chromium returns in both captures.
 - Numbers in attributes are accumulated in single precision, digit by
   digit, not correctly rounded: `1.9e2` reads as 190.00001525878906.
 - An `rx`, `ry` or other length attribute that is present but does not

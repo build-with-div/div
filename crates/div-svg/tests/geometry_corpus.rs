@@ -1,11 +1,13 @@
 //! `div-svg` against Chromium 147's answers for the geometry corpus
-//! (`tools/svg/geometry_corpus.py`, captured on Linux; identical on Windows).
+//! (`tools/svg/geometry_corpus.py`), each OS against its own capture.
 //!
 //! Every value is compared exactly. A field of a case that differs must be
 //! listed in `known-gaps.txt` next to the oracle, as `<case> <field>`, under
 //! a comment giving the cause; a gap is never a tolerance, and the other
 //! fields of that case stay exact. The test fails both on a new difference
 //! and on a listed gap that no longer differs, so the list stays true.
+
+#![cfg(any(target_os = "linux", windows))]
 
 use div_svg::geometry::{
     contains_in_fill, contains_in_stroke, path_from_data, point_at_length, total_length, FillRule,
@@ -19,8 +21,18 @@ use div_svg::{shapes, PathData, Point};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const ORACLE: &str =
-    include_str!("../../../tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json");
+// Each OS is checked against Chromium captured on that OS. The two
+// captures are identical apart from their timestamp and platform.
+#[cfg(target_os = "linux")]
+const ORACLE: (&str, &str) = (
+    "linux",
+    include_str!("../../../tests/fidelity/fixtures/svg-geometry-v1/chromium-linux.json"),
+);
+#[cfg(windows)]
+const ORACLE: (&str, &str) = (
+    "win32",
+    include_str!("../../../tests/fidelity/fixtures/svg-geometry-v1/chromium-windows.json"),
+);
 const KNOWN_GAPS: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-geometry-v1/known-gaps.txt");
 
@@ -357,8 +369,10 @@ fn compare(case: &Value) -> Vec<(&'static str, String)> {
 
 #[test]
 fn geometry_matches_chromium_147() {
-    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let (platform, text) = ORACLE;
+    let oracle: Value = serde_json::from_str(text).unwrap();
     assert_eq!(oracle["chromium"], "Chrome/147.0.7727.50");
+    assert_eq!(oracle["platform"], platform);
     let known: BTreeSet<String> = KNOWN_GAPS
         .lines()
         .map(str::trim)
