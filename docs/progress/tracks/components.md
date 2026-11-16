@@ -16,25 +16,97 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 ## Results
 
-| Component | Fixtures | Exact | Evidence | Measured at (Div commit) |
+| Component | Fixtures | Exact at 1x | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 0 of 48 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 0 of 80 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| card | basic, with action; light, dark | 0 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 0 of 24 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| label | basic; light, dark | 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| separator | horizontal, vertical; light, dark | 16 of 16 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
-| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 24 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| badge | 6 variants; light, dark | 5 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 17 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| card | basic, with action; light, dark | 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 2 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| label | basic; light, dark | 2 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| separator | horizontal, vertical; light, dark | 4 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
 
-Each fixture is compared at the four census profiles (`legacy-800x600@1`,
-`mobile-375x667@2`, `desktop-1280x720@1.25`, `desktop-1920x1080@1.5`).
+The current evidence is measured at the `legacy-800x600@1` profile only
+(`"complete": false`). From 16 November 2026 the Chromium oracle at the
+other census profiles (`mobile-375x667@2`, `desktop-1280x720@1.25`,
+`desktop-1920x1080@1.5`) is captured with `--force-device-scale-factor`
+instead of CDP's emulated device scale; those rows are measured again with
+the fidelity lane's shared real-zoom launcher once it lands. The
+four-profile results of 12 November (16 of 216 exact, at `6fc0c1a7`, with
+the emulated oracle) are history, in the [12 November entry](#12-november-2026-tabs-and-the-roving-focus-primitive-c2-group-1).
 
 Behavior is compared with Radix running in Chromium by the traces in
 [`traces.json`](../../../tests/fidelity/components/traces.json):
 
 | Component | Traces | Same | Evidence | Measured at |
 | --- | --- | --- | --- | --- |
-| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6fc0c1a7`, 12 November 2026 |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6df8ba30`, 16 November 2026 |
+| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6df8ba30`, 16 November 2026 |
+
+## 16 November 2026: switch (C2 group 2, C3)
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| Switch primitive, ported from Radix 1.8.1 (`react-switch` 1.4.1): a `button` with `role="switch"`, `aria-checked`, `data-state`, `value`, and `data-disabled` and `disabled` when disabled, toggled by its click (so by a pointer, Space and Enter, through Div's button activation); the thumb carries the same `data-state`. Controlled or uncontrolled, as Radix. Radix's hidden form input is left out until forms ([RFC 0003](../../alpha/rfcs/0003-component-primitives.md)). | components | `crates/div-components/src/primitives/switch.rs` |
+| Styled switch, shadcn's `switch.tsx` at both sizes. The `data-state` colors and the thumb's offset are set inline by an effect (RFC 0003, request 6); `translate-x-[calc(100%-2px)]` is `transform: translateX()` of the thumb's width less 2px, because Div has no `translate` property. | components | `crates/div-components/src/switch.rs` |
+| Fixtures `switch-unchecked`, `-checked`, `-disabled`, `-disabled-checked`, `-sm-unchecked` and `-sm-checked`, light and dark; trace pages for the unchecked and the disabled switch; traces `switch-keyboard`, `switch-pointer` and `switch-disabled`. The traces now also record `value`, `aria-checked`, `aria-required` and `data-size`. shadcn's `switch.tsx` is vendored unchanged from `shadcn@4.23.0`. | components | `tests/fidelity/components/reference/`, `traces.json`, `render/src/main.rs` |
+
+### Measurement
+
+All 66 fixtures at `legacy-800x600@1`, in the census real-font environment,
+at `6df8ba30`: 31 exact, 35 different, 0 errors
+([`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json)).
+The 54 earlier fixtures give 30 exact, as main `154d0a72` did after the
+Linux web-font change (#51), against 4 of 54 at 1x on 12 November; the
+switch adds 1 exact of 12 (`switch-disabled-checked-dark`). The other 11
+switch pages differ in 8 to 39 pixels, by at most 3 in a channel.
+
+7 of 8 behavior traces are the same
+([`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json)):
+all three switch traces (Tab, Space, Enter, clicks, and a disabled switch
+that takes no focus and stays off), and the four tabs traces that were the
+same before. `tabs-tab-out` still differs, as below.
+
+Outside the evidence, the 1x geometry diagnostic matches every switch
+element's border box (root and thumb) with Chromium's, at both sizes and in
+every state; each switch page differs only in the hidden input (below).
+
+### Remaining failures
+
+- **Pill edges.** Every switch page that differs does so only on the
+  antialiased edge of the rounded track and the `shadow-xs` below it, by 1
+  to 3 in a channel; the thumb is exact. The badge's pill edge is likely
+  the same difference. Owner: engine track, paint (rounded rectangles and
+  shadows).
+- **The server-rendered form input.** The static pages hold the hidden
+  checkbox Radix renders after the switch on the server (it is removed in
+  the browser outside a `<form>`). The fixture adds the same invisible
+  input so the trees line up; Div lays out a checkbox as 0x0 where Chromium
+  gives 13x13 (the markdown sample's MD-11). It has `opacity: 0`, so the
+  pixels are unaffected. Owner: engine track, forms.
+- Not built: `focus-visible` (the 3px ring and border color) and the
+  `transition-all` and `transition-transform` animations; the fixtures
+  compare the settled states. `focus-visible` needs the stylesheet
+  cascade (RFC 0003, request 6). Owner: framework track (typed style
+  rules).
+- Div has no `translate` property; the thumb uses `transform`, which
+  places it the same while it has no other transform. Owner: engine track,
+  style.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Comparison at 1x | `reference_harness.py compare --renderer <release div-components-render> --profile legacy-800x600@1 --repository-commit 6df8ba30… --evidence tests/fidelity/components/evidence/reference-v1.json` in WSL, renderer built with the CI `SKIA_GN_ARGS` | 31 of 66 exact, 35 different, 0 errors; `"complete": false` (1x only) |
+| Behavior traces | `reference_harness.py trace --renderer <release div-components-render> --repository-commit 6df8ba30… --output tests/fidelity/components/evidence/traces-v1.json` in WSL | 7 of 8 the same; `tabs-tab-out` as before |
+| Geometry at 1x (diagnostic) | `reference_harness.py geometry --renderer <release div-components-render> --profile legacy-800x600@1` | 52 of 66 pages with every box the same; on the 12 switch pages only the hidden input differs |
+| Renderer | `sha256sum` of the release `div-components-render` | `f429be7f…`, the SHA-256 in both evidence files |
+| Reference pages | `node build.mjs --check` in `tests/fidelity/components/reference` | 75 pages and 27 assets up to date |
+| Tests | `cargo test --locked -p div-components -p div-components-render` and `python3 -m unittest tests/fidelity/components/harness/test_reference_harness.py` in WSL | 20 passed, among them `space_and_enter_toggle_the_focused_switch` and `a_disabled_switch_stays_off`; harness 24 passed |
+| Formatting | `cargo fmt --all --check` in WSL | clean |
 
 ## 12 November 2026: tabs and the roving focus primitive (C2 group 1)
 
@@ -477,9 +549,10 @@ These are API requests for the framework track, not blockers.
 2. Build the Radix-like primitives (C2) as proposed in
    [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), as a
    `primitives` module of `div-components`, on the public `divui` API and
-   the RFC's interims, starting with roving focus and tabs; then dialog,
-   checkbox and switch. Their `data-state` styles are inline until typed
-   style rules (A1) land.
+   the RFC's interims. Roving focus, tabs and switch are built; input is
+   next, then dialog and checkbox. Their `data-state` styles are inline
+   until typed style rules (A1) land. Measure the non-1x profiles again
+   with the real-zoom launcher once it lands.
 3. Lucide icons in Div: the static SVG decoder
    (`crates/div-paint/src/image_resource.rs`) draws only `<rect>`
    shapes, while every Lucide icon is stroked `<path>` data in
