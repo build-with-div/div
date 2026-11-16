@@ -50,7 +50,7 @@ fn chromium_lcd_raster_x(device_x: f32, font_size: f32) -> f32 {
     }
 }
 
-struct SkiaPathPen(PathBuilder);
+pub(super) struct SkiaPathPen(pub(super) PathBuilder);
 
 impl Default for SkiaPathPen {
     fn default() -> Self {
@@ -525,6 +525,20 @@ impl ShapeResult {
                 }
                 policy => policy,
             };
+            // Linux Chromium instantiates a web font with Fontations, whose
+            // outlines and hinting `web_font_outlines` reproduces; system
+            // faces, and the test collection standing in for them, keep the
+            // resolved FreeType font. Monochrome strikes keep the policies
+            // above.
+            let web_font = raster_policy == TextRasterPolicy::Skia
+                && crate::font::GlyphRasterizer::platform()
+                    == crate::font::GlyphRasterizer::FreeTypeOrFontations
+                && source_font.edging() != Edging::Alias
+                && run
+                    .font_data
+                    .source_info()
+                    .application_face()
+                    .is_some_and(|face| face.is_web_font());
             // Monochrome runs retain their local positions. Only LCD runs
             // select a mask phase using the enclosing logical origin.
             let device_origin_x = if raster_policy == TextRasterPolicy::ChromiumAuthorAliased {
@@ -539,10 +553,12 @@ impl ShapeResult {
             // Hint at the physical size once and keep that custom outline at
             // its unit font size; glyph positions are converted below.
             let mut physical_source_font;
-            let compatible_source_font = if matches!(
-                raster_policy,
-                TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
-            ) && (device_scale - 1.0).abs() > f32::EPSILON
+            let compatible_source_font = if (web_font
+                || matches!(
+                    raster_policy,
+                    TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
+                ))
+                && (device_scale - 1.0).abs() > f32::EPSILON
             {
                 physical_source_font = source_font.clone();
                 physical_source_font.set_size(source_font.size() * device_scale);
@@ -553,20 +569,29 @@ impl ShapeResult {
             // Windows Chromium rasterizes these faces with DirectWrite, the
             // scaler behind `source_font`; only Linux Chromium substitutes
             // Fontations outlines.
-            let compatible_font = (raster_policy != TextRasterPolicy::Skia
-                && crate::font::GlyphRasterizer::platform()
-                    == crate::font::GlyphRasterizer::FreeTypeOrFontations)
-                .then(|| {
-                    fontations_compatible_font(compatible_source_font, &run.glyphs, raster_policy)
-                })
-                .flatten();
+            let compatible_font = if web_font {
+                super::web_font_outlines::web_font(compatible_source_font, &run.glyphs)
+            } else {
+                (raster_policy != TextRasterPolicy::Skia
+                    && crate::font::GlyphRasterizer::platform()
+                        == crate::font::GlyphRasterizer::FreeTypeOrFontations)
+                    .then(|| {
+                        fontations_compatible_font(
+                            compatible_source_font,
+                            &run.glyphs,
+                            raster_policy,
+                        )
+                    })
+                    .flatten()
+            };
             let sk_font = compatible_font.as_ref().unwrap_or(source_font);
             let mut physical_font;
             let compatible_outline_is_physical = compatible_font.is_some()
-                && matches!(
-                    raster_policy,
-                    TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
-                )
+                && (web_font
+                    || matches!(
+                        raster_policy,
+                        TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
+                    ))
                 && (device_scale - 1.0).abs() > f32::EPSILON;
             let raster_font =
                 if (device_scale - 1.0).abs() > f32::EPSILON && !compatible_outline_is_physical {

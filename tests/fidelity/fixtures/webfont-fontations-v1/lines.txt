@@ -1,0 +1,10 @@
+# Web-font lines for tools/qualification/capture_webfont_oracle.py and
+# crates/divui/tests/native_webfont_fontations.rs.
+# font file (under tests/fidelity/components/assets/fonts) | family | weight | size px | text
+# Each line is one 24px row at left 4px, black on white.
+geist/GeistMono-Variable.woff2 | Geist Mono | 400 | 13 | Hamburgefonstiv 0123456789 {}[]()<>=;
+geist/GeistMono-Variable.woff2 | Geist Mono | 400 | 16 | Hamburgefonstiv 0123456789 {}[]()<>=;
+inter/InterVariable.woff2 | Inter | 400 | 13 | Hamburgefonstiv 0123456789 Quick wafer jazz?
+inter/InterVariable.woff2 | Inter | 400 | 16 | Hamburgefonstiv 0123456789 Quick wafer jazz?
+geist/Geist-Variable.woff2 | Geist | 650 | 13 | Hamburgefonstiv 0123456789 Quick wafer jazz?
+geist/Geist-Variable.woff2 | Geist | 650 | 16 | Hamburgefonstiv 0123456789 Quick wafer jazz?

@@ -1,0 +1,28 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux",
+ "fontconfig": "real-font profile (tools/accountability/run_all_pixel_comparisons.py)",
+ "viewport": [
+  400,
+  144
+ ],
+ "row": 24,
+ "left": 4,
+ "scales": [
+  "1",
+  "1.25",
+  "1.5",
+  "2"
+ ],
+ "fonts": {
+  "geist/GeistMono-Variable.woff2": "5d93ee62680bbec1abc5405c2658311f9396f6f9a821ef8551ec463887e600d4",
+  "inter/InterVariable.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+  "geist/Geist-Variable.woff2": "3626eba547294501c8a4d662c7d9ea3b49734409a4c5a1ccf12fa86429b1687e"
+ },
+ "files": {
+  "chromium-linux-1.png": "c696caf4814d4a9d44b2712011932b23c2ffa8330b5497fffef85a3aa9353f68",
+  "chromium-linux-1.25.png": "9d616f1dab8bd91085641480be89467f9d99a2e4f61c1451c776719eae506b74",
+  "chromium-linux-1.5.png": "d99cc5f88880ba01a28ae12fb96b3505b50e94d332a40f213425f2780e1d4e79",
+  "chromium-linux-2.png": "394b4920c887784975fc4ad95fe3973e4fc0ccbffaa779e6b569e7faa5ce2a3d"
+ }
+}

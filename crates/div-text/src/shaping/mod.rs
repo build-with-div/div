@@ -11,6 +11,7 @@
 mod segmenter;
 mod shape_result;
 mod shaper;
+mod web_font_outlines;
 
 pub use segmenter::{RunSegment, RunSegmenter, Script};
 pub use shape_result::{

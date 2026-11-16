@@ -46,3 +46,42 @@ style or the cascade go to the engine track.
   --check`; the census under `census_lock.py`.
 - **Remaining:** collapsed-border and caption edges in the same table tests,
   and the rest of the snapped-edge cause.
+
+## 15 November 2026: Linux web fonts rasterize from skrifa outlines
+
+- **What:** Chromium on Linux creates every `@font-face` typeface with
+  `SkTypeface_Make_Fontations` (`web_font_typeface_factory.cc`). Div now
+  paints anti-aliased runs of registered faces on Linux from a custom
+  typeface of skrifa outlines at the physical size, hinted as Skia's
+  Fontations scaler maps the resolved hinting
+  (`crates/div-text/src/shaping/web_font_outlines.rs`). The deterministic
+  test collection stands in for the census's Fontconfig system fonts and
+  keeps FreeType; the aliased Ahem policies are unchanged. Owner: text
+  (fidelity lane).
+- **Typeface cache:** keyed by the typeface id, variation coordinates,
+  physical size, hinting, LCD mask and force-autohint flag; least recently
+  used, 32 entries; an entry restarts past 4,096 glyphs.
+- **Evidence:** pinned Chromium 147 frames of Geist Mono 400, Inter 400 and
+  Geist 650 at 13px and 16px, at scales 1, 1.25, 1.5 and 2
+  (`tests/fidelity/fixtures/webfont-fontations-v1`, captured by
+  `tools/qualification/capture_webfont_oracle.py`). 21 of 24 rows are exact
+  (0 of 24 on the FreeType path).
+- **Census:** full census under `census_lock.py` (WSL, a8 build) at main
+  8871c13 and at 863a56f. Expanded suite: 22,539 of 23,728 exact on both.
+  Coverage matrix: 2,227 exact, 1,821 different and 156 errors of 4,204 on
+  both. Every row's status, pixel count, diff signature and Div RGBA hash
+  is identical; only build identity (commit, binary, cache identity)
+  differs. `pixel-compare` builds every census profile on
+  `deterministic_test()` and Fontconfig system fonts and registers no web
+  fonts, so this is a no-regression check, not evidence for the change.
+- **Verification:** `cargo test --locked -p divui --features
+  "divui/async divui/http divui/testing" --test native_webfont_fontations`
+  (Linux); `cargo test --locked -p div-text`
+  (`ahem_policies_are_unchanged_by_web_font_provenance` and the cache
+  tests); `python tools/qualification/generate_renderer_contract.py
+  --check`; the census under `census_lock.py`.
+- **Remaining:** Inter 13px at 1.25, 1.5 and 2x (2,729, 4,227 and 5,889
+  pixels): Chromium's baseline sits 1-2 device pixels lower, on a whole
+  pixel; line-box metrics or layout, not rasterization. Monochrome web
+  fonts keep FreeType; vertical web-font text and the div-components pages
+  were not measured.

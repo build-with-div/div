@@ -50,6 +50,7 @@ pub struct FontFaceSourceInfo {
     info: FontFaceInfo,
     bytes: Arc<[u8]>,
     registration_generation: u64,
+    web_font: bool,
 }
 
 impl FontFaceSourceInfo {
@@ -57,12 +58,21 @@ impl FontFaceSourceInfo {
         info: FontFaceInfo,
         bytes: Arc<[u8]>,
         registration_generation: u64,
+        web_font: bool,
     ) -> Self {
         Self {
             info,
             bytes,
             registration_generation,
+            web_font,
         }
+    }
+
+    /// Whether Chromium would load these bytes as a web font. Application
+    /// registrations are; the deterministic test collection, which stands in
+    /// for the census's Fontconfig system fonts, is not.
+    pub(crate) fn is_web_font(&self) -> bool {
+        self.web_font
     }
 
     pub fn face_info(&self) -> &FontFaceInfo {

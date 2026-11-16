@@ -394,7 +394,10 @@ impl FontCollection {
             // explicit test collection usable and let its normal resolution
             // path fall through to system fallback; public registration still
             // returns the precise error to its caller.
-            let _ = collection.register(Arc::<[u8]>::from(*bytes), descriptor);
+            //
+            // These faces stand in for the census's Fontconfig system fonts,
+            // which Chromium rasterizes with FreeType, not as web fonts.
+            let _ = collection.register_face(Arc::<[u8]>::from(*bytes), descriptor, false);
         }
         collection
     }
@@ -408,10 +411,22 @@ impl FontCollection {
     }
 
     /// Register immutable application bytes after validating metadata and face index.
+    ///
+    /// The face is a web font: on Linux its runs are rasterized from skrifa
+    /// outlines, as Chromium rasterizes a web font with Fontations.
     pub fn register(
         &self,
         bytes: Arc<[u8]>,
         descriptor: FontFaceDescriptor,
+    ) -> Result<FontFaceHandle, FontCollectionError> {
+        self.register_face(bytes, descriptor, true)
+    }
+
+    fn register_face(
+        &self,
+        bytes: Arc<[u8]>,
+        descriptor: FontFaceDescriptor,
+        web_font: bool,
     ) -> Result<FontFaceHandle, FontCollectionError> {
         validate_descriptor(&descriptor)?;
         if bytes.len() > MAX_FACE_BYTES {
@@ -476,6 +491,7 @@ impl FontCollection {
             info.clone(),
             Arc::clone(&bytes),
             state.generation.saturating_add(1),
+            web_font,
         ));
         state.faces.push(RegisteredFace {
             info,
