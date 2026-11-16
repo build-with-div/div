@@ -23,3 +23,26 @@ style or the cascade go to the engine track.
   (92), text (67).
 - **Remaining:** every cause above. The sub-pixel geometry cause is a
   hypothesis about where rounding happens, to be tested before any fix.
+
+## 15 November 2026: table part backgrounds keep fractional cell edges
+
+- **What:** Blink paints a table part's background (column, row, section)
+  into each cell with the cell as the painting area
+  (`TableCellPainter::PaintBackgroundForTablePart`): the part's generated
+  tile, clipped to the cell, is drawn once with antialiasing. Div clipped
+  the draw to the cell with a hard clip, which snapped fractional device
+  cell edges. Div now uses its existing border-box generated-tile path for
+  these cells (`crates/div-paint/src/painter.rs`, `paint_background_layers`).
+  Canvas backgrounds are unchanged. Owner: paint (fidelity lane).
+- **Census (full expanded suite, a8 build, WSL):** main `dd8ba04` 22,520 of
+  23,728 exact; this change 22,539 (+19), 0 losses, no other row changed.
+  The gains are the nine `css_break` table col/row/section paint tests at
+  1.25 and at 1.5, and
+  `css_backgrounds/background-image-table-cells-straddling-no-repeat` at
+  1.25. CSS Grid coverage (4,204 rows) is unchanged row for row.
+- **Verification:** `cargo test --locked -p div-paint`
+  (`table_part_gradient_keeps_fractional_cell_edge_coverage` fails without
+  the change); `python tools/qualification/generate_renderer_contract.py
+  --check`; the census under `census_lock.py`.
+- **Remaining:** collapsed-border and caption edges in the same table tests,
+  and the rest of the snapped-edge cause.
