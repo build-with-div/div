@@ -15,7 +15,7 @@ Results here are from this branch's tests unless marked otherwise.
 | A3 top layer and dialog | Not started |
 | A5 performance baseline | First internal baseline taken 9 November on one shared Windows host, outside the repository; not publishable. Finding: each dashboard relayout costs about 205 ms, all in layout; not yet profiled |
 | A6 real-font baseline | Not measured; fonts are the components track's C4 files (PR #94). WOFF2 decoding on every platform merged, PR #97 (`c4b2e42e`; [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/woff2-decode-2026-11-09.md)) |
-| RFC 0008 Canvas 2D | RFC merged (build-with-div/div#43). Step 2, core state and paths in `div-canvas`: 52 of 54 trace canvases and 108 of 108 observations exact against Chromium; [record](../canvas-core-2026-11-15.md) |
+| RFC 0008 Canvas 2D | RFC merged (build-with-div/div#43). Step 2, core state and paths in `div-canvas`: 54 of 54 trace canvases and 108 of 108 observations exact against Chromium; [record](../canvas-core-2026-11-15.md) |
 
 ## Findings while writing RFC 0001
 
@@ -125,9 +125,8 @@ on branch `components/c4-assets` and the shared findings note.
   `CanvasRenderingContext2D`, ported from Blink's canvas2d (RFC 0008 step
   2). It covers state, transforms, compositing, colour and line styles,
   paths, fill, stroke, clip, rectangles and hit tests. Replaying 27 call
-  traces against Chromium 147.0.7727.50, 52 of 54 canvases and all 108
-  observations are exact. The 2 canvases that differ are closed full-turn
-  arcs, a recorded gap that waits on cc's `DrawArcOp` source. The Linux
-  and Windows Chromium captures are identical. No existing crate's output
+  traces against Chromium 147.0.7727.50, all 54 canvases and all 108
+  observations are exact on Windows. Closed arcs follow cc's `DrawArcOp`
+  playback. The Linux and Windows Chromium captures are identical. No existing crate's output
   changes.
   [Record](../canvas-core-2026-11-15.md).

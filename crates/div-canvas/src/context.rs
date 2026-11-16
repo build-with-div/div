@@ -5,7 +5,8 @@
 //! Blink records into a `cc::PaintRecord` and plays it back onto a raster
 //! `SkCanvas`. This crate draws onto the raster `SkCanvas` directly, issuing
 //! the same Skia calls in the same order, so the pixels are those of the
-//! playback.
+//! playback. Where the playback is not a plain Skia call (`DrawArcOp`), it is
+//! ported from `cc/paint/paint_op.cc` (Chromium BSD).
 
 use div_style::Color;
 use skia_safe::{
@@ -14,7 +15,7 @@ use skia_safe::{
 };
 
 use crate::affine::AffineTransform;
-use crate::math::{clamp_non_finite_to_zero, clamp_to_f32, PI_FLOAT};
+use crate::math::{clamp_non_finite_to_zero, clamp_to_f32, float_nearly_equal, PI_FLOAT};
 use crate::path::{CanvasPath, RoundRectRadius};
 use crate::state::{composite_name, parse_composite, CanvasState, LineCap, LineJoin, PaintType};
 use crate::CanvasError;
@@ -530,40 +531,18 @@ impl CanvasRenderingContext2D {
                 clamp_non_finite_to_zero(arc.sweep_angle_radians * 180.0 / PI_FLOAT);
             let closed = arc.closed;
             self.draw(bounds, paint_type, |c, p| {
+                // cc's DrawArcImpl (cc/paint/paint_op.cc), the playback of
+                // Blink's DrawArcOp: a closed arc is an oval when the sweep is
+                // a full turn, else the arc path closed.
                 if closed {
-                    // DrawArcOp with `setArcClosed(true)`. cc's playback was not
-                    // in the approved sources; this builds the path Skia's own
-                    // drawArc builds (`SkPathPriv::CreateDrawArcPath` without a
-                    // centre) and closes it. The traces measure it against
-                    // Chromium.
-                    let mut b = PathBuilder::new();
-                    let fill_no_effect = p.style() == PaintStyle::Fill && p.path_effect().is_none();
-                    if fill_no_effect && sweep_degrees.abs() >= 360.0 {
-                        b.add_oval(oval, None, None);
+                    if float_nearly_equal(sweep_degrees.abs(), 360.0) {
+                        c.draw_oval(oval, p);
                     } else {
-                        let mut start = start_degrees;
-                        let mut sweep = sweep_degrees;
-                        let mut force_move_to = true;
-                        while sweep <= -360.0 {
-                            b.arc_to(oval, start, -180.0, force_move_to);
-                            start -= 180.0;
-                            b.arc_to(oval, start, -180.0, false);
-                            start -= 180.0;
-                            force_move_to = false;
-                            sweep += 360.0;
-                        }
-                        while sweep >= 360.0 {
-                            b.arc_to(oval, start, 180.0, force_move_to);
-                            start += 180.0;
-                            b.arc_to(oval, start, 180.0, false);
-                            start += 180.0;
-                            force_move_to = false;
-                            sweep -= 360.0;
-                        }
-                        b.arc_to(oval, start, sweep, force_move_to);
+                        let mut b = PathBuilder::new();
+                        b.arc_to(oval, start_degrees, sweep_degrees, false);
+                        b.close();
+                        c.draw_path(&b.detach(), p);
                     }
-                    b.close();
-                    c.draw_path(&b.detach(), p);
                 } else {
                     c.draw_arc(oval, start_degrees, sweep_degrees, false, p);
                 }

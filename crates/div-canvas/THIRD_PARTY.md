@@ -1,9 +1,10 @@
 # Third-party notices for div-canvas
 
 `div-canvas` is a port of Blink's canvas code at Chromium 147.0.7727.50
-(`third_party/blink/renderer`). The ported files are under BSD-style
-licences. Their notices follow, as the licences require: first the files
-under the Chromium licence, then each file with its own header.
+(`third_party/blink/renderer`, and one function of `cc/paint`). The ported
+files are under BSD-style licences. Their notices follow, as the licences
+require: first the files under the Chromium licence, then each file with
+its own header.
 
 ## Files under the Chromium licence
 
@@ -18,6 +19,7 @@ license that can be found in the LICENSE file`. The licence is Chromium's
 | `modules/canvas/canvas2d/canvas_rendering_context_2d_state.cc` | 2015 The Chromium Authors | `src/state.rs` |
 | `modules/canvas/canvas2d/clip_list.cc` | 2014 The Chromium Authors | `src/context.rs` |
 | `platform/runtime_enabled_features.json5` (one entry) | The Chromium Authors | `src/path.rs` |
+| `cc/paint/paint_op.cc` (`DrawArcImpl`) | 2017 The Chromium Authors | `src/context.rs` |
 
 ```text
 Copyright 2015 The Chromium Authors

@@ -69,16 +69,7 @@ fn write_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
 /// Canvases known to differ from Chromium, each with its cause. They are
 /// still replayed and compared: a listed canvas must keep differing (the
 /// entry is removed when it starts to match), and is reported, not hidden.
-const KNOWN_GAPS: &[(&str, &str)] = &[
-    (
-        "arcs-closed-full.stroke",
-        "closed full-turn arc on the drawArc fast path: cc DrawArcOp playback not ported",
-    ),
-    (
-        "arcs-closed-full.dashed",
-        "closed full-turn arc on the drawArc fast path: cc DrawArcOp playback not ported",
-    ),
-];
+const KNOWN_GAPS: &[(&str, &str)] = &[];
 
 #[test]
 fn traces_match_chromium() {

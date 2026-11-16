@@ -59,6 +59,8 @@ was checked before its body was read. All are BSD-style; none is copyleft.
 | `platform/wtf/math_extras.h` | Apple BSD | `math.rs` |
 | `platform/geometry/float_rounded_rect.h` (`operator SkRRect`) | Adobe BSD | `path.rs` |
 | `platform/runtime_enabled_features.json5` (`CanvasUsesArcPaintOp` only) | Chromium BSD | `path.rs` |
+| `cc/paint/paint_op.cc` (`DrawArcImpl` and `DrawArcOp` raster only) | Chromium BSD | `context.rs` |
+| `cc/paint/paint_flags.{h,cc}` (`DrawToSk`, `ToSkPaint`; read to confirm the paint, nothing new ported) | Chromium BSD | — |
 
 Their notices are reproduced in `crates/div-canvas/THIRD_PARTY.md`.
 
@@ -94,13 +96,21 @@ cargo test -p div-canvas --test chromium_traces -- --nocapture
 
 ```text
 27 traces, 54 canvases, 108 observations checked against Chromium (windows)
-arcs-closed-full.dashed: 171 of 1600 pixels differ ...: known gap
-arcs-closed-full.stroke: 180 of 1600 pixels differ ...: known gap
 test result: ok. 1 passed
 ```
 
-So 52 canvases are exact byte for byte, and all 108 observations are
-exact.
+So all 54 canvases are exact byte for byte, and all 108 observations are
+exact. `KNOWN_GAPS` in the test is empty.
+
+**Closed arcs.** The first version of this branch drew a closed arc on the
+`drawArc` fast path as Skia's `drawArc` builds its path, then closed it,
+because cc's playback was not yet in the approved sources. The two
+canvases of `arcs-closed-full` (a full turn with a start other than 0,
+stroked and dashed) differed in 180 and 171 of 1,600 pixels and were kept
+as known gaps. With `cc/paint/paint_op.cc` approved, `DrawArcImpl` was
+ported: a closed arc whose sweep is nearly ±360° is drawn with `drawOval`,
+whose contour starts at a different point, and any other closed arc as
+`arcTo` then `close`. Both canvases now match.
 
 **Linux.** CI's `rust-parity` job now runs the `div-canvas` tests, and
 `windows-msvc` runs them too. The Linux run of the Rust comparison happens
@@ -117,29 +127,14 @@ The comparison found and fixed three problems in the comparison itself:
 
 ## Known gaps
 
-1. **Closed full-turn arcs on the `drawArc` fast path.** This is
-   `arc(...)` on an empty path with radius ≥ 1, a sweep of a full turn and
-   a start other than 0, followed by `closePath()`.
-   - Blink records a cc `DrawArcOp` with `setArcClosed(true)`. Its
-     playback is in `cc/paint/paint_op.cc`, which was not in the approved
-     sources.
-   - `div-canvas` draws it the way Skia's `drawArc` builds the arc path, then
-     closes it. That matches Chromium for the closed arcs in `arcs` (a
-     start of 0, and partial sweeps). It does not match for the two
-     canvases of `arcs-closed-full`: 180 and 171 of 1,600 pixels differ.
-   - The test keeps both canvases in `KNOWN_GAPS`, reports them, and fails
-     once they match.
-   - Owner: this lane. The fix needs `cc/paint/paint_op.cc` and
-     `paint_flags.{h,cc}`, which were requested from the parent session on
-     15 November.
-2. **Colour syntax.** `hsl()`/`hsla()` and the space-separated `rgb()` syntax
+1. **Colour syntax.** `hsl()`/`hsla()` and the space-separated `rgb()` syntax
    are not parsed by `div-style`, for CSS as well as for canvas. The traces
    do not use them.
    - Owner: engine track, `div-style` colour parsing
      (`crates/div-style/src/property.rs`, `legacy_srgb_color` and
      `color_function`).
    - Canvas reaches it through the new `div_style::parse_css_color`.
-3. **Not in this step.** These are later steps of RFC 0008's migration:
+2. **Not in this step.** These are later steps of RFC 0008's migration:
    - gradients, patterns, text, images, shadows, filters and `Path2D`;
    - `getImageData` of a sub-rectangle, and `putImageData`;
    - the `alpha: false` context.
