@@ -16,6 +16,10 @@ pub use crate::element::{Element, WeakElement};
 pub use crate::events::*;
 pub use crate::keyboard::Key;
 pub use crate::renderer::{DynChild, For, Show};
+pub use crate::reported_error::ReportedError;
+pub use crate::resize_observer::{
+    ResizeObserver, ResizeObserverBox, ResizeObserverEntry, ResizeObserverSize,
+};
 pub use crate::scroll_button::{
     ScrollButton, ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState,
     ScrollSnapStrictness,

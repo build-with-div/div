@@ -105,6 +105,8 @@ pub(crate) struct DocumentInner {
     modal_generation: Cell<u64>,
     animation_events: RefCell<Vec<AnimationEvent>>,
     pub(crate) animation_frames: RefCell<crate::animation_frame::AnimationFrameCallbacks>,
+    pub(crate) resize_observers: RefCell<crate::resize_observer::ResizeObservers>,
+    pub(crate) error_handlers: RefCell<crate::reported_error::ErrorHandlers>,
     active_clicks: RefCell<HashSet<NodeHandle>>,
     selection_tasks: selection_tasks::SelectionTasks,
     transaction_depth: Cell<usize>,
@@ -204,6 +206,8 @@ impl Document {
                 modal_generation: Cell::new(0),
                 animation_events: RefCell::new(Vec::new()),
                 animation_frames: RefCell::default(),
+                resize_observers: RefCell::default(),
+                error_handlers: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
@@ -237,6 +241,8 @@ impl Document {
                 modal_generation: Cell::new(0),
                 animation_events: RefCell::new(Vec::new()),
                 animation_frames: RefCell::default(),
+                resize_observers: RefCell::default(),
+                error_handlers: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
@@ -1005,12 +1011,15 @@ impl Document {
     /// "update the rendering": the pending scroll and selection events, the
     /// animations and their events, the animation frame callbacks
     /// ([`request_animation_frame`](Self::request_animation_frame)), then
-    /// style and layout. Painting follows, by the caller.
+    /// style and layout, repeated with the resize observations
+    /// ([`ResizeObserver`](crate::ResizeObserver)) while they change sizes.
+    /// Painting follows, by the caller.
     pub fn begin_frame(&self, time_ms: f64) -> Result<(), Error> {
         self.dispatch_pending_events()?;
         self.advance_time(time_ms)?;
         self.run_animation_frame_callbacks(time_ms);
-        self.update_all()
+        self.update_all()?;
+        self.broadcast_resize_observations()
     }
 
     pub(crate) fn dispatch_animation_events(&self) -> Result<(), Error> {

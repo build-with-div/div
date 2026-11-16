@@ -19,7 +19,7 @@ fn union(a: PhysicalRect, b: PhysicalRect) -> PhysicalRect {
     PhysicalRect::from_xywh(left, top, right - left, bottom - top)
 }
 
-fn collect_boxes<'a>(fragment: &'a Fragment, node: NodeId, out: &mut Vec<&'a Fragment>) {
+pub(crate) fn collect_boxes<'a>(fragment: &'a Fragment, node: NodeId, out: &mut Vec<&'a Fragment>) {
     // A non-atomic inline's per-line boxes are LayoutInline geometry. They
     // remain visible to client_rects, but are not CSSOM LayoutBox dimensions.
     if fragment.node_id == node && fragment.owns_element_box() && !fragment.is_inline_box_fragment {
@@ -38,7 +38,10 @@ fn block_size(size: PhysicalSize, horizontal: bool) -> LayoutUnit {
     }
 }
 
-fn source_parts<'a>(boxes: &[&'a Fragment], horizontal: bool) -> Vec<(&'a Fragment, LayoutUnit)> {
+pub(crate) fn source_parts<'a>(
+    boxes: &[&'a Fragment],
+    horizontal: bool,
+) -> Vec<(&'a Fragment, LayoutUnit)> {
     let mut parts = Vec::new();
     let mut consumed = LayoutUnit::zero();
     for &fragment in boxes {
@@ -60,7 +63,7 @@ fn source_parts<'a>(boxes: &[&'a Fragment], horizontal: bool) -> Vec<(&'a Fragme
     parts
 }
 
-fn stitched_size(parts: &[(&Fragment, LayoutUnit)], mode: WritingMode) -> PhysicalSize {
+pub(crate) fn stitched_size(parts: &[(&Fragment, LayoutUnit)], mode: WritingMode) -> PhysicalSize {
     let first = parts[0].0.border_box_rect().size;
     if parts.len() == 1 {
         return first;

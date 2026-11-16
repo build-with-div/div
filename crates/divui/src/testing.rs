@@ -45,6 +45,7 @@ pub const UPDATE_SNAPSHOTS: &str = "DIV_UPDATE_SNAPSHOTS";
 /// A headless app under test.
 pub struct TestApp {
     app: HeadlessApp,
+    reported_errors: std::rc::Rc<std::cell::RefCell<Vec<crate::ReportedError>>>,
 }
 
 impl TestApp {
@@ -52,8 +53,14 @@ impl TestApp {
     pub fn new(size: LogicalSize) -> Self {
         let viewport = ViewportMetrics::from_logical_size(size.width, size.height, 1.0)
             .expect("a positive, finite test viewport");
+        let app = HeadlessApp::new(viewport).expect("a headless document");
+        let reported_errors = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let collected = reported_errors.clone();
+        app.document()
+            .on_error(move |error| collected.borrow_mut().push(error.clone()));
         Self {
-            app: HeadlessApp::new(viewport).expect("a headless document"),
+            app,
+            reported_errors,
         }
     }
 
@@ -162,7 +169,8 @@ impl TestApp {
     /// Run one frame `delta_ms` milliseconds after the last: animations,
     /// the callbacks of
     /// [`Document::request_animation_frame`](crate::Document::request_animation_frame),
-    /// style and layout. Then run the UI tasks the frame made ready. The app
+    /// style and layout, and the [`ResizeObserver`](crate::ResizeObserver)
+    /// callbacks. Then run the UI tasks the frame made ready. The app
     /// starts at time 0.
     pub fn advance_frame(&mut self, delta_ms: f64) {
         self.app.advance_frame(delta_ms).expect("the frame runs");
@@ -174,6 +182,13 @@ impl TestApp {
         for _ in 0..count {
             self.advance_frame(delta_ms);
         }
+    }
+
+    /// The errors the document reported ([`Document::on_error`](crate::Document::on_error))
+    /// since the last call, oldest first. A test app collects them instead
+    /// of printing them.
+    pub fn take_reported_errors(&mut self) -> Vec<crate::ReportedError> {
+        std::mem::take(&mut *self.reported_errors.borrow_mut())
     }
 
     /// The current frame as PNG bytes, at the time of the last frame

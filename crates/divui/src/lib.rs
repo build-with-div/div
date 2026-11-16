@@ -50,6 +50,8 @@
 //! | [`Element`] | A node in the retained document tree |
 //! | [`TextNode`] | Native text data that can be created, edited, attached, and moved |
 //! | [`AnimationFrameHandle`] | A callback from [`Document::request_animation_frame`], run at the next frame |
+//! | [`ResizeObserver`] | Calls back when observed elements' boxes change size |
+//! | [`ReportedError`] | An error a document reports to [`Document::on_error`] |
 //!
 //! ## View system
 //!
@@ -77,6 +79,12 @@ pub mod signal;
 
 mod animation_frame;
 pub use animation_frame::AnimationFrameHandle;
+mod reported_error;
+pub use reported_error::ReportedError;
+mod resize_observer;
+pub use resize_observer::{
+    ResizeObserver, ResizeObserverBox, ResizeObserverEntry, ResizeObserverSize,
+};
 mod animation_timeline;
 pub use animation_timeline::AnimationTimelineBinding;
 
