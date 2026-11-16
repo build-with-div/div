@@ -20,6 +20,7 @@ unicode-segmentation = "1.10"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+serde_json = { workspace = true }
 
 [[bench]]
 name = "layout_benchmarks"

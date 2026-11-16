@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "docs/progress/evidence/grid-placement-cursor-v1/chromium-windows.json"
+OUTPUT = ROOT / "tests/fidelity/fixtures/grid-placement-cursor-v1/chromium-windows.json"
 VIEWPORT = 400
 
 # (name, grid style, [(item id, item style)]). Keep in step with the native
@@ -94,7 +94,7 @@ def main() -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import windows_chrome
 
-    with tempfile.TemporaryDirectory(prefix="openui-grid-placement-oracle-") as directory:
+    with tempfile.TemporaryDirectory(prefix="div-grid-placement-oracle-") as directory:
         html = Path(directory) / "grid.html"
         html.write_text(page(), encoding="utf-8")
         with windows_chrome.WindowsChrome(

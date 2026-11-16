@@ -6,7 +6,7 @@
 //!
 //! Expected boxes are pinned Chromium 147's, recorded by
 //! `tools/qualification/capture_grid_placement_oracle.py` in
-//! `docs/progress/evidence/grid-placement-cursor-v1/chromium-windows.json`.
+//! `tests/fidelity/fixtures/grid-placement-cursor-v1/chromium-windows.json`.
 
 use div_dom::{Document, ElementTag, NodeId};
 use div_geometry::{LayoutUnit, Length};
@@ -15,6 +15,34 @@ use div_style::{
     Display, GridAutoFlow, GridAutoFlowDirection, GridLine, GridPlacement, GridTrackBreadth,
     GridTrackComponent, GridTrackList, GridTrackSize,
 };
+use serde_json::Value;
+
+const ORACLE: &str =
+    include_str!("../../../tests/fidelity/fixtures/grid-placement-cursor-v1/chromium-windows.json");
+
+/// Chromium's (x, y, width) for each item of an oracle case, in source order.
+fn chromium(case: &str) -> Vec<(i32, i32, i32)> {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let case = oracle["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["case"] == case)
+        .unwrap_or_else(|| panic!("no oracle case `{case}`"));
+    case["boxes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| {
+            let px = |key: &str| {
+                let value = item[key].as_f64().unwrap();
+                assert_eq!(value.fract(), 0.0, "{key} is a whole pixel");
+                value as i32
+            };
+            (px("x"), px("y"), px("width"))
+        })
+        .collect()
+}
 
 fn lu(value: i32) -> LayoutUnit {
     LayoutUnit::from_i32(value)
@@ -138,7 +166,7 @@ fn a_definite_item_does_not_move_the_auto_placement_cursor() {
             },
         ],
     );
-    assert_eq!(boxes, vec![(0, 0, 242), (0, 24, 242), (250, 0, 50)]);
+    assert_eq!(boxes, chromium("card-header"));
 }
 
 /// Row auto-flow: an item with a definite column behind the cursor starts
@@ -162,7 +190,7 @@ fn a_definite_column_behind_the_cursor_moves_to_the_next_row() {
             },
         ],
     );
-    assert_eq!(boxes, vec![(50, 0, 50), (0, 20, 50)]);
+    assert_eq!(boxes, chromium("definite-column-behind-cursor"));
 }
 
 /// Sparse packing: an item locked to a row starts after the last item
@@ -193,7 +221,7 @@ fn row_locked_items_pack_after_the_previous_one_in_their_row() {
             },
         ],
     );
-    assert_eq!(boxes, vec![(50, 0, 50), (100, 0, 100), (200, 0, 50)]);
+    assert_eq!(boxes, chromium("row-locked-sparse-cursor"));
 }
 
 /// Column auto-flow, the transpose of the first case.
@@ -219,5 +247,5 @@ fn column_flow_auto_items_start_from_the_first_column() {
             item(20.0),
         ],
     );
-    assert_eq!(boxes, vec![(0, 20, 50), (0, 0, 50), (50, 0, 50)]);
+    assert_eq!(boxes, chromium("column-flow-definite-first"));
 }
