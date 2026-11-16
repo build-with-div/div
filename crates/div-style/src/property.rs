@@ -850,6 +850,14 @@ fn color(input: &str) -> Option<Color> {
     legacy_srgb_color(input).or_else(|| crate::color_function::color_function(input))
 }
 
+/// Parses a CSS `<color>` string as the `color` property does: hex, `rgb()`,
+/// named colours and the colour functions [`crate::Color`] resolves. Keywords
+/// that need an element (`currentcolor`, system colours) return `None`. Used
+/// by `div-canvas` for `fillStyle` and `strokeStyle`.
+pub fn parse_css_color(input: &str) -> Option<Color> {
+    color(input)
+}
+
 /// Hex, `rgb()`/`rgba()` and named colors: Blink's legacy sRGB space, whose
 /// channels are stored as 8-bit values.
 pub(crate) fn legacy_srgb_color(input: &str) -> Option<Color> {

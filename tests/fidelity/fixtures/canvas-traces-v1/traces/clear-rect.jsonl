@@ -1,0 +1,8 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"fillStyle","value":"#000"}
+{"canvas":"c","call":"fillRect","args":[0,0,80,60]}
+{"canvas":"c","call":"clearRect","args":[5.5,5.5,20,20]}
+{"canvas":"c","call":"clearRect","args":[40,40,-10.25,-7.75]}
+{"canvas":"c","call":"translate","args":[50,10]}
+{"canvas":"c","call":"rotate","args":[0.3]}
+{"canvas":"c","call":"clearRect","args":[0,0,15,15]}

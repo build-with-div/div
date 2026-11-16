@@ -1,0 +1,15 @@
+{"canvas":"stroke","width":40,"height":40}
+{"canvas":"stroke","set":"strokeStyle","value":"#702"}
+{"canvas":"stroke","set":"lineWidth","value":3}
+{"canvas":"stroke","call":"beginPath","args":[]}
+{"canvas":"stroke","call":"arc","args":[20,20,12,-1,7.5]}
+{"canvas":"stroke","call":"closePath","args":[]}
+{"canvas":"stroke","call":"stroke","args":[]}
+{"canvas":"dashed","width":40,"height":40}
+{"canvas":"dashed","set":"strokeStyle","value":"#702"}
+{"canvas":"dashed","set":"lineWidth","value":3}
+{"canvas":"dashed","call":"setLineDash","args":[[3,2]]}
+{"canvas":"dashed","call":"beginPath","args":[]}
+{"canvas":"dashed","call":"arc","args":[20,20,7,0.5,9]}
+{"canvas":"dashed","call":"closePath","args":[]}
+{"canvas":"dashed","call":"stroke","args":[]}

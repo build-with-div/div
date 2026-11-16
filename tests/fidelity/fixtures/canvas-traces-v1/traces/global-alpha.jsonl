@@ -1,0 +1,43 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"globalAlpha","value":1}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[0,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[2,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0.75}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[11,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[13,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0.5}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[22,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[24,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0.3333}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[33,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[35,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0.1}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[44,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[46,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0.004}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[55,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[57,35,6,18]}
+{"canvas":"c","set":"globalAlpha","value":0}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 90, 200, 0.8)"}
+{"canvas":"c","call":"fillRect","args":[66,5,10,25]}
+{"canvas":"c","set":"strokeStyle","value":"#c00"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"strokeRect","args":[68,35,6,18]}

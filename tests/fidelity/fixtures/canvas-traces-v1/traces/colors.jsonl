@@ -1,0 +1,41 @@
+{"canvas":"c","width":90,"height":40}
+{"canvas":"c","set":"fillStyle","value":"red"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[0,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"#0f0"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[15,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"#12345678"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[30,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"rgb(10, 20, 30)"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[45,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"rgba(255, 0, 0, 0.3)"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[60,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"rgb(100%, 50%, 0%)"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[75,0,14,19]}
+{"canvas":"c","set":"fillStyle","value":"  blue  "}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[0,20,14,19]}
+{"canvas":"c","set":"fillStyle","value":"transparent"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[15,20,14,19]}
+{"canvas":"c","set":"fillStyle","value":"currentcolor"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[30,20,14,19]}
+{"canvas":"c","set":"fillStyle","value":"notacolor"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[45,20,14,19]}
+{"canvas":"c","set":"fillStyle","value":"rgba(0, 0, 255, 0.123456)"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[60,20,14,19]}
+{"canvas":"c","set":"fillStyle","value":"RebeccaPurple"}
+{"canvas":"c","get":"fillStyle"}
+{"canvas":"c","call":"fillRect","args":[75,20,14,19]}
+{"canvas":"c","set":"strokeStyle","value":"rgba(1, 2, 3, 0.5)"}
+{"canvas":"c","get":"strokeStyle"}
+{"canvas":"c","set":"strokeStyle","value":"#abcd"}
+{"canvas":"c","get":"strokeStyle"}

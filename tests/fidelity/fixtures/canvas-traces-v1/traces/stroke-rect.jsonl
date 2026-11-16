@@ -1,0 +1,11 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"strokeStyle","value":"#a03000"}
+{"canvas":"c","call":"strokeRect","args":[5.5,5.5,20,15]}
+{"canvas":"c","set":"lineWidth","value":4}
+{"canvas":"c","call":"strokeRect","args":[35,5,30,12]}
+{"canvas":"c","call":"strokeRect","args":[10,40,30,0]}
+{"canvas":"c","call":"strokeRect","args":[50,30,0,20]}
+{"canvas":"c","call":"strokeRect","args":[60,50,0,0]}
+{"canvas":"c","set":"lineJoin","value":"round"}
+{"canvas":"c","set":"lineWidth","value":6}
+{"canvas":"c","call":"strokeRect","args":[70,35,-12,18]}

@@ -1,0 +1,14 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"fillStyle","value":"#159"}
+{"canvas":"c","call":"fillRect","args":[-1e+40,-1e+40,2e+40,2e+40]}
+{"canvas":"c","set":"fillStyle","value":"#951"}
+{"canvas":"c","call":"beginPath","args":[]}
+{"canvas":"c","call":"moveTo","args":[1e+40,1]}
+{"canvas":"c","call":"lineTo","args":[10,10]}
+{"canvas":"c","call":"lineTo","args":[70,20]}
+{"canvas":"c","call":"lineTo","args":[1e+39,1e+39]}
+{"canvas":"c","call":"stroke","args":[]}
+{"canvas":"c","call":"beginPath","args":[]}
+{"canvas":"c","call":"rect","args":[5,30,1e+300,10]}
+{"canvas":"c","call":"fill","args":[]}
+{"canvas":"c","call":"fillRect","args":[1,50,3.4028235e+38,5]}

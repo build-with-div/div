@@ -1,0 +1,15 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"fillStyle","value":"#933"}
+{"canvas":"c","call":"scale","args":[0,2]}
+{"canvas":"c","call":"moveTo","args":[10,10]}
+{"canvas":"c","call":"lineTo","args":[40,10]}
+{"canvas":"c","call":"lineTo","args":[40,40]}
+{"canvas":"c","call":"rect","args":[1,1,10,10]}
+{"canvas":"c","call":"arc","args":[20,20,10,0,3]}
+{"canvas":"c","call":"fill","args":[]}
+{"canvas":"c","call":"fillRect","args":[0,0,80,60]}
+{"canvas":"c","call":"strokeRect","args":[1,1,5,5]}
+{"canvas":"c","call":"isPointInPath","args":[20,10]}
+{"canvas":"c","call":"resetTransform","args":[]}
+{"canvas":"c","call":"fill","args":[]}
+{"canvas":"c","call":"stroke","args":[]}

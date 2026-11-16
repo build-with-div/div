@@ -1,0 +1,47 @@
+//! `CanvasRenderingContext2D` for Div (RFC 0008).
+//!
+//! The crate is a port of Blink's canvas2d at Chromium 147.0.7727.50
+//! (`third_party/blink/renderer/modules/canvas/canvas2d`, BSD licences; the
+//! notices are in `THIRD_PARTY.md`, and each module names its source files).
+//! It draws with Skia onto its own raster backing store and needs no
+//! document, so it is tested on its own: each test replays a call trace
+//! (see [`trace`]) and compares the bitmap and every read with Chromium's,
+//! exactly.
+//!
+//! This first step covers core state: `save`/`restore`, transforms,
+//! `globalAlpha`, composite modes, colour fill and stroke styles, line styles
+//! and dashes, paths (lines, curves, `arcTo`, `arc`, `ellipse`, `rect`,
+//! `roundRect`), `fill`, `stroke`, `clip`, the rectangle calls and the
+//! point-in-path tests. Gradients, patterns, text, images, shadows and
+//! filters come in later steps of RFC 0008's migration.
+
+mod affine;
+mod context;
+mod math;
+mod path;
+mod state;
+pub mod trace;
+
+pub use affine::AffineTransform;
+pub use context::{CanvasRenderingContext2D, FillRule};
+pub use path::{CanvasPath, RoundRectRadius};
+pub use state::{LineCap, LineJoin};
+
+/// A `DOMException` or JavaScript error a canvas call throws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CanvasError {
+    /// `IndexSizeError` (a negative radius).
+    IndexSize,
+    /// `RangeError` (`roundRect` radii).
+    Range,
+}
+
+impl CanvasError {
+    /// The error's name as script sees it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::IndexSize => "IndexSizeError",
+            Self::Range => "RangeError",
+        }
+    }
+}

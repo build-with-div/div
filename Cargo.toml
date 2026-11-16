@@ -12,6 +12,7 @@ members = [
     "crates/div-platform",
     "crates/div-ffi",
     "crates/div-text",
+    "crates/div-canvas",
     "crates/divui",
     "crates/div-macros",
     "crates/div-cli",
