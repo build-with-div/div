@@ -46,8 +46,9 @@ impl From<LogicalBoxSize> for ResizeObserverSize {
 /// One target's sizes, delivered to a [`ResizeObserver`]'s callback.
 ///
 /// Every entry carries all three sizes, whichever box was observed, as
-/// Chromium's `ResizeObserverEntry` does. Div does not fragment boxes, so
-/// where the web has arrays there is one size.
+/// Chromium's `ResizeObserverEntry` does. Where the web has arrays there is
+/// one size: Chromium 147 reports one size per entry, stitched across a
+/// box's fragments, and so does Div.
 #[derive(Debug, Clone)]
 pub struct ResizeObserverEntry {
     pub target: Element,
@@ -167,6 +168,12 @@ impl ResizeObserver {
     /// Observe `target`'s `observed_box`. Observing a target again with
     /// another box replaces its observation, which is then delivered afresh;
     /// with the same box it does nothing.
+    ///
+    /// The document's root ([`Document::body`]) is both the viewport and the
+    /// root element, and is observed as the browser's `<html>` is: the
+    /// viewport's scrollbars are outside its box. Its block size is the
+    /// viewport's, though, where `<html>`'s `auto` height is its content's
+    /// (RFC 0007, section 3).
     pub fn observe(&self, target: &Element, observed_box: ResizeObserverBox) {
         let mut observations = self.inner.observations.borrow_mut();
         if let Some(index) = observations

@@ -1,0 +1,180 @@
+{
+ "chromium": "147.0.7727.50",
+ "chrome_sha256": "5a261cd9e0fa71f40fa5df4b9841da4f3311f9175d2e5868c27cb510ccd28505",
+ "platform": "windows",
+ "viewport": [
+  200,
+  100
+ ],
+ "html": "margin:0;border:1px solid black;padding:5px;overflow:<case>",
+ "cases": [
+  {
+   "case": "visible",
+   "overflow": "visible",
+   "child_height": 20,
+   "scale": 1.0,
+   "content_rect": [
+    5,
+    5,
+    188,
+    20
+   ],
+   "border_box": {
+    "inline": 200,
+    "block": 32
+   },
+   "content_box": {
+    "inline": 188,
+    "block": 20
+   },
+   "device_pixel_content_box": {
+    "inline": 188,
+    "block": 20
+   },
+   "client": [
+    200,
+    100
+   ]
+  },
+  {
+   "case": "scroll",
+   "overflow": "scroll",
+   "child_height": 20,
+   "scale": 1.0,
+   "content_rect": [
+    5,
+    5,
+    173,
+    20
+   ],
+   "border_box": {
+    "inline": 185,
+    "block": 32
+   },
+   "content_box": {
+    "inline": 173,
+    "block": 20
+   },
+   "device_pixel_content_box": {
+    "inline": 173,
+    "block": 20
+   },
+   "client": [
+    185,
+    85
+   ]
+  },
+  {
+   "case": "auto-overflowing",
+   "overflow": "auto",
+   "child_height": 500,
+   "scale": 1.0,
+   "content_rect": [
+    5,
+    5,
+    173,
+    500
+   ],
+   "border_box": {
+    "inline": 185,
+    "block": 512
+   },
+   "content_box": {
+    "inline": 173,
+    "block": 500
+   },
+   "device_pixel_content_box": {
+    "inline": 173,
+    "block": 500
+   },
+   "client": [
+    185,
+    100
+   ]
+  },
+  {
+   "case": "visible",
+   "overflow": "visible",
+   "child_height": 20,
+   "scale": 1.25,
+   "content_rect": [
+    5,
+    5,
+    188.390625,
+    20
+   ],
+   "border_box": {
+    "inline": 200,
+    "block": 31.59375
+   },
+   "content_box": {
+    "inline": 188.390625,
+    "block": 20
+   },
+   "device_pixel_content_box": {
+    "inline": 236,
+    "block": 25
+   },
+   "client": [
+    200,
+    100
+   ]
+  },
+  {
+   "case": "scroll",
+   "overflow": "scroll",
+   "child_height": 20,
+   "scale": 1.25,
+   "content_rect": [
+    5,
+    5,
+    173.1875,
+    20
+   ],
+   "border_box": {
+    "inline": 184.796875,
+    "block": 31.59375
+   },
+   "content_box": {
+    "inline": 173.1875,
+    "block": 20
+   },
+   "device_pixel_content_box": {
+    "inline": 217,
+    "block": 25
+   },
+   "client": [
+    185,
+    85
+   ]
+  },
+  {
+   "case": "auto-overflowing",
+   "overflow": "auto",
+   "child_height": 500,
+   "scale": 1.25,
+   "content_rect": [
+    5,
+    5,
+    173.1875,
+    500
+   ],
+   "border_box": {
+    "inline": 184.796875,
+    "block": 511.59375
+   },
+   "content_box": {
+    "inline": 173.1875,
+    "block": 500
+   },
+   "device_pixel_content_box": {
+    "inline": 217,
+    "block": 625
+   },
+   "client": [
+    185,
+    100
+   ]
+  }
+ ]
+}

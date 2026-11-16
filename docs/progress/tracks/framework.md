@@ -88,6 +88,58 @@ element identity) merges, because the samples' icons are written in `view!`.
 
 ## Log
 
+### 16 November 2026: observing the native root leaves the viewport scrollbars out
+
+Problem (from the 0.11 engine review on #52): observing a native
+document's root (`Document::body`) reported the viewport's size, with the
+viewport's scrollbars inside its content box. Div lays out the root's
+content inside them: at a 200 × 100 viewport with `overflow: scroll`, a 1px
+border and 5px padding, `clientWidth` is 185 and an auto-width child is 173
+wide, but the entry said 200 and 188.
+
+Change: `Engine::resize_observation`
+(`crates/div-engine/src/resize_observation.rs`, reviewed by the engine
+track) observes the native root as the browser's
+`<html>`: its border box is the root scroll area's client rect. RFC 0007
+section 3 and `ResizeObserver::observe` say so. The same PR fixes review
+notes 3 (RFC wording: each entry has one size because Chromium 147 reports
+one stitched size) and 4 (a blank line). The engine track takes note 1, a
+broader Chromium oracle for device-pixel snapping.
+
+Oracle: `tools/qualification/capture_resize_observer_root_oracle.py`
+captures pinned Windows Chrome-for-Testing 147.0.7727.50 observing `<html>`
+styled as the test styles the root, with `overflow` `visible`, `scroll` and
+`auto` (500px of content), at 1x and 1.25x, into
+`tests/fidelity/fixtures/resize-observer-root-v1/chromium-windows.json`.
+Each scale launches Chrome with `--force-device-scale-factor`: with CDP
+emulation alone Chrome 147 laid out at 1x scale at 1.25x
+(`devicePixelContentBoxSize` 173 rather than 217). This is the real-zoom
+oracle of RFC 0010 (#55).
+
+Result: at 1x the inline border, content and device-pixel sizes and the
+content rect's origin match Chromium exactly (200, 188 and 188; 185, 173
+and 173 with a scrollbar). Two named gaps remain, pinned with their numbers
+in `the_native_root_matches_chromium_for_the_root_element`:
+
+- `root-block-size`: the root's block size is the viewport's, less a
+  horizontal scrollbar. Its border box is 100, 85 and 100 where `<html>`'s
+  `auto` height gives 32, 32 and 512.
+- `device-scale-edges`: at 1.25x Chromium lays out at device scale, so a
+  1px border takes 0.8px and the scrollbar 15.2px. The inline content box
+  is 188.390625 and 173.1875 (236 and 217 device pixels) against Div's 188
+  and 173 (235 and 216). This is engine-wide.
+
+Verification (Windows, MSVC, this branch on main `82d27bec`):
+`cargo test --locked -p div-engine --lib resize_observation` passes 7 tests
+and `cargo test --locked -p divui --features "windows testing" --test
+resize_observer` passes 11. With the fix disabled,
+`the_native_root_leaves_the_viewport_scrollbars_out` and
+`the_native_root_matches_chromium_for_the_root_element` fail (`scroll` at
+1x reports 200, 100, 188, 88, 188 and 88 instead of 185, 85, 173, 73, 173
+and 73). A second capture reproduces the fixture byte for byte. The full
+framework test set, the example builds, `cargo fmt --all --check` and the
+regenerated style inventory (unchanged) pass.
+
 ### 16 November 2026: dropping a `TextNode` no longer removes it
 
 Problem (reported by the fidelity lane): a text node made with
