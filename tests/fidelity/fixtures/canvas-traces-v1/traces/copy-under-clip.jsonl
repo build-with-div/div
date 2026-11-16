@@ -1,0 +1,15 @@
+{"canvas":"c","width":80,"height":60}
+{"canvas":"c","set":"fillStyle","value":"#888"}
+{"canvas":"c","call":"fillRect","args":[0,0,80,60]}
+{"canvas":"c","call":"beginPath","args":[]}
+{"canvas":"c","call":"rect","args":[10,10,40,30]}
+{"canvas":"c","call":"clip","args":[]}
+{"canvas":"c","set":"globalCompositeOperation","value":"copy"}
+{"canvas":"c","set":"fillStyle","value":"rgba(255,0,0,0.5)"}
+{"canvas":"c","call":"fillRect","args":[20,20,10,10]}
+{"canvas":"c","set":"strokeStyle","value":"#00f"}
+{"canvas":"c","set":"lineWidth","value":3}
+{"canvas":"c","call":"beginPath","args":[]}
+{"canvas":"c","call":"moveTo","args":[0,0]}
+{"canvas":"c","call":"lineTo","args":[80,60]}
+{"canvas":"c","call":"stroke","args":[]}

@@ -108,6 +108,7 @@ jobs:
           test --locked --no-fail-fast
           --package div-style
           --package div-text
+          --package div-canvas
           --package div-layout
           --package div-paint
           --package div-compositor
@@ -314,6 +315,7 @@ jobs:
           $SKIA_CARGO test --locked --no-fail-fast
           --package div-style
           --package div-text
+          --package div-canvas
           --package div-layout
           --package div-paint
           --package div-compositor
