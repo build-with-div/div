@@ -1,0 +1,109 @@
+# Corpus fields where div-svg differs from Chromium 147, checked by
+# crates/div-svg/tests/geometry_corpus.rs. One `<case> <field>` per line,
+# grouped under the cause. A listed field that becomes exact fails the test
+# until it is removed here. Every other field of these cases is exact.
+
+# 1. Length along `<path>` data (getTotalLength, getPointAtLength).
+# Owner: div-svg. Chromium answers these for `path` elements by traversing
+# the path data itself, not the drawn Skia path: its lengths are those of
+# arcs as cubic curves of at most 90 degrees measured almost exactly
+# (arc/quarter 125.68138885498047; one 90-degree cubic is 125.681336 long,
+# the circle arc 125.663706), its curve lengths are near-exact (path/cubic
+# 240.90805 against 240.908005), and its points on straight segments can
+# differ from the segment by one float ulp (path/hv). The drawn path is
+# different: its bounding boxes and fill and stroke hit grids match Skia's
+# conic arcs exactly in every case. Shapes (rect, circle, ellipse, line,
+# polyline, polygon) measure the Skia path and match exactly. div-svg
+# measures the Skia path for `path` too; the traversal algorithm is not
+# recoverable bit for bit from these observations alone.
+path/implicit-lineto points
+path/implicit-lineto-rel points
+path/hv points
+path/hv-rel points
+path/cubic total_length
+path/cubic points
+path/cubic-rel total_length
+path/cubic-rel points
+path/smooth-cubic total_length
+path/smooth-cubic points
+path/smooth-cubic-rel total_length
+path/smooth-cubic-rel points
+path/smooth-cubic-no-previous total_length
+path/smooth-cubic-no-previous points
+path/quad total_length
+path/quad points
+path/quad-rel total_length
+path/quad-rel points
+path/smooth-quad total_length
+path/smooth-quad points
+path/smooth-quad-rel total_length
+path/smooth-quad-rel points
+path/smooth-quad-no-previous points
+path/close-then-line points
+path/close-then-move points
+path/two-closes points
+path/no-separators points
+path/exponents points
+path/leading-dot points
+arc/flags-00 total_length
+arc/flags-00 points
+arc/flags-01 total_length
+arc/flags-01 points
+arc/flags-10 total_length
+arc/flags-10 points
+arc/flags-11 total_length
+arc/flags-11 points
+arc/rotation-0 total_length
+arc/rotation-0 points
+arc/rotation-30 total_length
+arc/rotation-30 points
+arc/rotation-45 total_length
+arc/rotation-45 points
+arc/rotation-90 total_length
+arc/rotation-90 points
+arc/rotation-135 total_length
+arc/rotation-135 points
+arc/rotation--60 total_length
+arc/rotation--60 points
+arc/rotation-400 total_length
+arc/rotation-400 points
+arc/radii-too-small total_length
+arc/radii-too-small points
+arc/radii-negative total_length
+arc/radii-negative points
+arc/flags-packed total_length
+arc/flags-packed points
+arc/flags-packed-coords total_length
+arc/flags-packed-coords points
+arc/near-full total_length
+arc/near-full points
+arc/half total_length
+arc/half points
+arc/quarter total_length
+arc/quarter points
+arc/tiny-span total_length
+arc/tiny-span points
+arc/rel-chain total_length
+arc/rel-chain points
+arc/pie-slice total_length
+arc/pie-slice points
+arc/donut total_length
+arc/donut points
+
+# 2. viewBox translation under `slice` alignment, one double ulp.
+# Owner: div-svg. Chromium reports e = -20.000000000000004 and
+# -40.00000000000001 where (w - vw*s)/2 gives -20 and -40 exactly; no
+# operation order tried reproduces it. Below single precision, so painting
+# (float matrices) cannot differ.
+viewbox/xMidYMin-slice ctm
+viewbox/xMaxYMin-slice ctm
+viewbox/xMidYMid-slice ctm
+viewbox/xMaxYMid-slice ctm
+viewbox/xMidYMax-slice ctm
+viewbox/xMaxYMax-slice ctm
+
+# 3. Size of an outer `svg` with a viewBox and no width or height.
+# Owner: engine (E3, replaced sizing). The viewport size is layout's input
+# to div-svg; Chromium sizes this one 100x50 in the corpus's
+# shrink-to-fit slot, and the test assumes the 300x150 default.
+viewbox/no-size ctm

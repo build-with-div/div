@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/div-geometry",
+    "crates/div-svg",
     "crates/div-style",
     "crates/div-style-derive",
     "crates/div-dom",

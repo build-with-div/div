@@ -1,0 +1,17 @@
+[package]
+name = "div-svg"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = "SVG geometry for Div: path data, basic shapes, lengths, transforms and viewports, as Chromium 147 computes them"
+
+[dependencies]
+skia-safe = "0.94"
+
+[dev-dependencies]
+serde_json = { workspace = true, features = ["float_roundtrip"] }
