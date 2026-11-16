@@ -418,6 +418,14 @@ class RendererMatrixTests(unittest.TestCase):
             "registered-real-font", True, False,
         )
         self.assertEqual(first, second)
+        # RFC 0010: the oracle names its device-scale method.
+        self.assertEqual(first["schema_version"], 2)
+        self.assertEqual(first["device_scale_method"], "forced")
+        unit = MATRIX.chromium_oracle_identity(
+            base, "fixture", "fixture-hash", MATRIX.Profile("test", 800, 600, 800, 600, 1.0),
+            "registered-real-font", True, False,
+        )
+        self.assertEqual(unit["device_scale_method"], "none")
         self.assertNotIn("source_tree_sha256", first)
         self.assertNotIn("openui_binary_sha256", first)
         self.assertNotIn("raster_backend_identity", first)

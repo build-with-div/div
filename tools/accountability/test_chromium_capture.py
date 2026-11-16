@@ -145,5 +145,40 @@ class CaptureLifecycleTests(unittest.TestCase):
         self.assertLess(events.index("kill"), events.index("profile-cleanup"))
 
 
+class DeviceScaleLaunchTests(unittest.TestCase):
+    """RFC 0010: real zoom at every scale other than 1, nothing emulated at 1."""
+
+    def test_scale_one_is_unchanged(self):
+        flags, override = capture.device_scale_launch(800, 600, 1)
+        self.assertEqual(flags, ["--window-size=800,687"])
+        self.assertEqual(override, {
+            "width": 800, "height": 600, "deviceScaleFactor": 1.0, "mobile": False,
+            "screenWidth": 800, "screenHeight": 600,
+        })
+        self.assertEqual(capture.device_scale_method(1), "none")
+
+    def test_other_scales_force_the_browser_scale(self):
+        for width, height, scale, text in [
+            (1280, 720, 1.25, "1.25"), (1920, 1080, 1.5, "1.5"), (375, 667, 2, "2"),
+            (120, 80, 1.25, "1.25"),
+        ]:
+            flags, override = capture.device_scale_launch(width, height, scale)
+            self.assertEqual(flags[0], f"--force-device-scale-factor={text}")
+            self.assertEqual(
+                flags[1], f"--window-size={max(width, 500) + 16},{max(height, 300) + 160}"
+            )
+            # The override fixes the viewport size only; 0 keeps the forced scale.
+            self.assertEqual(override["deviceScaleFactor"], 0)
+            self.assertEqual((override["width"], override["height"]), (width, height))
+            self.assertEqual(capture.device_scale_method(scale), "forced")
+
+    def test_render_chrome_uses_the_launch(self):
+        source = Path(capture.__file__).read_text(encoding="utf-8")
+        body = source[source.index("def render_chrome("):]
+        self.assertIn("device_scale_launch(", body)
+        self.assertIn('client.command("Emulation.setDeviceMetricsOverride", viewport_override)', body)
+        self.assertNotIn('"deviceScaleFactor": float(device_scale)', body)
+
+
 if __name__ == "__main__":
     unittest.main()
