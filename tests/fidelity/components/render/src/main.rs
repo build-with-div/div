@@ -30,8 +30,8 @@ use div_components::{
     register_fonts, with_theme, Badge, BadgeProps, BadgeVariant, Button, ButtonProps, ButtonSize,
     ButtonVariant, Card, CardAction, CardActionProps, CardContent, CardContentProps,
     CardDescription, CardDescriptionProps, CardFooter, CardFooterProps, CardHeader,
-    CardHeaderProps, CardProps, CardTitle, CardTitleProps, Label, LabelProps, Orientation,
-    Separator, SeparatorProps, Switch, SwitchProps, SwitchSize, Tabs, TabsContent,
+    CardHeaderProps, CardProps, CardTitle, CardTitleProps, Input, InputProps, Label, LabelProps,
+    Orientation, Separator, SeparatorProps, Switch, SwitchProps, SwitchSize, Tabs, TabsContent,
     TabsContentProps, TabsList, TabsListProps, TabsProps, TabsTrigger, TabsTriggerProps, Theme,
 };
 
@@ -76,6 +76,10 @@ const FIXTURES: &[(&str, Fixture, bool)] = &[
     ("switch-disabled-checked", switch_disabled_checked, false),
     ("switch-sm-unchecked", switch_sm_unchecked, false),
     ("switch-sm-checked", switch_sm_checked, false),
+    ("input-placeholder", input_placeholder, true),
+    ("input-value", input_value, true),
+    ("input-disabled", input_disabled, true),
+    ("input-invalid", input_invalid, true),
 ];
 
 /// Fixtures of `traceFixtures` in fixtures.tsx, which `trace` runs.
@@ -85,6 +89,8 @@ const TRACE_FIXTURES: &[(&str, Fixture)] = &[
     ("tabs-manual", tabs_manual),
     ("switch-unchecked", switch_unchecked),
     ("switch-disabled", switch_disabled),
+    ("input-placeholder", input_placeholder),
+    ("input-disabled", input_disabled),
 ];
 
 // `FontSpecimen` in fixtures.tsx: `flex flex-col gap-1 text-sm` and a font
@@ -407,6 +413,43 @@ fn switch_sm_unchecked() -> ViewNode {
 
 fn switch_sm_checked() -> ViewNode {
     switch_example(SwitchSize::Sm, true, false)
+}
+
+// The input fixtures of fixtures.tsx: an email input in a 256px wide column.
+
+fn input_example(
+    placeholder: Option<&'static str>,
+    default_value: Option<&'static str>,
+    disabled: bool,
+    invalid: bool,
+) -> ViewNode {
+    view! {
+        <div style:width="256px">
+            <Input
+                input_type={"email"}
+                placeholder={placeholder}
+                default_value={default_value}
+                disabled={disabled}
+                invalid={invalid}
+            />
+        </div>
+    }
+}
+
+fn input_placeholder() -> ViewNode {
+    input_example(Some("Email"), None, false, false)
+}
+
+fn input_value() -> ViewNode {
+    input_example(None, Some("name@example.com"), false, false)
+}
+
+fn input_disabled() -> ViewNode {
+    input_example(Some("Email"), None, true, false)
+}
+
+fn input_invalid() -> ViewNode {
+    input_example(None, Some("name@example"), false, true)
 }
 
 /// Mounts a fixture's view; `view!` embeds child views through components.
@@ -864,6 +907,47 @@ mod tests {
             assert_eq!(switch["data-state"], "unchecked");
             assert_eq!(switch["data-disabled"], "");
         }
+    }
+
+    #[test]
+    fn a_focused_input_draws_the_focus_ring() {
+        let app = mount_page(
+            "input-placeholder-light",
+            input_placeholder,
+            true,
+            Theme::LIGHT,
+            800.0,
+            600.0,
+            1.0,
+        )
+        .unwrap();
+        let document = app.document();
+        document.update_all().unwrap();
+        let (_, input) = slotted(document).unwrap().remove(0);
+        let ring = |input: &Element| {
+            let style = input.computed_style().unwrap();
+            let border = style.border_top_color;
+            (style.box_shadow.len(), border)
+        };
+        let (layers, resting_border) = ring(&input);
+        assert_eq!(layers, 1, "shadow-xs only");
+
+        perform(document, &serde_json::json!({"press": "Tab"})).unwrap();
+        document.update_all().unwrap();
+        assert!(input
+            .is_same_node(&document.focused_element().unwrap().unwrap())
+            .unwrap());
+        let (layers, focused_border) = ring(&input);
+        assert_eq!(layers, 2, "the 3px ring over shadow-xs");
+        assert_eq!(
+            focused_border,
+            div::typed_style::StyleColor::Resolved(Theme::LIGHT.ring.color())
+        );
+        assert_ne!(focused_border, resting_border);
+
+        input.blur().unwrap();
+        document.update_all().unwrap();
+        assert_eq!(ring(&input), (1, resting_border));
     }
 
     #[test]

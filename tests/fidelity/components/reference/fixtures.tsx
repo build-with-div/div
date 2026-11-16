@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./shadcn/ui/card"
+import { Input } from "./shadcn/ui/input"
 import { Label } from "./shadcn/ui/label"
 import { Separator } from "./shadcn/ui/separator"
 import { Switch } from "./shadcn/ui/switch"
@@ -283,12 +284,41 @@ const switchFixtures: Fixture[] = [
     })),
 ]
 
+// An email input, as in the shadcn/ui docs' demo, in a 256px wide column
+// (`w-full` fills it). At 768px and wider `md:text-sm` sets 14px text.
+const inputStates: [string, string, React.ComponentProps<"input">][] = [
+  ["placeholder", "empty, showing its placeholder", { placeholder: "Email" }],
+  ["value", "holding a value", { defaultValue: "name@example.com" }],
+  [
+    "disabled",
+    "disabled, showing its placeholder (opacity 50%)",
+    { placeholder: "Email", disabled: true },
+  ],
+  [
+    "invalid",
+    "aria-invalid, holding a value (destructive border and ring)",
+    { defaultValue: "name@example", "aria-invalid": true },
+  ],
+]
+
+const inputFixtures: Fixture[] = inputStates.map(([state, description, props]) => ({
+  id: `input-${state}`,
+  component: "input",
+  description: `Email input, ${description}`,
+  render: () => (
+    <div className="w-64">
+      <Input type="email" {...props} />
+    </div>
+  ),
+}))
+
 // Fixtures whose behavior the trace harness compares with Radix running in
 // Chromium. Each gets an interactive page (`trace-<id>.html`) that renders
 // it with React in the browser; manual activation looks the same as
 // automatic, so it has no static page. The traces select the second tab
 // themselves, so `tabs-password` has no trace page; they toggle the switch
-// themselves, so only the unchecked and the disabled switch have one.
+// themselves, so only the unchecked and the disabled switch have one. The
+// empty and the disabled input have one, for focus.
 export const traceFixtures: Fixture[] = [
   ...tabsFixtures.filter((fixture) => fixture.id !== "tabs-password"),
   {
@@ -299,6 +329,9 @@ export const traceFixtures: Fixture[] = [
   },
   ...switchFixtures.filter(
     (fixture) => fixture.id === "switch-unchecked" || fixture.id === "switch-disabled"
+  ),
+  ...inputFixtures.filter(
+    (fixture) => fixture.id === "input-placeholder" || fixture.id === "input-disabled"
   ),
 ]
 
@@ -347,4 +380,5 @@ export const fixtures: Fixture[] = [
   ...labelFixtures,
   ...tabsFixtures,
   ...switchFixtures,
+  ...inputFixtures,
 ]
