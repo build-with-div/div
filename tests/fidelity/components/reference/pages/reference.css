@@ -174,6 +174,9 @@
     container-type: inline-size;
     container-name: card-header;
   }
+  .pointer-events-none {
+    pointer-events: none;
+  }
   .relative {
     position: relative;
   }
@@ -185,6 +188,9 @@
   }
   .row-start-1 {
     grid-row-start: 1;
+  }
+  .block {
+    display: block;
   }
   .flex {
     display: flex;
@@ -413,6 +419,10 @@
     --tw-shadow: 0 1px 2px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.05));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .ring-0 {
+    --tw-ring-shadow: var(--tw-ring-inset, ) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .outline {
     outline-style: var(--tw-outline-style);
     outline-width: 1px;
@@ -424,6 +434,11 @@
   }
   .transition-all {
     transition-property: all;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-transform {
+    transition-property: transform, translate, scale, rotate;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
@@ -455,6 +470,14 @@
   }
   :is(:where(.group\/tabs)[data-orientation="vertical"] .group-data-\[orientation\=vertical\]\/tabs\:justify-start) {
     justify-content: flex-start;
+  }
+  :is(:where(.group\/switch)[data-size="default"] .group-data-\[size\=default\]\/switch\:size-4) {
+    width: calc(var(--spacing) * 4);
+    height: calc(var(--spacing) * 4);
+  }
+  :is(:where(.group\/switch)[data-size="sm"] .group-data-\[size\=sm\]\/switch\:size-3) {
+    width: calc(var(--spacing) * 3);
+    height: calc(var(--spacing) * 3);
   }
   :is(:where(.group\/tabs-list)[data-variant="line"] .group-data-\[variant\=line\]\/tabs-list\:bg-transparent) {
     background-color: transparent;
@@ -574,6 +597,9 @@
   .disabled\:pointer-events-none:disabled {
     pointer-events: none;
   }
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed;
+  }
   .disabled\:opacity-50:disabled {
     opacity: 50%;
   }
@@ -604,6 +630,18 @@
   .data-\[orientation\=vertical\]\:w-px[data-orientation="vertical"] {
     width: 1px;
   }
+  .data-\[size\=default\]\:h-\[1\.15rem\][data-size="default"] {
+    height: 1.15rem;
+  }
+  .data-\[size\=default\]\:w-8[data-size="default"] {
+    width: calc(var(--spacing) * 8);
+  }
+  .data-\[size\=sm\]\:h-3\.5[data-size="sm"] {
+    height: calc(var(--spacing) * 3.5);
+  }
+  .data-\[size\=sm\]\:w-6[data-size="sm"] {
+    width: calc(var(--spacing) * 6);
+  }
   .data-\[state\=active\]\:bg-background[data-state="active"] {
     background-color: var(--background);
   }
@@ -624,6 +662,20 @@
   :is(:where(.group\/tabs-list)[data-variant="line"] .group-data-\[variant\=line\]\/tabs-list\:data-\[state\=active\]\:after\:opacity-100)[data-state="active"]::after {
     content: var(--tw-content);
     opacity: 100%;
+  }
+  .data-\[state\=checked\]\:translate-x-\[calc\(100\%-2px\)\][data-state="checked"] {
+    --tw-translate-x: calc(100% - 2px);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+  .data-\[state\=checked\]\:bg-primary[data-state="checked"] {
+    background-color: var(--primary);
+  }
+  .data-\[state\=unchecked\]\:translate-x-0[data-state="unchecked"] {
+    --tw-translate-x: 0px;
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+  .data-\[state\=unchecked\]\:bg-input[data-state="unchecked"] {
+    background-color: var(--input);
   }
   .data-\[variant\=line\]\:rounded-none[data-variant="line"] {
     border-radius: 0;
@@ -696,6 +748,18 @@
   }
   :is(:where(.group\/tabs-list)[data-variant="line"] .dark\:group-data-\[variant\=line\]\/tabs-list\:data-\[state\=active\]\:bg-transparent:is(.dark *))[data-state="active"] {
     background-color: transparent;
+  }
+  .dark\:data-\[state\=checked\]\:bg-primary-foreground:is(.dark *)[data-state="checked"] {
+    background-color: var(--primary-foreground);
+  }
+  .dark\:data-\[state\=unchecked\]\:bg-foreground:is(.dark *)[data-state="unchecked"] {
+    background-color: var(--foreground);
+  }
+  .dark\:data-\[state\=unchecked\]\:bg-input\/80:is(.dark *)[data-state="unchecked"] {
+    background-color: var(--input);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--input) 80%, transparent);
+    }
   }
   .\[\.border-b\]\:pb-6:is(.border-b) {
     padding-bottom: calc(var(--spacing) * 6);
@@ -1021,6 +1085,21 @@
   initial-value: "";
   inherits: false;
 }
+@property --tw-translate-x {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-y {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-translate-z {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: block))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     :root, :host {
@@ -1046,6 +1125,9 @@
       --tw-ring-offset-shadow: 0 0 #0000;
       --tw-outline-style: solid;
       --tw-content: "";
+      --tw-translate-x: 0;
+      --tw-translate-y: 0;
+      --tw-translate-z: 0;
       --tw-animation-delay: 0s;
       --tw-animation-direction: normal;
       --tw-animation-duration: initial;

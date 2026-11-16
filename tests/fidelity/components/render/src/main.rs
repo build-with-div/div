@@ -10,7 +10,7 @@
 //! pixels. The harness compares it with Chromium's `getBoundingClientRect`
 //! to tell layout differences from paint differences.
 //!
-//! 	race runs one input script of 	ests/fidelity/components/traces.json
+//! `trace` runs one input script of `tests/fidelity/components/traces.json`
 //! on a trace fixture at 800x600 and prints, as JSON, the state of every
 //! element with a data-slot before the first step and after each one. The
 //! harness compares it with Radix running in Chromium.
@@ -22,14 +22,17 @@
 //! crate and renders it with Chromium's Linux LCD raster configuration.
 
 use div::prelude::*;
-use div_components::primitives::{ActivationMode, Key, TabsOptions, TabsState};
+use div::typed_style::{parse_literal, StyleProperty};
+use div_components::primitives::{
+    ActivationMode, Key, SwitchOptions, SwitchState, TabsOptions, TabsState,
+};
 use div_components::{
     register_fonts, with_theme, Badge, BadgeProps, BadgeVariant, Button, ButtonProps, ButtonSize,
     ButtonVariant, Card, CardAction, CardActionProps, CardContent, CardContentProps,
     CardDescription, CardDescriptionProps, CardFooter, CardFooterProps, CardHeader,
     CardHeaderProps, CardProps, CardTitle, CardTitleProps, Label, LabelProps, Orientation,
-    Separator, SeparatorProps, Tabs, TabsContent, TabsContentProps, TabsList, TabsListProps,
-    TabsProps, TabsTrigger, TabsTriggerProps, Theme,
+    Separator, SeparatorProps, Switch, SwitchProps, SwitchSize, Tabs, TabsContent,
+    TabsContentProps, TabsList, TabsListProps, TabsProps, TabsTrigger, TabsTriggerProps, Theme,
 };
 
 type Fixture = fn() -> ViewNode;
@@ -67,6 +70,12 @@ const FIXTURES: &[(&str, Fixture, bool)] = &[
     ("tabs-default", tabs_default, true),
     ("tabs-vertical", tabs_vertical, true),
     ("tabs-password", tabs_password, true),
+    ("switch-unchecked", switch_unchecked, false),
+    ("switch-checked", switch_checked, false),
+    ("switch-disabled", switch_disabled, false),
+    ("switch-disabled-checked", switch_disabled_checked, false),
+    ("switch-sm-unchecked", switch_sm_unchecked, false),
+    ("switch-sm-checked", switch_sm_checked, false),
 ];
 
 /// Fixtures of `traceFixtures` in fixtures.tsx, which `trace` runs.
@@ -74,6 +83,8 @@ const TRACE_FIXTURES: &[(&str, Fixture)] = &[
     ("tabs-default", tabs_default),
     ("tabs-vertical", tabs_vertical),
     ("tabs-manual", tabs_manual),
+    ("switch-unchecked", switch_unchecked),
+    ("switch-disabled", switch_disabled),
 ];
 
 // `FontSpecimen` in fixtures.tsx: `flex flex-col gap-1 text-sm` and a font
@@ -320,6 +331,82 @@ fn tabs_password() -> ViewNode {
 
 fn tabs_manual() -> ViewNode {
     tabs_example(Orientation::Horizontal, ActivationMode::Manual, "account")
+}
+
+// The switch fixtures of fixtures.tsx: one switch in a flex row. The static
+// pages hold the hidden form input Radix renders after the switch on the
+// server (`SwitchBubbleInput`, which the browser removes outside a
+// `<form>`). The component does not build it (RFC 0003, until forms), so
+// the fixture adds the same invisible input, to keep the element trees the
+// same for the geometry comparison.
+
+fn switch_example(size: SwitchSize, checked: bool, disabled: bool) -> ViewNode {
+    let state = SwitchState::new(SwitchOptions {
+        default_checked: checked,
+        disabled,
+        ..SwitchOptions::default()
+    });
+    view! {
+        <div style:display="flex">
+            <Switch state={state} size={size} />
+            {ViewNode::Element(bubble_input(checked))}
+        </div>
+    }
+}
+
+/// Radix's server-rendered `SwitchBubbleInput`: `<input type="checkbox"
+/// aria-hidden="true" tabindex="-1" style="position:absolute;
+/// pointer-events:none;opacity:0;margin:0;transform:translateX(-100%)"
+/// value="on">`, `checked` when the switch is.
+fn bubble_input(checked: bool) -> Element {
+    let input = Element::create(&current_document(), "input").expect("create an input");
+    for (name, value) in [
+        ("type", "checkbox"),
+        ("aria-hidden", "true"),
+        ("tabindex", "-1"),
+    ] {
+        input.set_attribute(name, value).expect("set an attribute");
+    }
+    if checked {
+        input.set_attribute("checked", "").expect("set checked");
+    }
+    input.set_attribute("value", "on").expect("set value");
+    for (name, value) in [
+        ("position", "absolute"),
+        ("pointer-events", "none"),
+        ("opacity", "0"),
+        ("margin", "0"),
+        ("transform", "translateX(-100%)"),
+    ] {
+        let property = StyleProperty::from_css_name(name).expect("a CSS property");
+        let parsed = parse_literal(property, value).expect("a CSS value");
+        input.set_property(property, parsed).expect("set a style");
+    }
+    input
+}
+
+fn switch_unchecked() -> ViewNode {
+    switch_example(SwitchSize::Default, false, false)
+}
+
+fn switch_checked() -> ViewNode {
+    switch_example(SwitchSize::Default, true, false)
+}
+
+fn switch_disabled() -> ViewNode {
+    switch_example(SwitchSize::Default, false, true)
+}
+
+fn switch_disabled_checked() -> ViewNode {
+    switch_example(SwitchSize::Default, true, true)
+}
+
+fn switch_sm_unchecked() -> ViewNode {
+    switch_example(SwitchSize::Sm, false, false)
+}
+
+fn switch_sm_checked() -> ViewNode {
+    switch_example(SwitchSize::Sm, true, false)
 }
 
 /// Mounts a fixture's view; `view!` embeds child views through components.
@@ -733,6 +820,49 @@ mod tests {
                 script["steps"].as_array().unwrap().len() + 1,
                 "{id}"
             );
+        }
+    }
+
+    #[test]
+    fn space_and_enter_toggle_the_focused_switch() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let result = trace(path, "switch-keyboard").unwrap();
+        let checked: Vec<(&str, &str)> = result["snapshots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|snapshot| {
+                let switch = &snapshot["elements"][0];
+                assert_eq!(switch["name"], "switch#0");
+                (
+                    snapshot["focused"].as_str().unwrap(),
+                    switch["attributes"]["aria-checked"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        // Ready, Tab, Space, Enter, Space.
+        assert_eq!(
+            checked,
+            [
+                ("body", "false"),
+                ("switch#0", "false"),
+                ("switch#0", "true"),
+                ("switch#0", "false"),
+                ("switch#0", "true"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_disabled_switch_stays_off() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let result = trace(path, "switch-disabled").unwrap();
+        for snapshot in result["snapshots"].as_array().unwrap() {
+            assert_eq!(snapshot["focused"], "body");
+            let switch = &snapshot["elements"][0]["attributes"];
+            assert_eq!(switch["aria-checked"], "false");
+            assert_eq!(switch["data-state"], "unchecked");
+            assert_eq!(switch["data-disabled"], "");
         }
     }
 

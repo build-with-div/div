@@ -14,6 +14,7 @@ pub mod fonts;
 mod label;
 pub mod primitives;
 mod separator;
+mod switch;
 mod tabs;
 mod theme;
 
@@ -27,6 +28,7 @@ pub use card::{
 pub use fonts::register_fonts;
 pub use label::{Label, LabelProps};
 pub use separator::{Orientation, Separator, SeparatorProps};
+pub use switch::{Switch, SwitchProps, SwitchSize};
 pub use tabs::{
     Tabs, TabsContent, TabsContentProps, TabsList, TabsListProps, TabsProps, TabsTrigger,
     TabsTriggerProps,

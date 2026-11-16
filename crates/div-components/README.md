@@ -9,8 +9,8 @@ RFC under `docs/alpha/rfcs/`. Measured results are in
 
 | Path | What it is |
 | --- | --- |
-| `crates/div-components/` | The components (separator, button, badge, card, label, tabs), with inline styles (`src/css.rs`), the theme tokens (`src/theme.rs`) and the bundled fonts (`src/fonts.rs`). |
-| `crates/div-components/src/primitives/` | Radix-like behaviors without style (roving focus, tabs, and their collection, controllable state, id and key helpers), ported from the pinned Radix source; see [RFC 0003](../../docs/alpha/rfcs/0003-component-primitives.md). |
+| `crates/div-components/` | The components (separator, button, badge, card, label, tabs, switch), with inline styles (`src/css.rs`), the theme tokens (`src/theme.rs`) and the bundled fonts (`src/fonts.rs`). |
+| `crates/div-components/src/primitives/` | Radix-like behaviors without style (roving focus, tabs, switch, and their collection, controllable state, id and key helpers), ported from the pinned Radix source; see [RFC 0003](../../docs/alpha/rfcs/0003-component-primitives.md). |
 | `tests/fidelity/components/assets/` | Geist, Geist Mono, Inter and Lucide icons, copied unmodified from the locked npm packages by `reference/build.mjs`, with their licenses and `manifest.json`. |
 | `tests/fidelity/components/render/` | `div-components-render`, which renders each fixture with Div. |
 | `tests/fidelity/components/reference/` | Pinned shadcn/ui sources and the Node build of the static reference pages. |
