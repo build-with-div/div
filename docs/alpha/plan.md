@@ -1,8 +1,11 @@
 # Alpha plan: parallel workstreams (draft for review)
 
 Status: draft, 9 November 2026, revised after the feasibility review below.
-Week 0 is under way. D1–D4 are decided; D5 (name) is deferred and D6
-(version line) is open.
+D1–D5 are decided (D5: the name is Div); D6 (version line) is open.
+The [alpha.1 definition](#alpha1-definition-16-november-2026) was
+rewritten on 16 November 2026 around the
+[web platform plan](platform-plan.md); the 9 November definition is kept
+below it as history.
 
 ## Goal
 
@@ -172,18 +175,165 @@ release gates (zero tolerance, hardware lab, signed reproducible builds)
 become a later stability milestone and stop blocking releases. Each alpha
 publishes honest conformance numbers per CSS area.
 
-**D5. Name. Deferred.** Div stays the project name for now. Branding
-will be decided in a later conversation and does not block alpha work.
-Starting ideas for that conversation, none checked yet: *Glaze*, a finish
-over a native body; *Lacquer*; *Tessera*; *Cast*, a pixel-exact casting of a
-mold; *Kiln*. Names already taken in Rust or UI and best avoided: Facet,
-Patina, Parity, Mica, Ember, Loom.
+**D5. Name. Decided: Div.** Since 11 November 2026 the product is Div:
+the GitHub organization is build-with-div, the site is div.build and the
+crates are `div-*` and `divui`. The crates.io names are not checked yet.
+On 9 November this was deferred, with these starting ideas, none checked:
+*Glaze*, *Lacquer*, *Tessera*, *Cast* and *Kiln* (avoiding Facet, Patina,
+Parity, Mica, Ember and Loom, already taken in Rust or UI).
 
 **D6. Version line.** Recommendation: publish under the new name as
 `0.1.0-alpha.N`, with `0.x` minor bumps allowed to break the API. Keep "v0.2
 qualification" as an internal engine milestone.
 
 ## Alpha definition (alpha.1)
+
+### alpha.1 definition, 16 November 2026
+
+User decision, 16 November 2026: "yes let's update the definition". This
+replaces the [9 November definition](#superseded-the-9-november-definition),
+kept below as history. alpha.1 is a developer experience, the web platform
+foundations the six samples need, ten shadcn components, a real-zoom
+fidelity baseline, and the samples as proof. The platform items, their
+tiers and the design decisions behind them are in the
+[web platform plan](platform-plan.md).
+
+States are measured facts on `main` at `c140fc0` and in open PRs on
+16 November 2026: **done** (merged), **in progress** (a PR is open or part
+of the item is merged) or **not started**. No dates are promised. `#N` links
+are build-with-div/div PRs; `open-ui#N` links are PRs in the archived
+zhuowcui/open-ui repository.
+
+#### 1. Developer experience
+
+| Item | Owner | State |
+| --- | --- | --- |
+| CLI: `new`, `dev` (rebuild and restart), `build` (release binary for Windows and Linux) and `doctor` | framework | Done, [open-ui#93](https://github.com/zhuowcui/open-ui/pull/93) |
+| A project template with test utilities (headless render, snapshot and pixel tests) | framework | Done: the `default` template, [open-ui#106](https://github.com/zhuowcui/open-ui/pull/106). A shadcn template is not started |
+| App services: several windows, async runtime, clipboard, file dialogs, app menu, HTTP client | framework | Done: [open-ui#96](https://github.com/zhuowcui/open-ui/pull/96), [#98](https://github.com/zhuowcui/open-ui/pull/98), [#99](https://github.com/zhuowcui/open-ui/pull/99), [#100](https://github.com/zhuowcui/open-ui/pull/100), [#101](https://github.com/zhuowcui/open-ui/pull/101), [#103](https://github.com/zhuowcui/open-ui/pull/103), [#105](https://github.com/zhuowcui/open-ui/pull/105) (open-ui) |
+| Docs: getting started, a tutorial, "coming from the web" and the API reference (`docs/guide/`) | docs (later) | Not started |
+| A CSS support matrix generated from the census and coverage evidence | docs, from the fidelity data | Not started |
+| Installing with `cargo install` | release (F) | Not started: the name is decided (Div, D5), but the crates are not published and their crates.io names are not checked yet |
+
+#### 2. Web platform foundations
+
+All of [Tier 0](platform-plan.md#tier-0-foundations), keyboard scrolling,
+and three items from Tiers 1 and 2: V1 inline SVG core, C2 Canvas 2D core
+(with the C1 `<canvas>` element it draws into) and web fonts.
+
+| # | Item | Owner | State |
+| --- | --- | --- | --- |
+| 0.1 | S1 cascade and selectors (A1) | engine | In progress: typed selectors with Blink specificity [#16](https://github.com/build-with-div/div/pull/16) and matching on the element tree [#17](https://github.com/build-with-div/div/pull/17) done; interaction pseudo-classes [#18](https://github.com/build-with-div/div/pull/18), form pseudo-classes [#19](https://github.com/build-with-div/div/pull/19) and `:active` on ancestors [#15](https://github.com/build-with-div/div/pull/15) open; the cascade itself (`stylesheet!`, `css!`) not started |
+| 0.2 | S7 literals | engine | Not started |
+| 0.3 | S6 element identity and the `html`/`body` root | engine | Designed in [#37](https://github.com/build-with-div/div/pull/37); not started |
+| 0.4 | S5 UA stylesheet | engine | Designed in [#37](https://github.com/build-with-div/div/pull/37); not started |
+| 0.5 | S3/S4 custom properties and media (A2 tokens and media) | engine | Not started |
+| 0.6 | R7 per-box cost and shaping cache | engine | Not started; its prerequisite, the nested-flex measure cache, is done in [#33](https://github.com/build-with-div/div/pull/33) |
+| 0.7 | R4 damage and partial raster, R5 targeted sampling | engine | Designed in RFC 0006, [#35](https://github.com/build-with-div/div/pull/35); not started |
+| 0.8 | Scheduled framework items | framework | In progress: `{expr}` children [#30](https://github.com/build-with-div/div/pull/30) and the zbus pins [#31](https://github.com/build-with-div/div/pull/31) done, RFC 0003 requests 7 and 2 done ([#25](https://github.com/build-with-div/div/pull/25), [#27](https://github.com/build-with-div/div/pull/27)); `current_document`, RFC 0003 requests 3 and 1, and headless pointer events and capture not started |
+| 0.9 | I3 wheel direction, lines per notch, `deltaMode` | framework | Not started |
+| 0.10 | R1 `requestAnimationFrame` and T1 frame advance | framework | Done, [#47](https://github.com/build-with-div/div/pull/47) |
+| 0.11 | O1 `ResizeObserver` | framework | Done, [#52](https://github.com/build-with-div/div/pull/52) |
+| 0.12 | I1 Pointer Events and T1 test input | framework | Not started |
+| 0.13 | T3 WPT script translation | components, for the engine tools | Designed in RFC 0005, [#32](https://github.com/build-with-div/div/pull/32); not started |
+| I2 | Keyboard scrolling (sample-markdown MD-23) | framework | Not started |
+| 1.4 | V1 inline SVG core, painted Chromium's way | SVG lane | In progress: RFC 0009 [#42](https://github.com/build-with-div/div/pull/42) done; the `div-svg` geometry crate [#49](https://github.com/build-with-div/div/pull/49) open |
+| 1.6, 2.1 | C1 `<canvas>` element and C2 Canvas 2D core (`div-canvas`) | Canvas 2D lane | In progress: RFC 0008 [#43](https://github.com/build-with-div/div/pull/43) and core state, paths, fill, stroke and transforms [#48](https://github.com/build-with-div/div/pull/48) done |
+| — | Web fonts | fidelity lane (rasterization), engine (`@font-face`) | In progress: WOFF and WOFF2 decoding done ([open-ui#97](https://github.com/zhuowcui/open-ui/pull/97)); Linux web fonts rasterize from skrifa outlines ([#51](https://github.com/build-with-div/div/pull/51)); `@font-face` rules in stylesheets not started |
+
+Moved to alpha.2 or later: everything else in Tiers 1–3 of the
+[platform plan](platform-plan.md#2-recommended-order).
+
+- Tier 1:
+  - I2 UI Events completeness;
+  - R3 `devicePixelRatio` and S4 `matchMedia` change events;
+  - H8 ARIA mapping;
+  - the quick fixes S11 text decoration, A4 `visibility` and S8
+    `::before`/`::after`;
+  - A2 `@keyframes` and A1 transitions from rules;
+  - A3 Web Animations;
+  - O3 `MutationObserver` and O2 `IntersectionObserver`;
+  - S13 cursors and O4 `FontFace`;
+  - R2 frame pacing;
+  - T2 trace-harness steps.
+- Tier 2:
+  - C3 the rest of Canvas 2D, and R4 canvas slots;
+  - V2 SVG text, V3 paint servers and clip, V5 SVG hit testing;
+  - E2 Selection and Range, S14 `user-select`, E1 `contenteditable`;
+  - S9 list markers, S10 tables, H3 form-control metrics, S12 text
+    snapping;
+  - H5 `popover`, H7 `inert`, H6 anchor positioning;
+  - V4 SVG geometry APIs, C4 `toDataURL`, H1 `<img src>`, H2 links;
+  - E3 IME and I5 clipboard events;
+  - I4 geometry, scroll and focus details, S15 `touch-action`.
+- Tier 3: I6 drag and drop, R6 compositor layers, C5 WebGPU canvas, A5
+  scroll-driven animations, A6 View Transitions, A7 retained children, I7
+  window chrome, E4 `EditContext`, C6 `OffscreenCanvas`, C7 WebGL2, and
+  KaTeX and Mermaid.
+
+#### 3. Components
+
+Ten shadcn components in light and dark themes: button, input, label,
+card, badge, separator, checkbox, switch, tabs and dialog, with the dialog
+on a top layer. Each is compared with shadcn rendered in pinned Chromium
+by the components harness at the four census profiles, and its exact result
+per profile is published. Results below are at `6fc0c1a7` on
+12 November 2026, from
+[`reference-v1.json`](../../tests/fidelity/components/evidence/reference-v1.json),
+before the real-zoom oracle.
+
+| Component | Owner | State | Exact |
+| --- | --- | --- | --- |
+| separator | components | Done, [open-ui#91](https://github.com/zhuowcui/open-ui/pull/91) | 16 of 16 |
+| button | components | Done, [open-ui#102](https://github.com/zhuowcui/open-ui/pull/102) | 0 of 80 |
+| badge | components | Done, [open-ui#102](https://github.com/zhuowcui/open-ui/pull/102) | 0 of 48 |
+| card | components | Done, [open-ui#102](https://github.com/zhuowcui/open-ui/pull/102) | 0 of 16 |
+| label | components | Done, [open-ui#102](https://github.com/zhuowcui/open-ui/pull/102) | 0 of 8 |
+| tabs | components | Done, [#23](https://github.com/build-with-div/div/pull/23) | 0 of 24; 4 of 5 behavior traces the same as Radix |
+| switch | components | In progress, [#56](https://github.com/build-with-div/div/pull/56) | — |
+| input | components | Not started | — |
+| checkbox | components | Not started | — |
+| dialog | components, on the engine's A3 top layer | Not started; A3 (top layer, modal dialog, focus trap) not started | — |
+
+#### 4. Fidelity
+
+| Item | Owner | State |
+| --- | --- | --- |
+| Real-zoom oracle above scale 1 (RFC 0010) | fidelity lane | In progress: RFC 0010 [#55](https://github.com/build-with-div/div/pull/55) done; the launcher change [#59](https://github.com/build-with-div/div/pull/59) open |
+| A published real-zoom baseline per CSS area: the census and CSS Grid coverage at the four profiles | fidelity lane, engine | In progress: the first real-zoom census and coverage are measured in [#59](https://github.com/build-with-div/div/pull/59), not yet merged |
+| Each owner's non-1x oracles recaptured at real zoom ([the RFC 0010 inventory](rfcs/0010-real-zoom-oracle.md#affected-tracks)) | each oracle's owner | Not started |
+| No census or coverage regression on any engine change (D4), measured from the real-zoom baseline once it exists | every engine change | Gate in force |
+
+Exactness is the target, not the release condition. alpha.1 publishes
+the measured exact counts; it does not require them to reach a number.
+
+#### 5. Proof: the samples
+
+Each of the six samples (canvas, charts, editor, interactions, motion and
+markdown) runs its main scenario on Div, and that scenario is measured
+against its npm original in pinned Chromium. The seventh sample repository,
+build-with-div/sample-git, is the first dogfood app: it is written for Div
+with the public API, so it records framework gaps rather than a comparison
+with an npm original. The samples are evidence that
+the platform items above are enough; they are not alpha.1 deliverables
+themselves.
+
+| Item | Owner | State |
+| --- | --- | --- |
+| Phase 1: each sample's packages, probes and gaps measured against Div at `565db46a` ([platform plan, section 4](platform-plan.md#4-measurements-reported-by-the-samples)) | each sample's lane | Done |
+| Each sample's main scenario on Div, measured against its npm original | each sample's lane | Not recorded in this repository yet |
+| sample-git (dogfood): the framework gaps it found ([framework track](../progress/tracks/framework.md#dogfood-gaps-sample-git)) | framework | In progress: gaps 1, 2 and 6 fixed ([#29](https://github.com/build-with-div/div/pull/29), [#30](https://github.com/build-with-div/div/pull/30), [#31](https://github.com/build-with-div/div/pull/31)); 3, 4 and 5 not started; 7 folded into RFC 0009 |
+
+Moved to alpha.2 or later, as before: dropdown-menu, tooltip, select,
+toast, scroll-area, live reload of styles and markup, notifications,
+installers and macOS.
+
+Not promised in alpha.1: API stability, Windows accessibility behavior,
+signed installers, auto-update.
+
+### Superseded: the 9 November definition
+
+Superseded on 16 November 2026 by the definition above. Kept as history.
 
 A developer can:
 
@@ -266,7 +416,7 @@ Owns `docs/guide/` (new) and the API reference.
 
 Own repo for the website.
 
-- Name (D5), logo and visual identity, domain, GitHub org, crates.io names.
+- Name (D5, decided: Div), logo and visual identity, domain, GitHub org, crates.io names.
 - Landing page: benchmarks against Electron and Tauri, a live side-by-side
   pixel diff with Chromium, and a component gallery.
 - Docs site infrastructure (a static site generator plus rustdoc), community
@@ -285,7 +435,7 @@ Own repo for the website.
 ## Dependencies and critical path
 
 ```
-D5 name ──► rename crates ──► E site/docs infra ──► launch
+D5 name (Div) ──► rename crates ──► E site/docs infra ──► launch
 D1 ──► A1 typed rules + invalidation ──► A2 tokens/media ──► C1 Tailwind ──► C3 interactive components
 A2 oklch/color-mix ─────────────────────────────────────────┘
 A6 real-font text ──► C3 exact results
@@ -301,8 +451,8 @@ F CI and cadence.
 
 Phases:
 
-1. **Week 0: decisions, setup and baselines.** D6 answered (D5, the name, is
-   deferred); AGENTS.md updated; track branches and worktrees created; a shared prebuilt Skia for
+1. **Week 0: decisions, setup and baselines.** D6 answered (D5, the name, was
+   deferred then and decided as Div on 11 November); AGENTS.md updated; track branches and worktrees created; a shared prebuilt Skia for
    all worktrees; one-page RFCs for the cascade and invalidation data model
    and the CLI layout. Two measurements before building: A5's startup,
    memory and frame-time baseline, and A6's Geist and Inter baseline at
@@ -316,7 +466,8 @@ Phases:
    Engine PRs run focused tests; full census runs from one queue, at least
    before each engine merge batch and each alpha. Weekly integration on
    `main` with census nonregression.
-3. **alpha.1.** When the alpha definition above is met on Windows and Linux.
+3. **alpha.1.** When the [alpha.1 definition](#alpha1-definition-16-november-2026)
+   is met on Windows and Linux.
 4. **alpha.2 onward.** macOS, installers, more components, and C5, driven by
    user feedback.
 
@@ -341,6 +492,14 @@ check (A5) before publication.
 
 - **Scope.** "Batteries included" is large. Keep alpha.1 to the definition
   above and let dogfood apps choose the next batteries.
+- **Engine capacity (16 November 2026).** One engine lane carries, in
+  series: the Tier 0 engine items (0.1–0.7, with 0.13's tools), A3 top
+  layer and dialog, RFC 0011 (layout in device pixels, not yet written),
+  the engine's real-zoom oracle recaptures under RFC 0010, and the layout
+  root causes routed to it from the census classification
+  ([#45](https://github.com/build-with-div/div/pull/45)). Each merges one
+  PR at a time. alpha.1 waits on all of them; this risk is recorded, not
+  decided.
 - **Merge contention in the engine.** `block.rs` is about 40,000 lines;
   serialize merges there and keep A-track PRs small.
 - **Typed rules versus cascade semantics.** Compile-time typed rules must
