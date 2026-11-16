@@ -376,6 +376,90 @@
       "page": "separator-vertical-light.html"
     },
     {
+      "id": "switch-checked-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, default size, checked",
+      "page": "switch-checked-dark.html"
+    },
+    {
+      "id": "switch-checked-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, default size, checked",
+      "page": "switch-checked-light.html"
+    },
+    {
+      "id": "switch-disabled-checked-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, default size, checked and disabled (opacity 50%)",
+      "page": "switch-disabled-checked-dark.html"
+    },
+    {
+      "id": "switch-disabled-checked-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, default size, checked and disabled (opacity 50%)",
+      "page": "switch-disabled-checked-light.html"
+    },
+    {
+      "id": "switch-disabled-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, default size, unchecked and disabled (opacity 50%)",
+      "page": "switch-disabled-dark.html"
+    },
+    {
+      "id": "switch-disabled-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, default size, unchecked and disabled (opacity 50%)",
+      "page": "switch-disabled-light.html"
+    },
+    {
+      "id": "switch-sm-checked-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, size sm, checked",
+      "page": "switch-sm-checked-dark.html"
+    },
+    {
+      "id": "switch-sm-checked-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, size sm, checked",
+      "page": "switch-sm-checked-light.html"
+    },
+    {
+      "id": "switch-sm-unchecked-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, size sm, unchecked",
+      "page": "switch-sm-unchecked-dark.html"
+    },
+    {
+      "id": "switch-sm-unchecked-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, size sm, unchecked",
+      "page": "switch-sm-unchecked-light.html"
+    },
+    {
+      "id": "switch-unchecked-dark",
+      "component": "switch",
+      "theme": "dark",
+      "description": "Switch, default size, unchecked",
+      "page": "switch-unchecked-dark.html"
+    },
+    {
+      "id": "switch-unchecked-light",
+      "component": "switch",
+      "theme": "light",
+      "description": "Switch, default size, unchecked",
+      "page": "switch-unchecked-light.html"
+    },
+    {
       "id": "tabs-default-dark",
       "component": "tabs",
       "theme": "dark",
@@ -419,6 +503,18 @@
     }
   ],
   "traces": [
+    {
+      "id": "switch-disabled",
+      "component": "switch",
+      "description": "Switch, default size, unchecked and disabled (opacity 50%)",
+      "page": "trace-switch-disabled.html"
+    },
+    {
+      "id": "switch-unchecked",
+      "component": "switch",
+      "description": "Switch, default size, unchecked",
+      "page": "trace-switch-unchecked.html"
+    },
     {
       "id": "tabs-default",
       "component": "tabs",
@@ -481,14 +577,26 @@
     "font-geist-mono-light.html": "b9e4118ad2650ce5b3ddc395d83d2bbd9fd826d08ad152d54a7e63e3e4a99cba",
     "font-inter-dark.html": "2e72817dddd6a3a56de8f9c435a66b6c820f2f69494f3403f17e71016a69a845",
     "font-inter-light.html": "b38198e53ea22302ea4e9544a07890abfe2cff9dd3744fc55e2e86afd857a9e6",
-    "interactive.js": "779b30e8ece47b2717549ec73bebcfcaa4ea9083955c82656b9d05c74d11b532",
+    "interactive.js": "e0694a634ec88ce3177959fd4fe3c533fee9b439c714edff3cf543451e622af2",
     "label-basic-dark.html": "78bc395f795fbb8e49b8e6e9fa1962ba5027ed702da63c93ec53817b73bb458e",
     "label-basic-light.html": "e8e584dce798e4482b8b1b54040f20b86fff45a811a89d46ce00ce54a7ec4c79",
-    "reference.css": "5f0083132bcdb406b260044c1156f67bcf672bf1cbe055d11e6eafe4345793be",
+    "reference.css": "761c352fb5ceb7fa87527da09113c08c5c91b33cfc19a15871766e71ff34549e",
     "separator-horizontal-dark.html": "95bb49a8da4d9903a341e96b4890c17ab2d98ff0622a3b2d457ed0c81b86e2f1",
     "separator-horizontal-light.html": "ec9863927c8c7769f6a2c9797d5686f91cd230c6250d4002d05f0cce324d05d4",
     "separator-vertical-dark.html": "b979361064bbe3019425876d3fad7bf1a160e84011cf80a6bf49862946f35f7f",
     "separator-vertical-light.html": "e6b61b66142e50f93bc26af0699673f08ea54b9c0e73dcef271457beac953c9f",
+    "switch-checked-dark.html": "a33c461cc92c3aaac5de5e78d304c4ef00d718b5110abb71054a211350fd61eb",
+    "switch-checked-light.html": "24807c7d7661ba06188ba0f5524978c54ac17b0e081953212c86b3ac42e1094d",
+    "switch-disabled-checked-dark.html": "295d3209e90438bf4c0d7e87467ebf994a07a1a5e9f069393fe683eceb578d78",
+    "switch-disabled-checked-light.html": "9520e35e2d301ba724d430a8a427c2e1422646e1936f5c5cd2d90e8c4d7383da",
+    "switch-disabled-dark.html": "93e1f20e80fa2dde590b56d4b19788939410bca5c928def0b9ac34aa97accea1",
+    "switch-disabled-light.html": "dee7e6e2df1d877cf5134f6e46c469175ec9c3d63081e7ee4ae7f57c82ff9b4a",
+    "switch-sm-checked-dark.html": "c57341880e323c7e3349ed636d0ff4a9f701b6aa31ecf5f724f91cc7a8e1b866",
+    "switch-sm-checked-light.html": "1c0437670d3746c7cac0f73fbb1c4d7c6d8c89e85b90e903efaa8a37c8475501",
+    "switch-sm-unchecked-dark.html": "c03c5c62c65c67b5802110acf4afcdcddc4f17fb9d434fc2ebab8bce90b5e677",
+    "switch-sm-unchecked-light.html": "97ad9a1439a851107f356fb8593f711889d25a75ed8b0de8bd79ca913dd19330",
+    "switch-unchecked-dark.html": "523fbdd301f076d2629de76c22373089fd80c96d186ef05fd8a3c82f2cdd8954",
+    "switch-unchecked-light.html": "407e75059ed5c25e4ce6229369152e417f3c2c0a6f73c2e78c9272a05497df0a",
     "tabs-default-dark.html": "81666c07e925960b3f81220512df75b6eed81caab5828eceb503274997d90d7d",
     "tabs-default-light.html": "e68427f1103444296e39ab4d398b52ee8033521ae9c9206a7161a44046106f4f",
     "tabs-password-dark.html": "4bb5ec905247a2dae7979f4b98772766679174718e457494f6e2e40c59d831f7",
@@ -496,6 +604,8 @@
     "tabs-vertical-dark.html": "149ca425b2f0ced6059e87de7bf6ba50c8a770ea347a90e06342205ca3c7f6cc",
     "tabs-vertical-light.html": "f25d70f513cf924e00f6e078b0454665a64228a9a87d042ab2f37881d92a9531",
     "theme-tokens.html": "2dece6b13c6c1ab79ffeaf814e91e1ff30c23ea62c3b911d80678662fe2e82ef",
+    "trace-switch-disabled.html": "c35e9b75f52c73f84eb2d9ec6f31ba332a6b144c39c26497ea0b2e28c7aa566c",
+    "trace-switch-unchecked.html": "97270d05505fb58b66a1ae608a490b11cb8b727e6fa8572697098bd89a801053",
     "trace-tabs-default.html": "73ba77698c3ddd5bbc359365953ce8267a525c53b272569fd7ef9685e3dbccfd",
     "trace-tabs-manual.html": "730a13cc2eaf47a5139bb039ceff33356fa0bc33eb452755363254def56307d9",
     "trace-tabs-vertical.html": "1b5829ad8ed9ad36fa0d2e3c887551649faae520a71468b14f86b584e2827041"

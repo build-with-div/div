@@ -3,13 +3,13 @@
   "chromium": {
     "version": "147.0.7727.50"
   },
-  "renderer_sha256": "1aab9e9618febd02d1f9fbb3f25aca242f6cf3658588650c29e76ecaf0f6336b",
+  "renderer_sha256": "f429be7f32fcbb8ecd84b5a9300d51ddb8f9cd235ffbc087cf81869f9276fb33",
   "repository": {
-    "commit": "6fc0c1a749b51fa477dba07537d1112329745b73",
+    "commit": "6df8ba30ba6613f6df6a71f1e06b0980d2c8c47e",
     "dirty_paths": []
   },
-  "traces_sha256": "4550bf9ad0a5a349292bfb33bee2c92b1fd5a5459e76177b466f490a3ad35b16",
-  "interactive_sha256": "779b30e8ece47b2717549ec73bebcfcaa4ea9083955c82656b9d05c74d11b532",
+  "traces_sha256": "e5086c4a1aedaef214bf66eea3a1be0ceb0a37031fe0f42e77a9af83c9f36447",
+  "interactive_sha256": "e0694a634ec88ce3177959fd4fe3c533fee9b439c714edff3cf543451e622af2",
   "rows": [
     {
       "trace": "tabs-keyboard",
@@ -3609,6 +3609,383 @@
                 "aria-labelledby": "tabs-trigger#2",
                 "data-state": "inactive",
                 "data-orientation": "horizontal"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "switch-keyboard",
+      "fixture": "switch-unchecked",
+      "steps": 4,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "switch-pointer",
+      "fixture": "switch-unchecked",
+      "steps": 3,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "switch#0",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "switch-disabled",
+      "fixture": "switch-disabled",
+      "steps": 3,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": "",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": "",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": "",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "switch#0",
+              "attributes": {
+                "role": "switch",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": "",
+                "data-size": "default"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "switch-thumb#0",
+              "attributes": {
+                "data-state": "unchecked",
+                "data-disabled": ""
               },
               "children": 0,
               "unlisted": []

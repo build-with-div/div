@@ -8,7 +8,10 @@
     "tabindex",
     "hidden",
     "disabled",
+    "value",
     "aria-selected",
+    "aria-checked",
+    "aria-required",
     "aria-orientation",
     "aria-controls",
     "aria-labelledby",
@@ -16,6 +19,7 @@
     "data-orientation",
     "data-disabled",
     "data-variant",
+    "data-size",
     "data-radix-collection-item"
   ],
   "id_references": ["aria-controls", "aria-labelledby"],
@@ -79,6 +83,37 @@
         {"press": "ArrowRight"},
         {"press": "Enter"},
         {"press": "ArrowLeft"},
+        {"press": " "}
+      ]
+    },
+    {
+      "id": "switch-keyboard",
+      "fixture": "switch-unchecked",
+      "description": "Tab to the switch, then Space, Enter and Space toggle it (the button's own activation)",
+      "steps": [
+        {"press": "Tab"},
+        {"press": " "},
+        {"press": "Enter"},
+        {"press": " "}
+      ]
+    },
+    {
+      "id": "switch-pointer",
+      "fixture": "switch-unchecked",
+      "description": "Click the switch twice, then Space toggles it from the focus the click gave",
+      "steps": [
+        {"click": "switch#0"},
+        {"click": "switch#0"},
+        {"press": " "}
+      ]
+    },
+    {
+      "id": "switch-disabled",
+      "fixture": "switch-disabled",
+      "description": "A disabled switch: Tab finds nothing to focus, and a click and Space leave it off",
+      "steps": [
+        {"press": "Tab"},
+        {"click": "switch#0"},
         {"press": " "}
       ]
     }

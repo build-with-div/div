@@ -27,6 +27,7 @@ import {
 } from "./shadcn/ui/card"
 import { Label } from "./shadcn/ui/label"
 import { Separator } from "./shadcn/ui/separator"
+import { Switch } from "./shadcn/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./shadcn/ui/tabs"
 
 export type Fixture = {
@@ -243,11 +244,51 @@ const tabsFixtures: Fixture[] = [
   },
 ]
 
+// Each switch state at both sizes, in a flex row like the button. Radix
+// renders a hidden form input after the switch on the server, which the
+// static pages keep; in the browser it is removed outside a `<form>`.
+const switchStates: [string, string, { defaultChecked?: boolean; disabled?: boolean }][] = [
+  ["unchecked", "unchecked", {}],
+  ["checked", "checked", { defaultChecked: true }],
+  ["disabled", "unchecked and disabled (opacity 50%)", { disabled: true }],
+  [
+    "disabled-checked",
+    "checked and disabled (opacity 50%)",
+    { defaultChecked: true, disabled: true },
+  ],
+]
+
+const switchFixtures: Fixture[] = [
+  ...switchStates.map(([state, description, props]) => ({
+    id: `switch-${state}`,
+    component: "switch",
+    description: `Switch, default size, ${description}`,
+    render: () => (
+      <Row>
+        <Switch {...props} />
+      </Row>
+    ),
+  })),
+  ...switchStates
+    .filter(([state]) => !state.startsWith("disabled"))
+    .map(([state, description, props]) => ({
+      id: `switch-sm-${state}`,
+      component: "switch",
+      description: `Switch, size sm, ${description}`,
+      render: () => (
+        <Row>
+          <Switch size="sm" {...props} />
+        </Row>
+      ),
+    })),
+]
+
 // Fixtures whose behavior the trace harness compares with Radix running in
 // Chromium. Each gets an interactive page (`trace-<id>.html`) that renders
 // it with React in the browser; manual activation looks the same as
 // automatic, so it has no static page. The traces select the second tab
-// themselves, so `tabs-password` has no trace page.
+// themselves, so `tabs-password` has no trace page; they toggle the switch
+// themselves, so only the unchecked and the disabled switch have one.
 export const traceFixtures: Fixture[] = [
   ...tabsFixtures.filter((fixture) => fixture.id !== "tabs-password"),
   {
@@ -256,6 +297,9 @@ export const traceFixtures: Fixture[] = [
     description: "Horizontal tabs with manual activation",
     render: () => <TabsExample orientation="horizontal" activationMode="manual" />,
   },
+  ...switchFixtures.filter(
+    (fixture) => fixture.id === "switch-unchecked" || fixture.id === "switch-disabled"
+  ),
 ]
 
 export const fixtures: Fixture[] = [
@@ -302,4 +346,5 @@ export const fixtures: Fixture[] = [
   ...cardFixtures,
   ...labelFixtures,
   ...tabsFixtures,
+  ...switchFixtures,
 ]

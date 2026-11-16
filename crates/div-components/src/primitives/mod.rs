@@ -15,9 +15,11 @@ pub mod controllable;
 pub mod id;
 pub mod keys;
 pub mod roving_focus;
+pub mod switch;
 pub mod tabs;
 
 pub use controllable::{Controllable, OnChange};
 pub use keys::{Held, Key};
 pub use roving_focus::{Direction, ItemOptions, RovingFocusGroup, RovingFocusOptions};
+pub use switch::{SwitchOptions, SwitchState};
 pub use tabs::{ActivationMode, TabsOptions, TabsState};
