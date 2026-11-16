@@ -9,7 +9,7 @@ the full earlier log is
 
 | Area | State |
 | --- | --- |
-| Renderer census | 22,517 of 23,728 comparisons pixel-exact (94.9%) against Chrome for Testing 147 across four profiles, in ten CSS areas. Text, tables, transforms and others are only partly measured. Above scale 1 these are against CDP-emulated Chromium; [RFC 0010](https://github.com/build-with-div/div/pull/55) (proposed) moves that oracle to real zoom and resets the baseline. |
+| Renderer census | 22,517 of 23,728 comparisons pixel-exact (94.9%) against Chrome for Testing 147 across four profiles, in ten CSS areas. Text, tables, transforms and others are only partly measured. Above scale 1 these are against CDP-emulated Chromium; [RFC 0010](alpha/rfcs/0010-real-zoom-oracle.md) moves that oracle to real zoom and resets the baseline ([#59](https://github.com/build-with-div/div/pull/59)). |
 | CSS Grid | Measured in a separate coverage suite: 2,218 of 4,204 comparisons exact (52.8%). |
 | App framework | `view!` markup, `#[component]`, signals and effects, typed events, inline typed styles, `requestAnimationFrame` ([#47](https://github.com/build-with-div/div/pull/47)) and `ResizeObserver` ([#52](https://github.com/build-with-div/div/pull/52)); several windows, an async runtime, clipboard, native dialogs, an app menu and an HTTP client. |
 | Platforms | Linux (X11, Wayland, AT-SPI) and Windows (Win32, DirectWrite text, UI Automation). No macOS yet. |

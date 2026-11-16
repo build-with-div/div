@@ -198,7 +198,7 @@ fidelity baseline, and the samples as proof. The platform items, their
 tiers and the design decisions behind them are in the
 [web platform plan](platform-plan.md).
 
-States are measured facts on `main` at `82d27be` and in open PRs on
+States are measured facts on `main` at `c140fc0` and in open PRs on
 16 November 2026: **done** (merged), **in progress** (a PR is open or part
 of the item is merged) or **not started**. No dates are promised. `#N` links
 are build-with-div/div PRs; `open-ui#N` links are PRs in the archived
@@ -238,7 +238,7 @@ and three items from Tiers 1 and 2: V1 inline SVG core, C2 Canvas 2D core
 | 0.13 | T3 WPT script translation | components, for the engine tools | Designed in RFC 0005, [#32](https://github.com/build-with-div/div/pull/32); not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | framework | Not started |
 | 1.4 | V1 inline SVG core, painted Chromium's way | SVG lane | In progress: RFC 0009 [#42](https://github.com/build-with-div/div/pull/42) done; the `div-svg` geometry crate [#49](https://github.com/build-with-div/div/pull/49) open |
-| 1.6, 2.1 | C1 `<canvas>` element and C2 Canvas 2D core (`div-canvas`) | Canvas 2D lane | In progress: RFC 0008 [#43](https://github.com/build-with-div/div/pull/43) done; core state, paths, fill, stroke and transforms [#48](https://github.com/build-with-div/div/pull/48) open |
+| 1.6, 2.1 | C1 `<canvas>` element and C2 Canvas 2D core (`div-canvas`) | Canvas 2D lane | In progress: RFC 0008 [#43](https://github.com/build-with-div/div/pull/43) and core state, paths, fill, stroke and transforms [#48](https://github.com/build-with-div/div/pull/48) done |
 | — | Web fonts | fidelity lane (rasterization), engine (`@font-face`) | In progress: WOFF and WOFF2 decoding done ([open-ui#97](https://github.com/zhuowcui/open-ui/pull/97)); Linux web fonts rasterize from skrifa outlines ([#51](https://github.com/build-with-div/div/pull/51)); `@font-face` rules in stylesheets not started |
 
 Moved to alpha.2 or later: everything else in Tiers 1–3 of the
@@ -299,9 +299,9 @@ before the real-zoom oracle.
 
 | Item | Owner | State |
 | --- | --- | --- |
-| Real-zoom oracle above scale 1 (RFC 0010) | fidelity lane | In progress: RFC 0010 [#55](https://github.com/build-with-div/div/pull/55) open; the launcher change and its census are not yet in a PR |
-| A published real-zoom baseline per CSS area: the census and CSS Grid coverage at the four profiles | fidelity lane, engine | Not started; follows the launcher PR |
-| Each owner's non-1x oracles recaptured at real zoom (the inventory in RFC 0010, [#55](https://github.com/build-with-div/div/pull/55)) | each oracle's owner | Not started |
+| Real-zoom oracle above scale 1 (RFC 0010) | fidelity lane | In progress: RFC 0010 [#55](https://github.com/build-with-div/div/pull/55) done; the launcher change [#59](https://github.com/build-with-div/div/pull/59) open |
+| A published real-zoom baseline per CSS area: the census and CSS Grid coverage at the four profiles | fidelity lane, engine | In progress: the first real-zoom census and coverage are measured in [#59](https://github.com/build-with-div/div/pull/59), not yet merged |
+| Each owner's non-1x oracles recaptured at real zoom ([the RFC 0010 inventory](rfcs/0010-real-zoom-oracle.md#affected-tracks)) | each oracle's owner | Not started |
 | No census or coverage regression on any engine change (D4), measured from the real-zoom baseline once it exists | every engine change | Gate in force |
 
 Exactness is the target, not the release condition. alpha.1 publishes
