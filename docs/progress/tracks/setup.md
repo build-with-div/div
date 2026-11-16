@@ -1,5 +1,28 @@
 # Setup track progress
 
+## alpha.1 definition 16 November 2026
+
+The user decided to update the alpha.1 definition ("yes let's update the
+definition", 16 November 2026). `docs/alpha/plan.md` now defines alpha.1
+in five parts: developer experience; the web platform foundations from the
+six samples (all of Tier 0, keyboard scrolling, V1 inline SVG core, C1 and
+C2 Canvas 2D core, and web fonts), with the rest of Tiers 1–3 listed for
+alpha.2 or later; ten shadcn components with the dialog on a top layer; a
+real-zoom fidelity baseline (RFC 0010); and the samples as proof. Each item
+names its owner and its state (done, in progress or not started) with PR
+links, as measured on `main` at `82d27be` and in the open PRs on 16
+November. The 9 November definition stays below it as history. The risks
+gain the engine lane's capacity, recorded and not decided.
+
+The platform plan and the 13 November decisions, until now only in the
+parent session's notes, are in the repository as
+`docs/alpha/platform-plan.md`, unchanged except for one local path.
+`docs/status.md` gains `requestAnimationFrame`, `ResizeObserver`, tabs,
+the pending real-zoom oracle and a current "Not yet" line.
+
+Verification: docs only. Every relative link and heading anchor in the three
+changed documents resolves (a local script over their Markdown links).
+
 ## Merge queue 14 November 2026
 
 The user chose a GitHub merge queue for `main`, to replace the rule that
