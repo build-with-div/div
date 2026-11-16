@@ -11,6 +11,7 @@ mod element_dimensions;
 mod forms;
 mod hit_geometry;
 mod interaction;
+mod resize_observation;
 mod scroll_button;
 mod scroll_into_view;
 mod scroll_notifications;
@@ -21,6 +22,8 @@ mod table_spans;
 pub use scroll_button::{
     ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState, ScrollSnapStrictness,
 };
+
+pub use resize_observation::{LogicalBoxSize, ResizeObservation};
 
 pub use scroll_into_view::{ScrollAlignment, ScrollIntoViewContainer, ScrollIntoViewOptions};
 pub use selector_match::SelectorMatchError;

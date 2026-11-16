@@ -461,6 +461,7 @@ impl div_platform::PlatformApplication for App {
     fn is_animating(&self) -> bool {
         self.document.is_animating().unwrap_or(false)
             || self.document.has_animation_frame_callbacks()
+            || self.document.has_pending_resize_observations()
     }
 
     fn needs_redraw(&self) -> bool {

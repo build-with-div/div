@@ -540,6 +540,7 @@
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
       "css_name": "bottom",
@@ -970,7 +971,8 @@
         "crates/div-paint/src/surface_program.rs",
         "crates/div-paint/src/text_painter.rs",
         "crates/div-engine/src/authored_source.rs",
-        "crates/div-engine/src/lib.rs"
+        "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs"
       ],
       "css_name": null,
       "field": "device_scale_factor",
@@ -1714,6 +1716,7 @@
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/hit_geometry.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
@@ -1854,6 +1857,7 @@
         "crates/div-engine/src/compositor_scene.rs",
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
@@ -2727,6 +2731,7 @@
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
       "css_name": "right",
@@ -3484,6 +3489,7 @@
         "crates/div-engine/src/compositor_scene.rs",
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
@@ -3687,6 +3693,7 @@
         "crates/div-engine/src/hit_geometry.rs",
         "crates/div-engine/src/interaction.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs",
         "crates/div-engine/src/semantic_insertion_tests.rs",
@@ -3772,6 +3779,7 @@
         "crates/div-engine/src/control_geometry.rs",
         "crates/div-engine/src/element_dimensions.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],

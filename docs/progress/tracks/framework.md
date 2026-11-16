@@ -64,8 +64,8 @@ jump the queue only when they block a sample, in the order 0.9, 0.10,
 | # | Item | State |
 | --- | --- | --- |
 | 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Not started |
-| 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | In review |
-| 0.11 | `ResizeObserver`, with the engine's part (O1) | Not started |
+| 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
+| 0.11 | `ResizeObserver`, with the engine's part (O1) | In review |
 | 0.12 | Pointer Events and test input (I1, T1), with sample-git gap 29 and sample-canvas gap 16 (focus on `mousedown`) | Not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
@@ -87,6 +87,93 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 15 November 2026: `ResizeObserver` (Tier 0 item 0.11)
+
+Problem: Div had no way to learn that an element's box changed size, so
+components that size themselves to their container (charts, virtual
+lists, editors) had to poll `bounding_rect` after each frame (platform
+plan item O1).
+
+Change, as [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 3 specifies, with the engine part in this PR as the parent agreed
+(the engine track reviews it):
+
+- **Engine** (`crates/div-engine/src/resize_observation.rs`, new; a
+  `mod` and re-export in `lib.rs`; `collect_boxes`, `source_parts` and
+  `stitched_size` in `element_dimensions.rs` become `pub(crate)`;
+  `docs/renderer/generated/author-style-inventory.json` is regenerated with
+  `generate_renderer_contract.py`'s `style_inventory`, which lists the new
+  file as a reader of three style fields):
+  `Engine::resize_observation(handle) -> ResizeObservation`, read-only after
+  layout. It reports Chromium 147's `ResizeObserverUtilities` and
+  `ResizeObserverEntry` values (`third_party/blink/renderer/core/resize_observer/`):
+  - border and content box sizes in the element's writing mode;
+  - the content box in device pixels, `SnapSizeToPixel` at the first box's
+    paint offset;
+  - the physical content rectangle;
+  - the flat-tree depth.
+
+  An element without a layout box (`display: none` or `contents`, a
+  non-atomic inline, a detached element) reports zeros. The engine keeps
+  no observers.
+- **Framework** (`crates/divui/src/resize_observer.rs`, new):
+  - `ResizeObserver::new(&document, callback)`, with `observe(&element, ResizeObserverBox)`,
+    `unobserve` and `disconnect`;
+  - `ResizeObserverEntry`, carrying all three sizes and the content rectangle.
+
+  After `begin_frame`'s layout the document gathers targets at depth 0,
+  delivers them (document current, untracked), lays out again and gathers
+  deeper targets until none is active, as the specification's "update the
+  rendering" steps do. Every target is delivered once when first observed
+  (the initial last-reported size is -1 × -1, Chromium's
+  `kInitialObservationSize`). Entries use the sizes measured when they were
+  gathered, as Chromium's entries read the layout of that pass.
+
+  Skipped targets report "ResizeObserver loop completed with undelivered
+  notifications." and wait for the next frame. A new or skipped
+  observation makes the window want a frame.
+- **Errors** (`crates/divui/src/reported_error.rs`, new):
+  - `Document::on_error(handler)` adds a handler for `ReportedError`s;
+  - with no handler, errors go to standard error;
+  - `TestApp::take_reported_errors` collects them in tests.
+- **RFC 0007 amended:**
+  - `device_pixel_content_box_size` is a plain `ResizeObserverSize` on every
+    entry, as Chromium's `ResizeObserverEntry` constructor fills it;
+  - `on_error` handlers are added rather than replaced.
+
+Verification (Windows, MSVC, this branch on main `ee7907e8`):
+
+- `cargo test --locked -p div-engine --lib resize_observation` passes 6
+  tests:
+  - border and content boxes and the content rect, with `box-sizing`;
+  - zeros for `display: none` and `contents`, a non-atomic inline and a
+    detached element, and a box for `inline-block`;
+  - `vertical-rl` swapping the axes;
+  - a stable scrollbar gutter leaving the content box;
+  - device-pixel snapping at offsets 0 and 10.5 at scale 1, 1.5 and 2;
+  - depth.
+- `cargo test --locked -p divui --features "windows testing" --test
+  resize_observer` passes 10 tests:
+  - first delivery and resize, including a content-box-only observation
+    reporting the device-pixel size;
+  - only the observed box's change;
+  - a box-less target delivered once as 0 × 0;
+  - entry and observer order;
+  - `unobserve`, `disconnect` and drop;
+  - a deeper target resized by a callback delivered in the same frame;
+  - a shallower one waiting a frame with the loop error;
+  - the document current and untracked;
+  - the frame request;
+  - `TestApp::take_reported_errors`.
+- With the depth rule removed (every changed target active), the two
+  loop-error tests fail.
+- The full framework test set, the example builds and `cargo fmt --all
+  --check` pass.
+
+WPT `resize-observer` is testharness script, so its cases wait for the
+translation in [RFC 0005](../../alpha/rfcs/0005-wpt-script-translation.md).
+SVG targets (bounding-box sizes) follow with RFC 0009.
 
 ### 13 November 2026: `requestAnimationFrame` (Tier 0 item 0.10)
 

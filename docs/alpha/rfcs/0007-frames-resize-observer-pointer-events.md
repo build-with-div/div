@@ -112,7 +112,7 @@ pub struct ResizeObserverEntry {
     pub content_rect: Rect,                      // x, y: padding left and top
     pub border_box_size: ResizeObserverSize,
     pub content_box_size: ResizeObserverSize,
-    pub device_pixel_content_box_size: Option<ResizeObserverSize>,
+    pub device_pixel_content_box_size: ResizeObserverSize,
 }
 
 impl ResizeObserver {
@@ -143,12 +143,20 @@ impl ResizeObserver {
   loop completed with undelivered notifications") is reported, not
   thrown: nothing unwinds and the frame continues. Div adds
   `Document::on_error(impl Fn(&ReportedError) + 'static)`, the
-  framework's equivalent of `window.onerror`, which receives the message.
+  framework's equivalent of the window's `error` event, which receives the
+  message. Handlers are added, as listeners are, and run in order.
   With no handler the error goes to standard error, as Chromium's goes to
   the console. Tests read the errors reported so far with
   `TestApp::take_reported_errors`.
-- `device_pixel_content_box_size` is `Some` only for targets observed with
-  `DevicePixelContentBox`, as Chromium reports it.
+- Every entry carries `device_pixel_content_box_size`, whichever box was
+  observed. (Amended in the 0.11 PR: this said `Option`, `Some` only for
+  `DevicePixelContentBox`. Chromium 147's `ResizeObserverEntry` constructor,
+  `third_party/blink/renderer/core/resize_observer/resize_observer_entry.cc`,
+  `PopulateFromLayoutBox`, fills all three sizes for every entry, and a
+  target with no box gets 0 × 0 for each. The test
+  `a_target_is_delivered_when_first_observed_and_when_it_resizes` in
+  `crates/divui/tests/resize_observer.rs` observes the content box only
+  and checks the device-pixel size.)
 - Each entry carries one size per box. Div does not fragment boxes, so the
   web's arrays always have one element.
 - An observer that is dropped stops observing, as a garbage-collected
