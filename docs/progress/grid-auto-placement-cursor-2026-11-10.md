@@ -69,7 +69,7 @@ every item.
 
 ## Verification
 
-Measured on this branch in Div, rebased onto `main` at `154d0a72`. The
+Measured on this branch in Div, rebased onto `main` at `aef406fe`. The
 Windows rows use the CI Skia flags.
 
 | Check | Command | Result |
@@ -79,15 +79,23 @@ Windows rows use the CI Skia flags.
 | The shadcn card header | `cargo test -p div-components-render the_card_header` (Windows) | passed. With `main`'s `grid.rs` it fails: the header is 52px tall |
 | Touched crates | `cargo test -p div-layout -p div-engine -p div-components-render --no-fail-fast` (Windows) | 6,475 passed, 0 failed, 8 ignored |
 | Generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check`; `fidelity_data.py verify` | all pass. `generate_v02_contract.py` regenerated `docs/v02/generated/dependency-policy.json`, whose lockfile hash changes with the new dev-dependency |
-| Expanded census (WSL) | `run_renderer_matrix.py --suite expanded`, under `census_lock.py` | not yet run (below) |
-| CSS Grid coverage (WSL) | coverage matrix, under `census_lock.py` | not yet run (below) |
+| Expanded census, 1x (WSL) | `run_renderer_matrix.py --suite expanded --profile legacy-800x600@1` under `census_lock.py`, head `d98e55ce`, base `main` at `aef406fe` | 5,888 of 5,932 exact before and after; Chromium identical in all 5,932; 0 Div images changed ([delta](evidence/grid-placement-cursor-div-census-1x-v1.json)) |
+| CSS Grid coverage, 1x (WSL) | coverage matrix with `--profile legacy-800x600@1`, same head and base | 572 → 579 of 1,051 exact: 7 gained, 0 lost (below) ([delta](evidence/grid-placement-cursor-div-coverage-1x-v1.json)) |
 
-The census and CSS Grid coverage have not run on this branch yet. On 16
-November the census lock is held for the fidelity lane's real-zoom oracle
-switch (RFC 0010), which recaptures the Chromium frames at 1.25x, 1.5x and
-2x; 1x is unchanged. Both run under the lock once it frees: at 1x against
-`main`, and at the other profiles against the new real-zoom baseline once it
-exists. This PR does not merge before then.
+The census and CSS Grid coverage ran at 1x only, under the census lock on
+16 November. The gains are seven tests:
+`grid-percent-cols-filled-shrinkwrap-001` and its reference, the reference
+of `grid-percent-rows-filled-shrinkwrap-001`, and the references of
+`subgrid/grid-gap-004`, `grid-gap-larger-001`, `grid-gap-normal-001` and
+`grid-gap-smaller-001`. These are the seven Open UI measured (below). Div's
+image changed in 17 other comparisons that stay different, and every one
+has fewer mismatched pixels than before. The same 39 coverage tests fail to
+render in Div in both runs, so this change does not cause them.
+
+The 1.25x, 1.5x and 2x profiles move to the real-zoom oracle (RFC 0010), whose
+Div baseline exists but whose launcher is not on `main` yet. They are measured
+against that baseline once the launcher merges, and this PR does not merge
+before then.
 
 ### Measured in Open UI before the move to Div
 
