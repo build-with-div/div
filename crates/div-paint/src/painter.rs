@@ -17563,7 +17563,6 @@ fn paint_background_layers(
             && resample_from.is_none()
             && fractional_physical_tile_edge
             && layer.clip == BackgroundClip::BorderBox
-            && clip_override.is_none()
             && !local_scrollport_clip
             && !canvas_background
             && !antialias_transformed_clip
@@ -17586,7 +17585,12 @@ fn paint_background_layers(
             && fractional_physical_clip_edge
             && clip_override.is_none();
         if clip_override.is_some() {
-            canvas.clip_rect(clip, ClipOp::Intersect, false);
+            // A table part's generated tile drawn into a cell uses the cell
+            // as its painting area (TableCellPainter::PaintBackgroundForTablePart):
+            // the tile clipped to the cell is drawn once with antialiasing.
+            if !border_box_generated_tile_owns_edges {
+                canvas.clip_rect(clip, ClipOp::Intersect, false);
+            }
         } else if layer.clip == BackgroundClip::BorderArea {
             canvas.clip_rect(border_rect, ClipOp::Intersect, false);
             let padding = background_box_rect(BackgroundClip::PaddingBox, border_rect, fragment);
@@ -29306,6 +29310,67 @@ mod tests {
                 assert_ne!(at(edge, y), [255, 255, 255, 255], "column {edge}, row {y}");
                 assert_ne!(at(edge, y), at(inside, y), "column {edge}, row {y}");
             }
+        }
+    }
+
+    #[test]
+    fn table_part_gradient_keeps_fractional_cell_edge_coverage() {
+        // A table part's background painted into a cell uses the cell as its
+        // painting area (TableCellPainter::PaintBackgroundForTablePart): the
+        // part's tile, clipped to the cell, is drawn once with antialiasing.
+        // At 1.25x a cell at CSS x=38..70 spans device x 47.5 to 87.5 inside
+        // a part tile at CSS x=8..80, so columns 47 and 87 keep partial
+        // coverage and the tile outside the cell stays unpainted.
+        let doc = Document::new();
+        let gradient = CssImage::LinearGradient(CssLinearGradient {
+            angle_degrees: 90.0,
+            corner_direction: None,
+            repeating: false,
+            color_space: GradientColorSpace::Srgb,
+            stops: vec![
+                GradientStop {
+                    color: StyleColor::Resolved(Color::from_rgba8(255, 0, 0, 255)),
+                    position: GradientStopPosition::Percent(0.0),
+                },
+                GradientStop {
+                    color: StyleColor::Resolved(Color::from_rgba8(0, 128, 0, 255)),
+                    position: GradientStopPosition::Percent(100.0),
+                },
+            ],
+        });
+        let mut style = ComputedStyle::default();
+        style.update_derived(|style| {
+            style.device_scale_factor = 1.25;
+            style.background_layers.push(BackgroundLayer::new(gradient));
+        });
+        let mut surface = surfaces::raster_n32_premul((112, 112)).expect("surface");
+        surface.canvas().clear(skia_safe::Color::WHITE);
+        surface.canvas().scale((1.25, 1.25));
+        let save_count = surface.canvas().save_count();
+        paint_background_layers(
+            surface.canvas(),
+            &doc,
+            None,
+            &style,
+            Rect::from_xywh(8.0, 8.0, 72.0, 72.0),
+            1.0,
+            Some(Rect::from_xywh(38.0, 38.0, 32.0, 32.0)),
+            false,
+        );
+        assert_eq!(surface.canvas().save_count(), save_count);
+        let pixels = surface_bytes(&mut surface);
+        let at =
+            |x: usize, y: usize| <[u8; 4]>::try_from(&pixels[(y * 112 + x) * 4..][..4]).unwrap();
+        for y in [50, 60, 70, 80] {
+            assert_eq!(at(46, y), [255, 255, 255, 255]);
+            assert_eq!(at(88, y), [255, 255, 255, 255]);
+            for (edge, inside) in [(47, 48), (87, 86)] {
+                assert_ne!(at(edge, y), [255, 255, 255, 255], "column {edge}, row {y}");
+                assert_ne!(at(edge, y), at(inside, y), "column {edge}, row {y}");
+            }
+        }
+        for x in [20, 46, 88, 95] {
+            assert_eq!(at(x, 30), [255, 255, 255, 255], "column {x} above the cell");
         }
     }
 
