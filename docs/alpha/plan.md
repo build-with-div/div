@@ -1,7 +1,7 @@
 # Alpha plan: parallel workstreams (draft for review)
 
 Status: draft, 9 November 2026, revised after the feasibility review below.
-D1–D4 are decided; D5 (name) is deferred and D6 (version line) is open.
+D1–D5 are decided (D5: the name is Div); D6 (version line) is open.
 The [alpha.1 definition](#alpha1-definition-16-november-2026) was
 rewritten on 16 November 2026 around the
 [web platform plan](platform-plan.md); the 9 November definition is kept
@@ -175,12 +175,12 @@ release gates (zero tolerance, hardware lab, signed reproducible builds)
 become a later stability milestone and stop blocking releases. Each alpha
 publishes honest conformance numbers per CSS area.
 
-**D5. Name. Deferred.** Div stays the project name for now. Branding
-will be decided in a later conversation and does not block alpha work.
-Starting ideas for that conversation, none checked yet: *Glaze*, a finish
-over a native body; *Lacquer*; *Tessera*; *Cast*, a pixel-exact casting of a
-mold; *Kiln*. Names already taken in Rust or UI and best avoided: Facet,
-Patina, Parity, Mica, Ember, Loom.
+**D5. Name. Decided: Div.** Since 11 November 2026 the product is Div:
+the GitHub organization is build-with-div, the site is div.build and the
+crates are `div-*` and `divui`. The crates.io names are not checked yet.
+On 9 November this was deferred, with these starting ideas, none checked:
+*Glaze*, *Lacquer*, *Tessera*, *Cast* and *Kiln* (avoiding Facet, Patina,
+Parity, Mica, Ember and Loom, already taken in Rust or UI).
 
 **D6. Version line.** Recommendation: publish under the new name as
 `0.1.0-alpha.N`, with `0.x` minor bumps allowed to break the API. Keep "v0.2
@@ -213,7 +213,7 @@ zhuowcui/open-ui repository.
 | App services: several windows, async runtime, clipboard, file dialogs, app menu, HTTP client | framework | Done: [open-ui#96](https://github.com/zhuowcui/open-ui/pull/96), [#98](https://github.com/zhuowcui/open-ui/pull/98), [#99](https://github.com/zhuowcui/open-ui/pull/99), [#100](https://github.com/zhuowcui/open-ui/pull/100), [#101](https://github.com/zhuowcui/open-ui/pull/101), [#103](https://github.com/zhuowcui/open-ui/pull/103), [#105](https://github.com/zhuowcui/open-ui/pull/105) (open-ui) |
 | Docs: getting started, a tutorial, "coming from the web" and the API reference (`docs/guide/`) | docs (later) | Not started |
 | A CSS support matrix generated from the census and coverage evidence | docs, from the fidelity data | Not started |
-| Installing with `cargo install` | release (F) | Not started: needs published crates, and the name is deferred (D5) |
+| Installing with `cargo install` | release (F) | Not started: the name is decided (Div, D5), but the crates are not published and their crates.io names are not checked yet |
 
 #### 2. Web platform foundations
 
@@ -311,7 +311,10 @@ the measured exact counts; it does not require them to reach a number.
 
 Each of the six samples (canvas, charts, editor, interactions, motion and
 markdown) runs its main scenario on Div, and that scenario is measured
-against its npm original in pinned Chromium. The samples are evidence that
+against its npm original in pinned Chromium. The seventh sample repository,
+build-with-div/sample-git, is the first dogfood app: it is written for Div
+with the public API, so it records framework gaps rather than a comparison
+with an npm original. The samples are evidence that
 the platform items above are enough; they are not alpha.1 deliverables
 themselves.
 
@@ -319,6 +322,7 @@ themselves.
 | --- | --- | --- |
 | Phase 1: each sample's packages, probes and gaps measured against Div at `565db46a` ([platform plan, section 4](platform-plan.md#4-measurements-reported-by-the-samples)) | each sample's lane | Done |
 | Each sample's main scenario on Div, measured against its npm original | each sample's lane | Not recorded in this repository yet |
+| sample-git (dogfood): the framework gaps it found ([framework track](../progress/tracks/framework.md#dogfood-gaps-sample-git)) | framework | In progress: gaps 1, 2 and 6 fixed ([#29](https://github.com/build-with-div/div/pull/29), [#30](https://github.com/build-with-div/div/pull/30), [#31](https://github.com/build-with-div/div/pull/31)); 3, 4 and 5 not started; 7 folded into RFC 0009 |
 
 Moved to alpha.2 or later, as before: dropdown-menu, tooltip, select,
 toast, scroll-area, live reload of styles and markup, notifications,
@@ -412,7 +416,7 @@ Owns `docs/guide/` (new) and the API reference.
 
 Own repo for the website.
 
-- Name (D5), logo and visual identity, domain, GitHub org, crates.io names.
+- Name (D5, decided: Div), logo and visual identity, domain, GitHub org, crates.io names.
 - Landing page: benchmarks against Electron and Tauri, a live side-by-side
   pixel diff with Chromium, and a component gallery.
 - Docs site infrastructure (a static site generator plus rustdoc), community
@@ -431,7 +435,7 @@ Own repo for the website.
 ## Dependencies and critical path
 
 ```
-D5 name ──► rename crates ──► E site/docs infra ──► launch
+D5 name (Div) ──► rename crates ──► E site/docs infra ──► launch
 D1 ──► A1 typed rules + invalidation ──► A2 tokens/media ──► C1 Tailwind ──► C3 interactive components
 A2 oklch/color-mix ─────────────────────────────────────────┘
 A6 real-font text ──► C3 exact results
@@ -447,8 +451,8 @@ F CI and cadence.
 
 Phases:
 
-1. **Week 0: decisions, setup and baselines.** D6 answered (D5, the name, is
-   deferred); AGENTS.md updated; track branches and worktrees created; a shared prebuilt Skia for
+1. **Week 0: decisions, setup and baselines.** D6 answered (D5, the name, was
+   deferred then and decided as Div on 11 November); AGENTS.md updated; track branches and worktrees created; a shared prebuilt Skia for
    all worktrees; one-page RFCs for the cascade and invalidation data model
    and the CLI layout. Two measurements before building: A5's startup,
    memory and frame-time baseline, and A6's Geist and Inter baseline at

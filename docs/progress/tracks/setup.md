@@ -12,7 +12,9 @@ real-zoom fidelity baseline (RFC 0010); and the samples as proof. Each item
 names its owner and its state (done, in progress or not started) with PR
 links, as measured on `main` at `82d27be` and in the open PRs on 16
 November. The 9 November definition stays below it as history. The risks
-gain the engine lane's capacity, recorded and not decided.
+gain the engine lane's capacity, recorded and not decided. D5 is
+recorded as decided: the product has been named Div since 11 November.
+Section 5 also accounts for sample-git, the first dogfood app.
 
 The platform plan and the 13 November decisions, until now only in the
 parent session's notes, are in the repository as
