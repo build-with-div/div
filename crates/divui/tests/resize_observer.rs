@@ -376,3 +376,152 @@ fn test_app_collects_reported_errors() {
     );
     assert!(app.take_reported_errors().is_empty());
 }
+
+const ROOT_ORACLE: &str =
+    include_str!("../../../tests/fidelity/fixtures/resize-observer-root-v1/chromium-windows.json");
+
+/// Observes the native root styled as the oracle's `<html>` and returns the
+/// first entry.
+fn native_root_entry(overflow: &str, child_height: f64, scale: f64) -> ResizeObserverEntry {
+    let document = Document::new(200, 100).unwrap();
+    document
+        .set_viewport(ViewportMetrics::from_logical_size(200.0, 100.0, scale).unwrap())
+        .unwrap();
+    let body = document.body();
+    style(
+        &body,
+        &[
+            (StyleProperty::Border, "1px solid black"),
+            (StyleProperty::Padding, "5px"),
+            (StyleProperty::Overflow, overflow),
+        ],
+    );
+    block(
+        &document,
+        &body,
+        "child",
+        "40px",
+        &format!("{child_height}px"),
+    );
+    let entries = Rc::new(RefCell::new(Vec::new()));
+    let observer = {
+        let entries = entries.clone();
+        ResizeObserver::new(&document, move |delivered, _| {
+            entries.borrow_mut().extend_from_slice(delivered);
+        })
+    };
+    observer.observe(&body, ResizeObserverBox::ContentBox);
+    document.begin_frame(1.0).unwrap();
+    let entry = entries.borrow()[0].clone();
+    entry
+}
+
+/// Div's sizes for the native root, per oracle case: the border box, content
+/// box and device-pixel content box, each inline then block.
+const NATIVE_ROOT_SIZES: [(&str, f64, [f64; 6]); 6] = [
+    ("visible", 1.0, [200.0, 100.0, 188.0, 88.0, 188.0, 88.0]),
+    ("scroll", 1.0, [185.0, 85.0, 173.0, 73.0, 173.0, 73.0]),
+    (
+        "auto-overflowing",
+        1.0,
+        [185.0, 100.0, 173.0, 88.0, 173.0, 88.0],
+    ),
+    ("visible", 1.25, [200.0, 100.0, 188.0, 88.0, 235.0, 110.0]),
+    ("scroll", 1.25, [185.0, 85.0, 173.0, 73.0, 216.0, 91.0]),
+    (
+        "auto-overflowing",
+        1.25,
+        [185.0, 100.0, 173.0, 88.0, 216.0, 110.0],
+    ),
+];
+
+/// Chromium 147's inline sizes at 1.25x, which Div does not match yet (gap
+/// `device-scale-edges`): the border box, content box and device-pixel
+/// content box.
+const CHROMIUM_INLINE_AT_1_25: [(&str, [f64; 3]); 3] = [
+    ("visible", [200.0, 188.390625, 236.0]),
+    ("scroll", [184.796875, 173.1875, 217.0]),
+    ("auto-overflowing", [184.796875, 173.1875, 217.0]),
+];
+
+/// Observing a native document's root reports the browser's `<html>`: the
+/// viewport's scrollbars are outside its box. The oracle is pinned Chromium
+/// 147 on Windows (`tools/qualification/capture_resize_observer_root_oracle.py`).
+///
+/// At 1x the inline sizes and the content rect's origin match Chromium
+/// exactly. Two named gaps remain:
+///
+/// - `root-block-size`: Div's native root is the viewport, so its block size
+///   is the viewport's, less a horizontal scrollbar. Chromium's `<html>` has
+///   an `auto` height: its border box is 32 (`visible`, `scroll`) and 512
+///   (`auto-overflowing`) where Div's is 100, 85 and 100.
+/// - `device-scale-edges`: at 1.25x Chromium lays out at device scale, so
+///   the 1px border takes one device pixel (0.8px) and the scrollbar 19
+///   device pixels (15.2px). Div lays out in CSS pixels at every scale. This
+///   is engine-wide, not `ResizeObserver`'s.
+#[test]
+fn the_native_root_matches_chromium_for_the_root_element() {
+    let oracle: serde_json::Value = serde_json::from_str(ROOT_ORACLE).unwrap();
+    let cases = oracle["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), NATIVE_ROOT_SIZES.len());
+    for case in cases {
+        let name = case["case"].as_str().unwrap();
+        let scale = case["scale"].as_f64().unwrap();
+        let child_height = case["child_height"].as_f64().unwrap();
+        let entry = native_root_entry(case["overflow"].as_str().unwrap(), child_height, scale);
+        let actual = [
+            entry.border_box_size.inline_size,
+            entry.border_box_size.block_size,
+            entry.content_box_size.inline_size,
+            entry.content_box_size.block_size,
+            entry.device_pixel_content_box_size.inline_size,
+            entry.device_pixel_content_box_size.block_size,
+        ];
+        let &(_, _, expected) = NATIVE_ROOT_SIZES
+            .iter()
+            .find(|(case, at, _)| *case == name && *at == scale)
+            .unwrap();
+        assert_eq!(actual, expected, "{name} at {scale}x");
+        let rect = entry.content_rect;
+        assert_eq!((rect.x, rect.y), (5.0, 5.0), "{name} at {scale}x");
+        assert_eq!(
+            (f64::from(rect.width), f64::from(rect.height)),
+            (expected[2], expected[3]),
+        );
+
+        let size = |key: &str| {
+            [
+                case[key]["inline"].as_f64().unwrap(),
+                case[key]["block"].as_f64().unwrap(),
+            ]
+        };
+        let chromium_inline = [
+            size("border_box")[0],
+            size("content_box")[0],
+            size("device_pixel_content_box")[0],
+        ];
+        let chromium_rect: Vec<f64> = case["content_rect"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_f64().unwrap())
+            .collect();
+        assert_eq!(chromium_rect[..2], [5.0, 5.0]);
+        if scale == 1.0 {
+            assert_eq!(
+                chromium_inline,
+                [expected[0], expected[2], expected[4]],
+                "{name}: inline sizes match Chromium"
+            );
+            assert_eq!(chromium_rect[2], expected[2]);
+        } else {
+            let &(_, gap) = CHROMIUM_INLINE_AT_1_25
+                .iter()
+                .find(|(case, _)| *case == name)
+                .unwrap();
+            assert_eq!(chromium_inline, gap, "{name}: gap device-scale-edges");
+        }
+        // Gap root-block-size: `<html>`'s content box is its content's height.
+        assert_eq!(size("content_box")[1], child_height, "{name} at {scale}x");
+    }
+}

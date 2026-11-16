@@ -63,6 +63,7 @@ impl Default for ResizeObservation {
         }
     }
 }
+
 /// Blink 147 `SnapSizeToPixel` (`layout_unit.h`).
 fn snap_size_to_pixel(size: LayoutUnit, location: LayoutUnit) -> i32 {
     let fraction = location.fraction();
@@ -172,7 +173,21 @@ impl Engine {
         let mode = style.writing_mode;
         let horizontal = mode == WritingMode::HorizontalTb;
         let parts = source_parts(&boxes, horizontal);
-        let border_box = stitched_size(&parts, mode);
+        let mut border_box = stitched_size(&parts, mode);
+        // A native document's root is both the viewport and the root element.
+        // Its scrollbars are the viewport's, outside the element's box: the
+        // browser's `<html>` fills the initial containing block inside them,
+        // as Div lays out the root's content. The root's scroll area's client
+        // rect is that area. Chromium 147's sizes for `<html>` are in
+        // `tests/fidelity/fixtures/resize-observer-root-v1`.
+        if node == self.document.root() && self.document.document_element().is_none() {
+            if let Some(area) = first.scroll_area {
+                border_box = PhysicalSize::new(
+                    border_box.width.min_of(area.client_rect.width()),
+                    border_box.height.min_of(area.client_rect.height()),
+                );
+            }
+        }
         // A stitched box keeps each physical used edge of its continuations.
         let mut border = BoxStrut::zero();
         let mut padding = BoxStrut::zero();
@@ -407,6 +422,44 @@ mod tests {
         assert!(client_width < 108.0, "the gutter takes inline space");
         assert_eq!(observation.border_box, size(108.0, 58.0));
         assert_eq!(observation.content_box, size(client_width - 8.0, 50.0));
+    }
+
+    #[test]
+    fn the_native_root_leaves_the_viewport_scrollbars_out() {
+        // The root is the viewport and the root element. Its scrollbars are
+        // the viewport's, outside the element's box, where the root's content
+        // is laid out: Chromium 147's `<html>` reports the same inline sizes
+        // (`tests/fidelity/fixtures/resize-observer-root-v1`).
+        let mut engine = engine(1.0);
+        let root = engine.root();
+        style(
+            &mut engine,
+            root,
+            &[
+                (StyleProperty::Border, "1px solid black"),
+                (StyleProperty::Padding, "5px"),
+            ],
+        );
+        let child = element(&mut engine, root, &[(StyleProperty::Height, "20px")]);
+        let visible = engine.resize_observation(root).unwrap();
+        assert_eq!(visible.border_box, size(320.0, 240.0));
+        assert_eq!(visible.content_box, size(308.0, 228.0));
+
+        style(&mut engine, root, &[(StyleProperty::Overflow, "scroll")]);
+        let scrolling = engine.resize_observation(root).unwrap();
+        let client_width = f64::from(engine.client_width(root).unwrap());
+        let client_height = f64::from(engine.client_height(root).unwrap());
+        assert!(client_width < 320.0, "the scrollbar takes inline space");
+        assert_eq!(scrolling.border_box, size(client_width, client_height));
+        assert_eq!(
+            scrolling.content_box,
+            size(client_width - 12.0, client_height - 12.0)
+        );
+        assert_eq!(
+            scrolling.content_box.inline_size,
+            f64::from(engine.client_width(child).unwrap()),
+            "the content box is where the root's content is laid out"
+        );
     }
 
     #[test]

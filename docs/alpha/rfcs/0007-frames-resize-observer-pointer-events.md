@@ -157,10 +157,27 @@ impl ResizeObserver {
   `a_target_is_delivered_when_first_observed_and_when_it_resizes` in
   `crates/divui/tests/resize_observer.rs` observes the content box only
   and checks the device-pixel size.)
-- Each entry carries one size per box. Div does not fragment boxes, so the
-  web's arrays always have one element.
+- Each entry carries one size per box, where the web has arrays. Chromium
+  147 reports one size per entry, stitched across a box's fragments (such
+  as multicolumn continuations), and Div stitches them the same way.
 - An observer that is dropped stops observing, as a garbage-collected
   observer does. Callbacks run with the document current and untracked.
+- Observing a native document's root (`Document::body`) reports the
+  browser's `<html>`. The root is both the viewport and the root element,
+  and the viewport's scrollbars are outside its box, so with a scrollbar its
+  border box is the viewport's client area. (Added after the 0.11 PR's
+  engine review.) The oracle, pinned Chromium 147 on Windows at a 200 × 100
+  viewport, is `tests/fidelity/fixtures/resize-observer-root-v1`, and the
+  test `the_native_root_matches_chromium_for_the_root_element` checks Div
+  against it. At 1x the inline sizes match exactly: 185 and 173 with a
+  scrollbar. Two gaps remain:
+  - `root-block-size`: the root's block size is the viewport's, less a
+    horizontal scrollbar, where `<html>`'s `auto` height is its content's
+    (border box 100, 85 and 100 against 32, 32 and 512).
+  - `device-scale-edges`: at 1.25x Chromium lays out at device scale, so a
+    1px border takes 0.8px and the scrollbar 15.2px (inline content box
+    188.39 and 173.19 against Div's 188 and 173). Div lays out in CSS
+    pixels at every scale. This is engine-wide.
 
 ### 4. Pointer Events (Q6)
 
