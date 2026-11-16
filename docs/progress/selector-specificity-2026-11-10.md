@@ -69,6 +69,14 @@ It also has 18 selectors that Chromium drops.
 | Div: touched crates | `cargo test --locked -p div-macros -p div-style -p div-style-derive -p divui --no-fail-fast` (Windows) | 457 passed, 0 failed, 12 ignored (as in Open UI) |
 | Div: `div-style` with the feature | `cargo test --locked -p div-style --features constructor-tokens --lib` (Windows) | 124 passed, 0 failed (as in Open UI) |
 | Div: generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check` | pass |
+| Div: expanded census (WSL) | `run_renderer_matrix.py --suite expanded`, head `9d9ecbb3` (#16–#19 together, on `5a315f42`), against the run of `5b7b8e47`, whose engine code was `main`'s | 22,519 of 23,728 exact before and after; Chromium identical in all comparisons; 0 Div images changed ([delta](evidence/selector-stack-div-census-v1.json)) |
+| Div: CSS Grid coverage (WSL) | coverage matrix, same head and base | 2,227 of 4,204 exact before and after; 0 statuses or Div images changed ([delta](evidence/selector-stack-div-coverage-v1.json)) |
+
+The Div census measured the four selector PRs together, at the head of
+#19, which contains this change. Nothing renders from selectors yet, so it
+checks that rendering is unchanged. The stack was then rebased on
+`dd8ba04d`, which adds build-with-div/div#33, #39 and #41; none of them
+touches selectors. The receipts are in div-fidelity-data `1c158de0`.
 
 The paired expanded census in WSL has no change. The base is `9d7bccf6`,
 the recorded census base; the head is `4022b7e9`, this change. Both are
