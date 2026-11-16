@@ -9,8 +9,13 @@ attestation identity.
 The CI, Format Check and v0.2 Hardening workflows accept PRs targeting `main`.
 Use one PR at a time and merge it before starting the next task. Push-only
 checks remain restricted to `main`. The user explicitly accepted the
-17 October experimental baseline with its documented native clipping failure;
-that integration does not turn failing checks green or waive release gates.
+17 October experimental baseline with its documented native clipping failure.
+That test,
+`actual_native_scrollbar_frames_are_clipped_independently_of_track_and_thumb_ink`
+in `crates/div-engine/tests/native_resize_control_clip.rs`, now passes in
+both the `rust-parity` (Linux) and `windows-msvc` jobs (`main` CI run
+43775715818 at `dd8ba04`). The baseline does not turn failing checks green or
+waive release gates.
 
 `.github/workflows/ci.yml` runs:
 

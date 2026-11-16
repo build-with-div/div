@@ -96,5 +96,8 @@ exactness gate. Engine changes must show no census or coverage regression
 
 Keep each PR focused on one repair or coherent feature. Stop feature work at
 a requested review checkpoint; do not grow a paused PR with unrelated work.
-Keep the known native clipping failure documented; this experimental
-integration does not establish renderer or release qualification.
+The native clipping test that failed at the 17 October checkpoint
+(`actual_native_scrollbar_frames_are_clipped_independently_of_track_and_thumb_ink`
+in `crates/div-engine/tests/native_resize_control_clip.rs`) now passes on
+Linux and Windows CI. This experimental integration still does not establish
+renderer or release qualification.
