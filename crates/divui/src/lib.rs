@@ -49,6 +49,7 @@
 //! | [`Document`] | Native retained document and rendering context |
 //! | [`Element`] | A node in the retained document tree |
 //! | [`TextNode`] | Native text data that can be created, edited, attached, and moved |
+//! | [`AnimationFrameHandle`] | A callback from [`Document::request_animation_frame`], run at the next frame |
 //!
 //! ## View system
 //!
@@ -74,6 +75,8 @@ pub mod signal;
 
 // ─── DOM wrapper modules ────────────────────────────────────
 
+mod animation_frame;
+pub use animation_frame::AnimationFrameHandle;
 mod animation_timeline;
 pub use animation_timeline::AnimationTimelineBinding;
 

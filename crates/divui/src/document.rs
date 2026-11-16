@@ -104,6 +104,7 @@ pub(crate) struct DocumentInner {
     composition_generation: Cell<u64>,
     modal_generation: Cell<u64>,
     animation_events: RefCell<Vec<AnimationEvent>>,
+    pub(crate) animation_frames: RefCell<crate::animation_frame::AnimationFrameCallbacks>,
     active_clicks: RefCell<HashSet<NodeHandle>>,
     selection_tasks: selection_tasks::SelectionTasks,
     transaction_depth: Cell<usize>,
@@ -202,6 +203,7 @@ impl Document {
                 composition_generation: Cell::new(0),
                 modal_generation: Cell::new(0),
                 animation_events: RefCell::new(Vec::new()),
+                animation_frames: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
@@ -234,6 +236,7 @@ impl Document {
                 composition_generation: Cell::new(0),
                 modal_generation: Cell::new(0),
                 animation_events: RefCell::new(Vec::new()),
+                animation_frames: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
@@ -998,9 +1001,15 @@ impl Document {
         Ok(std::mem::take(&mut *events))
     }
 
+    /// Run the steps of one frame at `time_ms`, in the order of HTML's
+    /// "update the rendering": the pending scroll and selection events, the
+    /// animations and their events, the animation frame callbacks
+    /// ([`request_animation_frame`](Self::request_animation_frame)), then
+    /// style and layout. Painting follows, by the caller.
     pub fn begin_frame(&self, time_ms: f64) -> Result<(), Error> {
         self.dispatch_pending_events()?;
         self.advance_time(time_ms)?;
+        self.run_animation_frame_callbacks(time_ms);
         self.update_all()
     }
 

@@ -286,6 +286,20 @@ pub(crate) fn signal_exists(id: SignalId) -> bool {
     })
 }
 
+/// Run `f` outside any effect, so the signals it reads gain no subscriber.
+/// The running effect is restored afterwards, also when `f` panics.
+pub(crate) fn untracked<R>(f: impl FnOnce() -> R) -> R {
+    struct Restore(Option<EffectId>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            let effect = self.0.take();
+            RUNTIME.with(|rt| rt.borrow_mut().current_effect = effect);
+        }
+    }
+    let _restore = Restore(RUNTIME.with(|rt| rt.borrow_mut().current_effect.take()));
+    f()
+}
+
 pub(crate) fn flush_pending() {
     loop {
         let next = RUNTIME.with(|rt| {
