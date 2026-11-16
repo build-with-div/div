@@ -101,7 +101,10 @@ section 3 specifies, with the engine part in this PR as the parent agreed
 
 - **Engine** (`crates/div-engine/src/resize_observation.rs`, new; a
   `mod` and re-export in `lib.rs`; `collect_boxes`, `source_parts` and
-  `stitched_size` in `element_dimensions.rs` become `pub(crate)`):
+  `stitched_size` in `element_dimensions.rs` become `pub(crate)`;
+  `docs/renderer/generated/author-style-inventory.json` is regenerated with
+  `generate_renderer_contract.py`'s `style_inventory`, which lists the new
+  file as a reader of three style fields):
   `Engine::resize_observation(handle) -> ResizeObservation`, read-only after
   layout. It reports Chromium 147's `ResizeObserverUtilities` and
   `ResizeObserverEntry` values (`third_party/blink/renderer/core/resize_observer/`):
