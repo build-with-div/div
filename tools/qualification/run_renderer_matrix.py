@@ -290,7 +290,10 @@ def chromium_oracle_identity(
     cause Chromium's expected pixels to be recaptured.
     """
     return {
-        "schema_version": 1,
+        # Schema 2 (RFC 0010) names how the scale was set; no emulated
+        # (schema 1) oracle can satisfy a real-zoom lookup.
+        "schema_version": 2,
+        "device_scale_method": pixel_runner.device_scale_method(profile.scale),
         "chromium_binary_sha256": cache_base["chromium_binary_sha256"],
         "chromium_build_identity": cache_base["chromium_build_identity"],
         "chromium_capture_harness_sha256": cache_base[
@@ -1066,6 +1069,11 @@ def main() -> None:
                 "chromium_capture_harness_sha256"
             ],
             "oracle_cache": str(oracle_cache_dir.resolve()),
+            # RFC 0010: real zoom at every scale other than 1.
+            "device_scale_methods": {
+                profile.name: pixel_runner.device_scale_method(profile.scale)
+                for profile in profiles
+            },
         },
         "openui": {
             "binary_sha256": openui_binary_sha256,

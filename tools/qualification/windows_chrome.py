@@ -52,7 +52,7 @@ def verify_chrome(chrome: Path) -> Path:
 
 
 class WindowsChrome:
-    """One headless browser with an emulated viewport and device scale."""
+    """One headless browser with a fixed viewport at the requested device scale."""
 
     def __init__(self, chrome: Path, width: int, height: int, scale: float,
                  extra_args: tuple[str, ...] = ()):
@@ -65,12 +65,16 @@ class WindowsChrome:
         self.profile = tempfile.mkdtemp(prefix="openui-win-chrome-")
 
     def __enter__(self) -> "WindowsChrome":
-        physical = (int(self.width * self.scale + 0.5), int(self.height * self.scale + 0.5))
+        # The same launch as the Linux oracle: real zoom at any scale other
+        # than 1 (RFC 0010), with CDP fixing only the viewport size.
+        scale_flags, self._viewport_override = self._harness.device_scale_launch(
+            self.width, self.height, self.scale
+        )
         self.process = subprocess.Popen(
             [str(self.chrome), "--headless", "--disable-gpu", "--no-sandbox", "--no-first-run",
              "--no-default-browser-check", "--remote-debugging-port=0",
              f"--user-data-dir={self.profile}",
-             f"--window-size={physical[0]},{physical[1] + 87}", *self.extra_args, "about:blank"],
+             *scale_flags, *self.extra_args, "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
@@ -78,10 +82,7 @@ class WindowsChrome:
         port = h._wait_for_devtools_endpoint(self.profile, self.process, timeout=30)
         self.client = h._CdpWebSocket(h._page_websocket_url(port, timeout=30))
         self.client.command("Page.enable")
-        self.client.command("Emulation.setDeviceMetricsOverride", {
-            "width": self.width, "height": self.height, "deviceScaleFactor": self.scale,
-            "mobile": False, "screenWidth": self.width, "screenHeight": self.height,
-        })
+        self.client.command("Emulation.setDeviceMetricsOverride", self._viewport_override)
         version = self.client.command("Browser.getVersion")
         if CHROMIUM_VERSION not in version.get("product", ""):
             raise SystemExit(f"unexpected browser version: {version}")

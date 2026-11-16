@@ -735,6 +735,51 @@ def _stop_chromium_process(process):
                 time.sleep(0.01)
 
 
+def device_scale_method(device_scale):
+    """Name how a capture at this scale sets the page's device scale.
+
+    RFC 0010: at scale 1 nothing is emulated (`none`); at any other scale the
+    browser runs at real zoom, `--force-device-scale-factor` (`forced`).
+    """
+    return "none" if float(device_scale) == 1.0 else "forced"
+
+
+def device_scale_launch(logical_width, logical_height, device_scale):
+    """Return the window flags and CDP viewport override for one capture.
+
+    At scale 1 the window holds the physical frame and CDP installs the
+    viewport at DPR 1, as before RFC 0010. At any other scale Chromium runs
+    at real zoom: `--force-device-scale-factor` sets the browser's own device
+    scale, so Blink lays out in device pixels as on a high-DPI display, and
+    the CDP override fixes only the viewport size (`deviceScaleFactor: 0`
+    keeps the forced scale). Headless window sizing alone cannot give the
+    viewport, because it snaps to device pixels (a 1278 or 1279 DIP window is
+    1279.2 or 1281.6 CSS px wide at 1.25x); the window is made large enough
+    to hold it.
+    """
+    width, height = int(logical_width), int(logical_height)
+    if device_scale_method(device_scale) == "none":
+        physical_width = int(logical_width * device_scale + 0.5)
+        physical_height = int(logical_height * device_scale + 0.5)
+        flags = [f"--window-size={physical_width},{physical_height + 87}"]
+        scale_override = float(device_scale)
+    else:
+        flags = [
+            f"--force-device-scale-factor={float(device_scale):g}",
+            f"--window-size={max(width, 500) + 16},{max(height, 300) + 160}",
+        ]
+        scale_override = 0
+    override = {
+        "width": width,
+        "height": height,
+        "deviceScaleFactor": scale_override,
+        "mobile": False,
+        "screenWidth": width,
+        "screenHeight": height,
+    }
+    return flags, override
+
+
 def render_chrome(
     html_file, output_png, chrome_bin, chrome_dir, use_ahem_noaa=False,
     use_real_font=False, use_freetype_backend=False, use_sp18_features=False,
@@ -742,11 +787,12 @@ def render_chrome(
 ):
     """Render HTML with Chrome headless.
 
-    Device metrics are applied through CDP before navigation. Chromium's
+    The viewport is installed through CDP before navigation. Chromium's
     command-line window sizing has a 500-CSS-pixel minimum, which would make a
     nominal 375px profile render a 500px layout viewport and merely crop the
-    result. Capturing the emulated viewport also avoids virtual-toolbar and
-    platform-window-size dependencies.
+    result. Capturing the CDP viewport also avoids virtual-toolbar and
+    platform-window-size dependencies. The device scale comes from
+    `device_scale_launch`: real zoom at any scale other than 1 (RFC 0010).
     """
     try:
         env = chrome_environment(chrome_dir, use_ahem_noaa, use_real_font)
@@ -756,6 +802,9 @@ def render_chrome(
         return False
     physical_width = int(logical_width * device_scale + 0.5)
     physical_height = int(logical_height * device_scale + 0.5)
+    scale_flags, viewport_override = device_scale_launch(
+        logical_width, logical_height, device_scale
+    )
     process = None
     client = None
     try:
@@ -769,10 +818,8 @@ def render_chrome(
                 "--no-default-browser-check",
                 "--remote-debugging-port=0",
                 f"--user-data-dir={profile_dir}",
-                # Allocate a backing surface at least as large as the emulated
-                # physical viewport. The host window remains DPR 1; CDP owns
-                # the page DPR and logical viewport below.
-                f"--window-size={physical_width},{physical_height + 87}",
+                # The window holds the viewport; see device_scale_launch.
+                *scale_flags,
                 "about:blank",
             ]
             if use_sp18_features:
@@ -796,17 +843,7 @@ def render_chrome(
             client = _CdpWebSocket(_page_websocket_url(port))
             runtime.callback(_close_chromium_client, client)
             client.command("Page.enable")
-            client.command(
-                "Emulation.setDeviceMetricsOverride",
-                {
-                    "width": int(logical_width),
-                    "height": int(logical_height),
-                    "deviceScaleFactor": float(device_scale),
-                    "mobile": False,
-                    "screenWidth": int(logical_width),
-                    "screenHeight": int(logical_height),
-                },
-            )
+            client.command("Emulation.setDeviceMetricsOverride", viewport_override)
             page_url = "file:" + urllib.request.pathname2url(os.path.abspath(html_file))
             client.command("Page.navigate", {"url": page_url})
             metrics_result = client.command(

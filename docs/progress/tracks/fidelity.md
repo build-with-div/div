@@ -4,6 +4,55 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## 16 November 2026: Chromium oracles at real zoom above scale 1 (RFC 0010)
+
+- **What:** the shared launcher `render_chrome`
+  (`tools/accountability/run_all_pixel_comparisons.py`) and
+  `tools/qualification/windows_chrome.py` capture every scale other than 1
+  with `--force-device-scale-factor` and a viewport-only
+  `Emulation.setDeviceMetricsOverride` (`deviceScaleFactor: 0`), as
+  RFC 0010 specifies. Scale 1 is unchanged. The census oracle identity
+  (schema 2) and the summary's `chromium` block record
+  `device_scale_method` (`none` or `forced`), so no emulated frame can
+  satisfy a real-zoom lookup.
+- **Reproduction:** 30 census ids that differ between the two methods, at
+  all four profiles: every 1x frame (30) is byte-identical to the earlier
+  census, and every non-1x frame that the 16 November forced-scale
+  measurement captured (69) matches it.
+- **Census and CSS Grid coverage at the new oracle** (Linux, 16 jobs,
+  under the census lock, launcher `19269a7` on main `154d0a7`), next to
+  the emulated run of the same Div output (`a9e9a46`); Div's frames are
+  byte-identical in both runs:
+
+  | Profile | Census exact, emulated → real zoom | Coverage exact, emulated → real zoom |
+  | --- | --- | --- |
+  | legacy-800x600@1 | 5,888 → 5,888 | 572 → 572 |
+  | mobile-375x667@2 | 5,767 → 5,153 | 567 → 487 |
+  | desktop-1280x720@1.25 | 5,344 → 2,183 | 529 → 183 |
+  | desktop-1920x1080@1.5 | 5,540 → 3,063 | 559 → 217 |
+  | Total | 22,539 → 16,287 of 23,728 | 2,227 → 1,459 of 4,204 |
+
+  Every 1x Chromium frame is byte-identical to the emulated run (5,932
+  census; 1,012 coverage, with the same 39 errors in both). This is the
+  new baseline for "no regressions" (D4). The drop is the oracle, not
+  Div: Div lays out in CSS px and replays paint at the scale, which
+  matches emulation. Closing it is layout in device pixels (RFC 0011,
+  engine) and device-pixel edge snapping.
+- **Evidence:** per-profile, per-area and per-row results in
+  [`archive/docs/progress/evidence/real-zoom-baseline-2026-11-16/`](https://github.com/build-with-div/div-fidelity-data/tree/c82502def3b921d2d46a6b2b4b2ca60ebaa6f843/archive/docs/progress/evidence/real-zoom-baseline-2026-11-16)
+  in build-with-div/div-fidelity-data at `c82502d`, pinned by
+  `fidelity-data.lock`.
+- **Verification:** `python3 -m unittest
+  tools.accountability.test_chromium_capture
+  tools.qualification.test_windows_chrome
+  tools.qualification.test_renderer_matrix` (Linux).
+- **Not affected:** the canvas (#48) and SVG (#49) lanes capture
+  their oracles at scale 1 only, so they need no recapture.
+- **Remaining:** each owner's non-1x oracles, per the RFC 0010 inventory.
+  The fidelity lane's own: the fractional-edges probe (#53, recaptured on
+  its rebase), `webfont-fontations-v1`, the site showcase PNG and the
+  Windows text values.
+
 ## 15 November 2026: root causes of the remaining census differences
 
 - **What:** a classification of all 1,209 non-exact census rows (703 tests)
