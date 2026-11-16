@@ -140,3 +140,10 @@ on branch `components/c4-assets` and the shared findings note.
   `:read-write` and `:required` from the engine's form control state,
   checked against pinned Chromium; the sixth A1 step.
   [Record](../form-state-pseudo-classes-2026-11-10.md).
+- 16 November 2026: grid auto-placement starts from the first cell, as
+  in Chromium: items with a definite position no longer move the
+  auto-placement cursor, so the shadcn card header (`card-action`) is 44px
+  tall, not 52px. Checked against four grids measured in pinned Chromium and
+  the components track's card-action rectangles at 1x. Census and CSS Grid
+  coverage run once the census lock frees.
+  [Record](../grid-auto-placement-cursor-2026-11-10.md).
