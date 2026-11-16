@@ -26,6 +26,7 @@ pub mod selector;
 #[cfg(feature = "constructor-tokens")]
 #[doc(hidden)]
 pub mod selector_parser;
+pub mod stylesheet;
 mod transform_composition;
 mod transform_literal;
 mod typography;

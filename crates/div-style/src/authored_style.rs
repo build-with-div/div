@@ -34,7 +34,15 @@ impl CanonicalStyleFields {
         self.0.iter().all(|word| *word == 0)
     }
 
-    fn intersects(self, other: Self) -> bool {
+    pub fn union(self, other: Self) -> Self {
+        let mut fields = self;
+        for (word, other) in fields.0.iter_mut().zip(other.0) {
+            *word |= other;
+        }
+        fields
+    }
+
+    pub fn intersects(self, other: Self) -> bool {
         self.0
             .iter()
             .zip(other.0)

@@ -547,6 +547,10 @@ impl Engine {
             }
             PointerEventKind::Move => None,
         };
+        // A press, release or cancel changes `:active`.
+        if kind != PointerEventKind::Move {
+            self.note_selector_state_change();
+        }
         Ok(update)
     }
 
@@ -588,6 +592,10 @@ impl Engine {
         } else {
             old_path.first().copied()
         };
+        // `:hover` follows the hover path.
+        if !left.is_empty() || !entered.is_empty() || clear {
+            self.note_selector_state_change();
+        }
         Ok(PointerUpdate {
             target,
             previous_target,
@@ -662,6 +670,7 @@ impl Engine {
         self.pointer_capture.remove(&pointer_id);
         self.active_pointers.remove(&pointer_id);
         self.hover_paths.remove(&pointer_id);
+        self.note_selector_state_change();
     }
 
     /// The point (x, y) in `handle`'s padding box, through its transforms,
@@ -701,6 +710,7 @@ impl Engine {
     /// pointer capture are kept: a leave is not a cancel, and a later
     /// pointer-up still ends the press.
     pub fn pointer_leave(&mut self, pointer_id: u64) -> PointerUpdate {
+        self.note_selector_state_change();
         let left = self.hover_paths.remove(&pointer_id).unwrap_or_default();
         let previous_target = if self.pointers.hover_target_removed.remove(&pointer_id) {
             None
@@ -744,6 +754,7 @@ impl Engine {
                 }
             }
             self.focused = Some(handle);
+            self.note_selector_state_change();
             match origin {
                 FocusOrigin::Pointer => {
                     self.last_focus_from_pointer = true;
@@ -1590,6 +1601,7 @@ impl Engine {
         if control.indeterminate != indeterminate {
             control.indeterminate = indeterminate;
             self.document.node_mut(node).form_control_indeterminate = Some(indeterminate);
+            self.note_selector_state_change();
             self.mark_dirty(div_style::InvalidationClass::Paint);
         }
         Ok(())
@@ -1868,6 +1880,8 @@ impl Engine {
     }
 
     fn sync_live_checkable_paint_state(&mut self, handle: NodeHandle) {
+        // Every checked and indeterminate change paints through here.
+        self.note_selector_state_change();
         if let (Some(control), Some(node)) = (
             self.controls.get(&handle.index),
             self.slots[handle.index as usize].node,
@@ -1991,6 +2005,8 @@ impl Engine {
     }
 
     fn sync_selection_attributes(&mut self, handle: NodeHandle) {
+        // Edits change `:placeholder-shown`; every edit path syncs here.
+        self.note_selector_state_change();
         let Some(control) = self.controls.get(&handle.index) else {
             return;
         };

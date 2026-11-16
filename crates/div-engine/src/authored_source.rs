@@ -2,7 +2,8 @@
 use crate::{Engine, EngineError};
 use div_dom::NodeId;
 use div_style::{
-    AuthoredStyleDeclarations, ComputedStyle, Display, Style, StyleProperty, StyleValue,
+    AuthoredStyleDeclarations, CanonicalStyleFields, ComputedStyle, Display, Style, StyleProperty,
+    StyleValue,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -111,20 +112,29 @@ impl Engine {
                 if !slot.native_source.is_snapshot() {
                     source.inherit_properties_from(&parent);
                 }
+                let cascaded = self.cascaded_declarations(index)?;
                 let base = self.resolve_native_declarations(
                     source,
-                    slot.authored.contributions(),
+                    cascaded.declarations.contributions(),
                     &parent,
                     root_font,
                     viewport,
                     node == self.document.root(),
                 )?;
-                let font_effects = self
-                    .animation_values_for_node(index, &base, &parent, root_font, viewport, true);
+                // Animations rank below `!important` declarations.
+                let font_effects: Vec<_> = self
+                    .animation_values_for_node(index, &base, &parent, root_font, viewport, true)
+                    .into_iter()
+                    .filter(|(property, _)| {
+                        !cascaded
+                            .important
+                            .intersects(CanonicalStyleFields::for_property(*property))
+                    })
+                    .collect();
                 let mut style = if font_effects.is_empty() {
                     base.clone()
                 } else {
-                    let mut declarations = slot.authored.clone();
+                    let mut declarations = cascaded.declarations.clone().into_owned();
                     for (property, value) in font_effects {
                         declarations
                             .try_set_validated(property, value)
@@ -142,6 +152,12 @@ impl Engine {
                 for (property, value) in self
                     .animation_values_for_node(index, &style, &parent, root_font, viewport, false)
                 {
+                    if cascaded
+                        .important
+                        .intersects(CanonicalStyleFields::for_property(property))
+                    {
+                        continue;
+                    }
                     div_style::apply_to_computed(&mut style, property, &value, viewport)
                         .map_err(|_| EngineError::PropertyType { property })?;
                 }
@@ -289,7 +305,9 @@ impl Engine {
         }
         self.resolve_native_declarations(
             style,
-            slot.authored.contributions(),
+            self.cascaded_declarations(index)?
+                .declarations
+                .contributions(),
             &parent,
             root_font,
             (

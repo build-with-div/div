@@ -12,18 +12,21 @@ mod forms;
 mod hit_geometry;
 mod interaction;
 mod resize_observation;
+mod rule_cascade;
 mod scroll_button;
 mod scroll_into_view;
 mod scroll_notifications;
 mod scroll_overflow;
 mod selector_match;
 mod table_spans;
+use rule_cascade::SelectorChange;
 
 pub use scroll_button::{
     ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState, ScrollSnapStrictness,
 };
 
 pub use resize_observation::{LogicalBoxSize, ResizeObservation};
+pub use rule_cascade::{StyleSheetError, StyleSheetId};
 
 pub use scroll_into_view::{ScrollAlignment, ScrollIntoViewContainer, ScrollIntoViewOptions};
 pub use selector_match::SelectorMatchError;
@@ -297,6 +300,8 @@ struct Slot {
     node: Option<NodeId>,
     native_source: NativeStyleSource,
     authored: AuthoredStyleDeclarations,
+    /// Presentational hints, which rank below every author rule.
+    presentational_hints: AuthoredStyleDeclarations,
     authored_pseudo: [Option<Style>; 4],
     // The current unanimated computed source is distinct from presentation.
     // It survives inactive/forwards-filled effects until the final owner leaves.
@@ -401,6 +406,9 @@ pub struct Engine {
     next_scroll_animation_id: u64,
     reduced_motion: bool,
     stats: LifecycleStats,
+    rule_set: rule_cascade::RuleSet,
+    /// Interaction or form state changed under rules that read it.
+    selector_restyle_pending: bool,
     _thread_affine: PhantomData<Rc<()>>,
 }
 
@@ -445,6 +453,7 @@ impl Engine {
             node: Some(root_node),
             native_source: NativeStyleSource::Defaults(document.node(root_node).style.clone()),
             authored: AuthoredStyleDeclarations::default(),
+            presentational_hints: AuthoredStyleDeclarations::default(),
             authored_pseudo: Default::default(),
             animation_base_style: None,
             animation_properties: BTreeSet::new(),
@@ -497,6 +506,8 @@ impl Engine {
             next_scroll_animation_id: 1,
             reduced_motion: false,
             stats: LifecycleStats::default(),
+            rule_set: Default::default(),
+            selector_restyle_pending: false,
             _thread_affine: PhantomData,
         })
     }
@@ -830,6 +841,7 @@ impl Engine {
             slot.native_source =
                 NativeStyleSource::Defaults(self.document.node(node).style.clone());
             slot.authored = AuthoredStyleDeclarations::default();
+            slot.presentational_hints = AuthoredStyleDeclarations::default();
             slot.authored_pseudo = Default::default();
             slot.animation_base_style = None;
             slot.animation_properties.clear();
@@ -841,6 +853,7 @@ impl Engine {
                 node: Some(node),
                 native_source: NativeStyleSource::Defaults(self.document.node(node).style.clone()),
                 authored: AuthoredStyleDeclarations::default(),
+                presentational_hints: AuthoredStyleDeclarations::default(),
                 authored_pseudo: Default::default(),
                 animation_base_style: None,
                 animation_properties: BTreeSet::new(),
@@ -874,6 +887,7 @@ impl Engine {
         self.relocate_owned_scroll_buttons()?;
         self.refresh_inherited_styles(child_node)?;
         self.reconcile_radio_subtree(child_node)?;
+        self.restyle_for_selectors(SelectorChange::Children(parent_node))?;
         self.mark_dirty(InvalidationClass::Subtree);
         Ok(())
     }
@@ -1008,12 +1022,17 @@ impl Engine {
         self.validate_append_or_move_child(parent, child)?;
         let parent_node = self.resolve(parent)?;
         let child_node = self.resolve(child)?;
+        let former_parent = self.document.node(child_node).parent;
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         self.document.append_child(parent_node, child_node);
         self.relocate_owned_scroll_buttons()?;
         self.refresh_inherited_styles(child_node)?;
         self.reconcile_radio_subtree(child_node)?;
+        self.restyle_for_selectors(SelectorChange::Children(parent_node))?;
+        if !former_parent.is_none() && former_parent != parent_node {
+            self.restyle_for_selectors(SelectorChange::Children(former_parent))?;
+        }
         self.mark_dirty(InvalidationClass::Subtree);
         Ok(())
     }
@@ -1036,6 +1055,7 @@ impl Engine {
         } else {
             before_node
         };
+        let former_parent = self.document.node(child_node).parent;
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         if insertion_point.is_none() {
@@ -1046,6 +1066,10 @@ impl Engine {
         self.relocate_owned_scroll_buttons()?;
         self.refresh_inherited_styles(child_node)?;
         self.reconcile_radio_subtree(child_node)?;
+        self.restyle_for_selectors(SelectorChange::Children(parent_node))?;
+        if !former_parent.is_none() && former_parent != parent_node {
+            self.restyle_for_selectors(SelectorChange::Children(former_parent))?;
+        }
         self.mark_dirty(InvalidationClass::Subtree);
         Ok(())
     }
@@ -1115,6 +1139,10 @@ impl Engine {
             self.slots[duplicate.index as usize].native_source =
                 self.slots[original.index as usize].native_source.clone();
             self.slots[duplicate.index as usize].authored = authored;
+            self.slots[duplicate.index as usize].presentational_hints = self.slots
+                [original.index as usize]
+                .presentational_hints
+                .clone();
             self.slots[duplicate.index as usize].authored_pseudo =
                 self.slots[original.index as usize].authored_pseudo.clone();
             if let Some(mut control) = control {
@@ -1187,6 +1215,7 @@ impl Engine {
         }
         let mut descendants = Vec::new();
         self.collect_subtree(node, &mut descendants);
+        let former_parent = self.document.node(node).parent;
         self.document.detach(node);
         self.relocate_owned_scroll_buttons()?;
         let detached_handles: Vec<_> = descendants
@@ -1197,6 +1226,8 @@ impl Engine {
         self.clear_subtree_presentation_state(&detached_handles);
         self.refresh_inherited_styles(node)?;
         self.remove_radio_subtree(node)?;
+        self.restyle_for_selectors(SelectorChange::Children(former_parent))?;
+        self.note_selector_state_change();
         self.mark_dirty(InvalidationClass::Subtree);
         Ok(())
     }
@@ -1257,6 +1288,7 @@ impl Engine {
         }
         let mut descendants = Vec::new();
         self.collect_subtree(node, &mut descendants);
+        let former_parent = self.document.node(node).parent;
         self.document.detach(node);
         let removed_handles: Vec<_> = descendants
             .iter()
@@ -1275,6 +1307,7 @@ impl Engine {
                 slot.node = None;
                 slot.native_source = NativeStyleSource::Defaults(ComputedStyle::initial());
                 slot.authored = AuthoredStyleDeclarations::default();
+                slot.presentational_hints = AuthoredStyleDeclarations::default();
                 slot.authored_pseudo = Default::default();
                 slot.animation_base_style = None;
                 slot.animation_properties.clear();
@@ -1290,6 +1323,10 @@ impl Engine {
         }
         self.scene_registry.retire(&removed_handles);
         self.scroll_notifications.retire(&removed_handles);
+        if !former_parent.is_none() {
+            self.restyle_for_selectors(SelectorChange::Children(former_parent))?;
+        }
+        self.note_selector_state_change();
         self.mark_dirty(InvalidationClass::Subtree);
         Ok(())
     }
@@ -1390,6 +1427,8 @@ impl Engine {
         }
         self.sync_control_attribute(handle, &name, &value);
         let table_span = self.sync_table_span_attribute(node, &name, Some(&value));
+        self.restyle_for_selectors(SelectorChange::Element(node))?;
+        self.note_selector_state_change();
         self.mark_dirty(
             if name == "open" && self.document.node(node).tag == ElementTag::Details {
                 InvalidationClass::Subtree
@@ -1434,6 +1473,8 @@ impl Engine {
             }
             self.remove_control_attribute(handle, &name.to_ascii_lowercase());
             let table_span = self.sync_table_span_attribute(node, &name.to_ascii_lowercase(), None);
+            self.restyle_for_selectors(SelectorChange::Element(node))?;
+            self.note_selector_state_change();
             self.mark_dirty(
                 if name.eq_ignore_ascii_case("open")
                     && self.document.node(node).tag == ElementTag::Details
@@ -2286,8 +2327,9 @@ impl Engine {
         let mut current = Some(handle);
         while let Some(node) = current {
             self.resolve(node)?;
-            if let Some(cursor) = self.slots[node.index as usize]
-                .authored
+            if let Some(cursor) = self
+                .cascaded_declarations(node.index)?
+                .declarations
                 .contributions()
                 .iter()
                 .find_map(|contribution| {
@@ -2582,6 +2624,7 @@ impl Engine {
         self.resolve(handle)?;
         if self.focused == Some(handle) {
             self.focused = None;
+            self.note_selector_state_change();
             if let Ok(node) = self.resolve(handle) {
                 self.document
                     .node_mut(node)
@@ -2692,6 +2735,7 @@ impl Engine {
 
     fn update_once(&mut self) -> Result<&SceneSnapshot, EngineError> {
         self.synchronize_font_collection()?;
+        self.apply_pending_selector_restyle()?;
         if !self.dirty.layout && self.dirty.visual() {
             fn source_policy_changed(document: &NativeDocument, fragment: &Fragment) -> bool {
                 fragment
