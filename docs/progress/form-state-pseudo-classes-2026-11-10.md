@@ -61,6 +61,14 @@ and after each round
 | CSS Grid coverage (WSL) | coverage matrix, base `04d1eeab` | 2,218 of 4,204 exact before and after; 0 changed |
 | Div: touched crates | `cargo test --locked -p div-engine -p div-style -p divui --no-fail-fast` (Windows) | 905 passed, 0 failed, 11 ignored (as in Open UI) |
 | Div: generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check` (Windows) | pass |
+| Div: expanded census (WSL) | `run_renderer_matrix.py --suite expanded`, head `9d9ecbb3` (#16–#19 together, on `5a315f42`), against the run of `5b7b8e47`, whose engine code was `main`'s | 22,519 of 23,728 exact before and after; Chromium identical in all comparisons; 0 Div images changed ([delta](evidence/selector-stack-div-census-v1.json)) |
+| Div: CSS Grid coverage (WSL) | coverage matrix, same head and base | 2,227 of 4,204 exact before and after; 0 statuses or Div images changed ([delta](evidence/selector-stack-div-coverage-v1.json)) |
+
+The Div census measured the four selector PRs together, at the head of
+#19, which contains this change. Nothing renders from selectors yet, so it
+checks that rendering is unchanged. The stack was then rebased on
+`dd8ba04d`, which adds build-with-div/div#33, #39 and #41; none of them
+touches selectors. The receipts are in div-fidelity-data `1c158de0`.
 
 The native test makes each change with the engine's own call:
 `set_checked`, `set_indeterminate`, `set_control_value`, `set_attribute`
