@@ -682,6 +682,7 @@
         "crates/div-engine/src/authored_source.rs",
         "crates/div-engine/src/interaction.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/rule_cascade.rs",
         "crates/div-engine/src/scroll_notifications.rs"
       ],
       "css_name": "clear",
@@ -2633,6 +2634,7 @@
         "crates/div-engine/src/animation.rs",
         "crates/div-engine/src/interaction.rs",
         "crates/div-engine/src/lib.rs",
+        "crates/div-engine/src/rule_cascade.rs",
         "crates/div-engine/src/scroll_into_view.rs"
       ],
       "css_name": "position",
