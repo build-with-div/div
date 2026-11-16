@@ -1,0 +1,37 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux",
+ "device_scale": "CDP Emulation.setDeviceMetricsOverride, headless (tools/accountability/run_all_pixel_comparisons.py)",
+ "viewport": [
+  120,
+  80
+ ],
+ "scales": [
+  "1",
+  "1.25",
+  "1.5",
+  "2"
+ ],
+ "files": {
+  "single-1.png": "520931d8e8d996ebbb1e28c495c4d076549784b96482f06b551c67b58d68d594",
+  "single-1.25.png": "25f21b26cbbdf10739ae488f06cc84baf848e316dd0edb64b5167381e19ff505",
+  "single-1.5.png": "a3bfc57fafeb90eb1ad19d7402e143ef631930d50256631b18fce2ff707d7c4f",
+  "single-2.png": "403ae0b0ca9e52542f2a545618bcd2a70f3aa1b7f87b25adbb48fc3759567f64",
+  "abutting-1.png": "ebe704d75878c162e802b311e0416da74b948768e814724abc4df47f88ff682a",
+  "abutting-1.25.png": "080e2e9d92660a3fb5f32d4390e09336ec3fd8313bc2576fbfacca67fbce2e3c",
+  "abutting-1.5.png": "f7de05080dae95451a0cc4421fd36d9f8b5232b34d84d1329491f25844a53afa",
+  "abutting-2.png": "62a97e1c2ce4d530aac2bace4b371b0f783054470f389cfa158ac1645cb25ae2",
+  "multicol-1.png": "ebe704d75878c162e802b311e0416da74b948768e814724abc4df47f88ff682a",
+  "multicol-1.25.png": "080e2e9d92660a3fb5f32d4390e09336ec3fd8313bc2576fbfacca67fbce2e3c",
+  "multicol-1.5.png": "f7de05080dae95451a0cc4421fd36d9f8b5232b34d84d1329491f25844a53afa",
+  "multicol-2.png": "62a97e1c2ce4d530aac2bace4b371b0f783054470f389cfa158ac1645cb25ae2",
+  "caption-1.png": "6dbc6d149592f3b0af95d75c1769260e40719e7de7289aaecc51eea530682d94",
+  "caption-1.25.png": "7458fb120426807c6a2ddedb6b603a30d50c602dbcbceb1b79d65525dc379ae2",
+  "caption-1.5.png": "a2ff38dce6caa524b9f2d9fd2e4635ccd4a87d7b5f4e942671e70ce814832a96",
+  "caption-2.png": "d97c58936006bb382fb30938af9b400e9b5158d8183982150cdf77e2a60b6163",
+  "overflow-1.png": "ebe704d75878c162e802b311e0416da74b948768e814724abc4df47f88ff682a",
+  "overflow-1.25.png": "15717a23828f892175f782e5cc770c4fdea96feebd3100312993ce1f3bc029c2",
+  "overflow-1.5.png": "3535fceb194bd1a9211c1cf492a53df480327b55b2083704a36fdc85d4a36dcb",
+  "overflow-2.png": "62a97e1c2ce4d530aac2bace4b371b0f783054470f389cfa158ac1645cb25ae2"
+ }
+}

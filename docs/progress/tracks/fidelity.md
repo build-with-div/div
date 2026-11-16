@@ -134,3 +134,38 @@ style or the cascade go to the engine track.
   pixel; line-box metrics or layout, not rasterization. Monochrome web
   fonts keep FreeType; vertical web-font text and the div-components pages
   were not measured.
+
+## 16 November 2026: fractional box edges against the census oracle
+
+- **What:** a native test that compares box edges at fractional device
+  positions with pinned Chromium, pixel for pixel. It adds no code change.
+  Five 120x80 pages: a single box, two abutting boxes, a block split
+  across two columns, a table caption split across two columns, and an
+  absolutely positioned box whose child overflows into the next column
+  (`tests/fidelity/fixtures/fractional-edges-v1/pages.txt`). They are
+  captured at scales 1, 1.25, 1.5 and 2 by
+  `tools/qualification/capture_fractional_edges_oracle.py`; `--check`
+  recaptures them and requires identical files.
+- **Scope of the finding:** the frames are Chromium as the census oracle
+  captures it: pinned Chrome 147.0.7727.50, headless, with the device scale
+  factor set through CDP `Emulation.setDeviceMetricsOverride`. In those
+  frames Chromium snaps box rects in CSS pixels and antialiases edges that
+  then fall on fractional device positions: an edge at device x 56.25 has
+  coverage 0.25. Abutting edges, and the seam between two columns, leave a
+  conflation seam of 0.1875 white at 1.25x and 0.25 at 1.5x. This was not
+  measured for a real high-DPI display or any other emulation path.
+- **Result on main:** `single`, `abutting` and `multicol` are exact at all
+  four scales. `caption` (64 and 76 pixels at 1.25x and 1.5x) and
+  `overflow` (119 and 142) are pinned as gaps with their own counts.
+  Chromium paints each fragment from its own rect, so the column's first
+  and last rows have partial coverage. Div paints the box whole under a
+  fragmentainer clip that is snapped outward to device pixels and not
+  antialiased, which fills those rows fully. Owner: paint (fidelity lane).
+- **Verification:** `cargo test --locked -p divui --features divui/testing
+  --test native_fractional_edges` (Linux).
+- **Remaining:** the two pinned pages. Painting fragmented boxes from
+  their own fragment rects (fidelity lane, next PR) addresses the column
+  rows. Part of `overflow` is layout (engine): Div gives the 10px
+  positioned box a fragment as tall as each column, so its background
+  also paints at the bottom of the first column and down the second, which
+  adds a second antialiased layer at fractional edges.
