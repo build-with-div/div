@@ -4,6 +4,23 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## 16 November 2026: the site showcase at real zoom
+
+- **What:** `site/showcase/capture.py` rerun on the real-zoom launcher
+  (RFC 0010), which recaptures the 2x Chromium frame
+  `site/src/assets/showcase/example-chromium-light.png`. No Div code
+  changes.
+- **Result:** Chromium now places the edges of the boxes sized by their
+  text (the two buttons and the Live badge) one device pixel away. The
+  card's borders and the colors are unchanged. Div's frame differs from
+  the new one in 9,410 of 387,200 pixels (7,659 against the emulated
+  frame). The home page now says only the colors and the card's borders
+  match, and that text, and the buttons sized by it, can land a pixel off.
+  Owner of the remaining gap: engine (device-pixel layout, RFC 0011).
+- **Verification:** `python3 site/showcase/capture.py` (WSL, pinned Linux
+  Chrome-for-Testing 147.0.7727.50) run twice: both frames are
+  byte-identical (`81ca688c…`).
+
 ## 16 November 2026: text oracle values at real zoom on Linux and Windows
 
 - **What:** `tools/qualification/probe_windows_text_oracle.py` gains
