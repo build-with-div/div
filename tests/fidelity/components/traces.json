@@ -143,6 +143,37 @@
         {"press": "Tab"},
         {"click": "input#0"}
       ]
+    },
+    {
+      "id": "checkbox-keyboard",
+      "fixture": "checkbox-unchecked",
+      "description": "Tab to the checkbox, then Space checks it, Enter does nothing (Radix cancels its keydown) and Space unchecks it; the indicator comes and goes",
+      "steps": [
+        {"press": "Tab"},
+        {"press": " "},
+        {"press": "Enter"},
+        {"press": " "}
+      ]
+    },
+    {
+      "id": "checkbox-pointer",
+      "fixture": "checkbox-unchecked",
+      "description": "Click the checkbox twice, then Space checks it from the focus the click gave",
+      "steps": [
+        {"click": "checkbox#0"},
+        {"click": "checkbox#0"},
+        {"press": " "}
+      ]
+    },
+    {
+      "id": "checkbox-disabled",
+      "fixture": "checkbox-disabled",
+      "description": "A disabled checkbox: Tab finds nothing to focus, and a click and Space leave it unchecked",
+      "steps": [
+        {"press": "Tab"},
+        {"click": "checkbox#0"},
+        {"press": " "}
+      ]
     }
   ]
 }

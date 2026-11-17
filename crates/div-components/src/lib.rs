@@ -9,6 +9,7 @@
 mod badge;
 mod button;
 mod card;
+mod checkbox;
 mod css;
 pub mod fonts;
 mod input;
@@ -26,6 +27,7 @@ pub use card::{
     CardDescriptionProps, CardFooter, CardFooterProps, CardHeader, CardHeaderProps, CardProps,
     CardTitle, CardTitleProps,
 };
+pub use checkbox::{Checkbox, CheckboxProps};
 pub use fonts::register_fonts;
 pub use input::{Input, InputProps};
 pub use label::{Label, LabelProps};

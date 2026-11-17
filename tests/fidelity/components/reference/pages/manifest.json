@@ -1,6 +1,6 @@
 {
   "schema": "openui-components-reference-v1",
-  "package_lock_sha256": "93d1a093da22d87d8db2de61a7bf5e049600097974ce23d157a567c5c02a906f",
+  "package_lock_sha256": "1f1b02a57485f88c7ae80b17c0f7ca22c79f40f2dcb3474d4013ca81857cc906",
   "themes": [
     "light",
     "dark"
@@ -292,6 +292,76 @@
       "page": "card-basic-light.html"
     },
     {
+      "id": "checkbox-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "description": "Checkbox, checked",
+      "page": "checkbox-checked-dark.html"
+    },
+    {
+      "id": "checkbox-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "description": "Checkbox, checked",
+      "page": "checkbox-checked-light.html"
+    },
+    {
+      "id": "checkbox-disabled-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "description": "Checkbox, checked and disabled (opacity 50%)",
+      "page": "checkbox-disabled-checked-dark.html"
+    },
+    {
+      "id": "checkbox-disabled-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "description": "Checkbox, checked and disabled (opacity 50%)",
+      "page": "checkbox-disabled-checked-light.html"
+    },
+    {
+      "id": "checkbox-disabled-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "description": "Checkbox, unchecked and disabled (opacity 50%)",
+      "page": "checkbox-disabled-dark.html"
+    },
+    {
+      "id": "checkbox-disabled-light",
+      "component": "checkbox",
+      "theme": "light",
+      "description": "Checkbox, unchecked and disabled (opacity 50%)",
+      "page": "checkbox-disabled-light.html"
+    },
+    {
+      "id": "checkbox-invalid-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "description": "Checkbox, unchecked with aria-invalid (destructive border)",
+      "page": "checkbox-invalid-dark.html"
+    },
+    {
+      "id": "checkbox-invalid-light",
+      "component": "checkbox",
+      "theme": "light",
+      "description": "Checkbox, unchecked with aria-invalid (destructive border)",
+      "page": "checkbox-invalid-light.html"
+    },
+    {
+      "id": "checkbox-unchecked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "description": "Checkbox, unchecked",
+      "page": "checkbox-unchecked-dark.html"
+    },
+    {
+      "id": "checkbox-unchecked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "description": "Checkbox, unchecked",
+      "page": "checkbox-unchecked-light.html"
+    },
+    {
       "id": "font-geist-dark",
       "component": "font",
       "theme": "dark",
@@ -560,6 +630,18 @@
   ],
   "traces": [
     {
+      "id": "checkbox-disabled",
+      "component": "checkbox",
+      "description": "Checkbox, unchecked and disabled (opacity 50%)",
+      "page": "trace-checkbox-disabled.html"
+    },
+    {
+      "id": "checkbox-unchecked",
+      "component": "checkbox",
+      "description": "Checkbox, unchecked",
+      "page": "trace-checkbox-unchecked.html"
+    },
+    {
       "id": "input-disabled",
       "component": "input",
       "description": "Email input, disabled, showing its placeholder (opacity 50%)",
@@ -639,6 +721,16 @@
     "card-action-light.html": "c3a8fa9036bc2674ecccc6902c8ad4ab8d3045ca0ca256713c7ceaf1d9eafce3",
     "card-basic-dark.html": "e67cd4f56476239b0b4d891fdb12c8a5fdd49b80bf445b4d13d74135e7c75ec9",
     "card-basic-light.html": "24e75ce40abf379203397e107a9d09379212b57dc3ed6958de646423673757bc",
+    "checkbox-checked-dark.html": "e73b33a34504aef95e8fde24015125b3fa9e896b8e8cf5f2715d5bd44435ee0a",
+    "checkbox-checked-light.html": "fd68872e5cbc65ac16d2e913c0b087468e24936c3a0ba3bcf0dece3e7fd175b7",
+    "checkbox-disabled-checked-dark.html": "d49228e2478b13355dee24c88bb32714bc3ea0c28145f7521bd7961be3dbf882",
+    "checkbox-disabled-checked-light.html": "baf9e876c93c95cdfff35126bbbc61f8e9410879ce7e08f0bbfde04a03336a7b",
+    "checkbox-disabled-dark.html": "298c373f724525be01717c92a5c1c0a3f3eed9651c4226ce839c3d7fab556051",
+    "checkbox-disabled-light.html": "580bd35733fab31b3790958376409a242639630b801e6667daa52e66114bf8d5",
+    "checkbox-invalid-dark.html": "e93d2999546ddb53bc124f86629906dbc49a7eda09b1eda37e60a15eea630f84",
+    "checkbox-invalid-light.html": "4b2204534d601e38545ea6d3847047daaed6c08fbee5ac7803ca500d2513e8e2",
+    "checkbox-unchecked-dark.html": "2262a523ac40ef6ff66b59ec88280696a8c3d9ba25058807ecdfc2a034e0b8d5",
+    "checkbox-unchecked-light.html": "89d7f218d16af7b6001559d70cf8c68b8f5719273a6efc8808f214799ba0d220",
     "font-geist-dark.html": "7e407b617c9db706f8934b42b9551613256c76adad5882b4ee6abfb3b6d7f61e",
     "font-geist-light.html": "343ffae438160934786d9371f0bf0e00c3046284996a45c2998a4f1d8aa987b6",
     "font-geist-mono-dark.html": "99ce00d0959494d6a02dfae8783eff22103dbbb6e05365e8339c9b8e0379f018",
@@ -653,10 +745,10 @@
     "input-placeholder-light.html": "43f8d14b9f7700fdce1454b6cad6b5777b05a94d5cf6e6012c180f778370da16",
     "input-value-dark.html": "1193ee5377b18aff774b8b2b50d0eebdc59b894f9812b31b743f3421c54df9f6",
     "input-value-light.html": "a2eff25b2e145a8d47fb6d36800708bc5b1c620bf8dbe90b1cd9bcbe99787bbe",
-    "interactive.js": "5768f4961e1c1386a1c786ab0c0e4c73767ac8520e351a6c9bf34ec8c2a6b5f7",
+    "interactive.js": "610332bb827e2bc38afe8345a72715c05c03b83ea6a890bcb197a125d567bb41",
     "label-basic-dark.html": "78bc395f795fbb8e49b8e6e9fa1962ba5027ed702da63c93ec53817b73bb458e",
     "label-basic-light.html": "e8e584dce798e4482b8b1b54040f20b86fff45a811a89d46ce00ce54a7ec4c79",
-    "reference.css": "1b7864d2161745819dbcd80c16167e00e0d7d15180c48c54187fecc3e73a0da9",
+    "reference.css": "0bb334d9b77667073b3837637472df7065cf606ca1cfb2a7997d8492bee51247",
     "separator-horizontal-dark.html": "95bb49a8da4d9903a341e96b4890c17ab2d98ff0622a3b2d457ed0c81b86e2f1",
     "separator-horizontal-light.html": "ec9863927c8c7769f6a2c9797d5686f91cd230c6250d4002d05f0cce324d05d4",
     "separator-vertical-dark.html": "b979361064bbe3019425876d3fad7bf1a160e84011cf80a6bf49862946f35f7f",
@@ -680,6 +772,8 @@
     "tabs-vertical-dark.html": "149ca425b2f0ced6059e87de7bf6ba50c8a770ea347a90e06342205ca3c7f6cc",
     "tabs-vertical-light.html": "f25d70f513cf924e00f6e078b0454665a64228a9a87d042ab2f37881d92a9531",
     "theme-tokens.html": "2dece6b13c6c1ab79ffeaf814e91e1ff30c23ea62c3b911d80678662fe2e82ef",
+    "trace-checkbox-disabled.html": "2a2a97dd529e00c629e3a4b71a0c7032ebf8f2ba19a149370180056771c6b8dd",
+    "trace-checkbox-unchecked.html": "de79608f32588b370902a6cd97731baeb14b405ae11d7394fcc840b00b5ea979",
     "trace-input-disabled.html": "6390dc8dc446a07caf0c1859c4d29fd1ea04b7d206b13689ffeda22311cd3761",
     "trace-input-placeholder.html": "002a67021fe5198b30fde7442a68bf268f38b89a52ff54b441fa5cf4d79d0ebb",
     "trace-switch-disabled.html": "c35e9b75f52c73f84eb2d9ec6f31ba332a6b144c39c26497ea0b2e28c7aa566c",
