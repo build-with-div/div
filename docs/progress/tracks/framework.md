@@ -93,6 +93,16 @@ element identity) merges, because the samples' icons are written in `view!`.
 
 ## Log
 
+### 17 November 2026: licence incident, `mouse_event.cc` (disclosure)
+
+While planning click counting, one command printed lines 385–450 of `third_party/blink/renderer/core/events/mouse_event.cc` (`MouseEvent::DispatchEvent`), from the local Chromium checkout at 147.0.7727.50, in the same command as the header check. An earlier cross-checkout `git grep` for `kDblclick` had also printed two lines of it. The header is the GNU Library General Public License v2, which is copyleft.
+
+- **Use.** Nothing from the file is ported. The one fact it shows, that `dblclick` follows a trusted `click` whose `detail` is 2, will be established by the click-count oracle (real platform input to pinned Chromium) and the UI Events specification.
+- **Rule since then:**
+  - `head -n 30` runs alone, as its own command, before any other read of a Chromium file, including the local checkout.
+  - The header check is never combined with a content print.
+  - Greps are limited to files whose header has already been checked.
+
 ### 17 November 2026: test input and explicit waits (Tier 0 item 0.12 C)
 
 Problem (sample-git gap 29, interactions T1, dogfood gap 4):
