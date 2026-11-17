@@ -250,6 +250,32 @@ class ReportTests(unittest.TestCase):
             ],
         )
 
+    def test_profiles_above_scale_one_use_real_zoom(self) -> None:
+        # RFC 0010: the geometry browser and the evidence follow the shared
+        # launcher, so only scale 1 keeps CDP's device scale.
+        methods = {}
+        for profile in harness.census_profiles():
+            entry = harness.profile_entry(profile)
+            override = harness.viewport_override(profile)
+            methods[profile.name] = entry["device_scale_method"]
+            self.assertEqual(
+                (override["width"], override["height"]),
+                (profile.logical_width, profile.logical_height),
+            )
+            self.assertEqual(
+                override["deviceScaleFactor"],
+                1.0 if profile.device_scale == 1 else 0,
+            )
+        self.assertEqual(
+            methods,
+            {
+                "legacy-800x600@1": "none",
+                "mobile-375x667@2": "forced",
+                "desktop-1280x720@1.25": "forced",
+                "desktop-1920x1080@1.5": "forced",
+            },
+        )
+
     def test_committed_pages_match_their_manifest(self) -> None:
         manifest = harness.load_manifest()
         self.assertEqual(manifest["schema"], "openui-components-reference-v1")
