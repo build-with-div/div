@@ -984,7 +984,7 @@ impl Engine {
             .collect()
     }
 
-    fn reveal_fragment(&self, node: NodeId) -> Option<&Fragment> {
+    pub(crate) fn reveal_fragment(&self, node: NodeId) -> Option<&Fragment> {
         fn find(fragment: &Fragment, node: NodeId) -> Option<&Fragment> {
             if fragment.owns_element_box() && fragment.node_id == node {
                 return Some(fragment);

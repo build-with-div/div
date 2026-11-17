@@ -44,9 +44,9 @@ pub use animation::{
 };
 
 pub use interaction::{
-    ActivationResult, CheckableActivation, ControlAdjustment, ControlState, EditCommand,
-    EventPhase, EventRoute, FocusOrigin, PointerEventKind, PointerUpdate, RangeSelectionMode,
-    RouteStep, SelectionDirection, TextDirection, TextUnit,
+    ActivationResult, CaptureChange, CheckableActivation, ControlAdjustment, ControlState,
+    EditCommand, EventPhase, EventRoute, FocusOrigin, PointerEventKind, PointerUpdate,
+    RangeSelectionMode, RouteStep, SelectionDirection, TextDirection, TextUnit,
 };
 
 use authored_source::NativeStyleSource;
@@ -167,13 +167,21 @@ pub enum EngineError {
     AlreadyAttached,
     DetachedParent,
     InvalidSibling,
-    PropertyType { property: StyleProperty },
+    PropertyType {
+        property: StyleProperty,
+    },
     UnknownResource,
     InvalidInput(&'static str),
     InvalidSelection,
     NotAControl,
     NotEditable,
     NotFocusable,
+    /// `setPointerCapture` or `releasePointerCapture` named a pointer that
+    /// is not active (the DOM's `NotFoundError`).
+    PointerNotFound,
+    /// `setPointerCapture` on a node that is not connected (the DOM's
+    /// `InvalidStateError`).
+    PointerCaptureDisconnected,
     Render(String),
     Font(FontCollectionError),
     Hyphenation(HyphenationRegistryError),
@@ -201,6 +209,10 @@ impl std::fmt::Display for EngineError {
             Self::NotAControl => f.write_str("node is not a form control"),
             Self::NotEditable => f.write_str("control is not editable"),
             Self::NotFocusable => f.write_str("node is not focusable"),
+            Self::PointerNotFound => f.write_str("no active pointer has this id"),
+            Self::PointerCaptureDisconnected => {
+                f.write_str("pointer capture needs a connected node")
+            }
             Self::Render(value) => write!(f, "render failed: {value}"),
             Self::Font(value) => write!(f, "font registration failed: {value}"),
             Self::Hyphenation(value) => write!(f, "hyphenation dictionary failed: {value}"),
@@ -360,7 +372,10 @@ pub struct Engine {
     fragment_rects: HashMap<NodeId, Vec<SceneRect>>,
     fragment_box_worlds: HashMap<NodeId, WorldTransform>,
     focused: Option<NodeHandle>,
+    /// Active pointer capture: the node each captured pointer's events go
+    /// to. Changes only when pending capture is processed.
     pointer_capture: HashMap<u64, NodeHandle>,
+    pointers: interaction::PointerStates,
     hover_paths: HashMap<u64, Vec<NodeHandle>>,
     active_pointers: HashMap<u64, NodeHandle>,
     controls: HashMap<u32, ControlState>,
@@ -460,6 +475,7 @@ impl Engine {
             fragment_box_worlds: HashMap::new(),
             focused: None,
             pointer_capture: HashMap::new(),
+            pointers: interaction::PointerStates::default(),
             hover_paths: HashMap::new(),
             active_pointers: HashMap::new(),
             controls: HashMap::new(),
@@ -1201,10 +1217,27 @@ impl Engine {
             }
             self.focused = None;
         }
+        // A removed captor loses capture: Chromium fires
+        // `lostpointercapture` at the document when the pointer's pending
+        // capture is next processed (`PointerEventManager::
+        // ProcessPendingPointerCapture`).
+        for (pointer_id, captured) in &self.pointer_capture {
+            if handles.contains(captured) {
+                self.pointers.lost_to_root.insert(*pointer_id);
+            }
+        }
         self.pointer_capture
             .retain(|_, captured| !handles.contains(captured));
+        self.pointers
+            .pending_capture
+            .retain(|_, pending| !handles.contains(pending));
         self.active_pointers
             .retain(|_, active| !handles.contains(active));
+        for (pointer_id, path) in &self.hover_paths {
+            if path.first().is_some_and(|target| handles.contains(target)) {
+                self.pointers.hover_target_removed.insert(*pointer_id);
+            }
+        }
         self.hover_paths.retain(|_, path| {
             path.retain(|node| !handles.contains(node));
             !path.is_empty()
@@ -2565,28 +2598,55 @@ impl Engine {
         self.focused
     }
 
+    /// Request capture of `pointer_id` by `handle`, as `setPointerCapture`.
+    /// The request is pending until the pointer's next event, which first
+    /// reports [`interaction::CaptureChange::Got`]. It fails for a pointer
+    /// the engine has not seen and for a disconnected node, and does nothing
+    /// while the pointer has no button pressed (`PointerEventManager::
+    /// SetPointerCapture` in Chromium 147).
     pub fn set_pointer_capture(
         &mut self,
         pointer_id: u64,
         handle: NodeHandle,
     ) -> Result<(), EngineError> {
-        self.resolve(handle)?;
-        self.pointer_capture.insert(pointer_id, handle);
+        let node = self.resolve(handle)?;
+        if !self.pointers.buttons.contains_key(&pointer_id) {
+            return Err(EngineError::PointerNotFound);
+        }
+        if !self.node_is_connected(node) {
+            return Err(EngineError::PointerCaptureDisconnected);
+        }
+        if self.pointers.buttons.get(&pointer_id) != Some(&0) {
+            self.pointers.pending_capture.insert(pointer_id, handle);
+        }
         Ok(())
     }
 
+    /// Cancel `handle`'s pending capture of `pointer_id`, as
+    /// `releasePointerCapture`. Another node's capture is kept.
     pub fn release_pointer_capture(
         &mut self,
         pointer_id: u64,
         handle: NodeHandle,
     ) -> Result<(), EngineError> {
         self.resolve(handle)?;
-        if self.pointer_capture.get(&pointer_id) == Some(&handle) {
-            self.pointer_capture.remove(&pointer_id);
+        if !self.pointers.buttons.contains_key(&pointer_id) {
+            return Err(EngineError::PointerNotFound);
+        }
+        if self.pointers.pending_capture.get(&pointer_id) == Some(&handle) {
+            self.pointers.pending_capture.remove(&pointer_id);
         }
         Ok(())
     }
 
+    /// Whether `handle` holds `pointer_id`'s pending capture, as
+    /// `hasPointerCapture`: true from `set_pointer_capture` on, before the
+    /// capture takes effect.
+    pub fn has_pointer_capture(&self, pointer_id: u64, handle: NodeHandle) -> bool {
+        self.pointers.pending_capture.get(&pointer_id) == Some(&handle)
+    }
+
+    /// The node `pointer_id`'s events currently go to, if captured.
     pub fn pointer_capture(&self, pointer_id: u64) -> Option<NodeHandle> {
         self.pointer_capture.get(&pointer_id).copied()
     }
