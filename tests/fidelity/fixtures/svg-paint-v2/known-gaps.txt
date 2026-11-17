@@ -1,0 +1,5 @@
+# Paint corpus v2 gaps, one per line: <scale>x <case> <differing pixels> <largest channel difference>,
+# each under a comment giving its cause and owner. crates/div-svg/tests/paint_corpus.rs fails on an
+# unlisted difference, on a listed one whose numbers change, and on a listed case that is now exact.
+#
+# None: every capture is exact on Linux and on Windows.

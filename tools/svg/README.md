@@ -7,7 +7,7 @@ Tools for the inline SVG work in RFC 0009
 | --- | --- |
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2 |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in two sets (`--set v1`, `--set v2`) |
 
 ## Geometry corpus
 
@@ -136,7 +136,20 @@ nothing is emulated at scale 1, and scale 2 runs at real zoom
 | 1x `viewbox/`, `nested/`, `offset/` | 13 | `viewBox` at scales 2, 1.25 and 0.75, an offset `viewBox`, `meet`, `slice`, `none` and `xMinYMax`, the root clip, nested `svg` viewports (clipped, at half pixels), roots at fractional page offsets |
 | 1x and 2x `lucide/` | 40 + 40 | the 20 vendored Lucide icons at 16 and 24 px, `#09090b` (`currentColor`) on white |
 
-**Evidence** is one capture per OS in `tests/fidelity/fixtures/svg-paint-v1/`.
+Those are set `v1`. Set `v2` (`--set v2`, fixtures in
+`tests/fidelity/fixtures/svg-paint-v2/`) covers stage 2, with 85 cases at
+scale 1 and 30 of them again at scale 2:
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `dash/` | 41 | odd, single, comma-separated and fractional arrays; offsets (negative, past the pattern, percentage); negative and all-zero arrays; zero-length dashes with each cap; percentages and units; dashes on every shape, arcs, subpaths and a closed path; `pathLength` on a line, circle, rect and curve, with an offset, zero and negative; dashes under transforms and a `viewBox`; a hairline; `stroke-opacity` |
+| `order/` | 8 | `paint-order` `normal`, `stroke`, `stroke fill`, `fill stroke`, `markers`, `markers stroke`, an invalid value, and inheritance from a group |
+| `crisp/`, `rendering/` | 14 | `crispEdges` fills and strokes at integer, half, quarter and other fractional positions, a diagonal, a curve, a rotation, inheritance, a dashed grid; `optimizeSpeed`, `geometricPrecision` and `auto` |
+| `nonscaling/` | 13 | `vector-effect: non-scaling-stroke` under uniform, non-uniform, skewed and rotated transforms, a `viewBox` (`none` too), a nested `svg`, with dashes, with a fill, on a line and a curve, on a group (no effect) and at a fractional page offset |
+| `chart/` | 9 | hand-written in the shape of Recharts' output, with no text: a `3 3` dashed grid, a monotone line, dots, rounded bars with `fill-opacity`, an area, a draw-in dash state, a dashed reference line, pie sectors and a radial bar using `pathLength` |
+
+**Evidence** is one capture per OS and set in
+`tests/fidelity/fixtures/svg-paint-v1/` and `svg-paint-v2/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
@@ -173,7 +186,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL
+# Linux, in WSL (and again with --set v2 into svg-paint-v2/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -184,8 +197,9 @@ differing case.
 
 ### What `div_svg::paint` matches
 
-All 147 captures (107 at scale 1, 40 at scale 2) are exact on Windows
-(MSVC) and on Linux (WSL). `known-gaps.txt` is empty.
+All 147 `v1` captures (107 at scale 1, 40 at scale 2) and all 115 `v2`
+captures (85 at scale 1, 30 at scale 2) are exact on Windows (MSVC) and on
+Linux (WSL). Both `known-gaps.txt` files are empty.
 
 The corpus settled these points:
 
@@ -200,14 +214,42 @@ The corpus settled these points:
   is a test-only feature in 147, so it does not apply.
 - A nested `svg` clips to its viewport with an anti-aliased clip, which
   `nested/svg-half` (viewport edges on half pixels) checks.
+- `paint-order` and `shape-rendering` follow `SVGShapePainter` (BSD):
+  the layers are painted in the listed order, and `crispEdges` and
+  `optimizeSpeed` turn anti-aliasing off for fill and stroke alike.
+- Dashes go through `StrokeData::SetLineDash` (BSD). Which arrays draw is
+  clean-room, because Blink's resolution is in LGPL `svg_layout_support`:
+  an array with a negative entry or summing to zero draws solid,
+  percentages resolve against the normalized diagonal, and dashes start
+  where the shape's Skia path starts (a `rect` at its top-left corner, an
+  ellipse at its rightmost point), clockwise.
+- `pathLength` scales the dash array and offset by Skia's contour length
+  of the shape over `pathLength`. It is not Chromium's `getTotalLength`
+  traversal for `<path>` (90.766 for `dash/pathlength-path`'s curve): with
+  that length the curve differs by 136 pixels, and with Skia's (90.656)
+  it is exact. A negative `pathLength` is ignored and zero strokes solid.
+- `stroke-dasharray` and `stroke-dashoffset`, even as presentation
+  attributes, are read as CSS reads numbers: in double precision, stored
+  as floats. With `div-svg`'s single-precision scanner,
+  `dash/pathlength-path`'s `0.05 0.03` differs by three pixels. The test
+  reads them that way (`css_length` in `tests/support/mod.rs`); the engine
+  owns the parse (E2).
+- A non-scaling stroke is drawn as `SVGShapePainter` draws it (BSD): the
+  path mapped into the host space, on a canvas carrying the inverse. The
+  host space is clean-room, because layout computes it in LGPL
+  `layout_svg_shape`: it is the outer `svg`'s own coordinates before its
+  paint offset and zoom. With the full device transform instead, the
+  scale-2 cases differ by up to 938 pixels, because the stroke loses its
+  zoom, and two scale-1 cases by a few levels.
 
 **Not claimed.**
 - Anything about the page path. The engine does not call the painter
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
 - The untiled path (layers of 512 px or less) for SVG content: the
   corpus pages are tiled.
-- Dashes, `paint-order`, markers, `vector-effect`, `shape-rendering`,
-  paint servers, and scales other than 1 and 2.
+- Markers (a later clean-room PR), paint servers, clipping, text,
+  element and group `opacity` (applied by `div-paint` at the call site),
+  and scales other than 1 and 2.
 
 ## Lucide capture plan (V1 stage 1 gate)
 

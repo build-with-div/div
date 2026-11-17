@@ -10,7 +10,7 @@
 //! [`paint`] paints shapes onto a Skia canvas. It is ported from Blink's
 //! SVG painters, which are BSD-licensed, and is checked pixel for pixel
 //! against Chromium by `tests/paint_corpus.rs`
-//! (`tests/fidelity/fixtures/svg-paint-v1`).
+//! (`tests/fidelity/fixtures/svg-paint-v1` and `svg-paint-v2`).
 //!
 //! The crate depends on Skia for arcs, path measurement, containment,
 //! stroking and drawing, which Chromium also does with Skia. It has no
