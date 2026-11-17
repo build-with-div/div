@@ -10,12 +10,20 @@ OS file locks do not cross the WSL boundary.
 
     python3 tools/qualification/census_lock.py run [--wait] -- <census command>
     python3 tools/qualification/census_lock.py status
-    python3 tools/qualification/census_lock.py release --force
+    python3 tools/qualification/census_lock.py release --force [--ticket <name>]
 
 ``run`` takes the lock, runs the command, releases the lock and exits with the
 command's status. A lock left by a dead process on the same system is
 reclaimed automatically; one from the other system needs ``release --force``
 after checking that its census has ended.
+
+``run --wait`` queues first come, first served. The waiter writes a ticket,
+an exclusively created file in ``census.lock.queue/`` named by the time it
+was queued, and takes the lock only when the lock is free and its ticket is
+the oldest. ``run`` without ``--wait`` never passes a queued waiter. A
+ticket left by a dead waiter on the same system is dropped automatically;
+one from the other system needs ``release --force --ticket <name>``.
+``status`` lists the holder and the queue in order.
 """
 
 from __future__ import annotations
@@ -32,7 +40,7 @@ import sys
 import time
 from pathlib import Path
 
-POLL_SECONDS = 30
+POLL_SECONDS = float(os.environ.get("CENSUS_LOCK_POLL_SECONDS", "30"))
 
 
 def native_path(text: str) -> Path:
@@ -122,20 +130,23 @@ def describe(holder: dict) -> str:
         return "an unreadable lock file"
     return (
         f"pid {holder.get('pid')} on {holder.get('system')}/{holder.get('host')} "
-        f"since {holder.get('started')} running {holder.get('command')!r} "
+        f"since {holder.get('started') or holder.get('queued')} running {holder.get('command')!r} "
         f"from {holder.get('cwd')}"
     )
 
 
-def try_acquire(path: Path, command: list[str]) -> bool:
-    record = {
+def process_record(command: list[str], time_key: str) -> dict:
+    return {
         "pid": os.getpid(),
         "system": system_name(),
         "host": socket.gethostname(),
         "cwd": os.getcwd(),
         "command": " ".join(command),
-        "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        time_key: datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
     }
+
+
+def create_exclusive(path: Path, record: dict) -> bool:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -146,28 +157,89 @@ def try_acquire(path: Path, command: list[str]) -> bool:
     return True
 
 
+def try_acquire(path: Path, command: list[str]) -> bool:
+    return create_exclusive(path, process_record(command, "started"))
+
+
+def queue_dir(path: Path) -> Path:
+    return path.with_name(path.name + ".queue")
+
+
+def enqueue(path: Path, command: list[str]) -> Path:
+    """Write this process's ticket. Ticket names sort in the order they were
+    queued, by wall-clock time; the system and pid break ties. WSL 2 keeps
+    its clock in step with the Windows host's, so only waiters queued within
+    the clocks' drift of each other (normally well under a second) could
+    swap places."""
+    record = process_record(command, "queued")
+    while True:
+        ticket = queue_dir(path) / f"{time.time_ns():020d}-{record['system']}-{record['pid']}.json"
+        if create_exclusive(ticket, record):
+            return ticket
+
+
+def read_queue(path: Path) -> list[tuple[Path, dict]]:
+    """The live tickets, oldest first. A ticket of a dead waiter on this
+    system is dropped; an unreadable ticket keeps its place."""
+    queue = []
+    for ticket in sorted(queue_dir(path).glob("*.json")):
+        waiter = read_holder(ticket)
+        if waiter is None:
+            continue
+        if holder_is_stale(waiter):
+            print(f"census_lock: dropping the ticket of dead {describe(waiter)}", file=sys.stderr)
+            ticket.unlink(missing_ok=True)
+            continue
+        queue.append((ticket, waiter))
+    return queue
+
+
 def release(path: Path) -> None:
     holder = read_holder(path)
     if holder and holder.get("pid") == os.getpid() and holder.get("system") == system_name():
         path.unlink(missing_ok=True)
 
 
+def live_holder(path: Path) -> dict | None:
+    """The current holder, after reclaiming a lock left by a dead process."""
+    holder = read_holder(path)
+    if holder is not None and holder_is_stale(holder):
+        print(f"census_lock: reclaiming the lock of dead {describe(holder)}", file=sys.stderr)
+        path.unlink(missing_ok=True)
+        return None
+    return holder
+
+
 def acquire(path: Path, command: list[str], wait: bool) -> None:
-    announced = False
-    while not try_acquire(path, command):
-        holder = read_holder(path)
-        if holder is None:
-            continue
-        if holder_is_stale(holder):
-            print(f"census_lock: reclaiming the lock of dead {describe(holder)}", file=sys.stderr)
-            path.unlink(missing_ok=True)
-            continue
-        if not wait:
+    if not wait:
+        holder = live_holder(path)
+        if holder is not None:
             raise SystemExit(f"census_lock: a census is running: {describe(holder)}")
-        if not announced:
-            print(f"census_lock: waiting for {describe(holder)}", file=sys.stderr)
-            announced = True
-        time.sleep(POLL_SECONDS)
+        queue = read_queue(path)
+        if queue:
+            raise SystemExit(
+                f"census_lock: {len(queue)} waiter(s) queued, first {describe(queue[0][1])}"
+            )
+        if not try_acquire(path, command):
+            holder = read_holder(path) or {}
+            raise SystemExit(f"census_lock: a census is running: {describe(holder)}")
+        return
+    ticket = enqueue(path, command)
+    announced = None
+    try:
+        while True:
+            holder = live_holder(path)
+            ahead = [waiter for name, waiter in read_queue(path) if name.name < ticket.name]
+            if holder is None and not ahead and try_acquire(path, command):
+                return
+            state = (describe(holder) if holder else "", len(ahead))
+            if state != announced:
+                waiting_for = f"waiting for {describe(holder)}" if holder else "waiting"
+                print(f"census_lock: {waiting_for}; {len(ahead)} queued ahead", file=sys.stderr)
+                announced = state
+            time.sleep(POLL_SECONDS)
+    finally:
+        ticket.unlink(missing_ok=True)
 
 
 def cmd_run(path: Path, command: list[str], wait: bool) -> int:
@@ -194,6 +266,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="print the current holder")
     rel = sub.add_parser("release", help="remove a lock whose census has ended")
     rel.add_argument("--force", action="store_true", required=True)
+    rel.add_argument("--ticket", help="remove this queued ticket (its file name) instead")
     args = parser.parse_args(argv)
     path = args.lock or default_lock_path()
     if args.command == "run":
@@ -205,6 +278,18 @@ def main(argv: list[str] | None = None) -> int:
         else:
             stale = " (stale: its process has exited)" if holder_is_stale(holder) else ""
             print(f"held by {describe(holder)}{stale} ({path})")
+        for position, ticket in enumerate(sorted(queue_dir(path).glob("*.json")), 1):
+            waiter = read_holder(ticket) or {}
+            stale = " (stale: its process has exited)" if holder_is_stale(waiter) else ""
+            print(f"  queued {position}: {ticket.name}: {describe(waiter)}{stale}")
+        return 0
+    if args.ticket:
+        ticket = queue_dir(path) / Path(args.ticket).name
+        waiter = read_holder(ticket)
+        if waiter is None:
+            raise SystemExit(f"census_lock: no ticket {ticket.name} in {queue_dir(path)}")
+        print(f"census_lock: removing the ticket of {describe(waiter)}", file=sys.stderr)
+        ticket.unlink(missing_ok=True)
         return 0
     if holder is not None:
         print(f"census_lock: removing the lock of {describe(holder)}", file=sys.stderr)

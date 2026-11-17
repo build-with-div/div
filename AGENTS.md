@@ -62,8 +62,10 @@ have agreed.
 - Only one full census runs at a time on a machine (about 75 minutes, 16
   jobs in WSL). Run it under the lock:
   `python3 tools/qualification/census_lock.py run --wait -- <census command>`.
-  `census_lock.py status` names the holder. Use `release --force` only after
-  checking that the holder's census has ended. Focused tests need no lock.
+  Waiters take the lock first come, first served, and `census_lock.py
+  status` names the holder and the queue. Use `release --force` only after
+  checking that the holder's census has ended, and `release --force --ticket
+  <name>` only for a waiter that has exited. Focused tests need no lock.
 - On Windows, build Skia once per set of build inputs with
   `tools/skia_prebuilt.py` and install it in each worktree, as described in
   [the development guide](docs/DEVELOPMENT.md).

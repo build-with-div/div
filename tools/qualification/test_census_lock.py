@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import os
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -79,6 +84,158 @@ class CensusLockTests(unittest.TestCase):
         self.assertTrue(census_lock.try_acquire(self.lock, ["census"]))
         self.assertEqual(self.run_lock("release", "--force"), 0)
         self.assertFalse(self.lock.exists())
+
+
+DEAD_PID = 2**22 + 12345
+
+
+class CensusLockQueueTests(unittest.TestCase):
+    """``run --wait`` queues first come, first served."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.lock = Path(self.temporary.name) / "out" / "census.lock"
+        self.queue = census_lock.queue_dir(self.lock)
+        self.log = Path(self.temporary.name) / "order.txt"
+        self.waiters: list[subprocess.Popen] = []
+
+    def tearDown(self) -> None:
+        for waiter in self.waiters:
+            if waiter.poll() is None:
+                waiter.kill()
+            waiter.wait()
+        self.temporary.cleanup()
+
+    def run_lock(self, *argv: str) -> int:
+        return census_lock.main(["--lock", str(self.lock), *argv])
+
+    def start_waiter(self, name: str) -> subprocess.Popen:
+        """A ``run --wait`` in its own process whose census appends its name
+        to the order log."""
+        census = f"open({str(self.log)!r}, 'a').write({name!r} + '\\n')"
+        environment = dict(os.environ, CENSUS_LOCK_POLL_SECONDS="0.05")
+        waiter = subprocess.Popen(
+            [sys.executable, census_lock.__file__, "--lock", str(self.lock),
+             "run", "--wait", "--", sys.executable, "-c", census],
+            env=environment,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.waiters.append(waiter)
+        return waiter
+
+    def tickets_of(self, *waiters: subprocess.Popen) -> list[str]:
+        pids = {waiter.pid for waiter in waiters}
+        return [
+            ticket.name
+            for ticket in sorted(self.queue.glob("*.json"))
+            if json.loads(ticket.read_text(encoding="utf-8"))["pid"] in pids
+        ]
+
+    def wait_for(self, condition, what: str) -> None:
+        deadline = time.monotonic() + 30
+        while not condition():
+            if time.monotonic() > deadline:
+                self.fail(f"timed out waiting for {what}")
+            time.sleep(0.02)
+
+    def finish(self, waiter: subprocess.Popen) -> None:
+        _, stderr = waiter.communicate(timeout=30)
+        self.assertEqual(waiter.returncode, 0, stderr)
+
+    def order(self) -> list[str]:
+        return self.log.read_text(encoding="utf-8").split()
+
+    def write_ticket(self, name: str, pid: int, system: str | None = None) -> Path:
+        ticket = self.queue / name
+        record = {
+            "pid": pid,
+            "system": system or census_lock.system_name(),
+            "host": census_lock.socket.gethostname(),
+        }
+        self.queue.mkdir(parents=True, exist_ok=True)
+        ticket.write_text(json.dumps(record), encoding="utf-8")
+        return ticket
+
+    def test_waiters_take_the_lock_in_the_order_they_queued(self) -> None:
+        self.assertTrue(census_lock.try_acquire(self.lock, ["census"]))
+        first = self.start_waiter("first")
+        self.wait_for(lambda: self.tickets_of(first), "the first ticket")
+        second = self.start_waiter("second")
+        self.wait_for(lambda: len(self.tickets_of(first, second)) == 2, "the second ticket")
+        self.assertEqual(self.tickets_of(first, second), self.tickets_of(first) + self.tickets_of(second))
+        self.assertEqual(self.run_lock("release", "--force"), 0)
+        self.finish(first)
+        self.finish(second)
+        self.assertEqual(self.order(), ["first", "second"])
+        self.assertFalse(self.lock.exists())
+        self.assertEqual(list(self.queue.glob("*.json")), [])
+
+    def test_a_free_lock_waits_for_an_older_live_ticket(self) -> None:
+        # This test process is alive, so its ticket keeps its place.
+        ours = census_lock.enqueue(self.lock, ["census"])
+        waiter = self.start_waiter("waiter")
+        self.wait_for(lambda: self.tickets_of(waiter), "the waiter's ticket")
+        time.sleep(0.5)
+        self.assertIsNone(waiter.poll())
+        self.assertFalse(self.lock.exists())
+        ours.unlink()
+        self.finish(waiter)
+        self.assertEqual(self.order(), ["waiter"])
+
+    def test_run_without_wait_never_passes_a_queued_waiter(self) -> None:
+        census_lock.enqueue(self.lock, ["census"])
+        with self.assertRaisesRegex(SystemExit, "1 waiter"):
+            self.run_lock("run", "--", sys.executable, "-c", "pass")
+        self.assertFalse(self.lock.exists())
+
+    def test_a_crashed_waiters_ticket_is_dropped(self) -> None:
+        self.assertTrue(census_lock.try_acquire(self.lock, ["census"]))
+        crashed = self.start_waiter("crashed")
+        self.wait_for(lambda: self.tickets_of(crashed), "the crashed waiter's ticket")
+        crashed.kill()
+        crashed.communicate()
+        # Killed, it never removed its ticket.
+        self.assertEqual(len(list(self.queue.glob("*.json"))), 1)
+        self.assertEqual(self.run_lock("release", "--force"), 0)
+        self.assertEqual(self.run_lock("run", "--", sys.executable, "-c", "pass"), 0)
+        self.assertEqual(list(self.queue.glob("*.json")), [])
+
+    def test_a_dead_waiters_older_ticket_does_not_block_a_waiter(self) -> None:
+        self.write_ticket("00000000000000000001-dead.json", DEAD_PID)
+        waiter = self.start_waiter("waiter")
+        self.finish(waiter)
+        self.assertEqual(self.order(), ["waiter"])
+        self.assertEqual(list(self.queue.glob("*.json")), [])
+
+    def test_a_ticket_from_the_other_system_keeps_its_place(self) -> None:
+        self.write_ticket("00000000000000000001-elsewhere.json", DEAD_PID, "elsewhere")
+        with self.assertRaisesRegex(SystemExit, "1 waiter"):
+            self.run_lock("run", "--", sys.executable, "-c", "pass")
+
+    def test_forced_release_of_a_ticket_removes_only_that_ticket(self) -> None:
+        other = self.write_ticket("00000000000000000001-elsewhere.json", DEAD_PID, "elsewhere")
+        ours = census_lock.enqueue(self.lock, ["census"])
+        self.assertTrue(census_lock.try_acquire(self.lock, ["census"]))
+        self.assertEqual(self.run_lock("release", "--force", "--ticket", other.name), 0)
+        self.assertFalse(other.exists())
+        self.assertTrue(ours.exists())
+        self.assertTrue(self.lock.exists())
+        with self.assertRaisesRegex(SystemExit, "no ticket"):
+            self.run_lock("release", "--force", "--ticket", other.name)
+
+    def test_status_lists_the_queue_in_order(self) -> None:
+        self.write_ticket("00000000000000000002-dead.json", DEAD_PID)
+        self.write_ticket("00000000000000000001-elsewhere.json", DEAD_PID, "elsewhere")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(self.run_lock("status"), 0)
+        lines = output.getvalue().splitlines()
+        self.assertTrue(lines[0].startswith("free"))
+        self.assertIn("queued 1: 00000000000000000001-elsewhere.json", lines[1])
+        self.assertNotIn("stale", lines[1])
+        self.assertIn("queued 2: 00000000000000000002-dead.json", lines[2])
+        self.assertIn("stale", lines[2])
 
 
 if __name__ == "__main__":
