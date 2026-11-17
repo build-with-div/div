@@ -39,11 +39,144 @@ struct Recording {
 thread_local! {
     static RECORDING: RefCell<Option<Recording>> = const { RefCell::new(None) };
     static OPACITY_SCOPES: RefCell<Vec<OpacityState>> = const { RefCell::new(Vec::new()) };
+    static LCD_TEXT_LAYERS: RefCell<Vec<LcdTextLayer>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Whether CSS opacity groups on a canvas keep LCD text, as cc decides it once
+/// per layer display list (`PaintOpBuffer::Playback`, 147.0.7727.50).
+#[derive(Clone, Copy)]
+struct LcdTextLayer {
+    canvas: usize,
+    lcd_surface: bool,
+    preserve_lcd_text: bool,
+}
+
+/// cc opens every `SaveLayerAlphaOp` of a layer with
+/// `kPreserveLCDText | kInitWithPrevious` when the layer's raster can use LCD
+/// text, its display list draws text, and it holds no `SaveLayerOp` (the op
+/// Blink emits for filters, blend modes and masks). The layer then starts as a
+/// copy of what is below it, so LCD text inside the group still has a backdrop
+/// to blend with. The decision covers the whole display list, so a filter or
+/// mask anywhere in the layer turns it off for every group in it.
+///
+/// The scope applies to CSS opacity opened on `canvas` while it lives. Canvases
+/// without a scope (separate surfaces, diagnostics) keep plain alpha layers.
+pub(crate) struct LcdTextLayerScope {
+    canvas: usize,
+}
+
+impl LcdTextLayerScope {
+    /// A layer display list recorded on `canvas`. `lcd_surface` is whether its
+    /// raster can use LCD text; `draws_text` and `has_save_layer` describe its
+    /// contents.
+    pub(crate) fn new(
+        canvas: &SkiaCanvas,
+        lcd_surface: bool,
+        draws_text: bool,
+        has_save_layer: bool,
+    ) -> Self {
+        Self::push(LcdTextLayer {
+            canvas: canvas_id(canvas),
+            lcd_surface,
+            preserve_lcd_text: lcd_surface && draws_text && !has_save_layer,
+        })
+    }
+
+    /// A subtree on `canvas` that Chromium rasters as its own layer whose text
+    /// cannot be LCD (a `will-change: transform` layer).
+    pub(crate) fn without_lcd_text(canvas: &SkiaCanvas) -> Self {
+        Self::push(LcdTextLayer {
+            canvas: canvas_id(canvas),
+            lcd_surface: false,
+            preserve_lcd_text: false,
+        })
+    }
+
+    fn push(layer: LcdTextLayer) -> Self {
+        LCD_TEXT_LAYERS.with(|layers| layers.borrow_mut().push(layer));
+        Self {
+            canvas: layer.canvas,
+        }
+    }
+}
+
+impl Drop for LcdTextLayerScope {
+    fn drop(&mut self) {
+        LCD_TEXT_LAYERS.with(|layers| {
+            let mut layers = layers.borrow_mut();
+            let index = layers
+                .iter()
+                .rposition(|layer| layer.canvas == self.canvas)
+                .expect("owned LCD text layer scope");
+            layers.remove(index);
+        });
+    }
+}
+
+fn lcd_text_layer(canvas: &SkiaCanvas) -> Option<LcdTextLayer> {
+    let id = canvas_id(canvas);
+    LCD_TEXT_LAYERS.with(|layers| {
+        layers
+            .borrow()
+            .iter()
+            .rev()
+            .find(|layer| layer.canvas == id)
+            .copied()
+    })
+}
+
+/// Whether the layer that records on `canvas` rasters with LCD text.
+pub(crate) fn layer_uses_lcd_surface(canvas: &SkiaCanvas) -> bool {
+    lcd_text_layer(canvas).is_some_and(|layer| layer.lcd_surface)
+}
+
+fn opacity_preserves_lcd_text(canvas: &SkiaCanvas) -> bool {
+    lcd_text_layer(canvas).is_some_and(|layer| layer.preserve_lcd_text)
+}
+
+/// cc never folds a `SaveLayerAlphaOp` into a lone `DrawTextBlobOp`: the
+/// layer's alpha must apply once to overlapping glyphs
+/// (`PlaybackFoldingIterator`, 147.0.7727.50), so the text always draws
+/// inside the group's layer. When the picture is finished, SkRecord's
+/// optimizer drops a Save/Restore that holds only draws and then folds
+/// SaveLayer -> one draw -> Restore into the draw. A clip to the current clip
+/// bounds inside the Save keeps the text a separate span without changing a
+/// pixel, so the layer survives as it does in cc.
+fn unfoldable_text_draw(canvas: &SkiaCanvas, draw: impl FnOnce()) {
+    let Some(bounds) = canvas.local_clip_bounds() else {
+        // Nothing can draw inside an empty clip.
+        return;
+    };
+    canvas.save();
+    canvas.clip_rect(bounds, ClipOp::Intersect, false);
+    draw();
+    canvas.restore();
+}
+
+/// cc `SaveLayerAlphaOp::Raster`.
+fn save_alpha_layer(
+    canvas: &SkiaCanvas,
+    bounds: Option<Rect>,
+    alpha: f32,
+    preserve_lcd_text: bool,
+) -> usize {
+    if !preserve_lcd_text {
+        return canvas.save_layer_alpha_f(bounds, alpha);
+    }
+    let mut paint = Paint::default();
+    paint.set_alpha_f(alpha);
+    paint_program::save_layer(
+        canvas,
+        bounds,
+        (alpha != 1.0).then_some(&paint),
+        SaveLayerFlags::PRESERVE_LCD_TEXT | SaveLayerFlags::INIT_WITH_PREVIOUS,
+    )
 }
 
 struct PendingOpacity {
     bounds: Option<Rect>,
     alpha: f32,
+    preserve_lcd_text: bool,
     base_save_count: usize,
     draw: Option<(Rect, Paint)>,
 }
@@ -119,7 +252,12 @@ fn materialize_opacity(canvas: &SkiaCanvas) {
         // that disqualifies SaveLayerAlpha -> Draw -> Restore folding.
         debug_assert_eq!(canvas.save_count(), pending.base_save_count + 1);
         canvas.restore();
-        canvas.save_layer_alpha_f(pending.bounds, pending.alpha);
+        save_alpha_layer(
+            canvas,
+            pending.bounds,
+            pending.alpha,
+            pending.preserve_lcd_text,
+        );
         if let Some((rect, paint)) = pending.draw {
             canvas.draw_rect(rect, &paint);
         }
@@ -278,9 +416,24 @@ impl dyn PaintCanvas + '_ {
         OpacityScope::new(self.raw_tracking_target())
     }
     pub(crate) fn save_layer_alpha_f(&self, bounds: impl Into<Option<Rect>>, alpha: f32) -> usize {
+        self.save_alpha_layer_tracked(bounds.into(), alpha, false)
+    }
+    /// The group of an element with CSS opacity: Blink's non-composited
+    /// opacity effect, which becomes a cc `SaveLayerAlphaOp` in the layer's
+    /// display list. Only these groups follow cc's LCD text decision; the
+    /// other alpha layers emulate raster details and keep plain layers.
+    pub(crate) fn save_layer_opacity_f(&self, alpha: f32) -> usize {
+        let preserve_lcd_text = opacity_preserves_lcd_text(self.raw_tracking_target());
+        self.save_alpha_layer_tracked(None, alpha, preserve_lcd_text)
+    }
+    fn save_alpha_layer_tracked(
+        &self,
+        bounds: Option<Rect>,
+        alpha: f32,
+        preserve_lcd_text: bool,
+    ) -> usize {
         let c = self.raw_tracking_target();
         materialize_opacity(c);
-        let bounds = bounds.into();
         paint_program::record_operation(c, ProgramOperation::SaveLayerAlpha(bounds, alpha));
         // The original record still contains a layer: CompositeIterator's
         // solid-color analyzer rejects it even if raster playback can fold it.
@@ -289,7 +442,7 @@ impl dyn PaintCanvas + '_ {
         // SkPaint pins negative/NaN alpha. Preserve those original semantics
         // for inputs outside Chromium's normalized opacity operation contract.
         if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
-            return c.save_layer_alpha_f(bounds, alpha);
+            return save_alpha_layer(c, bounds, alpha, preserve_lcd_text);
         }
         let deferred = OPACITY_SCOPES.with(|scopes| {
             let mut scopes = scopes.borrow_mut();
@@ -298,6 +451,7 @@ impl dyn PaintCanvas + '_ {
                 scope.pending = Some(PendingOpacity {
                     bounds,
                     alpha,
+                    preserve_lcd_text,
                     base_save_count,
                     draw: None,
                 });
@@ -306,7 +460,7 @@ impl dyn PaintCanvas + '_ {
                 None
             }
         });
-        deferred.unwrap_or_else(|| c.save_layer_alpha_f(bounds, alpha))
+        deferred.unwrap_or_else(|| save_alpha_layer(c, bounds, alpha, preserve_lcd_text))
     }
     pub(crate) fn save(&self) -> usize {
         let c = self.raw_tracking_target();
@@ -577,7 +731,9 @@ impl dyn PaintCanvas + '_ {
         paint_program::record_draw(c, || {
             OwnedDraw::TextBlob(blob.clone(), origin, paint.clone())
         });
-        c.draw_text_blob(blob, origin, paint);
+        unfoldable_text_draw(c, || {
+            c.draw_text_blob(blob, origin, paint);
+        });
         self
     }
     pub(crate) fn draw_str(
@@ -593,7 +749,9 @@ impl dyn PaintCanvas + '_ {
         paint_program::record_draw(c, || {
             OwnedDraw::String(text.to_owned(), origin, font.clone(), paint.clone())
         });
-        c.draw_str(text, origin, font, paint);
+        unfoldable_text_draw(c, || {
+            c.draw_str(text, origin, font, paint);
+        });
         self
     }
     pub(crate) fn draw_picture(

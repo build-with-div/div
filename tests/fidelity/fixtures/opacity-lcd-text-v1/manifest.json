@@ -1,0 +1,37 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux",
+ "fontconfig": "real-font profile (tools/accountability/run_all_pixel_comparisons.py)",
+ "device_scale": "real zoom above scale 1: --force-device-scale-factor and a viewport-only CDP override, headless (RFC 0010, tools/accountability/run_all_pixel_comparisons.py)",
+ "viewport": [
+  240,
+  80
+ ],
+ "scales": [
+  "1",
+  "1.25",
+  "1.5",
+  "2"
+ ],
+ "fonts": {
+  "inter/InterVariable.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3"
+ },
+ "files": {
+  "on-page-1.png": "a0f71e8f91f9e122058d969e4d0d0fa41ff0e27be5d5755d60a0b4dc07196777",
+  "on-page-1.25.png": "eddc0ce1bbf8e77d0c5b5d90b93ece4f59e8976e199b31cf7b2a71cbe3bf3be3",
+  "on-page-1.5.png": "ef77cc9d3d62e6377b9d3af7049792efac522fc3b2eb481bd702c630056626a1",
+  "on-page-2.png": "edfa1481a9d4f3d6b28b7b1e085a78d96c1291f1d1f36c50626963e812965857",
+  "on-box-1.png": "e900e26b532cb734f68b238e1996b17631ddee034ab73669f1a26b9ac8c8f3cd",
+  "on-box-1.25.png": "b9122adef16ff3557f6422abfabaa91f693634ecf2902cce569f92a79090180d",
+  "on-box-1.5.png": "eebed74626f4a5209671010eb765565902630cb741ccc39246d7ba54e2c23afa",
+  "on-box-2.png": "4220320790ae405d79ef3cd0c60ca500ea6ec7e43e8a0bed17c32665f19ec04b",
+  "filter-elsewhere-1.png": "d9fc981754227ec0c24b44dac47c8396caf89f6903a946c5f9a442591306a16a",
+  "filter-elsewhere-1.25.png": "608b33af71f76254d6b53d9f905aa73806af575277219dba74f18448adfb18d1",
+  "filter-elsewhere-1.5.png": "2fd6ee55bbfdc2340186b1fafe7b2a465ca6afad38a03aa5ec611c0cdb284f84",
+  "filter-elsewhere-2.png": "43e792ed1bccb1337230c6ccc51587edf0a3d6b6dd77b813b1a9d751afb06120",
+  "no-group-1.png": "426bcef21956812161e68e099f58b560c6657501b9f8c3f6cd09b5e32961ca08",
+  "no-group-1.25.png": "4f76400317c87aacb72c4eb6b5dac966f4307eb8950c77d89403217ccd1ffcca",
+  "no-group-1.5.png": "300e31fca875fd34bbcded7bb289f8a9dbea5d9219b57a019d3a8be0038b3e9e",
+  "no-group-2.png": "e5098cc5da03d73896c06505400787602f4e476a0bb34695dcf05bab29412807"
+ }
+}

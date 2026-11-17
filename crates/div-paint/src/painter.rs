@@ -1732,6 +1732,11 @@ fn paint_fragment_contents(
     if has_composited_layer {
         canvas.save_layer_alpha_f(None, 1.0);
     }
+    // cc does not raster a will-change: transform layer with LCD text, so its
+    // opacity groups keep plain layers.
+    let _lcd_text_layer = (fragment.owns_element_box() && style.will_change_transform).then(|| {
+        crate::paint_record::LcdTextLayerScope::without_lcd_text(canvas.raw_tracking_target())
+    });
     let has_clip_path = fragment.owns_element_box() && style.clip_path_inset.is_some();
     if let Some(inset) = style.clip_path_inset.as_ref().filter(|_| has_clip_path) {
         crate::paint_program::record_fragment_property(
@@ -1838,7 +1843,7 @@ fn paint_fragment_contents(
         // format. Subtree contents do not select an F16 opacity intermediate:
         // that changes packed premultiply/composite rounding for vector groups.
         // Keep opacity on the whole subtree, including overlapping descendants.
-        canvas.save_layer_alpha_f(None, style.opacity);
+        canvas.save_layer_opacity_f(style.opacity);
     }
 
     if style.visibility == Visibility::Visible && style.display.is_flex() {
@@ -2006,6 +2011,15 @@ fn paint_fragment_contents(
             });
         let paint_recording =
             crate::paint_record::RecordingScope::new(layer_canvas.raw_tracking_target());
+        // The scrolling contents are their own Chromium layer, rastered like
+        // the document.
+        let lcd_text_contents = layer_lcd_text_contents(&fragment.children, doc);
+        let _lcd_text_layer = crate::paint_record::LcdTextLayerScope::new(
+            layer_canvas.raw_tracking_target(),
+            crate::paint_record::layer_uses_lcd_surface(canvas.raw_tracking_target()),
+            lcd_text_contents.draws_text,
+            lcd_text_contents.has_save_layer,
+        );
         let background_recording = BackgroundRecordingScope::new();
         paint_scrolling_canvas_background(layer_canvas, doc, fragment, bounds);
         paint_children_with_stacking_order(
@@ -11034,6 +11048,77 @@ fn paint_touching_unfragmented_descendant_outlines(
 
 fn fragment_subtree_has_text(fragment: &Fragment) -> bool {
     fragment.kind == FragmentKind::Text || fragment.children.iter().any(fragment_subtree_has_text)
+}
+
+/// The contents of one Chromium layer that cc's LCD text decision for opacity
+/// groups reads (`PaintOpBuffer::Playback`, 147.0.7727.50).
+#[derive(Clone, Copy, Default)]
+pub(crate) struct LayerLcdTextContents {
+    /// The display list draws text (`has_draw_text_ops`).
+    pub(crate) draws_text: bool,
+    /// The display list holds a `SaveLayerOp`
+    /// (`has_effects_preventing_lcd_text_for_save_layer_alpha`). Blink emits
+    /// one for a filter and for a mask; `mix-blend-mode`, the other source, is
+    /// not supported here. Backdrop filters (`SaveLayerFiltersOp`) and opacity
+    /// (`SaveLayerAlphaOp`) do not count.
+    pub(crate) has_save_layer: bool,
+}
+
+/// Scan the fragments that paint into one layer. A `will-change: transform`
+/// subtree is its own Chromium layer and is skipped; its contents never reach
+/// this layer's display list.
+pub(crate) fn layer_lcd_text_contents(
+    fragments: &[Fragment],
+    doc: &Document,
+) -> LayerLcdTextContents {
+    let mut contents = LayerLcdTextContents::default();
+    for fragment in fragments {
+        scan_layer_lcd_text_contents(fragment, doc, &mut contents);
+    }
+    contents
+}
+
+fn scan_layer_lcd_text_contents(
+    fragment: &Fragment,
+    doc: &Document,
+    contents: &mut LayerLcdTextContents,
+) {
+    if contents.draws_text && contents.has_save_layer {
+        return;
+    }
+    let default_style;
+    let style = if fragment.node_id.is_none() {
+        default_style = ComputedStyle::default();
+        fragment.inherited_style.as_ref().unwrap_or(&default_style)
+    } else {
+        &doc.node(fragment.node_id).style
+    };
+    if fragment.owns_element_box() {
+        if style.will_change_transform {
+            return;
+        }
+        if style.filter_blur > 0.0 || style.filter_grayscale > 0.0 || !style.mask_layers.is_empty()
+        {
+            contents.has_save_layer = true;
+        }
+    }
+    let visible = style.visibility == Visibility::Visible;
+    if visible
+        && fragment.kind == FragmentKind::Text
+        && fragment
+            .text_content
+            .as_deref()
+            .is_some_and(|text| !text.is_empty())
+    {
+        contents.draws_text = true;
+    }
+    // Native control values and placeholders draw text from the control box.
+    if visible && fragment.owns_element_box() && style.native_control_text {
+        contents.draws_text = true;
+    }
+    for child in &fragment.children {
+        scan_layer_lcd_text_contents(child, doc, contents);
+    }
 }
 
 fn paint_list_marker(

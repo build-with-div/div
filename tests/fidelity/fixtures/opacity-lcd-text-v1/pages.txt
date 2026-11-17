@@ -1,0 +1,28 @@
+# Text inside CSS opacity groups, captured through the census oracle:
+# pinned Chromium 147 headless with the real-font Fontconfig profile, at
+# real zoom above scale 1 (RFC 0010;
+# tools/qualification/capture_opacity_lcd_oracle.py).
+#
+# Each line is: page | depth | tag | declarations | text. Depth 0 is a child
+# of body; depth n is a child of the page's previous box at depth n - 1. The
+# text, if any, is the box's only child. Every page is 240x80 CSS px on a
+# white body with Inter 16px (tests/fidelity/components/assets/fonts) at a
+# 24px line height, black.
+#
+# cc keeps LCD text inside an opacity group when the layer draws text and
+# holds no SaveLayerOp (a filter, blend mode or mask); the group then starts
+# as a copy of the page below it (PaintOpBuffer::Playback, 147.0.7727.50).
+
+# Black text in a 50% group straight over the page.
+on-page | 0 | div | position: absolute; left: 8px; top: 8px; opacity: 0.5 | Hamburgefonstiv 0123
+
+# A disabled button: light text on a dark box in a 50% group.
+on-box | 0 | div | position: absolute; left: 8px; top: 8px; padding: 8px 16px; background-color: #18181b; color: #fafafa; opacity: 0.5 | Disabled
+
+# The first page plus a filtered box elsewhere in the same layer: its
+# SaveLayerOp turns LCD text off for every group in the layer.
+filter-elsewhere | 0 | div | position: absolute; left: 8px; top: 8px; opacity: 0.5 | Hamburgefonstiv 0123
+filter-elsewhere | 0 | div | position: absolute; left: 8px; top: 48px; width: 40px; height: 20px; background-color: green; filter: blur(1px) |
+
+# The first page without the group, for comparison.
+no-group | 0 | div | position: absolute; left: 8px; top: 8px | Hamburgefonstiv 0123
