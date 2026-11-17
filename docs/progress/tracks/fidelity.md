@@ -4,6 +4,31 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## 16 November 2026: web-font fixtures recaptured at real zoom
+
+- **What:** `tests/fidelity/fixtures/webfont-fontations-v1` recaptured with
+  `tools/qualification/capture_webfont_oracle.py` on the real-zoom
+  launcher (RFC 0010), and the expected gaps in
+  `crates/divui/tests/native_webfont_fontations.rs` set to the new counts.
+  No Div code changes.
+- **Frames:** the 1x frame is byte-identical to the emulated capture; the
+  1.25, 1.5 and 2x frames changed. A second capture with `--check`
+  reproduces all four.
+- **Result:** 10 of 24 rows exact (21 of 24 against the emulated
+  frames). At 1x all 6 are exact, at 1.25 2, at 1.5 2 and at 2x none.
+- **Cause:** in 11 of the 14 rows that differ, the glyph raster is
+  identical and the row is offset by one whole device pixel: Div's ink is
+  1 device px higher (Geist Mono, Geist 650) or lower (Inter 16px), and a
+  one-pixel shift leaves 0 differing pixels. Real-zoom Blink lays line boxes
+  out in device pixels; Div lays out in CSS px and scales. Owner: engine
+  (device-pixel layout, RFC 0011), not rasterization. The other 3 rows are
+  the earlier Inter 13px gap (1,339, 2,423 and 4,153 pixels after the
+  one-pixel shift).
+- **Verification:** `python3 tools/qualification/capture_webfont_oracle.py
+  --chrome <pinned Chromium 147.0.7727.50> --check`; `cargo test --locked
+  -p divui --features "divui/async divui/http divui/testing" --test
+  native_webfont_fontations` (Linux, WSL): passes with the 14 listed gaps.
+
 ## 16 November 2026: Chromium oracles at real zoom above scale 1 (RFC 0010)
 
 - **What:** the shared launcher `render_chrome`
@@ -50,8 +75,8 @@ style or the cascade go to the engine track.
   their oracles at scale 1 only, so they need no recapture.
 - **Remaining:** each owner's non-1x oracles, per the RFC 0010 inventory.
   The fidelity lane's own: the fractional-edges probe (#53, recaptured on
-  its rebase), `webfont-fontations-v1`, the site showcase PNG and the
-  Windows text values.
+  its rebase), `webfont-fontations-v1` (done, above), the site showcase PNG
+  and the Windows text values.
 
 ## 15 November 2026: root causes of the remaining census differences
 
