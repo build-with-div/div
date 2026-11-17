@@ -3,7 +3,7 @@
   "measured_on": "2026-11-17",
   "complete": true,
   "repository": {
-    "commit": "84fe505123b80a84fc9d3bf54c614dc9c27d5069",
+    "commit": "06b9002e85d8b95a1da523cd82a03d45bd59e7c4",
     "dirty_paths": []
   },
   "chromium": {
@@ -12,11 +12,11 @@
     "font_profile": "registered-real-font"
   },
   "reference": {
-    "manifest_sha256": "22ecba1c55161d32e73bd2fc5986715f86cf865e869928de0aaeb11c02b72a5d",
-    "package_lock_sha256": "93d1a093da22d87d8db2de61a7bf5e049600097974ce23d157a567c5c02a906f"
+    "manifest_sha256": "3ff55295098d22fb47ca01f0d5d04f86d85c64561bc2e366475ed9e9a14d0bb9",
+    "package_lock_sha256": "1f1b02a57485f88c7ae80b17c0f7ca22c79f40f2dcb3474d4013ca81857cc906"
   },
   "openui": {
-    "renderer_sha256": "2dd7d79edec9ae7299ecd5ffa01ce6f2c6cab3ff596e650288ef03c44f2d4186",
+    "renderer_sha256": "f3ee4be91706cfa4f7a296ecd0b1200c67aaa594eb63710786a386e2e7b39077",
     "raster_configuration": "chromium-linux-lcd"
   },
   "profiles": [
@@ -75,9 +75,9 @@
   ],
   "unimplemented_fixtures": [],
   "summary": {
-    "comparisons": 296,
-    "exact": 45,
-    "different": 251,
+    "comparisons": 336,
+    "exact": 57,
+    "different": 279,
     "error": 0,
     "by_component": {
       "badge": {
@@ -93,6 +93,11 @@
       "card": {
         "exact": 0,
         "different": 16,
+        "error": 0
+      },
+      "checkbox": {
+        "exact": 12,
+        "different": 28,
         "error": 0
       },
       "font": {
@@ -129,34 +134,34 @@
     "by_profile": {
       "desktop-1280x720@1.25": {
         "exact": 0,
-        "different": 74,
+        "different": 84,
         "error": 0
       },
       "desktop-1920x1080@1.5": {
         "exact": 0,
-        "different": 74,
+        "different": 84,
         "error": 0
       },
       "legacy-800x600@1": {
-        "exact": 36,
-        "different": 38,
+        "exact": 42,
+        "different": 42,
         "error": 0
       },
       "mobile-375x667@2": {
-        "exact": 9,
-        "different": 65,
+        "exact": 15,
+        "different": 69,
         "error": 0
       }
     },
     "by_theme": {
       "dark": {
-        "exact": 24,
-        "different": 124,
+        "exact": 30,
+        "different": 138,
         "error": 0
       },
       "light": {
-        "exact": 21,
-        "different": 127,
+        "exact": 27,
+        "different": 141,
         "error": 0
       }
     }
@@ -2406,6 +2411,602 @@
         412
       ],
       "max_channel_delta": 245
+    },
+    {
+      "fixture": "checkbox-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "f4b492cba9ab49877a7f87a53ac5dd208abb8a61af69ad06007294226724f85e",
+      "openui_rgba_sha256": "d8b47863692334fd1792f8745e45d7525d8ee3038a7c9dcb303620b7247f751d",
+      "mismatched_pixels": 91,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 206
+    },
+    {
+      "fixture": "checkbox-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "93e4d5ff81e09ddf9cd13be77d49a44aec79ff00c73137cb7e450ae087f40a89",
+      "openui_rgba_sha256": "3536e8e73b1891224a3349e94c8233369f2e3857241714abc1e9f18ea70c780f",
+      "mismatched_pixels": 122,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 206
+    },
+    {
+      "fixture": "checkbox-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "67d601413f92d9c59abf54156e112b480391eb58503bc76fa081b9bbd3eb7243",
+      "openui_rgba_sha256": "10bb5496595023aee56a0965aeae08fb33987d70333efcb8ac717566bbe8ec2f",
+      "mismatched_pixels": 34,
+      "status": "different",
+      "diff_bbox": [
+        18,
+        20,
+        30,
+        28
+      ],
+      "max_channel_delta": 206
+    },
+    {
+      "fixture": "checkbox-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "1f8734fc56ccc73fd8b0b7a207e122c02237408d1fa4d90fd27cd0a2c59502eb",
+      "openui_rgba_sha256": "82f9bae3e6eae29842807a9ad0740c7fc87b635fa22ff4e0e43399bf937488f8",
+      "mismatched_pixels": 104,
+      "status": "different",
+      "diff_bbox": [
+        33,
+        32,
+        62,
+        60
+      ],
+      "max_channel_delta": 206
+    },
+    {
+      "fixture": "checkbox-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "0e98a3f836a9aaf9731ec97031fd330c9199d4411c29f4a6e000e10bcbcf1adf",
+      "openui_rgba_sha256": "7429f56f21ad706d6e510623d62b3607f70ae78b9e31c52a951e0507e4cd1a21",
+      "mismatched_pixels": 138,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 227
+    },
+    {
+      "fixture": "checkbox-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "144a5860ad0140d2f0d0eb3816e98c1f768763829e4b659415f86d02e23b4057",
+      "openui_rgba_sha256": "eb56e3cd450edd3bdeee3cde921fdfd942439ee23fe71fc045de67de2dbdccf7",
+      "mismatched_pixels": 178,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 227
+    },
+    {
+      "fixture": "checkbox-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "94c4dfb064ea82153b5a047814a39ba58684f977089d7d39503bfa4065d09ea8",
+      "openui_rgba_sha256": "d67b86c4e61e9785f0bfc703844abc3a21db40a7620c005b5e2144868e9c651f",
+      "mismatched_pixels": 56,
+      "status": "different",
+      "diff_bbox": [
+        16,
+        16,
+        32,
+        32
+      ],
+      "max_channel_delta": 227
+    },
+    {
+      "fixture": "checkbox-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "8b417ed742bda7fd7ed52a013fa8fc5d32be13dda8dcd944ac20774be55cb2f7",
+      "openui_rgba_sha256": "9a02e99b2e16a8097d073da722cde06b7bf0dbe1d9ef82769dddf5af91d768b1",
+      "mismatched_pixels": 133,
+      "status": "different",
+      "diff_bbox": [
+        32,
+        32,
+        64,
+        64
+      ],
+      "max_channel_delta": 227
+    },
+    {
+      "fixture": "checkbox-disabled-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "73139c80c0182cc031eb9801951b05739be86ee7753772866c9c1c561888d28a",
+      "openui_rgba_sha256": "eb291e293799f041bf815c2a42afe6005a33201e2ff08519641e03494748cb28",
+      "mismatched_pixels": 88,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 104
+    },
+    {
+      "fixture": "checkbox-disabled-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "e58ca78b3bb8e70f35645b26a82f2668b1cb5b2b446bbb982f6fd7cae04da142",
+      "openui_rgba_sha256": "1d284cf13eedbaf2b1952aa761d1486e055efe4818ed950b540446691bc34af5",
+      "mismatched_pixels": 121,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 104
+    },
+    {
+      "fixture": "checkbox-disabled-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "4816a35d0351bf73bca176a574c1c9bc97ec41c347975a88e65180f51a79f2a0",
+      "openui_rgba_sha256": "b944563bf11b197b7fc039749494c4490a031e30c9b2d111945011c4c16aae34",
+      "mismatched_pixels": 38,
+      "status": "different",
+      "diff_bbox": [
+        16,
+        20,
+        32,
+        32
+      ],
+      "max_channel_delta": 104
+    },
+    {
+      "fixture": "checkbox-disabled-checked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "d3c2b96070ee8746a90c31e298790185f97c5fcd97fc6e42a15ca60dd3e48c86",
+      "openui_rgba_sha256": "fd0283fbccc95e97cc545541361dc21d871996f1496854b555671299084dfbf4",
+      "mismatched_pixels": 100,
+      "status": "different",
+      "diff_bbox": [
+        37,
+        39,
+        59,
+        64
+      ],
+      "max_channel_delta": 104
+    },
+    {
+      "fixture": "checkbox-disabled-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "c52d1bf10e3b39fde78fd973b378f9da1c5434673e38d12ed1a8664e82000e8b",
+      "openui_rgba_sha256": "801df40fa7249109ac1d102698cd388d0fa344e738d93e96c7377163b0d48eb7",
+      "mismatched_pixels": 130,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 114
+    },
+    {
+      "fixture": "checkbox-disabled-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "ba738f31de5bf1ceacb5b1c20a9aa30e0b4fe437ab6c42e34a75f2f28747befc",
+      "openui_rgba_sha256": "81ab72a58d2487190dfd6de76dabc4f1e878b081faf1f4f9616775a6ca32a4ea",
+      "mismatched_pixels": 176,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 114
+    },
+    {
+      "fixture": "checkbox-disabled-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "d8ec5159583da6bc9b27579a4e0d4f1cdcb25800766d85ddb99cb179f59c74b8",
+      "openui_rgba_sha256": "16d30db3ec0e4c58ae973ee063e11c9de758cc0a0014ade80dff8b3c91ace2b1",
+      "mismatched_pixels": 48,
+      "status": "different",
+      "diff_bbox": [
+        16,
+        16,
+        32,
+        32
+      ],
+      "max_channel_delta": 114
+    },
+    {
+      "fixture": "checkbox-disabled-checked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "89eadb714710fc04e6b3e117380be6c22307204b1c82319937e91057054e177e",
+      "openui_rgba_sha256": "a9c4442e0f51ab56952a19d8879fa92222699924a0cf93464dcb9173920c2582",
+      "mismatched_pixels": 119,
+      "status": "different",
+      "diff_bbox": [
+        32,
+        35,
+        64,
+        64
+      ],
+      "max_channel_delta": 114
+    },
+    {
+      "fixture": "checkbox-disabled-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "860e24eb0a77e03a69a38675cdb6e86b15776657b843ce29689160f259b05815",
+      "openui_rgba_sha256": "2de8c9d7d7d91ee14a893edcd5303290663f7bfd536e664838c37621511e3978",
+      "mismatched_pixels": 68,
+      "status": "different",
+      "diff_bbox": [
+        21,
+        21,
+        39,
+        39
+      ],
+      "max_channel_delta": 5
+    },
+    {
+      "fixture": "checkbox-disabled-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "d3ff913544ef031e4f921ab79e94fc5dd77f760f6f071499382508b4deb77d07",
+      "openui_rgba_sha256": "7c7b5908461ddc21160cd4f69e76ba33856ad30a551a7a4ec76a89d02f3319f0",
+      "mismatched_pixels": 84,
+      "status": "different",
+      "diff_bbox": [
+        25,
+        25,
+        47,
+        47
+      ],
+      "max_channel_delta": 10
+    },
+    {
+      "fixture": "checkbox-disabled-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "f59a4ace05d23aa4d2a712120cfd1446ee82dc8b49a18b581049626d956944d0",
+      "openui_rgba_sha256": "f59a4ace05d23aa4d2a712120cfd1446ee82dc8b49a18b581049626d956944d0",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-disabled-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "21fc01b735aef2bcdeffb8c3e99ca94ea6b7a0c523b1e87c366036c7aff229d2",
+      "openui_rgba_sha256": "21fc01b735aef2bcdeffb8c3e99ca94ea6b7a0c523b1e87c366036c7aff229d2",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-disabled-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "8daa90adb480d7f8cac98751aa1967d79d3450752c6d6ae140549e1262340f7a",
+      "openui_rgba_sha256": "30df5dc43b2537cecc0b093d562356f47f2b013c75c6b0f4c7c1b8492159fa8c",
+      "mismatched_pixels": 81,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 4
+    },
+    {
+      "fixture": "checkbox-disabled-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "10447243ece60b0ac5d47bf017ee04e5919cf03a5d06443238abad7387d37492",
+      "openui_rgba_sha256": "4b55fa949c32c292a3df83270a95f13b7ae447068b19ebac0efcd2a54630ccce",
+      "mismatched_pixels": 103,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 7
+    },
+    {
+      "fixture": "checkbox-disabled-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "b18390499781c3a868e23b38d9d7795d8e467663c5f967a1d6692c409b5518af",
+      "openui_rgba_sha256": "b18390499781c3a868e23b38d9d7795d8e467663c5f967a1d6692c409b5518af",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-disabled-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "0cfb2564e5e712c7b3ca6ea1217c2375cae5aa2c45fea0de85c308a35f3d4fa5",
+      "openui_rgba_sha256": "0cfb2564e5e712c7b3ca6ea1217c2375cae5aa2c45fea0de85c308a35f3d4fa5",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-invalid-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "e17e608e9f191088489626ad5920253864b6dce9b8c35492be04ed6fff819af5",
+      "openui_rgba_sha256": "a12e8f74cbc83e79283372f55f14cbe07c05ece052e4db121022429c024f7bf0",
+      "mismatched_pixels": 96,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 73
+    },
+    {
+      "fixture": "checkbox-invalid-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "799e6eec3b2d00591169cf0d29c3e9400290983b00a0d7cedc0c6dd341cea231",
+      "openui_rgba_sha256": "f48bbee1784cd9df9938a65f5951b354875350115f72b8605c3b2bec69cbb8ff",
+      "mismatched_pixels": 120,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 124
+    },
+    {
+      "fixture": "checkbox-invalid-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "7198a4dc8620441ad129c46aa435d490fbb50c62df7aab7dcf2beaed95b5a986",
+      "openui_rgba_sha256": "7198a4dc8620441ad129c46aa435d490fbb50c62df7aab7dcf2beaed95b5a986",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-invalid-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "164fdf81ee6c611a9502be52a0f38b35735afc27ca5cb299a022a611cf5d2256",
+      "openui_rgba_sha256": "164fdf81ee6c611a9502be52a0f38b35735afc27ca5cb299a022a611cf5d2256",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-invalid-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "2850440830700da404df33833e31b45762d65e759ba2992c6efbb9ff4e6f4dd5",
+      "openui_rgba_sha256": "883c14acbf80c28e2b629ac3460d52bc888d0f3d7d78193f91e3c54b95179002",
+      "mismatched_pixels": 96,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 78
+    },
+    {
+      "fixture": "checkbox-invalid-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "41c3f967a6712b8e2dac76364589d73b76d3677325d61b9e878ffe90d0aa43f1",
+      "openui_rgba_sha256": "240b3e357f6d0f7f28ab5dd6f4dc78b463098b829c803ad8aa5c7138ee815747",
+      "mismatched_pixels": 120,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 135
+    },
+    {
+      "fixture": "checkbox-invalid-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "8f3847a5abc52dad0ec6eae9afb02fa1d63f406df485d3edcfc926833d2e1653",
+      "openui_rgba_sha256": "8f3847a5abc52dad0ec6eae9afb02fa1d63f406df485d3edcfc926833d2e1653",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-invalid-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "40bc1c8f2b2726885fd838bbc4f3be1f2130570c246c6d70ab8c627a0038c148",
+      "openui_rgba_sha256": "40bc1c8f2b2726885fd838bbc4f3be1f2130570c246c6d70ab8c627a0038c148",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-unchecked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "ee86ae1569c1336b864456c5215184845e832ce9150b866fee23ff4bff86588b",
+      "openui_rgba_sha256": "2c7fe538f622f3b4c3606ad59e8ef0b4edab4a32e30565078e18bb0ddc9d329b",
+      "mismatched_pixels": 68,
+      "status": "different",
+      "diff_bbox": [
+        21,
+        21,
+        39,
+        39
+      ],
+      "max_channel_delta": 10
+    },
+    {
+      "fixture": "checkbox-unchecked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "07f940561c456c64a76f9f3e772e46d0868ce6630a1b3fae5ad79fb6bb53c0bd",
+      "openui_rgba_sha256": "aa09271cfe479598d042c99e792714a31bf3b58a4b44f59bf5ed95a6404eb5ea",
+      "mismatched_pixels": 84,
+      "status": "different",
+      "diff_bbox": [
+        25,
+        25,
+        47,
+        47
+      ],
+      "max_channel_delta": 19
+    },
+    {
+      "fixture": "checkbox-unchecked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "830363f84c099c42afb59e19ab73282f340b22bbaa263a9a0e964aba042f7b09",
+      "openui_rgba_sha256": "830363f84c099c42afb59e19ab73282f340b22bbaa263a9a0e964aba042f7b09",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-unchecked-dark",
+      "component": "checkbox",
+      "theme": "dark",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "3f320350092bda7fb4a6cb90fa59b88bcdbbe7893d9a0bc759b02471022a7f5b",
+      "openui_rgba_sha256": "3f320350092bda7fb4a6cb90fa59b88bcdbbe7893d9a0bc759b02471022a7f5b",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-unchecked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1280x720@1.25",
+      "chromium_rgba_sha256": "c14f374ce080a3cbe1d4a68314f90cf96227a4539f1b4d3c076ffca2c50b7dd9",
+      "openui_rgba_sha256": "cfb6d04dac84ae09feab7d69b6771151ed0863f1af3d105f52c2b772fb0b26af",
+      "mismatched_pixels": 89,
+      "status": "different",
+      "diff_bbox": [
+        20,
+        20,
+        40,
+        40
+      ],
+      "max_channel_delta": 8
+    },
+    {
+      "fixture": "checkbox-unchecked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "desktop-1920x1080@1.5",
+      "chromium_rgba_sha256": "33b3c8718ba0bd2d9b816539ffcfb244ab438b3ee689ff67755574316ad2c54c",
+      "openui_rgba_sha256": "344a53c82daa9fc509d136282193eff4a748b3b518edc504210da5eba30be299",
+      "mismatched_pixels": 107,
+      "status": "different",
+      "diff_bbox": [
+        24,
+        24,
+        48,
+        48
+      ],
+      "max_channel_delta": 14
+    },
+    {
+      "fixture": "checkbox-unchecked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "a7124fefd6dd8a43b04922003cf028e211794d061e4ca4f5b2e77f1c97f8247d",
+      "openui_rgba_sha256": "a7124fefd6dd8a43b04922003cf028e211794d061e4ca4f5b2e77f1c97f8247d",
+      "mismatched_pixels": 0,
+      "status": "exact"
+    },
+    {
+      "fixture": "checkbox-unchecked-light",
+      "component": "checkbox",
+      "theme": "light",
+      "profile": "mobile-375x667@2",
+      "chromium_rgba_sha256": "736c34afdffa9bc7b6477426304be7c7e5c233a77d3f1c1c39014639aae8d9ba",
+      "openui_rgba_sha256": "736c34afdffa9bc7b6477426304be7c7e5c233a77d3f1c1c39014639aae8d9ba",
+      "mismatched_pixels": 0,
+      "status": "exact"
     },
     {
       "fixture": "font-geist-dark",

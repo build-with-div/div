@@ -3,13 +3,13 @@
   "chromium": {
     "version": "147.0.7727.50"
   },
-  "renderer_sha256": "2dd7d79edec9ae7299ecd5ffa01ce6f2c6cab3ff596e650288ef03c44f2d4186",
+  "renderer_sha256": "f3ee4be91706cfa4f7a296ecd0b1200c67aaa594eb63710786a386e2e7b39077",
   "repository": {
-    "commit": "84fe505123b80a84fc9d3bf54c614dc9c27d5069",
+    "commit": "06b9002e85d8b95a1da523cd82a03d45bd59e7c4",
     "dirty_paths": []
   },
-  "traces_sha256": "517d4f55686c70bbd0526155e5770e6f2c6cc338bd2122e5546687236f3640c1",
-  "interactive_sha256": "5768f4961e1c1386a1c786ab0c0e4c73767ac8520e351a6c9bf34ec8c2a6b5f7",
+  "traces_sha256": "60cbf00f8a9425f2687c072535b2fe6e48d463f880d0478acb2b945976d82697",
+  "interactive_sha256": "610332bb827e2bc38afe8345a72715c05c03b83ea6a890bcb197a125d567bb41",
   "rows": [
     {
       "trace": "tabs-keyboard",
@@ -4114,6 +4114,294 @@
                 "type": "email",
                 "disabled": "",
                 "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "checkbox-keyboard",
+      "fixture": "checkbox-unchecked",
+      "steps": 4,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "checkbox-indicator#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "checkbox-indicator#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "checkbox-pointer",
+      "fixture": "checkbox-unchecked",
+      "steps": 3,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "checkbox-indicator#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "checkbox#0",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "value": "on",
+                "aria-checked": "true",
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            },
+            {
+              "name": "checkbox-indicator#0",
+              "attributes": {
+                "data-state": "checked"
+              },
+              "children": 1,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "checkbox-disabled",
+      "fixture": "checkbox-disabled",
+      "steps": 3,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "checkbox#0",
+              "attributes": {
+                "role": "checkbox",
+                "type": "button",
+                "disabled": "",
+                "value": "on",
+                "aria-checked": "false",
+                "data-state": "unchecked",
+                "data-disabled": ""
               },
               "children": 0,
               "unlisted": []
