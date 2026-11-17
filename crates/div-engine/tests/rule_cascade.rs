@@ -2,11 +2,15 @@
 //! incremental restyles that equal a full re-cascade.
 
 use div_dom::ElementTag;
-use div_engine::{AnimationTimeline, Engine, NodeHandle, StyleSheetError, ViewportMetrics};
+use div_engine::{
+    AnimationTimeline, Engine, FocusOrigin, NodeHandle, PointerEventKind, StyleSheetError,
+    ViewportMetrics, MOUSE_POINTER_ID,
+};
 use div_style::selector_parser::parse_selector_list;
 use div_style::stylesheet::{CascadeOrigin, StyleRule, StyleSheet};
 use div_style::{
-    AnimationOptions, Color, FillMode, Keyframes, PropertyKeyframes, Style, StyleProperty,
+    parse_literal, AnimationOptions, Color, FillMode, Keyframes, PropertyKeyframes, Style,
+    StyleProperty,
 };
 
 fn engine() -> Engine {
@@ -360,4 +364,130 @@ fn incremental_restyles_equal_a_full_cascade() {
         full_cascade(&mut engine, &sheet, &mut id);
         assert_eq!(incremental, snapshot(&engine, &live), "mutation {step}");
     }
+}
+
+/// Each pointer path that changes `:hover` or `:active` restyles: hover
+/// enter and leave through routing, press, release and cancel, the pointer
+/// leaving the window, and a forgotten pointer. Every step reads the
+/// computed style after `update()`, so a path that changes the state
+/// without noting it leaves the previous value and fails here.
+#[test]
+fn pointer_state_changes_restyle() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule("#t:hover", opacity(0.5)))
+        .with_rule(rule("#t:active", opacity(0.25)));
+    let mut engine = engine();
+    let root = engine.root();
+    let target = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(target, "id", "t").unwrap();
+    for property in [StyleProperty::Width, StyleProperty::Height] {
+        let value = parse_literal(property, "100px").unwrap();
+        engine.set_property(target, property, value).unwrap();
+    }
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 1.0);
+
+    let step = |engine: &mut Engine, what: &str, expected: f32| {
+        engine.update().unwrap();
+        assert_eq!(opacity_of(engine, target), expected, "after {what}");
+    };
+    let mouse = MOUSE_POINTER_ID;
+    let (inside, outside) = ((10.0, 10.0), (150.0, 150.0));
+
+    // Hover enter and leave, through the routing.
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "moving in", 0.5);
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, outside.0, outside.1)
+        .unwrap();
+    step(&mut engine, "moving out", 1.0);
+
+    // Press and release over the same element: the hover path does not
+    // change, so only `:active` restyles.
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "moving in again", 0.5);
+    engine
+        .pointer_event(mouse, PointerEventKind::Down, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "pressing", 0.25);
+    engine
+        .pointer_event(mouse, PointerEventKind::Up, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "releasing", 0.5);
+
+    // Cancel ends `:active` and forgets the hover path.
+    engine
+        .pointer_event(mouse, PointerEventKind::Down, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "pressing again", 0.25);
+    engine
+        .pointer_event(mouse, PointerEventKind::Cancel, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "cancelling", 1.0);
+
+    // A press captured to the element and released outside it: the
+    // release ends `:active` while capture keeps `:hover`, and the rehover
+    // after capture ends leaves `:hover`.
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, inside.0, inside.1)
+        .unwrap();
+    engine
+        .pointer_event(mouse, PointerEventKind::Down, inside.0, inside.1)
+        .unwrap();
+    engine.set_pointer_capture(mouse, target).unwrap();
+    engine
+        .pointer_event_with_buttons(mouse, PointerEventKind::Move, outside.0, outside.1, 1)
+        .unwrap();
+    step(&mut engine, "moving out while captured", 0.25);
+    engine
+        .pointer_event(mouse, PointerEventKind::Up, outside.0, outside.1)
+        .unwrap();
+    step(&mut engine, "releasing outside while captured", 0.5);
+    let _ = engine.end_pointer_capture(mouse);
+    engine.pointer_rehover(mouse, outside.0, outside.1).unwrap();
+    step(&mut engine, "rehovering after capture ends", 1.0);
+
+    // The pointer leaves the window.
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "moving in before leaving", 0.5);
+    let _ = engine.pointer_leave(mouse);
+    step(&mut engine, "leaving the window", 1.0);
+
+    // A forgotten pointer loses its hover path and its press.
+    engine
+        .pointer_event(mouse, PointerEventKind::Move, inside.0, inside.1)
+        .unwrap();
+    engine
+        .pointer_event(mouse, PointerEventKind::Down, inside.0, inside.1)
+        .unwrap();
+    step(&mut engine, "pressing before forgetting", 0.25);
+    engine.forget_pointer(mouse);
+    step(&mut engine, "forgetting the pointer", 1.0);
+}
+
+/// A key press after pointer focus turns on `:focus-visible`, as Blink's
+/// heuristic does, and restyles.
+#[test]
+fn keyboard_input_restyles_focus_visible() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule("button:focus-visible", opacity(0.5)));
+    let mut engine = engine();
+    let root = engine.root();
+    let button = element(&mut engine, root, ElementTag::Button);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine
+        .focus_with_origin(button, FocusOrigin::Pointer)
+        .unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, button), 1.0, "after pointer focus");
+    engine.note_keyboard_event();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, button), 0.5, "after a key press");
 }

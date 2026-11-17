@@ -593,7 +593,7 @@ impl Engine {
             old_path.first().copied()
         };
         // `:hover` follows the hover path.
-        if !left.is_empty() || !entered.is_empty() || clear {
+        if !left.is_empty() || !entered.is_empty() {
             self.note_selector_state_change();
         }
         Ok(PointerUpdate {
@@ -793,7 +793,11 @@ impl Engine {
     /// `Document::SetHadKeyboardEvent` on key down. Pointer focus on another
     /// element clears it.
     pub fn note_keyboard_event(&mut self) {
-        self.had_keyboard_event = true;
+        if !self.had_keyboard_event {
+            self.had_keyboard_event = true;
+            // A pointer-focused element can now match `:focus-visible`.
+            self.note_selector_state_change();
+        }
     }
 
     /// Blink's `MayTriggerVirtualKeyboard`: a textarea, or an input whose
