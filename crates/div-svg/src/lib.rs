@@ -12,9 +12,17 @@
 //! against Chromium by `tests/paint_corpus.rs`
 //! (`tests/fidelity/fixtures/svg-paint-v1` and `svg-paint-v2`).
 //!
+//! [`text`] lays out `<text>` and `<tspan>` and answers the SVG text DOM
+//! queries (character positions, extents, rotations and the computed text
+//! length). It ports Blink's BSD SVG text layout algorithm and query code;
+//! the LGPL parts (attribute resolution, the scaled-font rule) are written
+//! from SVG 2 and black-box observation. `tests/text_corpus.rs` checks it
+//! exactly against Chromium per OS (`tests/fidelity/fixtures/svg-text-v1`).
+//!
 //! The crate depends on Skia for arcs, path measurement, containment,
-//! stroking and drawing, which Chromium also does with Skia. It has no
-//! dependency on the DOM, style, layout or Div's paint crate.
+//! stroking and drawing, which Chromium also does with Skia, and on
+//! `div-text` (with `div-style` for its font types) to shape text. It has
+//! no dependency on the DOM, layout or Div's paint crate.
 
 mod arc;
 pub mod geometry;
@@ -23,6 +31,7 @@ mod number;
 pub mod paint;
 pub mod path_data;
 pub mod shapes;
+pub mod text;
 pub mod transform;
 pub mod viewport;
 

@@ -18,7 +18,17 @@ Classes:
   redistribution clauses, and no GNU licence. May be ported.
 - `NONE`: no licence text in the header. Treated as not cleared.
 
+Only the first 30 lines of each decoded file are looked at; the rest is
+dropped before classification, and nothing but the class and the first
+copyright line is written.
+
     licence_audit.py --tag 147.0.7727.50 --output tools/svg/licence-audit-147.0.7727.50.tsv
+    licence_audit.py --tag 147.0.7727.50 --scope text \\
+        --output tools/svg/licence-audit-147.0.7727.50.tsv
+
+`--scope text` (V2) audits the shared inline layout, text paint and shaping
+code that SVG text calls into, skips paths the output file already lists,
+and merges the new rows into it.
 """
 
 from __future__ import annotations
@@ -50,7 +60,16 @@ PREFIXES = {
     BLINK + "platform/geometry": ("path.", "path_builder", "stroke_data"),
     BLINK + "platform/graphics": ("graphics_context.", "gradient.", "dash_array"),
 }
+# V2 text: the shared code SVG text layout and painting call into.
+TEXT_DIRECTORIES = [
+    BLINK + "core/layout/inline",
+    BLINK + "platform/fonts/shaping",
+]
+TEXT_PREFIXES = {
+    BLINK + "core/paint": ("text_",),
+}
 SUFFIXES = (".h", ".cc", ".css", ".json5")
+HEADER_LINES = 30
 
 
 def fetch(url: str) -> bytes:
@@ -114,7 +133,9 @@ def leading_comment(text: str) -> str:
 
 def classify(tag: str, path: str) -> tuple[str, str, str]:
     raw = fetch(HOST.format(tag=tag, path=path) + "?format=TEXT")
-    header = leading_comment(base64.b64decode(raw).decode("utf-8", "replace"))
+    first_lines = base64.b64decode(raw).decode("utf-8", "replace").splitlines()[:HEADER_LINES]
+    del raw
+    header = leading_comment("\n".join(first_lines))
     if re.search(r"GNU (Library|Lesser) General Public|\bLGPL", header):
         kind = "LGPL"
     elif re.search(r"GNU General Public|\bGPL", header):
@@ -133,18 +154,34 @@ def main() -> int:
     parser.add_argument("--tag", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--jobs", type=int, default=4)
+    parser.add_argument("--scope", choices=("svg", "text"), default="svg")
     args = parser.parse_args()
 
+    directories, prefixes_by_dir = ((DIRECTORIES, PREFIXES) if args.scope == "svg"
+                                    else (TEXT_DIRECTORIES, TEXT_PREFIXES))
     paths: list[str] = []
-    for directory in DIRECTORIES:
+    for directory in directories:
         paths += files_under(args.tag, directory)
-    for directory, prefixes in PREFIXES.items():
+    for directory, prefixes in prefixes_by_dir.items():
         paths += [f"{directory}/{name}" for name, kind in listing(args.tag, directory)
                   if kind == "blob" and name.startswith(prefixes) and name.endswith(SUFFIXES)]
     paths = sorted(set(paths))
 
+    existing: list[tuple[str, str, str]] = []
+    if args.scope == "text":
+        with open(args.output, encoding="utf-8") as previous:
+            for line in previous:
+                if line.startswith(("#", "path\t")) or not line.strip():
+                    continue
+                path, kind, first = line.rstrip("\n").split("\t")
+                existing.append((path, kind, first))
+        known = {row[0] for row in existing}
+        skipped = [p for p in paths if p in known]
+        paths = [p for p in paths if p not in known]
+        print(f"{len(paths)} new files to classify, {len(skipped)} already listed", file=sys.stderr)
+
     with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
-        rows = sorted(pool.map(lambda p: classify(args.tag, p), paths))
+        rows = sorted(existing + list(pool.map(lambda p: classify(args.tag, p), paths)))
 
     counts: dict[str, int] = {}
     with open(args.output, "w", encoding="utf-8", newline="\n") as out:
