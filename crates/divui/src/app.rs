@@ -385,15 +385,27 @@ impl div_platform::PlatformApplication for App {
                     Ok(())
                 } else {
                     let (id, pointer_type) = self.pointer_ids.map(*pointer_id, kind);
-                    self.document.dispatch_pointer_input(PointerInput {
-                        pointer_id: id,
-                        pointer_type,
-                        kind,
-                        x: *x,
-                        y: *y,
-                        button: pressed.unwrap_or(crate::MouseButton::Main),
-                        modifiers: platform_modifiers(*keys),
-                        pressure: None,
+                    // Read for every input, as Windows Chromium reads them
+                    // for every mouse message.
+                    let limits = div_platform::DoubleClickLimits::system();
+                    let settings = crate::click_count::DoubleClickSettings {
+                        time: std::time::Duration::from_millis(u64::from(limits.time_ms)),
+                        width: limits.width,
+                        height: limits.height,
+                    };
+                    let document = &self.document;
+                    document.set_double_click_settings(settings).and_then(|()| {
+                        document.dispatch_pointer_input(PointerInput {
+                            pointer_id: id,
+                            pointer_type,
+                            kind,
+                            x: *x,
+                            y: *y,
+                            button: pressed.unwrap_or(crate::MouseButton::Main),
+                            modifiers: platform_modifiers(*keys),
+                            pressure: None,
+                            click_count: None,
+                        })
                     })
                 }
             }

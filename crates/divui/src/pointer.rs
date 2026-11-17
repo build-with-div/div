@@ -120,6 +120,10 @@ pub struct MouseInfo {
     /// position, which is zero headless.
     pub screen: Point,
     pub modifiers: Modifiers,
+    /// The web's `UIEvent.detail`: the click count on `mousedown`,
+    /// `mouseup`, `click`, `auxclick` and `dblclick`, and 0 on every other
+    /// mouse and pointer event, as Chromium sets it.
+    pub detail: u32,
 }
 
 /// The web's `PointerEvent` data.
@@ -189,6 +193,11 @@ pub struct PointerInput {
     pub modifiers: Modifiers,
     /// The device's pressure, from 0 to 1, when it reports one.
     pub pressure: Option<f32>,
+    /// The click count of a `Down` or `Up`, as the platform counted it
+    /// ([`crate::click_count`]). `None` lets the document count it with
+    /// the host platform's rule and default limits, at the time of the
+    /// call. For a touch `Up` it is the tap count.
+    pub click_count: Option<u32>,
 }
 
 impl PointerInput {
@@ -203,6 +212,7 @@ impl PointerInput {
             button: MouseButton::Main,
             modifiers: Modifiers::NONE,
             pressure: None,
+            click_count: None,
         }
     }
 
@@ -222,6 +232,11 @@ impl PointerInput {
 
     pub fn with_modifiers(mut self, modifiers: Modifiers) -> Self {
         self.modifiers = modifiers;
+        self
+    }
+
+    pub fn with_click_count(mut self, count: u32) -> Self {
+        self.click_count = Some(count);
         self
     }
 }

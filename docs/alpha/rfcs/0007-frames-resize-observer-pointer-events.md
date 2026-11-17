@@ -285,6 +285,58 @@ let row = app.find_by_text("Loaded");            // waits, then panics if absent
   `wheel(at, delta)`, and `touch_*` equivalents. `click` moves the mouse
   to the element first, as today.
 
+### 6. Click counting (amended 17 November 2026)
+
+Amended after 0.12 C, agreed through the parent session: `dblclick` and
+`detail` were the remaining part of the I2 note in section 4, and the
+editor's double-click word selection and any multi-click UI need them.
+
+```rust
+pub struct MouseInfo { /* as above */ pub detail: u32 }   // UIEvent.detail
+pub struct PointerInput { /* as before */ pub click_count: Option<u32> }
+impl PointerInput { pub fn with_click_count(self, count: u32) -> Self; }
+
+pub struct DoubleClickSettings { pub time: Duration, pub width: u32, pub height: u32 }
+pub enum ClickCountRule { Windows, Linux }       // ClickCountRule::host()
+pub struct ClickCounter;                         // new(rule, settings), count(ClickInput)
+pub struct TapCounter;                           // tap(down, down_time, up_time)
+```
+
+- **Who counts.** The browser counts, as Chromium does, so each document
+  counts its mouse and pen input with the rule of the platform it is
+  built for. An input's own `click_count` overrides the count of its
+  press or release; for a touch release it is the tap's count.
+- **Windows.** The system's double-click time and box
+  (`GetDoubleClickTime`, `SM_CXDOUBLECLK`, `SM_CYDOUBLECLK`), read by the
+  native runtime for every input, as Chromium reads them for every mouse
+  message. A press counts on within half the box of the series' first
+  press, within the time of the previous press, with the same button.
+  There is no limit. A move with no button held that leaves the box or
+  comes after the time ends the series.
+- **Linux.** Chromium 147's own limits (500 ms, 4×4 device pixels, from
+  `ui/events/event.cc`); the desktop's GTK or X settings are ignored,
+  because Div matches Chromium, not the desktop. A press counts on within
+  the time and half the box of the previous press, with the same button
+  and modifiers. The press after a triple click counts 1 again.
+- **Touch.** Chromium's gesture detector, on both platforms: a tap whose
+  press is within 400 ms of the previous tap's release and less than
+  20 CSS pixels from its press counts on, 1, 2, 3, then 1 again.
+- **Events.** `detail` is the count on `mousedown`, `mouseup`, `click`,
+  `auxclick` and `dblclick`, and 0 on every other event. A main-button
+  `click` (or a tap's `click`) whose count is 2 is followed by
+  `dblclick`, a `MouseEvent`, at the same target, even when `pointerdown`
+  was cancelled. `contextmenu` follows the secondary button's `auxclick`
+  on Windows and its `mousedown` on Linux, as in Chromium.
+- **Tests.** `TestApp::click`, `right_click` and `tap` give each press
+  count 1, as Playwright's and Puppeteer's `click` do, so tests do not
+  depend on the clock; `double_click` gives 1 then 2, and the new
+  `triple_click` 1, 2, 3. `pointer_down` and `pointer_up` leave the count
+  to the document.
+- **Oracle.** `tests/fidelity/fixtures/click-count-v1`: real platform
+  input to pinned Chrome-for-Testing 147.0.7727.50 (messages posted to
+  the harness's own window on Windows, XTEST on Linux), at scales 1 and
+  1.25, each capture taken twice and required to match.
+
 ## Affected tracks
 
 - **Components.** Primitives may move from `mouse*` to `pointer*` and use
@@ -319,6 +371,9 @@ One PR each, in the framework lane, after this RFC merges:
    - **0.12 C**: the test input of section 5, which makes `TestApp` input
      stop waiting, so it updates the template, the showcase snippet and
      any components test that awaits work.
+4. **Click counting** (section 6, amended 17 November 2026): `detail`,
+   `dblclick`, the per-platform counters and the per-platform
+   `contextmenu` timing. The C ABI is unchanged.
 
 Each PR names its WPT areas and the cases ported; cases that need the
 script translation of RFC 0005 are listed as pending until it lands.

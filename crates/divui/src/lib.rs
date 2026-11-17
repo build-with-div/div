@@ -58,6 +58,9 @@
 //! | [`MouseInfo`] | A mouse event's data, as the web's `MouseEvent`, from [`Event::mouse_info`] |
 //! | [`PointerId`] | A pointer's id; the mouse is [`PointerId::MOUSE`], as in Chromium |
 //! | [`Buttons`] | The pressed buttons, as the web's `MouseEvent.buttons` bits |
+//! | [`ClickCounter`] | Counts repeated clicks for `detail`, by Chromium's Windows or Linux rule |
+//! | [`DoubleClickSettings`] | A platform's double-click time and box, for [`ClickCounter`] |
+//! | [`TapCounter`] | Counts repeated touch taps, as Chromium's gesture detector |
 //! | [`ResizeObserver`] | Calls back when observed elements' boxes change size |
 //! | [`ReportedError`] | An error a document reports to [`Document::on_error`] |
 //!
@@ -96,6 +99,7 @@ pub use resize_observer::{
 mod animation_timeline;
 pub use animation_timeline::AnimationTimelineBinding;
 
+pub mod click_count;
 pub mod document;
 pub mod element;
 pub mod events;
@@ -153,6 +157,7 @@ pub use signal::{create_memo, create_signal, Memo, Signal};
 
 // ─── Re-exports: DOM wrappers ───────────────────────────────
 
+pub use click_count::{ClickCountRule, ClickCounter, ClickInput, DoubleClickSettings, TapCounter};
 pub use div_dom::ElementTag;
 pub use document::Document;
 pub use element::{Element, WeakElement};
