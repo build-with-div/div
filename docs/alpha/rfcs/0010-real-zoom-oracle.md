@@ -140,6 +140,45 @@ which matches emulation, not real zoom. That drop is the new baseline. It
 is not a regression in Div, and closing it is engine work (layout in
 device pixels) and paint work (device-pixel edge snapping).
 
+### Inventory addendum, 16 November 2026
+
+The table above missed the Linux text values that
+`crates/divui/tests/native_font_units.rs` and `native_line_height.rs` pin
+at five scales. They came from emulated observations (the
+`reference-only-3642` archive and `native-font-relative-v1`).
+`probe_windows_text_oracle.py --platform linux` now measures them at real
+zoom (`linux-text-oracle-v2.json`, next to `windows-text-oracle-v2.json`).
+Both tests assert Chromium at scale 1 and list real-zoom Chromium's
+values above scale 1 as gaps (engine, RFC 0011).
+
+A sweep for others went through all 307 scale loops in 109 files under
+`crates/` and `examples/`, keyword searches for single-scale captures,
+and the Python tool tests. It found these tests, which pin a value
+attributed to Chromium at a scale other than 1. They are not in the table
+above, and nothing in them was re-captured at real zoom. Each owner
+re-measures its own. The `src/` unit-test captures are not committed, so
+they need a new capture.
+
+| Owner | Tests | Chromium source cited | Scales |
+| --- | --- | --- | --- |
+| engine (layout) | `div-layout/src/intrinsic_sizing.rs` `chromium_atomic_word_fraction_survives_an_integer_raster_font_policy` | `native-general-font-chromium-v3824` | 5 |
+| engine | `div-engine/tests/`: `fragmented_client_geometry.rs` (3 tests), `accessibility_pages.rs` (fractional legal bounds), `animation_progress_timelines.rs` (2), `animation_attachment_ranges.rs` (manual view seek), `opacity_operation_folding.rs` (4), `split_multicol_padded_continuation.rs`, `clip_path_owned_reference.rs`, `sticky_owned_geometry.rs`, `overflow_clip_owned_radii.rs`, `table_background_overflow_phases.rs`, and the geometry asserts of `nested_multicol_outer_fragmentation.rs` | stock Chromium 147 DOM or RGBA observations (`v4408`, `Chrome4912`, `v4610`/`v4618` and others) | 4 or 5 |
+| engine (paint) | `div-paint/src/painter.rs`: `scroller_compositing_follows_blink_overflow_and_lcd_text_preference`, 7 border and decoration tests at 1.25x, `spaced_pattern_keeps_its_fractional_border_box_edge` (1.5x), 2 control tests at 2x, 3 fractional-edge coverage tests, `raster_background_keeps_packed_opacity_under_an_ancestor`, `rotated_aliased_inline_shift_follows_the_physical_strike`; `image_resource.rs` (3); `render.rs` `large_grayscale_glyph_mask_keeps_raw_coverage_as_chromium_skia` | Chrome 147 captures of WPT pages and layer traces | 1.25, 1.5, 2 or 5 |
+| engine (text) | `div-text/src/font/platform.rs` `linux_subpixel_borrow_*` (2) | Chrome 147 at 2x | 2 |
+| engine (tools) | `tools/qualification/test_scrollbar_probe_tools.py` (a trace from 1.25x, decoded in CSS px) | Chrome 147 trace | 1.25 |
+| framework | `examples/c/scroll_metrics.c` `viewport(scale)` | Chromium's viewport metrics | 5 |
+
+Checked and not affected:
+- the entries already in the table;
+- `divui/tests/resize_observer.rs`, whose capture tool already passes
+  `--force-device-scale-factor`;
+- about 15 tests that cite Chromium for behavior or ordering rather than a
+  scale-dependent value;
+- about 70 loop files that assert only Div's own determinism, replay or
+  round-trips;
+- the capture-method tests (`test_renderer_matrix.py`,
+  `test_chromium_capture.py`, `test_summarize_renderer_census.py`).
+
 ## Migration
 
 1. **This RFC (docs only).** The measurement is already in the data
