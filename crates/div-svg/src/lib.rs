@@ -1,4 +1,5 @@
-//! SVG geometry for Div ([RFC 0009](../../docs/alpha/rfcs/0009-inline-svg.md)).
+//! SVG geometry and painting for Div
+//! ([RFC 0009](../../docs/alpha/rfcs/0009-inline-svg.md)).
 //!
 //! Path data, basic shapes, lengths, transform lists and viewport transforms,
 //! producing what Chromium 147 produces. Blink's code for these is LGPL, so
@@ -6,14 +7,20 @@
 //! checked against Chromium as a black box by `tests/geometry_corpus.rs`
 //! (oracle and known gaps: `tests/fidelity/fixtures/svg-geometry-v1`).
 //!
-//! The crate depends on Skia for arcs, path measurement, containment and
-//! stroking, which Chromium also does with Skia. It has no dependency on
-//! the DOM, style, layout or paint.
+//! [`paint`] paints shapes onto a Skia canvas. It is ported from Blink's
+//! SVG painters, which are BSD-licensed, and is checked pixel for pixel
+//! against Chromium by `tests/paint_corpus.rs`
+//! (`tests/fidelity/fixtures/svg-paint-v1`).
+//!
+//! The crate depends on Skia for arcs, path measurement, containment,
+//! stroking and drawing, which Chromium also does with Skia. It has no
+//! dependency on the DOM, style, layout or Div's paint crate.
 
 mod arc;
 pub mod geometry;
 pub mod length;
 mod number;
+pub mod paint;
 pub mod path_data;
 pub mod shapes;
 pub mod transform;

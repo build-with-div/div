@@ -9,17 +9,17 @@
 
 #![cfg(any(target_os = "linux", windows))]
 
+mod support;
+
 use div_svg::geometry::{
-    contains_in_fill, contains_in_stroke, path_from_data, point_at_length, total_length, FillRule,
-    LineCap, LineJoin, StrokeStyle,
+    contains_in_fill, contains_in_stroke, point_at_length, total_length, FillRule,
 };
-use div_svg::length::{Axis, Length, LengthContext};
 use div_svg::shapes::Shape;
 use div_svg::transform::{parse_transform_list, Matrix};
-use div_svg::viewport::{parse_view_box, view_box_transform, PreserveAspectRatio};
-use div_svg::{shapes, PathData, Point};
+use div_svg::Point;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
+use support::{elements, shape, stroke_style, style_map, viewport};
 
 // Each OS is checked against Chromium captured on that OS. The two
 // captures are identical apart from their timestamp and platform.
@@ -35,196 +35,6 @@ const ORACLE: (&str, &str) = (
 );
 const KNOWN_GAPS: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-geometry-v1/known-gaps.txt");
-
-struct Element {
-    tag: String,
-    attrs: BTreeMap<String, String>,
-}
-
-/// The start tags of the corpus's generated markup, in document order.
-fn elements(markup: &str) -> Vec<Element> {
-    let mut out = Vec::new();
-    for chunk in markup.split('<').skip(1) {
-        if chunk.starts_with('/') {
-            continue;
-        }
-        let body = chunk.split('>').next().unwrap().trim_end_matches('/');
-        let tag: String = body
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric())
-            .collect();
-        let mut attrs = BTreeMap::new();
-        let mut rest = &body[tag.len()..];
-        loop {
-            rest = rest.trim_start();
-            if rest.is_empty() {
-                break;
-            }
-            let name_end = rest
-                .find(|c: char| c == '=' || c.is_whitespace())
-                .unwrap_or(rest.len());
-            let name = rest[..name_end].to_owned();
-            rest = &rest[name_end..];
-            if let Some(after) = rest.strip_prefix("=\"") {
-                let end = after.find('"').unwrap();
-                attrs.insert(name, after[..end].to_owned());
-                rest = &after[end + 1..];
-            } else {
-                attrs.insert(name, String::new());
-            }
-        }
-        out.push(Element { tag, attrs });
-    }
-    out
-}
-
-fn style_map(style: &str) -> BTreeMap<String, String> {
-    style
-        .split(';')
-        .filter_map(|decl| decl.split_once(':'))
-        .map(|(k, v)| (k.trim().to_owned(), v.trim().to_owned()))
-        .collect()
-}
-
-struct Viewport {
-    ctm: Matrix,
-    width: f32,
-    height: f32,
-}
-
-/// The coordinate system an `svg` element establishes.
-fn viewport(svg: &Element, parent: Option<&Viewport>) -> Viewport {
-    let context = parent.map(|p| (p.width, p.height)).unwrap_or((0.0, 0.0));
-    let len = |name: &str, axis: Axis, default: f32| {
-        svg.attrs
-            .get(name)
-            .and_then(|v| Length::parse(v))
-            .map(|l| l.resolve(axis, &length_context(context.0, context.1)))
-            .unwrap_or(default)
-    };
-    let (default_w, default_h) = if parent.is_some() {
-        (context.0, context.1)
-    } else {
-        (300.0, 150.0)
-    };
-    let width = len("width", Axis::Horizontal, default_w);
-    let height = len("height", Axis::Vertical, default_h);
-    let x = len("x", Axis::Horizontal, 0.0);
-    let y = len("y", Axis::Vertical, 0.0);
-    let par = svg
-        .attrs
-        .get("preserveAspectRatio")
-        .and_then(|v| PreserveAspectRatio::parse(v))
-        .unwrap_or_default();
-    let view_box = svg.attrs.get("viewBox").and_then(|v| parse_view_box(v));
-    let mut ctm = parent.map(|p| p.ctm).unwrap_or(Matrix::IDENTITY);
-    if parent.is_some() {
-        ctm = ctm.then_apply(&Matrix::translate(f64::from(x), f64::from(y)));
-    }
-    let (width_inside, height_inside) = match view_box {
-        Some(vb) => {
-            ctm = ctm.then_apply(&view_box_transform(vb, par, width, height));
-            (vb.width, vb.height)
-        }
-        None => (width, height),
-    };
-    Viewport {
-        ctm,
-        width: width_inside,
-        height: height_inside,
-    }
-}
-
-fn length_context(width: f32, height: f32) -> LengthContext {
-    LengthContext {
-        viewport_width: width,
-        viewport_height: height,
-        font_size: 16.0,
-        root_font_size: 16.0,
-        x_height: 8.0,
-    }
-}
-
-/// A probe element's shape.
-fn shape(element: &Element, vp: &Viewport) -> Shape {
-    let ctx = length_context(vp.width, vp.height);
-    // An attribute that is present but does not parse as a length is used
-    // as 0, while an absent `rx`/`ry` is `auto`: the corpus's `rect/rx-auto`
-    // (`rx="auto" ry="15"`) has square corners in Chromium 147.
-    let num = |name: &str, axis: Axis| {
-        element
-            .attrs
-            .get(name)
-            .map(|v| Length::parse(v).map_or(0.0, |l| l.resolve(axis, &ctx)))
-    };
-    let get = |name: &str, axis: Axis| num(name, axis).unwrap_or(0.0);
-    match element.tag.as_str() {
-        "path" => Shape::from_path(path_from_data(&PathData::parse(
-            element.attrs.get("d").map_or("", |s| s),
-        ))),
-        "rect" => shapes::rect(
-            get("x", Axis::Horizontal),
-            get("y", Axis::Vertical),
-            get("width", Axis::Horizontal),
-            get("height", Axis::Vertical),
-            num("rx", Axis::Horizontal),
-            num("ry", Axis::Vertical),
-        ),
-        "circle" => shapes::circle(
-            get("cx", Axis::Horizontal),
-            get("cy", Axis::Vertical),
-            get("r", Axis::Other),
-        ),
-        "ellipse" => shapes::ellipse(
-            get("cx", Axis::Horizontal),
-            get("cy", Axis::Vertical),
-            get("rx", Axis::Horizontal),
-            get("ry", Axis::Vertical),
-        ),
-        "line" => shapes::line(
-            get("x1", Axis::Horizontal),
-            get("y1", Axis::Vertical),
-            get("x2", Axis::Horizontal),
-            get("y2", Axis::Vertical),
-        ),
-        "polyline" | "polygon" => shapes::poly(
-            element.attrs.get("points").map_or("", |s| s),
-            element.tag == "polygon",
-        ),
-        other => panic!("unexpected probe <{other}>"),
-    }
-}
-
-fn stroke_style(style: &BTreeMap<String, String>) -> StrokeStyle {
-    let mut out = StrokeStyle::default();
-    if let Some(w) = style.get("stroke-width") {
-        out.width = w.trim_end_matches("px").parse().unwrap();
-    }
-    out.cap = match style.get("stroke-linecap").map(String::as_str) {
-        Some("round") => LineCap::Round,
-        Some("square") => LineCap::Square,
-        _ => LineCap::Butt,
-    };
-    out.join = match style.get("stroke-linejoin").map(String::as_str) {
-        Some("round") => LineJoin::Round,
-        Some("bevel") => LineJoin::Bevel,
-        _ => LineJoin::Miter,
-    };
-    if let Some(m) = style.get("stroke-miterlimit") {
-        out.miter_limit = m.parse().unwrap();
-    }
-    if let Some(d) = style.get("stroke-dasharray") {
-        out.dash_array = d
-            .split([' ', ','])
-            .filter(|s| !s.is_empty())
-            .map(|s| s.parse().unwrap())
-            .collect();
-    }
-    if style.get("stroke").map(String::as_str) == Some("none") {
-        out.width = 0.0;
-    }
-    out
-}
 
 fn f(value: &Value) -> f64 {
     value.as_f64().unwrap()
@@ -265,7 +75,7 @@ fn compare(case: &Value) -> Vec<(&'static str, String)> {
         .and_then(|t| parse_transform_list(t))
         .unwrap_or(Matrix::IDENTITY);
     let ctm = vp.ctm.then_apply(&own);
-    let Shape { path, bbox } = shape(element, &vp);
+    let Shape { path, bbox, .. } = shape(element, &vp);
 
     let mut diffs = Vec::new();
     let mut check = |field: &'static str, ours: Vec<f64>, theirs: Vec<f64>| {
