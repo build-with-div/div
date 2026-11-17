@@ -114,7 +114,7 @@ impl TestApp {
             MouseEventType::Up,
         ] {
             document
-                .dispatch_mouse_event(kind, x, y, MouseButton::Left, Modifiers::NONE)
+                .dispatch_mouse_event(kind, x, y, MouseButton::Main, Modifiers::NONE)
                 .expect("the click dispatches");
         }
         self.run_until_idle();

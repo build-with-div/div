@@ -74,6 +74,8 @@ struct EventState {
     bubbles: bool,
     cancelable: bool,
     input_info: Option<InputEventInfo>,
+    mouse_info: Option<crate::pointer::MouseInfo>,
+    pointer_info: Option<crate::pointer::PointerInfo>,
     timestamp_ns: u64,
     default_prevented: Cell<bool>,
     propagation_stopped: Cell<bool>,
@@ -128,6 +130,8 @@ impl EventState {
                     | "mouseenter"
                     | "mouseleave"
                     | "mousecancel"
+                    | "gotpointercapture"
+                    | "lostpointercapture"
             ),
             ..Self::default()
         })
@@ -289,7 +293,7 @@ impl Event {
     #[cfg(feature = "ffi-integration")]
     #[doc(hidden)]
     pub fn click_for_native_facade(timestamp_ns: u64) -> Self {
-        let mut event = Self::pointer("click", 0, 0.0, 0.0, MouseButton::Left, Modifiers::NONE);
+        let mut event = Self::pointer("click", 0, 0.0, 0.0, MouseButton::Main, Modifiers::NONE);
         Rc::get_mut(&mut event.state)
             .expect("new event state")
             .timestamp_ns = timestamp_ns;
@@ -337,6 +341,66 @@ impl Event {
     /// Immutable native editing intent and nullable data.
     /// Returns None for events without a typed editing operation. The owned
     /// metadata remains unchanged in saved clones after dispatch or teardown.
+    /// The web's `MouseEvent` data of a mouse, pointer, `click`,
+    /// `auxclick` or `contextmenu` event from a pointing device.
+    pub fn mouse_info(&self) -> Option<&crate::pointer::MouseInfo> {
+        self.state
+            .pointer_info
+            .as_ref()
+            .map(|info| &info.mouse)
+            .or(self.state.mouse_info.as_ref())
+    }
+
+    /// The web's `PointerEvent` data of a pointer, `click`, `auxclick` or
+    /// `contextmenu` event from a pointing device.
+    pub fn pointer_info(&self) -> Option<&crate::pointer::PointerInfo> {
+        self.state.pointer_info.as_ref()
+    }
+
+    /// A native pointer event with its typed data. The flat fields repeat
+    /// it: `mouse_button` is -1 for no button and `pointer_id` is the id.
+    pub(crate) fn from_pointer_info(
+        event_type: impl Into<String>,
+        info: crate::pointer::PointerInfo,
+    ) -> Self {
+        let mouse = &info.mouse;
+        let mut event = Self::pointer(
+            event_type,
+            info.pointer_id.0 as u64,
+            mouse.client.x as f32,
+            mouse.client.y as f32,
+            MouseButton::Main,
+            mouse.modifiers,
+        );
+        event.mouse_button = mouse.button.map_or(-1, |button| button as i32);
+        Rc::get_mut(&mut event.state)
+            .expect("new event state")
+            .pointer_info = Some(info);
+        event
+    }
+
+    /// A native compatibility mouse event with its typed data. Its flat
+    /// `pointer_id` names the pointer that caused it.
+    pub(crate) fn from_mouse_info(
+        event_type: impl Into<String>,
+        pointer_id: u64,
+        info: crate::pointer::MouseInfo,
+    ) -> Self {
+        let mut event = Self::pointer(
+            event_type,
+            pointer_id,
+            info.client.x as f32,
+            info.client.y as f32,
+            MouseButton::Main,
+            info.modifiers,
+        );
+        event.mouse_button = info.button.map_or(0, |button| button as i32);
+        Rc::get_mut(&mut event.state)
+            .expect("new event state")
+            .mouse_info = Some(info);
+        event
+    }
+
     pub fn input_info(&self) -> Option<&InputEventInfo> {
         self.state.input_info.as_ref()
     }
@@ -351,7 +415,7 @@ impl Event {
     ) -> Self {
         // Chromium 147 reports `button` 0 for a wheel event, as for every
         // mouse event without a changed button.
-        let mut event = Self::pointer("wheel", 0, x, y, MouseButton::Left, modifiers);
+        let mut event = Self::pointer("wheel", 0, x, y, MouseButton::Main, modifiers);
         event.delta_x = dx;
         event.delta_y = dy;
         event.delta_mode = mode;
@@ -533,12 +597,30 @@ pub enum WheelDeltaMode {
     Page = 2,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A mouse or pen button, numbered as the web's `MouseEvent.button`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum MouseButton {
-    Left = 0,
-    Middle = 1,
-    Right = 2,
+    /// Usually the left button.
+    Main = 0,
+    /// Usually the wheel or middle button.
+    Auxiliary = 1,
+    /// Usually the right button.
+    Secondary = 2,
+    Back = 3,
+    Forward = 4,
+    /// A pen's eraser.
+    Eraser = 5,
+}
+
+#[allow(non_upper_case_globals)]
+impl MouseButton {
+    #[deprecated(note = "use `MouseButton::Main`, the web's name")]
+    pub const Left: Self = Self::Main;
+    #[deprecated(note = "use `MouseButton::Auxiliary`, the web's name")]
+    pub const Middle: Self = Self::Auxiliary;
+    #[deprecated(note = "use `MouseButton::Secondary`, the web's name")]
+    pub const Right: Self = Self::Secondary;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -668,7 +750,7 @@ mod tests {
 
     #[test]
     fn event_control_state_is_shared_by_clones() {
-        let event = Event::pointer("click", 0, 1.0, 2.0, MouseButton::Left, Modifiers::CTRL);
+        let event = Event::pointer("click", 0, 1.0, 2.0, MouseButton::Main, Modifiers::CTRL);
         let clone = event.clone();
         clone.prevent_default();
         assert!(event.default_prevented());

@@ -308,11 +308,17 @@ One PR each, in the framework lane, after this RFC merges:
    `advance_frame`. No existing behavior changes.
 2. **0.11**: the engine's `resize_observation` (engine track, or in this
    PR with its agreement), then `ResizeObserver`.
-3. **0.12**: Pointer Events and the test input of section 5. This changes
-   the mouse id and the event order and makes `TestApp` input stop
-   waiting, so it updates the template, the showcase snippet and any
-   components test that relies on the old behavior in the same PR, and
-   lists the changes in the progress log.
+3. **0.12**, in three PRs (amended 16 November 2026, agreed through the
+   parent session):
+   - **0.12 A**: listener handles and options (`passive`, `once`), which
+     the wheel work (0.9) needs first.
+   - **0.12 B**: Pointer Events (section 4), with the engine's capture and
+     local-point changes reviewed by the engine lane. This changes the
+     mouse id and the event order, so it updates any test that relies on
+     the old behavior and lists the changes in the progress log.
+   - **0.12 C**: the test input of section 5, which makes `TestApp` input
+     stop waiting, so it updates the template, the showcase snippet and
+     any components test that awaits work.
 
 Each PR names its WPT areas and the cases ported; cases that need the
 script translation of RFC 0005 are listed as pending until it lands.

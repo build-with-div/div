@@ -96,7 +96,10 @@ fn removed_rust_capture_destructors_can_reenter_document_listener_storage() {
 
 #[cfg(feature = "ffi-integration")]
 #[test]
-fn foreign_pointer_aliases_do_not_merge_rust_mouse_and_pointer_registrations() {
+fn foreign_listeners_match_their_event_type_exactly() {
+    // Since Pointer Events (RFC 0007 section 4) the mouse fires both
+    // `pointerdown` and `mousedown`, so a foreign listener no longer takes
+    // one for the other.
     for (mouse, pointer) in [
         ("mousedown", "pointerdown"),
         ("mouseup", "pointerup"),
@@ -129,23 +132,23 @@ fn foreign_pointer_aliases_do_not_merge_rust_mouse_and_pointer_registrations() {
         assert!(document
             .is_foreign_listener_registered_for_native_facade(id, node.handle, mouse, false)
             .unwrap());
-        assert!(document
+        assert!(!document
             .is_foreign_listener_registered_for_native_facade(id, node.handle, pointer, false)
             .unwrap());
         assert!(!document
-            .is_foreign_listener_registered_for_native_facade(id, node.handle, pointer, true)
+            .is_foreign_listener_registered_for_native_facade(id, node.handle, mouse, true)
             .unwrap());
-        let event = Event::pointer(mouse, 0, 0.0, 0.0, MouseButton::Left, Modifiers::NONE);
+        let event = Event::pointer(mouse, 0, 0.0, 0.0, MouseButton::Main, Modifiers::NONE);
         document
             .invoke(node.handle, node.handle, &event, Some(false))
             .unwrap();
         assert_eq!(*log.borrow(), vec![2, 3]);
         log.borrow_mut().clear();
-        let event = Event::pointer(pointer, 0, 0.0, 0.0, MouseButton::Left, Modifiers::NONE);
+        let event = Event::pointer(pointer, 0, 0.0, 0.0, MouseButton::Main, Modifiers::NONE);
         document
             .invoke(node.handle, node.handle, &event, Some(false))
             .unwrap();
-        assert_eq!(*log.borrow(), vec![1, 3]);
+        assert_eq!(*log.borrow(), vec![1]);
         assert!(document.remove_listener_for_native_facade(id).unwrap());
         assert!(!document
             .is_listener_registered_for_native_facade(id)
@@ -245,7 +248,7 @@ fn legacy_hook_additions_wait_until_next_invocation() {
             Ok(())
         }))
         .unwrap();
-    let event = Event::pointer("click", 0, 0.0, 0.0, MouseButton::Left, Modifiers::NONE);
+    let event = Event::pointer("click", 0, 0.0, 0.0, MouseButton::Main, Modifiers::NONE);
     document
         .invoke(node.handle, node.handle, &event, Some(false))
         .unwrap();

@@ -5,6 +5,7 @@ use crate::events::{
     Event, EventCallback, EventPhase, InputType, KeyEventType, Listener, Modifiers, MouseButton,
     MouseEventType, WheelDeltaMode,
 };
+use crate::pointer::{PointerInput, PointerInputKind};
 use crate::style::{Bitmap, Error};
 use div_compositor::SoftwareCompositor;
 use div_dom::{ElementTag, FormControlRole};
@@ -27,6 +28,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(test)]
 #[path = "listener_tests.rs"]
 mod listener_tests;
+#[path = "pointer_dispatch.rs"]
+mod pointer_dispatch;
 #[cfg(test)]
 #[path = "raw_event_tests.rs"]
 mod raw_event_tests;
@@ -62,29 +65,6 @@ pub(crate) struct RegisteredListener {
     callback: RegisteredCallback,
 }
 
-#[cfg(feature = "ffi-integration")]
-fn foreign_event_key(event_type: &str) -> &str {
-    match event_type {
-        "mousedown" => "pointerdown",
-        "mouseup" => "pointerup",
-        "mousemove" => "pointermove",
-        "mouseenter" => "pointerenter",
-        "mouseleave" => "pointerleave",
-        "mousecancel" => "pointercancel",
-        _ => event_type,
-    }
-}
-
-impl RegisteredCallback {
-    fn matches_event(&self, registered: &str, actual: &str) -> bool {
-        match self {
-            Self::Rust(_) => registered == actual,
-            #[cfg(feature = "ffi-integration")]
-            Self::Foreign(_) => foreign_event_key(registered) == foreign_event_key(actual),
-        }
-    }
-}
-
 fn listener_allocation_error() -> Error {
     Error::Io(std::io::Error::from(std::io::ErrorKind::OutOfMemory))
 }
@@ -112,6 +92,7 @@ pub(crate) struct DocumentInner {
     pub(crate) resize_observers: RefCell<crate::resize_observer::ResizeObservers>,
     pub(crate) error_handlers: RefCell<crate::reported_error::ErrorHandlers>,
     active_clicks: RefCell<HashSet<NodeHandle>>,
+    pointers: RefCell<pointer_dispatch::PointerDispatchState>,
     selection_tasks: selection_tasks::SelectionTasks,
     transaction_depth: Cell<usize>,
     #[cfg(feature = "ffi-integration")]
@@ -151,6 +132,30 @@ impl Drop for ClickScope {
             .borrow_mut()
             .remove(&self.target);
     }
+}
+
+fn legacy_pointer_input(
+    pointer_id: u64,
+    kind: PointerInputKind,
+    x: f32,
+    y: f32,
+    button: MouseButton,
+    modifiers: Modifiers,
+    touch: bool,
+) -> Result<PointerInput, Error> {
+    let input = PointerInput::mouse(kind, x, y)
+        .with_button(button)
+        .with_modifiers(modifiers);
+    if !touch {
+        return Ok(input);
+    }
+    let id =
+        i32::try_from(pointer_id).map_err(|_| Error::InvalidArgument("pointer id out of range"))?;
+    Ok(PointerInput {
+        pointer_id: crate::pointer::PointerId(id),
+        pointer_type: crate::pointer::PointerType::Touch,
+        ..input
+    })
 }
 
 /// Cloneable owner reference for one retained native document.
@@ -213,6 +218,7 @@ impl Document {
                 resize_observers: RefCell::default(),
                 error_handlers: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
+                pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
                 #[cfg(feature = "ffi-integration")]
@@ -248,6 +254,7 @@ impl Document {
                 resize_observers: RefCell::default(),
                 error_handlers: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
+                pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
                 foreign_event_handler: RefCell::new(None),
@@ -1051,6 +1058,9 @@ impl Document {
         Ok(())
     }
 
+    /// Dispatch a mouse input with the mouse's pointer, as
+    /// [`Self::dispatch_pointer_input`] does: pointer events, then the
+    /// compatibility mouse event, then the release's click.
     pub fn dispatch_mouse_event(
         &self,
         event_type: MouseEventType,
@@ -1059,21 +1069,21 @@ impl Document {
         button: MouseButton,
         modifiers: Modifiers,
     ) -> Result<(), Error> {
-        self.dispatch_pointer_event(
-            0,
-            match event_type {
-                MouseEventType::Down => PointerEventKind::Down,
-                MouseEventType::Up => PointerEventKind::Up,
-                MouseEventType::Move => PointerEventKind::Move,
-            },
-            x,
-            y,
-            button,
-            modifiers,
-            false,
+        let kind = match event_type {
+            MouseEventType::Down => PointerInputKind::Down,
+            MouseEventType::Up => PointerInputKind::Up,
+            MouseEventType::Move => PointerInputKind::Move,
+        };
+        self.dispatch_pointer_input(
+            PointerInput::mouse(kind, x, y)
+                .with_button(button)
+                .with_modifiers(modifiers),
         )
     }
 
+    /// Dispatch an input of the mouse, or with `pointer_names` of the touch
+    /// `pointer_id`, through [`Self::dispatch_pointer_input`].
+    #[deprecated(note = "use `dispatch_pointer_input`, which names the pointer's type")]
     #[allow(clippy::too_many_arguments)]
     pub fn dispatch_pointer_event(
         &self,
@@ -1085,79 +1095,26 @@ impl Document {
         modifiers: Modifiers,
         pointer_names: bool,
     ) -> Result<(), Error> {
-        let update =
-            self.with_engine_mut(|engine| engine.pointer_event(pointer_id, event_type, x, y))?;
-        let prefix = if pointer_names { "pointer" } else { "mouse" };
-        for node in update.left {
-            let event = Event::pointer(
-                format!("{prefix}leave"),
-                pointer_id,
-                x,
-                y,
-                button,
-                modifiers,
-            );
-            event.set_phase(EventPhase::Target);
-            self.invoke(node, node, &event, None)?;
-        }
-        for node in update.entered {
-            let event = Event::pointer(
-                format!("{prefix}enter"),
-                pointer_id,
-                x,
-                y,
-                button,
-                modifiers,
-            );
-            event.set_phase(EventPhase::Target);
-            self.invoke(node, node, &event, None)?;
-        }
-        let Some(target) = update.target else {
-            return Ok(());
+        let kind = match event_type {
+            PointerEventKind::Down => PointerInputKind::Down,
+            PointerEventKind::Up => PointerInputKind::Up,
+            PointerEventKind::Move => PointerInputKind::Move,
+            PointerEventKind::Cancel => PointerInputKind::Cancel,
         };
-        let event_name = match (pointer_names, event_type) {
-            (true, PointerEventKind::Down) => "pointerdown",
-            (true, PointerEventKind::Up) => "pointerup",
-            (true, PointerEventKind::Move) => "pointermove",
-            (true, PointerEventKind::Cancel) => "pointercancel",
-            (false, PointerEventKind::Down) => "mousedown",
-            (false, PointerEventKind::Up) => "mouseup",
-            (false, PointerEventKind::Move) => "mousemove",
-            (false, PointerEventKind::Cancel) => "mousecancel",
-        };
-        let event = Event::pointer(event_name, pointer_id, x, y, button, modifiers);
-        self.dispatch_to(target, &event)?;
-        if event.default_prevented() {
-            return Ok(());
-        }
-        if event_type == PointerEventKind::Down {
-            self.focus_from(target, FocusOrigin::Pointer)?;
-        }
-        if let Some((range, fraction)) = update.range_value {
-            if self.with_engine_mut(|engine| engine.set_range_fraction(range, fraction))? {
-                self.dispatch_to(range, &Event::keyboard("input", 0, None, modifiers))?;
-            }
-            if event_type == PointerEventKind::Up {
-                self.dispatch_to(range, &Event::keyboard("change", 0, None, modifiers))?;
-            }
-        }
-        let activation = update
-            .activation
-            .or_else(|| (!pointer_names && event_type == PointerEventKind::Up).then_some(target));
-        if let Some(activation) = activation {
-            let click = Event::pointer("click", pointer_id, x, y, button, modifiers);
-            self.dispatch_click(activation, &click)?;
-        }
-        Ok(())
+        self.dispatch_pointer_input(legacy_pointer_input(
+            pointer_id,
+            kind,
+            x,
+            y,
+            button,
+            modifiers,
+            pointer_names,
+        )?)
     }
 
-    /// The pointer left the window, which the desktop adapter reports as
-    /// `PointerPhase::Leave`. Every node on the pointer's hover path receives
-    /// `pointerleave` (`mouseleave` without `pointer_names`), from the former
-    /// target toward the root, and loses `:hover`, as Chromium does when the
-    /// mouse leaves the page. No other event is dispatched. Unlike a cancel,
-    /// the press survives, so a pointer-up after the pointer comes back still
-    /// clicks.
+    /// The pointer left the window, through [`Self::dispatch_pointer_input`]
+    /// with [`PointerInputKind::Leave`].
+    #[deprecated(note = "use `dispatch_pointer_input` with `PointerInputKind::Leave`")]
     pub fn dispatch_pointer_leave(
         &self,
         pointer_id: u64,
@@ -1167,18 +1124,15 @@ impl Document {
         modifiers: Modifiers,
         pointer_names: bool,
     ) -> Result<(), Error> {
-        let update = self.with_engine_mut(|engine| Ok(engine.pointer_leave(pointer_id)))?;
-        let name = if pointer_names {
-            "pointerleave"
-        } else {
-            "mouseleave"
-        };
-        for node in update.left {
-            let event = Event::pointer(name, pointer_id, x, y, button, modifiers);
-            event.set_phase(EventPhase::Target);
-            self.invoke(node, node, &event, None)?;
-        }
-        Ok(())
+        self.dispatch_pointer_input(legacy_pointer_input(
+            pointer_id,
+            PointerInputKind::Leave,
+            x,
+            y,
+            button,
+            modifiers,
+            pointer_names,
+        )?)
     }
 
     pub fn dispatch_key_event(
@@ -1971,7 +1925,7 @@ impl Document {
         // The C ABI is frozen for v0.2: its listeners keep their options.
         self.add_registered_listener(
             handle,
-            foreign_event_key(event_type),
+            event_type,
             capture,
             false,
             false,
@@ -2001,10 +1955,7 @@ impl Document {
         event_type: &str,
         capture: bool,
     ) -> Result<bool, Error> {
-        let key = (
-            node,
-            owned_listener_event_key(foreign_event_key(event_type))?,
-        );
+        let key = (node, owned_listener_event_key(event_type)?);
         let map = self
             .inner
             .listeners
@@ -2257,7 +2208,7 @@ impl Document {
     ) -> Result<(), Error> {
         self.dispatch_click(
             target,
-            &Event::pointer("click", 0, 0.0, 0.0, MouseButton::Left, modifiers),
+            &Event::pointer("click", 0, 0.0, 0.0, MouseButton::Main, modifiers),
         )
     }
 
@@ -2397,22 +2348,7 @@ impl Document {
             Element::from_handle(self.clone(), target).downgrade(),
             Element::from_handle(self.clone(), node).downgrade(),
         );
-        let exact_key = (node, owned_listener_event_key(&event.event_type)?);
-        let alias_key: Option<ListenerKey> = {
-            #[cfg(feature = "ffi-integration")]
-            {
-                let canonical = foreign_event_key(&event.event_type);
-                if canonical != event.event_type.as_str() {
-                    Some((node, owned_listener_event_key(canonical)?))
-                } else {
-                    None
-                }
-            }
-            #[cfg(not(feature = "ffi-integration"))]
-            {
-                None
-            }
-        };
+        let key = (node, owned_listener_event_key(&event.event_type)?);
         // Freeze registration identities before the legacy global hook. Added
         // listeners wait until a later invocation; nested dispatch sees its own
         // current list. Callback owners are cloned only immediately before use.
@@ -2423,18 +2359,16 @@ impl Document {
                 .try_borrow()
                 .map_err(|_| Error::ReentrantMutation)?;
             let mut ids = Vec::new();
-            for key in std::iter::once(&exact_key).chain(alias_key.as_ref()) {
-                let Some(list) = map.get(key) else {
-                    continue;
-                };
+            if let Some(list) = map.get(&key) {
                 ids.try_reserve(list.len())
                     .map_err(|_| listener_allocation_error())?;
-                for listener in list.iter().filter(|listener| {
-                    capture.is_none_or(|capture| listener.capture == capture)
-                        && listener.callback.matches_event(&key.1, &event.event_type)
-                }) {
-                    ids.push(listener.id);
-                }
+                ids.extend(
+                    list.iter()
+                        .filter(|listener| {
+                            capture.is_none_or(|capture| listener.capture == capture)
+                        })
+                        .map(|listener| listener.id),
+                );
             }
             ids
         };
@@ -2461,11 +2395,8 @@ impl Document {
                     .listeners
                     .try_borrow()
                     .map_err(|_| Error::ReentrantMutation)?;
-                std::iter::once(&exact_key)
-                    .chain(alias_key.as_ref())
-                    .filter_map(|key| map.get(key))
-                    .flatten()
-                    .find(|listener| listener.id == id)
+                map.get(&key)
+                    .and_then(|list| list.iter().find(|listener| listener.id == id))
                     .cloned()
             };
             let Some(listener) = listener else {
@@ -3063,14 +2994,14 @@ mod tests {
                     kind,
                     rect.x + rect.width / 2.0,
                     rect.y + rect.height / 2.0,
-                    MouseButton::Left,
+                    MouseButton::Main,
                     Modifiers::NONE,
                 )
                 .unwrap()
         };
         at(MouseEventType::Move, a);
         at(MouseEventType::Down, a);
-        first.set_pointer_capture(0).unwrap();
+        first.set_pointer_capture(crate::PointerId::MOUSE).unwrap();
         at(MouseEventType::Move, b);
         assert!(records
             .borrow()
@@ -3078,7 +3009,9 @@ mod tests {
             .any(|(kind, name, y)| kind == "mousemove"
                 && *name == "first"
                 && *y == b.y + b.height / 2.0));
-        first.release_pointer_capture(0).unwrap();
+        first
+            .release_pointer_capture(crate::PointerId::MOUSE)
+            .unwrap();
         at(MouseEventType::Move, b);
         assert!(records
             .borrow()
@@ -3189,26 +3122,20 @@ mod tests {
             .on("change", move |_| observed.set(observed.get() + 1))
             .unwrap();
         document
-            .dispatch_pointer_event(
-                4,
-                PointerEventKind::Down,
+            .dispatch_pointer_input(PointerInput::touch(
+                crate::PointerId(4),
+                PointerInputKind::Down,
                 10.0,
                 10.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            ))
             .unwrap();
         document
-            .dispatch_pointer_event(
-                4,
-                PointerEventKind::Up,
+            .dispatch_pointer_input(PointerInput::touch(
+                crate::PointerId(4),
+                PointerInputKind::Up,
                 10.0,
                 10.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            ))
             .unwrap();
         assert!(checkbox.is_checked().unwrap());
         assert_eq!(changes.get(), 1);
@@ -3225,26 +3152,20 @@ mod tests {
             .unwrap();
         assert_eq!(range.control_value().unwrap().as_deref(), Some("6"));
         document
-            .dispatch_pointer_event(
-                5,
-                PointerEventKind::Down,
+            .dispatch_pointer_input(PointerInput::touch(
+                crate::PointerId(5),
+                PointerInputKind::Down,
                 38.0,
                 60.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            ))
             .unwrap();
         document
-            .dispatch_pointer_event(
-                5,
-                PointerEventKind::Up,
+            .dispatch_pointer_input(PointerInput::touch(
+                crate::PointerId(5),
+                PointerInputKind::Up,
                 38.0,
                 60.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            ))
             .unwrap();
         assert_eq!(range.control_value().unwrap().as_deref(), Some("10"));
     }

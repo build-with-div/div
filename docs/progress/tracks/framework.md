@@ -70,7 +70,7 @@ uses.)
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
 | 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
-| 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Not started |
+| 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | In review |
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
@@ -239,6 +239,112 @@ Verification (Windows, MSVC, on main `eed71eab`):
   passes 3 tests.
 - Mutants: the old direction fails the oracle test; no Shift swap fails both
   divui tests; no clamp fails 2 engine tests.
+
+### 16 November 2026: Pointer Events (Tier 0 item 0.12 B)
+
+Problem (RFC 0007 section 4, I1; sample-canvas gap 16): a mouse fired only
+`mouse*` events, a touch only `pointer*` events, with the mouse as pointer
+0. There was no `pointerover`/`pointerout`, no chorded buttons, no
+`auxclick` or `contextmenu`, no `button`/`buttons` beyond a flat field, no
+offset point, and `setPointerCapture` took effect at once and was never
+reported. Focus moved on `pointerdown`, so cancelling `pointerdown` could
+not keep focus where it was (gap 16).
+
+Oracle: `tools/qualification/capture_pointer_events_oracle.py` records
+pinned Windows Chrome-for-Testing 147.0.7727.50 under CDP mouse and touch
+input for 17 scenarios at 1x, each captured twice, into
+`tests/fidelity/fixtures/pointer-events-v1/chromium-windows.json`. Moves
+send the held button: Chromium's `EventHandler` (`event_handler.cc`, BSD)
+releases capture on a move without one. No scenario depends on the device
+scale. Chromium sources read: `event_handler.cc`,
+`pointer_event_manager.cc` and `gesture_configuration.h` (all BSD) at
+147.0.7727.50.
+
+Change:
+
+- **Engine** (reviewed by the engine lane; `interaction.rs`, `lib.rs`):
+  capture is pending until the pointer's next event, which reports
+  `Got`/`Lost` changes; the caller ends it after an up or cancel
+  (`end_pointer_capture`) and hit-tests again (`pointer_rehover`); a
+  removed captor loses capture to the root; `set_pointer_capture` fails
+  with `PointerNotFound` for an unknown pointer and
+  `PointerCaptureDisconnected` for a disconnected node, and does nothing
+  without a pressed button. Per-pointer buttons, the previous target for
+  `out`/`over`, the pressed node on an up, and `local_point` (the padding
+  box point through transforms) are new.
+- **divui**: the RFC's types (`PointerType`, `PointerId`, `Buttons`,
+  `MouseInfo`, `PointerInfo`, `Point`), `Event::mouse_info` and
+  `pointer_info`, and `Document::dispatch_pointer_input(PointerInput)`,
+  which fires in Chromium's order: capture changes; `pointerout`,
+  `pointerleave`, `pointerover`, `pointerenter`, then the mouse's four;
+  the pointer event, then the compatibility mouse event; on release
+  `lostpointercapture`, then `click` for the main button or `auxclick`
+  (and `contextmenu` for the secondary one), then the boundary events of a
+  fresh hit test if capture ended. A second button is a `pointermove`. A
+  cancelled `pointerdown` suppresses `mousedown`, `mousemove` and `mouseup`
+  until release, and focus follows an uncancelled `mousedown` (gap 16). A
+  touch is captured by its `pointerdown` target, leaves its hover path when
+  lifted, and a tap (moved at most 15px, Chromium's
+  `max_touch_move_in_pixels_for_click_`) fires the compatibility mouse
+  events and a `click` with the touch's id.
+- `Element::set_pointer_capture`, `release_pointer_capture` and the new
+  `has_pointer_capture` take a `PointerId`.
+- The platform layer gives the mouse id 1 and each touch the lowest free id
+  above 1; back and forward buttons are numbered.
+
+Behavior changes:
+
+- The mouse is pointer 1 (was 0) and fires `pointer*` events before its
+  `mouse*` events; a touch fires `pointer*` events and, for a tap,
+  `mouse*` events.
+- A release with no press (a bare `MouseEventType::Up`) no longer clicks,
+  as in Chromium. Tests that clicked that way now press first.
+- `MouseButton` is the web's: `Main`, `Auxiliary`, `Secondary`, `Back`,
+  `Forward`, `Eraser`; `Left`, `Middle` and `Right` are deprecated
+  constants. `div-components`' `roving_focus.rs` still uses `Left`, which
+  works and warns; the components track owns it.
+- `Document::dispatch_pointer_event` and `dispatch_pointer_leave` are
+  deprecated wrappers over `dispatch_pointer_input`.
+- `set_pointer_capture` for an inactive pointer fails (was a no-op).
+- The C ABI keeps its functions and ids (frozen for v0.2). Its pointer
+  listeners now receive only `pointer*` events: the mouse→pointer listener
+  aliases are gone because the mouse fires both. Its direct
+  `divui_document_dispatch_pointer_event` ends capture after an up or
+  cancel.
+
+Named gaps (steps of the replay that must keep differing until fixed):
+
+- `click-common-ancestor` (framework, I2): a release elsewhere clicks the
+  common ancestor in Chromium; Div clicks the release target.
+- `hover-after-dom-change` (framework): Chromium updates hover and fires
+  `lostpointercapture` after a captor's removal without input; Div waits
+  for the next event.
+- `touch-action-pan` (engine and framework): a touch move pans and cancels
+  the pointer in Chromium; Div has no `touch-action`.
+- Not compared: pressure (CDP's mouse reports 0, so a unit test pins the
+  RFC's 0.5 while pressed) and the screen point (equal to the client point
+  headless; a window's position is not applied yet).
+
+WPT `pointerevents` and `uievents/mouse` are testharness script with
+`test_driver` actions, so their cases wait for RFC 0005; the oracle covers
+the same sequences.
+
+Verification (Windows, MSVC, this branch on main `79b8c25d`):
+
+- `cargo test --locked -p divui --features "windows testing" --test
+  pointer_events_oracle` passes 2 tests. The replay matches all 17
+  scenarios outside the 5 gap steps, which still differ; the other pins the
+  RFC's pointer defaults.
+- `cargo test --locked -p div-engine --test pointer_capture` passes 5
+  tests: pending capture, the capture errors, a removed captor, a cancel,
+  and local points through a border and a transform.
+- Mutants: ignoring a cancelled `pointerdown` fails 5 replay steps and the
+  gap 16 focus check; boundary events without the input's `button` fail 4
+  steps. On main the replay does not compile (no Pointer Events API).
+- The full framework test set passes (57 suites, 629 tests), as do the
+  example builds, the engine suite (62 suites, 507 tests), `cargo fmt --all
+  --check` and the Linux `cargo check` of `div-platform`, `divui` and
+  `div-ffi` with their tests in WSL.
 
 ### 16 November 2026: listener handles and options (Tier 0 item 0.12 A)
 

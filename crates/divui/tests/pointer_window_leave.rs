@@ -2,7 +2,7 @@
 //! does when the mouse leaves the page (RFC 0001, state sources).
 
 use div::prelude::*;
-use div::{MouseEventType, PointerEventKind};
+use div::{PointerInput, PointerInputKind};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -44,30 +44,39 @@ fn leaving_the_window_leaves_the_hover_path_innermost_first() {
     record(&log, &outer, "outer");
     record(&log, &inner, "inner");
 
-    document
-        .dispatch_mouse_event(
-            MouseEventType::Move,
-            10.0,
-            10.0,
-            MouseButton::Left,
-            Modifiers::NONE,
-        )
-        .unwrap();
-    assert_eq!(*log.borrow(), ["mouseenter outer", "mouseenter inner"]);
+    let mouse = |kind| {
+        document
+            .dispatch_pointer_input(PointerInput::mouse(kind, 10.0, 10.0))
+            .unwrap()
+    };
+    mouse(PointerInputKind::Move);
+    assert_eq!(
+        *log.borrow(),
+        [
+            "pointerenter outer",
+            "pointerenter inner",
+            "mouseenter outer",
+            "mouseenter inner"
+        ]
+    );
     log.borrow_mut().clear();
 
-    document
-        .dispatch_pointer_leave(0, 10.0, 10.0, MouseButton::Left, Modifiers::NONE, false)
-        .unwrap();
-    assert_eq!(*log.borrow(), ["mouseleave inner", "mouseleave outer"]);
+    mouse(PointerInputKind::Leave);
+    assert_eq!(
+        *log.borrow(),
+        [
+            "pointerleave inner",
+            "pointerleave outer",
+            "mouseleave inner",
+            "mouseleave outer"
+        ]
+    );
     assert!(!inner.is_hovered().unwrap());
     assert!(!outer.is_hovered().unwrap());
     log.borrow_mut().clear();
 
     // Nothing is hovered, so a second leave dispatches nothing.
-    document
-        .dispatch_pointer_leave(0, 10.0, 10.0, MouseButton::Left, Modifiers::NONE, false)
-        .unwrap();
+    mouse(PointerInputKind::Leave);
     assert!(log.borrow().is_empty());
 }
 
@@ -80,33 +89,26 @@ fn a_press_survives_leaving_and_coming_back() {
     let log = Rc::new(RefCell::new(Vec::new()));
     record(&log, &inner, "inner");
 
-    let pointer = |kind| {
+    let mouse = |kind| {
         document
-            .dispatch_pointer_event(
-                1,
-                kind,
-                10.0,
-                10.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            .dispatch_pointer_input(PointerInput::mouse(kind, 10.0, 10.0))
             .unwrap()
     };
-    pointer(PointerEventKind::Down);
+    mouse(PointerInputKind::Down);
     assert!(inner.is_active().unwrap());
-    document
-        .dispatch_pointer_leave(1, 10.0, 10.0, MouseButton::Left, Modifiers::NONE, true)
-        .unwrap();
+    mouse(PointerInputKind::Leave);
     assert!(inner.is_active().unwrap());
-    pointer(PointerEventKind::Move);
-    pointer(PointerEventKind::Up);
+    mouse(PointerInputKind::Move);
+    mouse(PointerInputKind::Up);
     assert_eq!(
         *log.borrow(),
         [
             "pointerenter inner",
+            "mouseenter inner",
             "pointerleave inner",
+            "mouseleave inner",
             "pointerenter inner",
+            "mouseenter inner",
             "click inner"
         ]
     );

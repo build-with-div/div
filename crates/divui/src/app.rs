@@ -119,6 +119,11 @@ impl AppBuilder {
                 all(feature = "windows", target_os = "windows")
             ))]
             rendered_generations: Cell::new(None),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            pointer_ids: PlatformPointerIds::default(),
         })
     }
 }
@@ -143,6 +148,60 @@ pub struct App {
         all(feature = "windows", target_os = "windows")
     ))]
     rendered_generations: Cell<Option<[u64; 5]>>,
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    pointer_ids: PlatformPointerIds,
+}
+
+/// The web's pointer ids for the platform's: the mouse (platform id 0) is
+/// [`PointerId::MOUSE`](crate::PointerId::MOUSE), and each touch contact
+/// gets the lowest id above it that no active contact uses (RFC 0007
+/// section 4), so a touch never shares the mouse's id.
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+#[derive(Debug, Default)]
+struct PlatformPointerIds {
+    touches: std::collections::HashMap<u64, crate::PointerId>,
+}
+
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+impl PlatformPointerIds {
+    fn map(
+        &mut self,
+        platform: u64,
+        kind: crate::pointer::PointerInputKind,
+    ) -> (crate::PointerId, crate::pointer::PointerType) {
+        use crate::pointer::{PointerInputKind, PointerType};
+        if platform == 0 {
+            return (crate::PointerId::MOUSE, PointerType::Mouse);
+        }
+        let id = match self.touches.get(&platform) {
+            Some(id) => *id,
+            None => {
+                let mut id = crate::PointerId::MOUSE.0 + 1;
+                while self.touches.values().any(|used| used.0 == id) {
+                    id += 1;
+                }
+                let id = crate::PointerId(id);
+                self.touches.insert(platform, id);
+                id
+            }
+        };
+        if matches!(
+            kind,
+            PointerInputKind::Up | PointerInputKind::Cancel | PointerInputKind::Leave
+        ) {
+            self.touches.remove(&platform);
+        }
+        (id, PointerType::Touch)
+    }
 }
 
 impl App {
@@ -181,6 +240,11 @@ impl App {
                 all(feature = "windows", target_os = "windows")
             ))]
             rendered_generations: Cell::new(None),
+            #[cfg(any(
+                all(feature = "linux", target_os = "linux"),
+                all(feature = "windows", target_os = "windows")
+            ))]
+            pointer_ids: PlatformPointerIds::default(),
         })
     }
 
@@ -283,32 +347,20 @@ impl App {
 ))]
 impl div_platform::PlatformApplication for App {
     fn event(&mut self, event: div_platform::PlatformEvent) -> Result<(), String> {
-        use div_engine::PointerEventKind;
+        use crate::pointer::{PointerInput, PointerInputKind};
         use div_platform::{PlatformEvent, PointerButton, PointerPhase};
 
         let button = |value: PointerButton| match value {
-            PointerButton::Left => crate::MouseButton::Left,
-            PointerButton::Middle => crate::MouseButton::Middle,
-            PointerButton::Right | PointerButton::Other(_) => crate::MouseButton::Right,
+            PointerButton::Left => Some(crate::MouseButton::Main),
+            PointerButton::Middle => Some(crate::MouseButton::Auxiliary),
+            PointerButton::Right => Some(crate::MouseButton::Secondary),
+            PointerButton::Other(4) => Some(crate::MouseButton::Back),
+            PointerButton::Other(5) => Some(crate::MouseButton::Forward),
+            PointerButton::Other(_) => None,
         };
         let result = match &event {
             PlatformEvent::BackendChanged(_) => Ok(()),
             PlatformEvent::Resized(viewport) => self.document.set_viewport(*viewport),
-            PlatformEvent::Pointer {
-                pointer_id,
-                phase: PointerPhase::Leave,
-                x,
-                y,
-                button: pointer,
-                modifiers: keys,
-            } => self.document.dispatch_pointer_leave(
-                *pointer_id,
-                *x,
-                *y,
-                button(*pointer),
-                platform_modifiers(*keys),
-                *pointer_id != 0,
-            ),
             PlatformEvent::Pointer {
                 pointer_id,
                 phase,
@@ -316,21 +368,35 @@ impl div_platform::PlatformApplication for App {
                 y,
                 button: pointer,
                 modifiers: keys,
-            } => self.document.dispatch_pointer_event(
-                *pointer_id,
-                match *phase {
-                    PointerPhase::Move => PointerEventKind::Move,
-                    PointerPhase::Down => PointerEventKind::Down,
-                    PointerPhase::Up => PointerEventKind::Up,
-                    // `Leave` is dispatched by the arm above.
-                    PointerPhase::Cancel | PointerPhase::Leave => PointerEventKind::Cancel,
-                },
-                *x,
-                *y,
-                button(*pointer),
-                platform_modifiers(*keys),
-                *pointer_id != 0,
-            ),
+            } => {
+                let kind = match phase {
+                    PointerPhase::Move => PointerInputKind::Move,
+                    PointerPhase::Down => PointerInputKind::Down,
+                    PointerPhase::Up => PointerInputKind::Up,
+                    PointerPhase::Cancel => PointerInputKind::Cancel,
+                    PointerPhase::Leave => PointerInputKind::Leave,
+                };
+                let pressed = button(*pointer);
+                // A press or release of a button the web does not number
+                // fires nothing, as in Chromium.
+                if matches!(kind, PointerInputKind::Down | PointerInputKind::Up)
+                    && pressed.is_none()
+                {
+                    Ok(())
+                } else {
+                    let (id, pointer_type) = self.pointer_ids.map(*pointer_id, kind);
+                    self.document.dispatch_pointer_input(PointerInput {
+                        pointer_id: id,
+                        pointer_type,
+                        kind,
+                        x: *x,
+                        y: *y,
+                        button: pressed.unwrap_or(crate::MouseButton::Main),
+                        modifiers: platform_modifiers(*keys),
+                        pressure: None,
+                    })
+                }
+            }
             PlatformEvent::Wheel {
                 x,
                 y,
@@ -620,6 +686,11 @@ impl HeadlessApp {
                     all(feature = "windows", target_os = "windows")
                 ))]
                 rendered_generations: Cell::new(None),
+                #[cfg(any(
+                    all(feature = "linux", target_os = "linux"),
+                    all(feature = "windows", target_os = "windows")
+                ))]
+                pointer_ids: PlatformPointerIds::default(),
             },
         })
     }
@@ -840,15 +911,11 @@ mod tests {
         })
         .unwrap();
         let before = app.render_at(0.0).unwrap();
-        app.document()
-            .dispatch_mouse_event(
-                MouseEventType::Up,
-                5.0,
-                5.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-            )
-            .unwrap();
+        for kind in [MouseEventType::Down, MouseEventType::Up] {
+            app.document()
+                .dispatch_mouse_event(kind, 5.0, 5.0, MouseButton::Main, Modifiers::NONE)
+                .unwrap();
+        }
         let after = app.render_at(0.0).unwrap();
         assert_eq!(count.get(), 1);
         assert_ne!(before.pixels(), after.pixels());

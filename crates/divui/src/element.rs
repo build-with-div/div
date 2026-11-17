@@ -1112,20 +1112,41 @@ impl Element {
             0,
             0.0,
             0.0,
-            crate::MouseButton::Left,
+            crate::MouseButton::Main,
             crate::Modifiers::NONE,
         );
         self.document.dispatch_click_event(self.handle, &event)
     }
 
-    pub fn set_pointer_capture(&self, pointer_id: u64) -> Result<(), Error> {
+    /// Capture `pointer` to this element, as the DOM's `setPointerCapture`.
+    /// The capture takes effect at the pointer's next event, which
+    /// `gotpointercapture` precedes, and ends after its `pointerup` or
+    /// `pointercancel`. Fails with [`EngineError::PointerNotFound`] for an
+    /// inactive pointer and [`EngineError::PointerCaptureDisconnected`] for
+    /// an element outside the document; does nothing while no button of the
+    /// pointer is pressed.
+    ///
+    /// [`EngineError::PointerNotFound`]: div_engine::EngineError::PointerNotFound
+    /// [`EngineError::PointerCaptureDisconnected`]: div_engine::EngineError::PointerCaptureDisconnected
+    pub fn set_pointer_capture(&self, pointer: crate::PointerId) -> Result<(), Error> {
         self.document
-            .with_engine_mut(|engine| engine.set_pointer_capture(pointer_id, self.handle))
+            .with_engine_mut(|engine| engine.set_pointer_capture(pointer.engine(), self.handle))
     }
 
-    pub fn release_pointer_capture(&self, pointer_id: u64) -> Result<(), Error> {
+    /// Release this element's capture of `pointer`, as the DOM's
+    /// `releasePointerCapture`. Fails with
+    /// [`EngineError::PointerNotFound`](div_engine::EngineError::PointerNotFound)
+    /// for an inactive pointer.
+    pub fn release_pointer_capture(&self, pointer: crate::PointerId) -> Result<(), Error> {
         self.document
-            .with_engine_mut(|engine| engine.release_pointer_capture(pointer_id, self.handle))
+            .with_engine_mut(|engine| engine.release_pointer_capture(pointer.engine(), self.handle))
+    }
+
+    /// Whether this element has captured `pointer`, or will at its next
+    /// event, as the DOM's `hasPointerCapture`.
+    pub fn has_pointer_capture(&self, pointer: crate::PointerId) -> Result<bool, Error> {
+        self.document
+            .with_engine(|engine| engine.has_pointer_capture(pointer.engine(), self.handle))
     }
 
     /// Listen for `event_type` in the target and bubble phases, as the DOM's
@@ -1659,15 +1680,11 @@ mod tests {
         })
         .unwrap();
 
-        document
-            .dispatch_mouse_event(
-                MouseEventType::Up,
-                10.0,
-                10.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-            )
-            .unwrap();
+        for kind in [MouseEventType::Down, MouseEventType::Up] {
+            document
+                .dispatch_mouse_event(kind, 10.0, 10.0, MouseButton::Main, Modifiers::NONE)
+                .unwrap();
+        }
         assert_eq!(
             *trace.borrow(),
             vec![EventPhase::Capture, EventPhase::Target, EventPhase::Bubble]

@@ -2316,7 +2316,7 @@ fn dispatch_event_to(
     // The existing C descriptor has no button field; its pointer source is
     // the framework's primary button, as in the explicit click adapter.
     if matches!(event.event_type, 1 | 2 | 3 | 14 | 15 | 24) {
-        native.mouse_button = div::MouseButton::Left as i32;
+        native.mouse_button = div::MouseButton::Main as i32;
     }
     let _raw_scope = native_app::RawEventScope::new(state, &native, public_target_address)?;
     let result = state
@@ -2485,13 +2485,22 @@ pub extern "C" fn divui_document_dispatch_pointer_event(
                 dispatch_event_to(&state, *node, address, &mut boundary_event, false)?;
             }
         }
+        // Capture ends after the up or cancel is dispatched (RFC 0007
+        // section 4). The frozen C ABI has no capture events to report it.
+        let ends_capture = matches!(kind, PointerEventKind::Up | PointerEventKind::Cancel);
         let Some(target) = update.target else {
+            if ends_capture {
+                borrow_engine_mut(&state)?.end_pointer_capture(event.pointer_id as u64);
+            }
             event.target = ptr::null_mut();
             event.current_target = ptr::null_mut();
             return Ok(());
         };
         let address = element_address(&state, target)?;
         dispatch_event_to(&state, target, address, event, false)?;
+        if ends_capture {
+            borrow_engine_mut(&state)?.end_pointer_capture(event.pointer_id as u64);
+        }
         if event.flags & DIVUI_EVENT_FLAG_DEFAULT_PREVENTED != 0 {
             return Ok(());
         }
