@@ -165,3 +165,12 @@ on branch `components/c4-assets` and the shared findings note.
   Markdown, CSV and text, where the conversion is intended, so no
   published file changed. The helper now converts line endings in text
   files only.
+- 15 November 2026: the engine applies style rules in CSS Cascade 5 order
+  (R0a, the first step of Tier 0 item 0.1). An application adopts a
+  `StyleSheet` of rules with normal and `!important` declarations and
+  optional layers; matching rules cascade with the user-agent and author
+  origins, presentational hints, the element's own declarations as the
+  `style` attribute, and animations. Conservative invalidation keeps every
+  incremental restyle equal to a full re-cascade. The census and CSS Grid
+  coverage are unchanged at all four profiles.
+  [Record](../rule-cascade-r0a-2026-11-15.md).
