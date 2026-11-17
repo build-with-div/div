@@ -3,6 +3,121 @@
 path	class	first_copyright
 third_party/blink/renderer/core/css/css_properties.json5	BSD	Copyright 2017 The Chromium Authors
 third_party/blink/renderer/core/css/svg.css	BSD	Copyright (C) 2005, 2006 Apple Computer, Inc.  All rights reserved.
+third_party/blink/renderer/core/layout/inline/abstract_inline_text_box.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/abstract_inline_text_box.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/abstract_inline_text_box_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/caret_rect.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/caret_rect.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/empty_offset_mapping_builder.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fit_text_scale.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fit_text_utils.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fit_text_utils.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_item.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_item.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_item_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items_builder.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items_builder.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items_builder_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/fragment_items_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/hyphen_result.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/hyphen_result.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/initial_letter_utils.cc	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/initial_letter_utils.h	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_box_state.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_box_state.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_break_token.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_break_token.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_caret_position.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_caret_position.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_caret_position_test.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_child_layout_context.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_child_layout_context.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_containing_block_utils.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_containing_block_utils.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_cursor.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_cursor.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_cursor_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_result.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_result.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_result_ruby_column.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_segment.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_segment.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_span.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_item_text_index.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_items_builder.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_items_builder.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_items_builder_test.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_items_data.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_items_data.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_layout_algorithm_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_node.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_node.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_node_data.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_node_data.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/inline_node_test.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/justification_utils.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/justification_utils.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/justification_utils_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/leading_floats.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_box_fragment_builder.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_box_fragment_builder.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_break_candidate.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_break_candidate.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_break_candidate_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_break_point.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_breaker.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_breaker.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_breaker_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_info.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_info.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_info_list.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_info_list_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_info_test.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_truncator.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_truncator.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_utils.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_utils.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_widths.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_widths.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/line_widths_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_builder.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_builder.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_container.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_container.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_item.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/logical_line_item.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/offset_mapping.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/offset_mapping.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/offset_mapping_builder.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/offset_mapping_builder.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/offset_mapping_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/paragraph_line_breaker.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/paragraph_line_breaker.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/paragraph_line_breaker_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/physical_line_box_fragment.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/physical_line_box_fragment.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/physical_line_box_fragment_test.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/ruby_utils.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/ruby_utils.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/ruby_utils_test.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/score_line_break_context.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/score_line_breaker.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/score_line_breaker.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/score_line_breaker_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_auto_space.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_auto_space.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_auto_space_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_item_type.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_offset_range.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/text_offset_range.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/transformed_string.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/core/layout/inline/transformed_string.h	BSD	Copyright 2023 The Chromium Authors
 third_party/blink/renderer/core/layout/svg/layout_svg_block.cc	LGPL	Copyright (C) 2006 Apple Computer, Inc.
 third_party/blink/renderer/core/layout/svg/layout_svg_block.h	LGPL	Copyright (C) 2006 Apple Computer, Inc.
 third_party/blink/renderer/core/layout/svg/layout_svg_container.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
@@ -124,9 +239,24 @@ third_party/blink/renderer/core/paint/svg_root_painter.cc	BSD	Copyright 2014 The
 third_party/blink/renderer/core/paint/svg_root_painter.h	BSD	Copyright 2014 The Chromium Authors
 third_party/blink/renderer/core/paint/svg_shape_painter.cc	BSD	Copyright 2014 The Chromium Authors
 third_party/blink/renderer/core/paint/svg_shape_painter.h	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/text_combine_painter.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/paint/text_combine_painter.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/paint/text_decoration_info.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/paint/text_decoration_info.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/core/paint/text_decoration_painter.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/core/paint/text_decoration_painter.h	BSD	Copyright 2021 The Chromium Authors
 third_party/blink/renderer/core/paint/text_fragment_painter.cc	BSD	Copyright 2017 The Chromium Authors
 third_party/blink/renderer/core/paint/text_fragment_painter.h	BSD	Copyright 2017 The Chromium Authors
 third_party/blink/renderer/core/paint/text_fragment_painter_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_overflow_post_layout_snapshot.cc	BSD	Copyright 2026 The Chromium Authors
+third_party/blink/renderer/core/paint/text_overflow_post_layout_snapshot.h	BSD	Copyright 2026 The Chromium Authors
+third_party/blink/renderer/core/paint/text_paint_style.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_painter.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_painter.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/core/paint/text_painter_test.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/core/paint/text_selection_repaint_test.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/core/paint/text_shadow_painter.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/core/paint/text_shadow_painter.h	BSD	Copyright 2024 The Chromium Authors
 third_party/blink/renderer/core/style/style_svg_resource.cc	BSD	Copyright 2021 The Chromium Authors
 third_party/blink/renderer/core/style/style_svg_resource.h	BSD	Copyright 2018 The Chromium Authors
 third_party/blink/renderer/core/style/svg_paint.cc	LGPL	Copyright (C) 2004, 2005, 2007 Nikolas Zimmermann <zimmermann@kde.org>
@@ -502,6 +632,69 @@ third_party/blink/renderer/core/svg/svg_zoom_and_pan.cc	LGPL	Copyright (C) 2004,
 third_party/blink/renderer/core/svg/svg_zoom_and_pan.h	LGPL	Copyright (C) 2004, 2005, 2008 Nikolas Zimmermann <zimmermann@kde.org>
 third_party/blink/renderer/core/svg/unsafe_svg_attribute_sanitization_test.cc	BSD	Copyright 2015 The Chromium Authors
 third_party/blink/renderer/core/svg/xlink_attribute_names.json5	NONE	
+third_party/blink/renderer/platform/fonts/shaping/case_mapping_harfbuzz_buffer_filler.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/case_mapping_harfbuzz_buffer_filler.h	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/font_features.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/font_features.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/font_features_test.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/frame_shape_cache.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/frame_shape_cache.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/frame_shape_cache_test.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/glyph_bounds_accumulator.h	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/glyph_data.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/glyph_data_range.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/glyph_data_range.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/glyph_index_result.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/glyph_offset_iterator.h	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/han_kerning.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/han_kerning.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/han_kerning_test.cc	NONE	
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face.cc	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face.h	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face_from_typeface.cc	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face_from_typeface.h	BSD	Copyright 2021 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face_test.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_font_cache.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_font_cache.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_font_data.h	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper.cc	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper.h	BSD	Copyright (C) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper_fuzzer.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper_test.cc	BSD	Copyright 2014 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/ng_shape_cache.h	BSD	Copyright (C) 2012 Apple Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/ng_shape_cache_test.cc	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/run_segmenter.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/run_segmenter.h	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/run_segmenter_test.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_options.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result.cc	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/shape_result.h	BSD	Copyright (C) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/shape_result_bloberizer.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_bloberizer.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_bloberizer_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_cursor.cc	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_cursor.h	BSD	Copyright 2025 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_run.h	BSD	Copyright (c) 2012 Google Inc. All rights reserved.
+third_party/blink/renderer/platform/fonts/shaping/shape_result_run_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_spacing.cc	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_spacing.h	BSD	Copyright 2016 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_spacing_test.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_test.cc	BSD	Copyright 2019 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_test_info.cc	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_test_info.h	BSD	Copyright 2015 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_view.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_view.h	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shape_result_view_test.cc	BSD	Copyright 2018 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shaping_line_breaker.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shaping_line_breaker.h	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/shaping_line_breaker_test.cc	BSD	Copyright 2017 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/stretchy_operator_shaper.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/stretchy_operator_shaper.h	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/stretchy_operator_shaper_fuzzer.cc	BSD	Copyright 2022 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/stretchy_operator_shaper_test.cc	BSD	Copyright 2020 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/text_spacing_trim.h	BSD	Copyright 2023 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/variation_selector_mode.cc	BSD	Copyright 2024 The Chromium Authors
+third_party/blink/renderer/platform/fonts/shaping/variation_selector_mode.h	BSD	Copyright 2024 The Chromium Authors
 third_party/blink/renderer/platform/geometry/path.cc	BSD	Copyright (C) 2003, 2006 Apple Computer, Inc.  All rights reserved.
 third_party/blink/renderer/platform/geometry/path.h	BSD	Copyright (C) 2003, 2006, 2009 Apple Inc. All rights reserved.
 third_party/blink/renderer/platform/geometry/path_builder.cc	BSD	Copyright 2025 The Chromium Authors

@@ -1026,6 +1026,8 @@ dependencies = [
 name = "div-svg"
 version = "0.2.0"
 dependencies = [
+ "div-style",
+ "div-text",
  "png 0.17.16",
  "serde_json",
  "skia-safe",

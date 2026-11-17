@@ -7,6 +7,7 @@ Tools for the inline SVG work in RFC 0009
 | --- | --- |
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
+| `text_corpus.py` | Black-box text-position oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium, at scale 1 and at real-zoom scale 2 |
 | `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in two sets (`--set v1`, `--set v2`) |
 
 ## Geometry corpus
@@ -250,6 +251,71 @@ The corpus settled these points:
 - Markers (a later clean-room PR), paint servers, clipping, text,
   element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
+
+## Text corpus (V2a positions)
+
+`text_corpus.py list` prints the 131 cases. `capture` loads them in
+headless Chromium over CDP, once at device scale 1 and once at real-zoom
+scale 2 (`--force-device-scale-factor`), with the vendored Geist and Inter
+variable fonts (OFL) loaded as data URLs. Each case is one `<svg>` in its
+own slot. The output is `div-svg-text-corpus-v1`. For every `<text>` it
+records:
+
+- `getNumberOfChars()` and `getComputedTextLength()`;
+- for each addressable character, `getStartPositionOfChar`,
+  `getEndPositionOfChar`, `getExtentOfChar` and `getRotationOfChar`;
+- `getCTM()`;
+- `getBBox()`, which is recorded but not compared. It needs ink bounds,
+  which are V2b.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `run/` | 31 | Geist and Inter at many sizes and weights, digits, punctuation, kerning, a ligature, italic, fractional positions |
+| `list/` | 17 | `x`, `y`, `dx`, `dy` and `rotate` lists: short, long, em and percent lengths, CSS number syntax |
+| `tspan/` | 18 | nested spans, list inheritance, kerning across span boundaries, font changes inside a run |
+| `baseline/` | 18 | every `dominant-baseline` and `alignment-baseline` value, `baseline-shift` (`sub`, `super`, lengths, percentages, nesting) |
+| `anchor/` | 10 | `text-anchor` per chunk, chunks started by `x` and `y` |
+| `xf/` | 13 | transforms (scale, non-uniform scale, skew, rotation) and `viewBox` scaling, which change the font's scaled size |
+| `spacing/` | 7 | `letter-spacing` and `word-spacing` in px and em |
+| `ws/` | 7 | white-space collapsing within and across elements, newlines, tabs, no-break spaces, `white-space: pre` |
+| `chart/` | 10 | axis ticks, rotated ticks, labels, legends and tooltips as Recharts draws them |
+
+**Evidence** is one capture per OS in `tests/fidelity/fixtures/svg-text-v1/`
+(`positions-windows.json`, `positions-linux.json`), from pinned CfT
+147.0.7727.50. The two differ, because Windows and Linux rasterize and
+measure glyphs differently, so each OS is checked against its own capture.
+
+To recapture:
+
+```sh
+# Linux, in WSL
+python3 tools/svg/text_corpus.py capture \
+  --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome \
+  --output tests/fidelity/fixtures/svg-text-v1/positions-linux.json
+# Windows
+python tools/svg/text_corpus.py capture \
+  --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe \
+  --output tests/fidelity/fixtures/svg-text-v1/positions-windows.json
+```
+
+### What `div_svg::text` matches
+
+`crates/div-svg/tests/text_corpus.rs` compares 24,056 numbers per OS
+exactly, as f64. On Linux, 129 of 131 cases match at both scales. On
+Windows, 123 match at scale 1 and 126 at scale 2.
+
+Every remaining difference is one of two precision behaviours in
+`div-text`, which the engine lane owns:
+
+- **T3.** Chromium truncates glyph advances to 1/65536 px; `div-text`
+  rounds them. This shows only on Windows.
+- **T4.** Chromium shapes at the font size truncated to 1/100 px;
+  `div-text` uses the exact size.
+
+Both were confirmed by experiment. With them applied, every number
+matches on both OSes. They are listed in `known-gaps.txt` with an `<os>`
+column, and `div-svg` does not work around them. Set
+`DIV_SVG_TEXT_DEBUG=<case prefix>` to print a case's numbers.
 
 ## Lucide capture plan (V1 stage 1 gate)
 
