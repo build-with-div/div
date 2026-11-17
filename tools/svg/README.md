@@ -151,6 +151,18 @@ renderer rasterizes a page: 256-px `raster_n32_premul` tiles, stepping by
 is painted in the device space of each tile that shows it, on a full
 256-px tile surface.
 
+**Production raster tiling.** This is not a test-only model. `div-paint`
+already rasterizes a page this way (`crates/div-paint/src/render.rs`):
+`RASTER_TILE_SIZE_PX` = 256, `RASTER_TILE_STEP_PX` = 254, each tile drawn
+on a full tile surface translated by `-tile_x, -tile_y`, and every tile
+but the first cropping its leading row and column. The test repeats the
+same rule standalone because `div_svg::paint` is not yet called from a
+page. Layers no larger than 512 px whose content fits
+(`should_replay_untiled`, after cc's `max_untiled_layer_size`) replay
+untiled in both Chromium and Div; the corpus sheets are wider than that,
+so it measures the tiled path only. Painted instead at the origin of a
+surface the size of the case, 37 of the 147 captures differed.
+
 **Why tiles matter.** Both details are needed for exact pixels.
 - The tile translation matters because Skia strokes and maps points in
   single precision in device space. A case painted at the origin instead
@@ -192,6 +204,8 @@ The corpus settled these points:
 **Not claimed.**
 - Anything about the page path. The engine does not call the painter
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
+- The untiled path (layers of 512 px or less) for SVG content: the
+  corpus pages are tiled.
 - Dashes, `paint-order`, markers, `vector-effect`, `shape-rendering`,
   paint servers, and scales other than 1 and 2.
 
