@@ -89,6 +89,19 @@ pub struct NodeHandle {
     generation: u32,
 }
 
+/// The unit of wheel deltas given to [`Engine::scroll_wheel_by`], as the
+/// DOM's `WheelEvent.deltaMode`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum WheelGranularity {
+    /// CSS pixels.
+    #[default]
+    Pixel,
+    /// Lines of 40 CSS pixels.
+    Line,
+    /// Pages: 87.5% of the smaller of the scroller and the viewport.
+    Page,
+}
+
 /// Owned, resolved dimensions of an element's scrolling area, in logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScrollMetrics {
@@ -2422,25 +2435,59 @@ impl Engine {
 
     /// Apply user wheel input through the document-owned viewport geometry.
     /// A hidden viewport remains available to programmatic scrolling only.
+    /// Deltas are CSS pixels; see [`Self::scroll_wheel_by`].
     pub fn scroll_wheel(
         &mut self,
         handle: NodeHandle,
         delta_x: f64,
         delta_y: f64,
     ) -> Result<bool, EngineError> {
+        self.scroll_wheel_by(handle, delta_x, delta_y, WheelGranularity::Pixel)
+    }
+
+    /// Apply user wheel input in `granularity`'s unit to one scroller, as
+    /// Chromium 147's compositor does for each scroller it tries
+    /// (`cc::InputHandler`, `cc/input/input_handler.cc`):
+    /// - `ResolveScrollGranularityToPixels`: a line is `kPixelsPerLineStep`
+    ///   (40) pixels; a page is `kMinFractionToStepWhenPaging` (0.875) of
+    ///   the smaller of the scroller's client size and the viewport, at
+    ///   least one pixel (`ScrollUtils::ResolveScrollPercentageToPixels`,
+    ///   `cc/input/scroll_utils.cc`).
+    /// - `LimitDeltaToScrollerSize` (`kLimitScrollDeltaToScrollerSize`,
+    ///   enabled by default): a pixel or line scroll moves at most the
+    ///   scroller's client size on each axis. Pages are not limited.
+    pub fn scroll_wheel_by(
+        &mut self,
+        handle: NodeHandle,
+        delta_x: f64,
+        delta_y: f64,
+        granularity: WheelGranularity,
+    ) -> Result<bool, EngineError> {
         if !delta_x.is_finite() || !delta_y.is_finite() {
             return Err(EngineError::InvalidInput("wheel deltas must be finite"));
         }
         let node = self.resolve(handle)?;
         self.update()?;
-        let (user_x, user_y) = self
-            .layout_scroll_area(node)
-            .map_or((false, false), |area| {
-                (
-                    area.overflow_x.is_scrollable(),
-                    area.overflow_y.is_scrollable(),
-                )
-            });
+        let Some(area) = self.layout_scroll_area(node) else {
+            return Ok(false);
+        };
+        let user_x = area.overflow_x.is_scrollable();
+        let user_y = area.overflow_y.is_scrollable();
+        let client = (
+            area.client_rect.size.width.to_f64(),
+            area.client_rect.size.height.to_f64(),
+        );
+        let viewport = self.viewport.logical_size();
+        let resolve = |delta: f64, client: f64, viewport: f64| match granularity {
+            WheelGranularity::Pixel => delta.clamp(-client, client),
+            WheelGranularity::Line => (delta * 40.0).clamp(-client, client),
+            WheelGranularity::Page if delta == 0.0 => 0.0,
+            WheelGranularity::Page => {
+                (delta.abs() * 0.875 * client.min(viewport)).max(1.0) * delta.signum()
+            }
+        };
+        let delta_x = resolve(delta_x, client.0, viewport.0);
+        let delta_y = resolve(delta_y, client.1, viewport.1);
         let before = self.scroll_offset(handle)?;
         self.scroll_to(
             handle,
@@ -2453,11 +2500,25 @@ impl Engine {
     /// Default wheel scrolling from a hit element through its retained box
     /// ancestry. Direct `scroll_wheel` remains an explicit operation on one
     /// element; this operation respects anonymous content membership.
+    /// Deltas are CSS pixels; see [`Self::scroll_wheel_from_target_by`].
     pub fn scroll_wheel_from_target(
         &mut self,
         target: NodeHandle,
         delta_x: f64,
         delta_y: f64,
+    ) -> Result<bool, EngineError> {
+        self.scroll_wheel_from_target_by(target, delta_x, delta_y, WheelGranularity::Pixel)
+    }
+
+    /// [`Self::scroll_wheel_from_target`] in `granularity`'s unit. Each
+    /// scroller in the chain resolves and limits the deltas against its own
+    /// size, as [`Self::scroll_wheel_by`] describes.
+    pub fn scroll_wheel_from_target_by(
+        &mut self,
+        target: NodeHandle,
+        delta_x: f64,
+        delta_y: f64,
+        granularity: WheelGranularity,
     ) -> Result<bool, EngineError> {
         if !delta_x.is_finite() || !delta_y.is_finite() {
             return Err(EngineError::InvalidInput("wheel deltas must be finite"));
@@ -2471,7 +2532,7 @@ impl Engine {
                 .latest_fragment
                 .as_ref()
                 .is_some_and(|root| root.scroll_box_contains_element(owner, target_node));
-            if in_scroll_box && self.scroll_wheel(handle, delta_x, delta_y)? {
+            if in_scroll_box && self.scroll_wheel_by(handle, delta_x, delta_y, granularity)? {
                 return Ok(true);
             }
             current = self.parent(handle)?;
