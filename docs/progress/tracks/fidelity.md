@@ -4,6 +4,44 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## 16 November 2026: text oracle values at real zoom on Linux and Windows
+
+- **What:** `tools/qualification/probe_windows_text_oracle.py` gains
+  `--platform linux`. It runs the same scenarios on pinned Linux
+  Chrome-for-Testing 147.0.7727.50 (WSL) with the census launcher, and
+  draws aliased Ahem from `ahem_noaa.conf` as the Linux oracle does. Both
+  platforms write a schema 2 receipt that records each scale's
+  `device_scale_method`. The receipts are `windows-text-oracle-v2.json`
+  and `linux-text-oracle-v2.json` in build-with-div/div-fidelity-data at
+  `1b86da8`, pinned by `fidelity-data.lock`. `windows-text-oracle-v1.json`
+  stays as history.
+- **Scale 1:** both platforms reproduce every value that
+  `native_font_units.rs` and `native_line_height.rs` pin.
+- **Above scale 1:** real-zoom Chromium lays out font-relative lengths and
+  the Ahem word in device pixels, so its values move with the scale. For
+  example, at 1.25x 2.5ch is 46 instead of 47.5, and the Ahem word's y is
+  485.8 (Windows) or 487.4 (Linux) instead of 487. Div keeps its scale-1
+  values at every scale. The tests no longer claim a Chromium match there:
+  they pin Div's value and list Chromium's as a named gap
+  (`crates/divui/tests/support/real_zoom.rs`). There are 28, 32 and 3 gaps
+  on Windows (font units, line height, atomic word) and 27, 28 and 2 on
+  Linux. A gap that starts matching, or that is never checked, fails.
+  Owner: engine (device-pixel layout, RFC 0011).
+- **Inventory:** RFC 0010 gains an addendum covering the missed Linux
+  observations and about 35 other tests that pin a Chromium value above
+  scale 1, by owner.
+- **Verification:**
+  - `cargo test --locked -p divui --features "divui/async divui/http
+    divui/testing" --test native_font_units --test native_line_height`
+    in WSL: 6 passed. Windows: CI.
+  - `python tools/qualification/probe_windows_text_oracle.py --chrome
+    <pinned Windows chrome.exe> --output <receipt>`: run twice, identical
+    values.
+  - The same with `--platform linux` in WSL: reproduces every scale-1
+    value above.
+  - `python tools/fidelity_data.py fetch --profile all`, then `verify`:
+    30,517 files match `1b86da8`.
+
 ## 16 November 2026: web-font fixtures recaptured at real zoom
 
 - **What:** `tests/fidelity/fixtures/webfont-fontations-v1` recaptured with

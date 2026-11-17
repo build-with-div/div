@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Measure pinned Windows Chrome for the Windows-pending text tests.
+"""Measure pinned Chrome for the platform-specific text tests.
 
-Each scenario reproduces one test from docs/v02/generated/windows-pending-tests.txt
-as HTML and records the values the test asserts. Tests that use Div's
-deterministic aliased raster configuration are measured with Blink's
-NoFontAntialiasing feature, the Windows counterpart of the Linux oracle's
-no-antialiasing Fontconfig. Ahem is loaded with @font-face from the repository
-bytes; it is never installed system-wide.
+Each scenario reproduces one test as HTML and records the values the test
+asserts, at every scale the test covers. Scales other than 1 use real zoom
+(`--force-device-scale-factor`, RFC 0010), the launch the census oracle uses.
+
+`--platform windows` (the default) drives pinned Windows Chrome-for-Testing.
+Tests that use Div's deterministic aliased raster configuration are measured
+with Blink's NoFontAntialiasing feature, and Ahem is loaded with @font-face
+from the repository bytes; it is never installed system-wide.
+
+`--platform linux` drives pinned Linux Chrome-for-Testing (WSL here) for the
+scenarios that also have Linux values. Aliased Ahem comes from the census
+oracle's no-antialiasing Fontconfig (`ahem_noaa.conf`, which registers the
+repository's Ahem), as the Linux oracle draws it, instead of a web font:
+Blink draws an @font-face Ahem with the default antialiased style.
 """
 
 from __future__ import annotations
@@ -15,8 +23,11 @@ import argparse
 import base64
 import json
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import windows_chrome  # noqa: E402
@@ -26,15 +37,73 @@ ROOT = windows_chrome.ROOT
 AHEM = ROOT / "crates/div-text/fonts/Ahem.ttf"
 SCALES = (1.0, 1.25, 1.5, 2.0, 3.0)
 ALIASED = ("--enable-blink-features=NoFontAntialiasing",)
+LINUX_CHROME = Path.home() / "openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome"
 
 
-def page(body: str, extra_style: str = "") -> str:
-    font = base64.b64encode(AHEM.read_bytes()).decode("ascii")
+def page(body: str, extra_style: str = "", web_font: bool = True) -> str:
+    face = ""
+    if web_font:
+        font = base64.b64encode(AHEM.read_bytes()).decode("ascii")
+        face = f"@font-face{{font-family:Ahem;src:url(data:font/truetype;base64,{font})}}"
     return (
         "<!DOCTYPE html><html><head><meta charset=utf-8><style>"
-        f"@font-face{{font-family:Ahem;src:url(data:font/truetype;base64,{font})}}"
-        f"html,body{{margin:0}}{extra_style}</style></head><body>{body}</body></html>"
+        f"{face}html,body{{margin:0}}{extra_style}</style></head><body>{body}</body></html>"
     )
+
+
+class LinuxChrome(windows_chrome.WindowsChrome):
+    """The same session on pinned Linux Chrome-for-Testing.
+
+    The census oracle's environment: the no-antialiasing Fontconfig when the
+    scenario is aliased, with the shared real-zoom launch.
+    """
+
+    def __init__(self, chrome: Path, width: int, height: int, scale: float,
+                 extra_args: tuple[str, ...] = ()):
+        self._harness = windows_chrome._harness()
+        self.chrome = chrome.resolve()
+        self.width, self.height, self.scale = width, height, scale
+        self.aliased = tuple(extra_args) == ALIASED
+        self.extra_args = ()
+        self.process = None
+        self.client = None
+        self.profile = tempfile.mkdtemp(prefix="div-linux-chrome-")
+
+    def __enter__(self) -> "LinuxChrome":
+        h = self._harness
+        scale_flags, self._viewport_override = h.device_scale_launch(
+            self.width, self.height, self.scale
+        )
+        self.process = subprocess.Popen(
+            [str(self.chrome), "--headless", "--disable-gpu", "--no-sandbox", "--no-first-run",
+             "--no-default-browser-check", "--remote-debugging-port=0",
+             f"--user-data-dir={self.profile}", *scale_flags, "about:blank"],
+            env=h.chrome_environment(str(self.chrome.parent), use_ahem_noaa=self.aliased),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+        port = h._wait_for_devtools_endpoint(self.profile, self.process, timeout=30)
+        self.client = h._CdpWebSocket(h._page_websocket_url(port, timeout=30))
+        self.client.command("Page.enable")
+        self.client.command("Emulation.setDeviceMetricsOverride", self._viewport_override)
+        version = self.client.command("Browser.getVersion")
+        if windows_chrome.CHROMIUM_VERSION not in version.get("product", ""):
+            raise SystemExit(f"unexpected browser version: {version}")
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        if self.client is not None:
+            self._harness._close_chromium_client(self.client)
+        if self.process is not None:
+            self._harness._stop_chromium_process(self.process)
+        for _ in range(50):
+            try:
+                shutil.rmtree(self.profile)
+                return
+            except FileNotFoundError:
+                return
+            except OSError:
+                time.sleep(0.1)
+        raise RuntimeError(f"browser profile writers did not exit: {self.profile}")
 
 
 WIDTH = "(id) => document.getElementById(id).getBoundingClientRect().width"
@@ -131,37 +200,66 @@ SCENARIOS = {
 }
 
 
+# Scenarios with Linux values: the divui tests that assert Chromium values on
+# both platforms. The div-layout scenarios are Windows-only.
+LINUX_SCENARIOS = tuple(test for test in SCENARIOS if test.startswith("crates/divui/"))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--chrome", type=Path, default=windows_chrome.DEFAULT_CHROME)
+    parser.add_argument("--platform", choices=("windows", "linux"), default="windows")
+    parser.add_argument("--chrome", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    linux = args.platform == "linux"
+    if linux:
+        chrome_path = (args.chrome or LINUX_CHROME).resolve()
+        session = LinuxChrome
+        tests = LINUX_SCENARIOS
+        chrome_sha256 = windows_chrome.sha256(chrome_path.read_bytes())
+    else:
+        chrome_path = args.chrome or windows_chrome.DEFAULT_CHROME
+        session = windows_chrome.WindowsChrome
+        tests = tuple(SCENARIOS)
+        chrome_sha256 = windows_chrome.CHROME_SHA256
+    harness = windows_chrome._harness()
     receipt = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "platform": args.platform,
         "chromium_version": windows_chrome.CHROMIUM_VERSION,
-        "chrome_sha256": windows_chrome.CHROME_SHA256,
+        "chrome_sha256": chrome_sha256,
         "tool_sha256": windows_chrome.sha256(Path(__file__).read_bytes()),
         "session_sha256": windows_chrome.sha256(Path(windows_chrome.__file__).read_bytes()),
+        "launcher_sha256": windows_chrome.sha256(windows_chrome.HARNESS.read_bytes()),
         "ahem_sha256": windows_chrome.sha256(AHEM.read_bytes()),
         "tests": {},
     }
-    with tempfile.TemporaryDirectory(prefix="openui-win-text-") as temporary:
-        for test, (body, style, flags, measure, scales) in SCENARIOS.items():
+    with tempfile.TemporaryDirectory(prefix="div-text-oracle-") as temporary:
+        for test in tests:
+            body, style, flags, measure, scales = SCENARIOS[test]
+            # Linux draws aliased Ahem from Fontconfig, not from a web font.
+            web_font = not (linux and flags == ALIASED)
+            html_text = page(body, style, web_font)
             html = Path(temporary) / "page.html"
-            html.write_text(page(body, style), encoding="utf-8", newline="\n")
+            html.write_text(html_text, encoding="utf-8", newline="\n")
             rows = {}
+            methods = {}
             for scale in scales:
                 repeats = []
                 for _ in range(2):
-                    with windows_chrome.WindowsChrome(args.chrome, 800, 600, scale, flags) as chrome:
+                    with session(chrome_path, 800, 600, scale, flags) as chrome:
                         chrome.load(html)
                         repeats.append(measure(chrome))
                 if repeats[0] != repeats[1]:
                     raise SystemExit(f"{test} at {scale}: repeated measurements differ")
                 rows[format(scale, "g")] = repeats[0]
+                methods[format(scale, "g")] = harness.device_scale_method(scale)
             receipt["tests"][test] = {
-                "html_sha256": windows_chrome.sha256(page(body, style).encode("utf-8")),
-                "chrome_flags": list(flags), "measurements": rows,
+                "html_sha256": windows_chrome.sha256(html_text.encode("utf-8")),
+                "chrome_flags": [] if linux else list(flags),
+                "fontconfig": ("ahem_noaa.conf" if flags == ALIASED else "system") if linux else None,
+                "device_scale_method": methods,
+                "measurements": rows,
             }
             print(test.rsplit("::", 1)[1], json.dumps(rows), flush=True)
     args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n",

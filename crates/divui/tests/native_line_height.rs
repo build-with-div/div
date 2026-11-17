@@ -1,6 +1,10 @@
 use div::prelude::*;
 use std::{cell::Cell, rc::Rc};
 
+#[path = "support/real_zoom.rs"]
+mod real_zoom;
+use real_zoom::{Gap, RealZoomGaps};
+
 fn document(scale: f64) -> Document {
     Document::with_font_collection_and_options(
         ViewportMetrics::from_logical_size(800.0, 600.0, scale).unwrap(),
@@ -12,13 +16,86 @@ fn document(scale: f64) -> Document {
     .unwrap()
 }
 
-// These widths are independent pinned Chromium observations in the immutable
-// reference-only-3642 archive. Line-height feeds a retained 2.5lh width; the
-// native callback changes only the parent font, exercising both metric contexts.
-// Windows values are pinned Windows Chrome-for-Testing observations in
-// docs/progress/evidence/windows-text-oracle-v1.json.
+// The expected widths are pinned Chromium 147's at scale 1, measured by
+// `tools/qualification/probe_windows_text_oracle.py` on Linux and Windows
+// (build-with-div/div-fidelity-data `archive/docs/progress/evidence/`
+// `windows-text-oracle-v2.json` and `linux-text-oracle-v2.json`).
+// Div keeps them at every scale. Above scale 1, real-zoom Chromium lays the
+// line heights out in device pixels and differs where
+// `LINE_HEIGHT_REAL_ZOOM_GAPS` lists it: (scale, case, before or after,
+// Chromium's width, the same for the node and its descendant). Line-height
+// feeds a retained 2.5lh width; the native callback changes only the parent
+// font, exercising both metric contexts.
+#[cfg(windows)]
+const LINE_HEIGHT_REAL_ZOOM_GAPS: &[Gap] = &[
+    (1.25, 0, "before", 152.0),
+    (1.25, 1, "before", 119.9749984741211),
+    (1.25, 2, "before", 116.9375),
+    (1.25, 3, "before", 114.0374984741211),
+    (1.25, 5, "before", 96.55000305175781),
+    (1.25, 0, "after", 152.0),
+    (1.25, 1, "after", 119.9749984741211),
+    (1.25, 2, "after", 127.25),
+    (1.25, 3, "after", 114.0374984741211),
+    (1.25, 5, "after", 96.55000305175781),
+    (1.5, 0, "before", 153.33334350585938),
+    (1.5, 1, "before", 119.94792175292969),
+    (1.5, 2, "before", 116.97917175292969),
+    (1.5, 5, "before", 96.54167175292969),
+    (1.5, 0, "after", 153.33334350585938),
+    (1.5, 1, "after", 119.94792175292969),
+    (1.5, 2, "after", 127.23958587646484),
+    (1.5, 5, "after", 96.54167175292969),
+    (2.0, 0, "before", 152.5),
+    (2.0, 1, "before", 122.53125),
+    (2.0, 2, "before", 116.9921875),
+    (2.0, 0, "after", 152.5),
+    (2.0, 1, "after", 122.53125),
+    (2.0, 2, "after", 127.265625),
+    (3.0, 0, "before", 151.6666717529297),
+    (3.0, 1, "before", 121.64583587646484),
+    (3.0, 2, "before", 116.97917175292969),
+    (3.0, 3, "before", 114.03646087646484),
+    (3.0, 0, "after", 151.6666717529297),
+    (3.0, 1, "after", 121.64583587646484),
+    (3.0, 2, "after", 127.29167175292969),
+    (3.0, 3, "after", 114.03646087646484),
+];
+#[cfg(not(windows))]
+const LINE_HEIGHT_REAL_ZOOM_GAPS: &[Gap] = &[
+    (1.25, 0, "before", 152.0),
+    (1.25, 2, "before", 116.9375),
+    (1.25, 3, "before", 114.0374984741211),
+    (1.25, 5, "before", 96.55000305175781),
+    (1.25, 0, "after", 152.0),
+    (1.25, 2, "after", 127.25),
+    (1.25, 3, "after", 114.0374984741211),
+    (1.25, 5, "after", 96.55000305175781),
+    (1.5, 0, "before", 153.33334350585938),
+    (1.5, 2, "before", 116.97917175292969),
+    (1.5, 5, "before", 96.54167175292969),
+    (1.5, 0, "after", 153.33334350585938),
+    (1.5, 2, "after", 127.23958587646484),
+    (1.5, 5, "after", 96.54167175292969),
+    (2.0, 0, "before", 152.5),
+    (2.0, 1, "before", 121.6328125),
+    (2.0, 2, "before", 116.9921875),
+    (2.0, 0, "after", 152.5),
+    (2.0, 1, "after", 121.6328125),
+    (2.0, 2, "after", 127.265625),
+    (3.0, 0, "before", 151.6666717529297),
+    (3.0, 1, "before", 121.63542175292969),
+    (3.0, 2, "before", 116.97917175292969),
+    (3.0, 3, "before", 114.03646087646484),
+    (3.0, 0, "after", 151.6666717529297),
+    (3.0, 1, "after", 121.63542175292969),
+    (3.0, 2, "after", 127.29167175292969),
+    (3.0, 3, "after", 114.03646087646484),
+];
+
 #[test]
 fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values() {
+    let mut gaps = RealZoomGaps::new(LINE_HEIGHT_REAL_ZOOM_GAPS);
     for scale in [1.0, 1.25, 1.5, 2.0, 3.0] {
         let document = document(scale);
         document
@@ -33,7 +110,7 @@ fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values(
         parent.set_font_size(LengthValue::px(18.72)).unwrap();
         parent.set_line_height(LineHeight::Number(1.25)).unwrap();
         let mut nodes = Vec::new();
-        for (unit, before, after) in [
+        for (case, (unit, before, after)) in [
             (LengthValue::Ch(2.0), 150.0, 150.0),
             (
                 LengthValue::Ex(2.0),
@@ -44,7 +121,10 @@ fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values(
             (LengthValue::Em(1.5), 114.03125, 114.03125),
             (LengthValue::Rem(1.5), 60.0, 60.0),
             (LengthValue::percent(127.5), 96.546875, 96.546875),
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
             let node = Element::create(&document, "div").unwrap();
             parent.append_child(&node).unwrap();
             node.set_width(LengthValue::Lh(2.5)).unwrap();
@@ -60,6 +140,7 @@ fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values(
                 "{unit:?}/{scale}"
             );
             assert_eq!(descendant.bounding_rect().unwrap().unwrap().width, before);
+            gaps.check(scale, case, "before", before);
             assert_eq!(
                 node.computed_style().unwrap().line_height,
                 descendant.computed_style().unwrap().line_height
@@ -83,9 +164,10 @@ fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values(
             .unwrap();
         nodes[0].0.click().unwrap();
         assert_eq!(called.get(), 1);
-        for (node, child, _, after) in &nodes {
+        for (case, (node, child, _, after)) in nodes.iter().enumerate() {
             assert_eq!(node.bounding_rect().unwrap().unwrap().width, *after);
             assert_eq!(child.bounding_rect().unwrap().unwrap().width, *after);
+            gaps.check(scale, case, "after", *after);
         }
         assert_ne!(
             owned.line_height,
@@ -101,10 +183,13 @@ fn relative_line_height_updates_from_native_callbacks_and_inherits_fixed_values(
         drop(document);
         assert!(weak.upgrade().is_none());
     }
+    gaps.finish();
 }
 
-// Windows values are pinned Windows Chrome-for-Testing observations in
-// docs/progress/evidence/windows-text-oracle-v1.json.
+// Measured at scale 1 only. The expected widths are pinned Chromium 147's on
+// Linux and Windows (build-with-div/div-fidelity-data
+// `archive/docs/progress/evidence/` `windows-text-oracle-v2.json` and
+// `linux-text-oracle-v2.json`).
 #[test]
 fn relative_line_height_follows_shorthand_order_pseudos_and_animation_cancel() {
     let document = document(1.0);
