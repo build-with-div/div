@@ -1,6 +1,10 @@
 # RFC 0011: Layout in device pixels at scales other than 1
 
-Status: proposed, 16 November 2026. Owner: the engine track. Consumers:
+Status: approved by the user on 16 November 2026, sequenced as filler
+after Tier 0. Stage 1 is an engine filler from then on. Stage 2 is
+scheduled once its size is measured (see Migration). It is outside the
+alpha.1 critical path: alpha.1 needs only the published real-zoom baseline
+with no regressions. Owner: the engine track. Consumers:
 the framework track (every geometry value `divui` reads from the engine),
 the components track, the canvas and SVG lanes, the fidelity lane and the
 samples.
@@ -8,8 +12,7 @@ samples.
 Context: RFC 0010 moved every oracle at a scale other than 1 to real zoom
 (`--force-device-scale-factor`), on the user's decision of 16 November
 2026 ("Switch to real zoom"). This RFC is the engine work that closes the
-difference that switch exposed. Nothing is implemented before it is
-approved.
+difference that switch exposed.
 
 ## Problem
 
@@ -163,6 +166,34 @@ in device pixels, and the engine's public geometry stays in CSS px.
   ResizeObserver's `device-pixel-content-box` keep their device values.
   The framework track sees no API change: values it reads at scale 1 are
   unchanged, and values at other scales become Chromium's.
+- **Replaced content.**
+  - An image's natural size is in CSS px: a density-1 image's pixels, or
+    its `srcset` density. It is multiplied by the effective zoom, as Blink
+    does for replaced elements, so the intrinsic size is in device px.
+  - `object-fit` and `object-position` resolve in the zoomed content box.
+  - The decoded image is drawn once into its device-pixel destination
+    rectangle, so `image-rendering` chooses the filter for that single
+    resample. No second scale follows.
+  - SVG images and the `<svg>` root rasterize at their device size.
+- **Canvas.**
+  - A canvas bitmap's size is its `width` and `height`. Apps that want
+    sharp output, and the canvas lane's own sizing, multiply them by
+    `devicePixelRatio`.
+  - The bitmap is drawn once, into the canvas's device-pixel content box,
+    as a replaced image. With paint replayed at scale 1, nothing applies
+    the device scale a second time. A bitmap sized by DPR maps one to one
+    onto device pixels.
+  - Canvas drawing commands stay in bitmap pixels and are not zoomed.
+- **Scale changes at run time.** A window can move between monitors with
+  different scales. That changes the root zoom, so every computed length
+  changes, which means a full restyle, relayout and repaint, as in
+  Chromium. Two later designs must key their caches on the effective zoom,
+  so a cached box or raster from another scale is never reused:
+  - the per-box layout cost and shaping cache (0.6);
+  - damage tracking and partial raster (0.7).
+- **Layout range.** With `LayoutUnit` at 1/64 device px, the largest layout
+  extent in CSS px shrinks by the scale: by half at 2x. Blink has the same
+  limit under zoom for DSF. It is accepted.
 - **Scale 1.** The root zoom is 1, so no length, rounding or frame changes.
   The 1x census must stay byte-identical, except for tests that use the
   CSS `zoom` property in stage 1.
@@ -175,7 +206,7 @@ stays in CSS px.**
   crisp.
 - It cannot reach the 645 rows that need device-pixel lengths.
 - Its code would become dead once layout moves to device pixels.
-- It is the fallback only if stage 2 below proves too large for alpha.1.
+- It is the fallback if stage 2's measured size (Migration, step 3) favors it.
 
 ## Stages and their expected rows
 
@@ -199,11 +230,11 @@ Stage 2's census measures it.
 - **Components.**
   - No API change.
   - Its real-zoom reference evidence is re-measured after stages 2 and 3.
-- **Canvas and SVG lanes.** Paint replays at scale 1 inside a
-  zoomed layout:
-  - a canvas bitmap is drawn into a device-pixel box;
-  - SVG gets a zoomed root transform.
-  Each lane's oracles at scales other than 1 are rerun after stage 2.
+- **Canvas and SVG lanes.** Paint replays at scale 1 inside a zoomed
+  layout. A canvas bitmap is drawn once into its device-pixel box, as
+  Proposal, Canvas describes, and SVG gets a zoomed root transform. Both
+  lanes review the stage 2 design before it is implemented. Each lane's
+  oracles at scales other than 1 are rerun after stage 2.
 - **Fidelity lane.** None: the oracle is already real zoom. Census
   receipts follow RFC 0010.
 - **Samples.** None beyond re-measuring.
@@ -217,13 +248,18 @@ Stage 2's census measures it.
    replaces it.
 2. **Stage 1**, one engine PR: CSS `zoom`, with its WPT tests, the 1x
    census and coverage. D4 is measured against the real-zoom baseline.
-3. **Stage 2**, one engine PR, or two if the API boundary splits cleanly
+3. **Decision point before stage 2.** After stage 1 lands, the engine
+   track measures stage 2's size and reports it before starting: the crates
+   and call sites that cross the API boundary, and those whose device-scale
+   special cases it removes. With those numbers, the user chooses the root
+   zoom or the paint-only fallback.
+4. **Stage 2**, one engine PR, or two if the API boundary splits cleanly
    from layout:
    - the full census and coverage at all four profiles, under the census
      lock;
    - every row lost at any scale is reported and fixed before merge (D4);
    - the 1x frames are byte-identical apart from stage 1's rows.
-4. **Stage 3**, one engine PR for text.
+5. **Stage 3**, one engine PR for text.
 
 Every comparison stays exact; no tolerance is added. `main` stays green
 because each stage is a complete model change measured by the full census.

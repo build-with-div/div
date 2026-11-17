@@ -152,5 +152,16 @@ on branch `components/c4-assets` and the shared findings note.
   scales other than 1, with the device scale applied as a zoom, as Chromium
   does. Of the 6,277 census rows that the real-zoom oracle (RFC 0010) made
   different, 5,632 differ only at edges and 645 need lengths or text in
-  device pixels. Docs only; nothing is implemented before approval.
+  device pixels. Approved by the user the same day, sequenced as filler
+  after Tier 0: stage 1 (CSS `zoom`) is an engine filler, and stage 2
+  waits for its measured size.
   [RFC](../../alpha/rfcs/0011-device-pixel-layout.md).
+- 16 November 2026, evidence history: the local helper that adds evidence
+  files to div-fidelity-data converted CRLF to LF in every file, binaries
+  included. It was caught on RFC 0011's three sample PNGs before their
+  data-repo commit (`ae10ca8c`), which holds them byte for byte. Those
+  three PNGs are the only binary files among the data repository's 54
+  recorded additions (`SOURCE.json`); the other 51 are JSON, Python,
+  Markdown, CSV and text, where the conversion is intended, so no
+  published file changed. The helper now converts line endings in text
+  files only.
