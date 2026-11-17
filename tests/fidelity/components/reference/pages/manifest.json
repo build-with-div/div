@@ -334,6 +334,62 @@
       "page": "font-inter-light.html"
     },
     {
+      "id": "input-disabled-dark",
+      "component": "input",
+      "theme": "dark",
+      "description": "Email input, disabled, showing its placeholder (opacity 50%)",
+      "page": "input-disabled-dark.html"
+    },
+    {
+      "id": "input-disabled-light",
+      "component": "input",
+      "theme": "light",
+      "description": "Email input, disabled, showing its placeholder (opacity 50%)",
+      "page": "input-disabled-light.html"
+    },
+    {
+      "id": "input-invalid-dark",
+      "component": "input",
+      "theme": "dark",
+      "description": "Email input, aria-invalid, holding a value (destructive border and ring)",
+      "page": "input-invalid-dark.html"
+    },
+    {
+      "id": "input-invalid-light",
+      "component": "input",
+      "theme": "light",
+      "description": "Email input, aria-invalid, holding a value (destructive border and ring)",
+      "page": "input-invalid-light.html"
+    },
+    {
+      "id": "input-placeholder-dark",
+      "component": "input",
+      "theme": "dark",
+      "description": "Email input, empty, showing its placeholder",
+      "page": "input-placeholder-dark.html"
+    },
+    {
+      "id": "input-placeholder-light",
+      "component": "input",
+      "theme": "light",
+      "description": "Email input, empty, showing its placeholder",
+      "page": "input-placeholder-light.html"
+    },
+    {
+      "id": "input-value-dark",
+      "component": "input",
+      "theme": "dark",
+      "description": "Email input, holding a value",
+      "page": "input-value-dark.html"
+    },
+    {
+      "id": "input-value-light",
+      "component": "input",
+      "theme": "light",
+      "description": "Email input, holding a value",
+      "page": "input-value-light.html"
+    },
+    {
       "id": "label-basic-dark",
       "component": "label",
       "theme": "dark",
@@ -504,6 +560,18 @@
   ],
   "traces": [
     {
+      "id": "input-disabled",
+      "component": "input",
+      "description": "Email input, disabled, showing its placeholder (opacity 50%)",
+      "page": "trace-input-disabled.html"
+    },
+    {
+      "id": "input-placeholder",
+      "component": "input",
+      "description": "Email input, empty, showing its placeholder",
+      "page": "trace-input-placeholder.html"
+    },
+    {
       "id": "switch-disabled",
       "component": "switch",
       "description": "Switch, default size, unchecked and disabled (opacity 50%)",
@@ -577,10 +645,18 @@
     "font-geist-mono-light.html": "b9e4118ad2650ce5b3ddc395d83d2bbd9fd826d08ad152d54a7e63e3e4a99cba",
     "font-inter-dark.html": "2e72817dddd6a3a56de8f9c435a66b6c820f2f69494f3403f17e71016a69a845",
     "font-inter-light.html": "b38198e53ea22302ea4e9544a07890abfe2cff9dd3744fc55e2e86afd857a9e6",
-    "interactive.js": "e0694a634ec88ce3177959fd4fe3c533fee9b439c714edff3cf543451e622af2",
+    "input-disabled-dark.html": "4507d984d78e15544728889e769072fd6611090a7d6fe8559aab7de50928742a",
+    "input-disabled-light.html": "918042d8d5a486ce26a87714e7f8572439c7831236dc0efca9392cea6ca33764",
+    "input-invalid-dark.html": "7a53b522aa2f6b1697a066d642121dc8baf2df62e05b09cd747bc274255059fc",
+    "input-invalid-light.html": "47358118e485d56f8b7a0028ba1a7c2c3fb6a549a5df2a069140afb4c11c7bf9",
+    "input-placeholder-dark.html": "48170cf1a8a29fe127d91b1ce88d88ed1908738eaaeddbaffb6f202e40f0fbd3",
+    "input-placeholder-light.html": "43f8d14b9f7700fdce1454b6cad6b5777b05a94d5cf6e6012c180f778370da16",
+    "input-value-dark.html": "1193ee5377b18aff774b8b2b50d0eebdc59b894f9812b31b743f3421c54df9f6",
+    "input-value-light.html": "a2eff25b2e145a8d47fb6d36800708bc5b1c620bf8dbe90b1cd9bcbe99787bbe",
+    "interactive.js": "5768f4961e1c1386a1c786ab0c0e4c73767ac8520e351a6c9bf34ec8c2a6b5f7",
     "label-basic-dark.html": "78bc395f795fbb8e49b8e6e9fa1962ba5027ed702da63c93ec53817b73bb458e",
     "label-basic-light.html": "e8e584dce798e4482b8b1b54040f20b86fff45a811a89d46ce00ce54a7ec4c79",
-    "reference.css": "761c352fb5ceb7fa87527da09113c08c5c91b33cfc19a15871766e71ff34549e",
+    "reference.css": "1b7864d2161745819dbcd80c16167e00e0d7d15180c48c54187fecc3e73a0da9",
     "separator-horizontal-dark.html": "95bb49a8da4d9903a341e96b4890c17ab2d98ff0622a3b2d457ed0c81b86e2f1",
     "separator-horizontal-light.html": "ec9863927c8c7769f6a2c9797d5686f91cd230c6250d4002d05f0cce324d05d4",
     "separator-vertical-dark.html": "b979361064bbe3019425876d3fad7bf1a160e84011cf80a6bf49862946f35f7f",
@@ -604,6 +680,8 @@
     "tabs-vertical-dark.html": "149ca425b2f0ced6059e87de7bf6ba50c8a770ea347a90e06342205ca3c7f6cc",
     "tabs-vertical-light.html": "f25d70f513cf924e00f6e078b0454665a64228a9a87d042ab2f37881d92a9531",
     "theme-tokens.html": "2dece6b13c6c1ab79ffeaf814e91e1ff30c23ea62c3b911d80678662fe2e82ef",
+    "trace-input-disabled.html": "6390dc8dc446a07caf0c1859c4d29fd1ea04b7d206b13689ffeda22311cd3761",
+    "trace-input-placeholder.html": "002a67021fe5198b30fde7442a68bf268f38b89a52ff54b441fa5cf4d79d0ebb",
     "trace-switch-disabled.html": "c35e9b75f52c73f84eb2d9ec6f31ba332a6b144c39c26497ea0b2e28c7aa566c",
     "trace-switch-unchecked.html": "97270d05505fb58b66a1ae608a490b11cb8b727e6fa8572697098bd89a801053",
     "trace-tabs-default.html": "73ba77698c3ddd5bbc359365953ce8267a525c53b272569fd7ef9685e3dbccfd",

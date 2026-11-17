@@ -18,14 +18,15 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 | Component | Fixtures | Exact at 1x | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 5 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 17 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| card | basic, with action; light, dark | 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 2 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| label | basic; light, dark | 2 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| separator | horizontal, vertical; light, dark | 4 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
-| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `6df8ba30`, 16 November 2026 |
+| badge | 6 variants; light, dark | 5 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 17 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| card | basic, with action; light, dark | 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 2 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| input | email input: placeholder, value, disabled, invalid; light, dark | 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| label | basic; light, dark | 2 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| separator | horizontal, vertical; light, dark | 4 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
 
 The current evidence is measured at the `legacy-800x600@1` profile only
 (`"complete": false`). From 16 November 2026 the Chromium oracle at the
@@ -41,8 +42,73 @@ Behavior is compared with Radix running in Chromium by the traces in
 
 | Component | Traces | Same | Evidence | Measured at |
 | --- | --- | --- | --- | --- |
-| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6df8ba30`, 16 November 2026 |
-| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `6df8ba30`, 16 November 2026 |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
+| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
+| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
+
+## 16 November 2026: input (C3)
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| Styled input, shadcn's `input.tsx`, on Div's native text field with its native appearance off: `h-9`, `w-full`, `rounded-md`, the `border-input` border, `px-3 py-1`, `shadow-xs`, `dark:bg-input/30`, the disabled styles, `aria-invalid`'s destructive border (a prop, `invalid`), and `placeholder:text-muted-foreground` through `Element::set_pseudo_style` with `PseudoStyleTarget::Placeholder`. | components | `crates/div-components/src/input.rs` |
+| Interims for the cascade (RFC 0003, request 6). `:focus-visible` (the `ring` border and the 3px ring at 50%, or the destructive ones when invalid) is set inline from `focus` and `blur` events: a text field matches `:focus-visible` whenever it has focus, so the two agree. `md:text-sm` is always applied: inline styles have no media queries, so below 768px the input keeps 14px text where Chromium gives `text-base` (16px). The ring's `color-mix(in oklab, <color> p%, transparent)` is the token's color with its alpha scaled by p, since `box-shadow` takes a typed color. | components | `crates/div-components/src/input.rs` |
+| Fixtures `input-placeholder`, `-value`, `-disabled` and `-invalid` (`type="email"` in a 256px column), light and dark; trace pages for the empty and the disabled input; traces `input-keyboard`, `input-pointer` and `input-disabled`. The traces now also record `placeholder` and `aria-invalid`. shadcn's `input.tsx` is vendored unchanged from `shadcn@4.23.0`. | components | `tests/fidelity/components/reference/`, `traces.json`, `render/src/main.rs` |
+
+### Measurement
+
+All 74 fixtures at `legacy-800x600@1`, in the census real-font environment,
+at `3bee58d5`: 31 exact, 43 different, 0 errors
+([`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json)).
+The 66 earlier rows have the same images (both hashes) and status as the
+switch run at `6df8ba30`. No input page is exact: each differs inside its
+text (221 to 800 pixels), and the disabled pages also on the border and the
+shadow, by at most 2 in a channel.
+
+10 of 11 behavior traces are the same
+([`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json)):
+the three input traces (Tab and a click focus the input; a disabled input
+takes no focus) and the seven that were the same before.
+
+Outside the evidence, the 1x geometry diagnostic matches every input
+element's border box with Chromium's on all 8 pages (60 of 74 pages in
+all, the 52 of the switch run and these 8). Within the box, the text's
+rows and the column runs of its glyphs are the same in both renderings.
+
+### Remaining failures
+
+- **Text in a text field.** Every glyph after the first is drawn at a
+  slightly different sub-pixel position (up to 115 in a channel), while
+  Geist text outside a text field (the label, most buttons) is exact. Div paints a text
+  field's text in `paint_text_input_control`, which turns on
+  `native_button_text_metrics` (`crates/div-paint/src/painter.rs:4035`,
+  `:4076`); the difference likely comes from there. Owner: engine track,
+  forms (text controls).
+- **Opacity.** On the disabled pages (`opacity: 0.5`) the border and the
+  `shadow-xs` differ by 1 or 2 in a channel; the same box without opacity
+  is exact. Owner: engine track, paint (group opacity).
+- **Media queries.** `md:text-sm` cannot be inline; the mobile profile will
+  differ until the cascade reaches components. Owner: framework track
+  (typed style rules, A1), RFC 0003 request 6.
+- Not built: `transition-[color,box-shadow]`; the `selection:` colors (Div
+  has no `::selection` pseudo style target); the `file:` styles of a file
+  input's button. The focus ring is not a pixel fixture (the static pages
+  are not focused); a render test checks the inline ring and border appear
+  on focus and go on blur.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Comparison at 1x | `reference_harness.py compare --renderer <release div-components-render> --profile legacy-800x600@1 --repository-commit 3bee58d5… --evidence tests/fidelity/components/evidence/reference-v1.json` in WSL, renderer built with the CI `SKIA_GN_ARGS` | 31 of 74 exact, 43 different, 0 errors; `"complete": false` (1x only) |
+| Earlier rows unchanged | each row of the new evidence compared with the `6df8ba30` evidence by fixture and profile | 66 of 66 the same images and status; 8 new |
+| Behavior traces | `reference_harness.py trace --renderer <release div-components-render> --repository-commit 3bee58d5… --output tests/fidelity/components/evidence/traces-v1.json` in WSL | 10 of 11 the same; `tabs-tab-out` as before |
+| Geometry at 1x (diagnostic) | `reference_harness.py geometry --renderer <release div-components-render> --profile legacy-800x600@1` | 60 of 74 pages with every box the same, all 8 input pages among them |
+| Renderer | `sha256sum` of the release `div-components-render` | `6d95e0a0…`, the SHA-256 in both evidence files |
+| Reference pages | `node build.mjs --check` in `tests/fidelity/components/reference` | 85 pages and 27 assets up to date |
+| Tests | `cargo test --locked -p div-components -p div-components-render` in WSL | 21 passed, among them `a_focused_input_draws_the_focus_ring` |
+| Formatting and lints | `cargo fmt --all --check`; `cargo clippy -p div-components -p div-components-render --all-targets` in WSL | clean; no warnings in the components crates |
 
 ## 16 November 2026: switch (C2 group 2, C3)
 
@@ -549,8 +615,8 @@ These are API requests for the framework track, not blockers.
 2. Build the Radix-like primitives (C2) as proposed in
    [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), as a
    `primitives` module of `div-components`, on the public `divui` API and
-   the RFC's interims. Roving focus, tabs and switch are built; input is
-   next, then dialog and checkbox. Their `data-state` styles are inline
+   the RFC's interims. Roving focus, tabs, switch and input are built;
+   dialog and checkbox are next. Their `data-state` styles are inline
    until typed style rules (A1) land. Measure the non-1x profiles again
    with the real-zoom launcher once it lands.
 3. Lucide icons in Div: the static SVG decoder

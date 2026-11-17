@@ -3,13 +3,13 @@
   "chromium": {
     "version": "147.0.7727.50"
   },
-  "renderer_sha256": "f429be7f32fcbb8ecd84b5a9300d51ddb8f9cd235ffbc087cf81869f9276fb33",
+  "renderer_sha256": "6d95e0a092a01a825c2aa0ed428967e57b08e61b1f5fa244a35014c20c50af17",
   "repository": {
-    "commit": "6df8ba30ba6613f6df6a71f1e06b0980d2c8c47e",
+    "commit": "3bee58d58581c3008e0771eab954b1f351af8d73",
     "dirty_paths": []
   },
-  "traces_sha256": "e5086c4a1aedaef214bf66eea3a1be0ceb0a37031fe0f42e77a9af83c9f36447",
-  "interactive_sha256": "e0694a634ec88ce3177959fd4fe3c533fee9b439c714edff3cf543451e622af2",
+  "traces_sha256": "517d4f55686c70bbd0526155e5770e6f2c6cc338bd2122e5546687236f3640c1",
+  "interactive_sha256": "5768f4961e1c1386a1c786ab0c0e4c73767ac8520e351a6c9bf34ec8c2a6b5f7",
   "rows": [
     {
       "trace": "tabs-keyboard",
@@ -3986,6 +3986,134 @@
               "attributes": {
                 "data-state": "unchecked",
                 "data-disabled": ""
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "input-keyboard",
+      "fixture": "input-placeholder",
+      "steps": 1,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "input#0",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "input-pointer",
+      "fixture": "input-placeholder",
+      "steps": 1,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "input#0",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace": "input-disabled",
+      "fixture": "input-disabled",
+      "steps": 2,
+      "status": "same",
+      "differences": [],
+      "chromium": [
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "disabled": "",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "disabled": "",
+                "placeholder": "Email"
+              },
+              "children": 0,
+              "unlisted": []
+            }
+          ]
+        },
+        {
+          "focused": "body",
+          "elements": [
+            {
+              "name": "input#0",
+              "attributes": {
+                "type": "email",
+                "disabled": "",
+                "placeholder": "Email"
               },
               "children": 0,
               "unlisted": []

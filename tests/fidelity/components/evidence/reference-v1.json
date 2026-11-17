@@ -3,7 +3,7 @@
   "measured_on": "2026-11-16",
   "complete": false,
   "repository": {
-    "commit": "6df8ba30ba6613f6df6a71f1e06b0980d2c8c47e",
+    "commit": "3bee58d58581c3008e0771eab954b1f351af8d73",
     "dirty_paths": []
   },
   "chromium": {
@@ -12,11 +12,11 @@
     "font_profile": "registered-real-font"
   },
   "reference": {
-    "manifest_sha256": "eafcb6d2b59ff0ff7c466d94e68673015c0990ece8227e5a6a440936ae1eba49",
+    "manifest_sha256": "22ecba1c55161d32e73bd2fc5986715f86cf865e869928de0aaeb11c02b72a5d",
     "package_lock_sha256": "93d1a093da22d87d8db2de61a7bf5e049600097974ce23d157a567c5c02a906f"
   },
   "openui": {
-    "renderer_sha256": "f429be7f32fcbb8ecd84b5a9300d51ddb8f9cd235ffbc087cf81869f9276fb33",
+    "renderer_sha256": "6d95e0a092a01a825c2aa0ed428967e57b08e61b1f5fa244a35014c20c50af17",
     "raster_configuration": "chromium-linux-lcd"
   },
   "profiles": [
@@ -35,9 +35,9 @@
   ],
   "unimplemented_fixtures": [],
   "summary": {
-    "comparisons": 66,
+    "comparisons": 74,
     "exact": 31,
-    "different": 35,
+    "different": 43,
     "error": 0,
     "by_component": {
       "badge": {
@@ -58,6 +58,11 @@
       "font": {
         "exact": 2,
         "different": 4,
+        "error": 0
+      },
+      "input": {
+        "exact": 0,
+        "different": 8,
         "error": 0
       },
       "label": {
@@ -84,19 +89,19 @@
     "by_profile": {
       "legacy-800x600@1": {
         "exact": 31,
-        "different": 35,
+        "different": 43,
         "error": 0
       }
     },
     "by_theme": {
       "dark": {
         "exact": 16,
-        "different": 17,
+        "different": 21,
         "error": 0
       },
       "light": {
         "exact": 15,
-        "different": 18,
+        "different": 22,
         "error": 0
       }
     }
@@ -647,6 +652,142 @@
       "openui_rgba_sha256": "1a0c9e0ccac85c88309a8103cd7c78a0dd5361f5c9cdae97fc7b68ad851ac6df",
       "mismatched_pixels": 0,
       "status": "exact"
+    },
+    {
+      "fixture": "input-disabled-dark",
+      "component": "input",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "d2871e2981f75cf3f6690da025247aa499cd47afd94f656a99cd13f2325a8369",
+      "openui_rgba_sha256": "17619d4746ec3fcd4549c4c2f4fc9ffa422d46c9a072614d0da3510e75d0e162",
+      "mismatched_pixels": 310,
+      "status": "different",
+      "diff_bbox": [
+        15,
+        17,
+        273,
+        54
+      ],
+      "max_channel_delta": 47
+    },
+    {
+      "fixture": "input-disabled-light",
+      "component": "input",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "e334f4045c6f138b3e02b36196b757b00f00df06f387b96eb5b181be9355f45d",
+      "openui_rgba_sha256": "c617af188fbec6ea9e1744fa2027e5c8aa5a99227700de692b7c7505564dc8ae",
+      "mismatched_pixels": 927,
+      "status": "different",
+      "diff_bbox": [
+        15,
+        16,
+        273,
+        54
+      ],
+      "max_channel_delta": 46
+    },
+    {
+      "fixture": "input-invalid-dark",
+      "component": "input",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "7fbb83b8c3e721e7f0f2508fe65895222172c3d62854c91bea9bfbe56d73dea6",
+      "openui_rgba_sha256": "f577424dfc857ab89f90ebdd2bb8f7eff965048e79963fb7acc4948310e9d232",
+      "mismatched_pixels": 594,
+      "status": "different",
+      "diff_bbox": [
+        45,
+        29,
+        132,
+        41
+      ],
+      "max_channel_delta": 108
+    },
+    {
+      "fixture": "input-invalid-light",
+      "component": "input",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "1a8bd98655fcf9cfb78706287e74e43df8bb481e97fd773c374d4a0e1277b3a5",
+      "openui_rgba_sha256": "d9a98607c242c8b3673e4bbbdc6a24a3b912d45c5c2e77577b563d2fa5a8e606",
+      "mismatched_pixels": 570,
+      "status": "different",
+      "diff_bbox": [
+        45,
+        29,
+        132,
+        41
+      ],
+      "max_channel_delta": 115
+    },
+    {
+      "fixture": "input-placeholder-dark",
+      "component": "input",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "b54cade958758efa24234ea90e6149bc9032418da81b03c2b1a7462db18e3ae7",
+      "openui_rgba_sha256": "706a039327c5113547fe814752c1b8154cb60ada5d2f75ea2a4ed5422800b74b",
+      "mismatched_pixels": 221,
+      "status": "different",
+      "diff_bbox": [
+        37,
+        29,
+        65,
+        39
+      ],
+      "max_channel_delta": 70
+    },
+    {
+      "fixture": "input-placeholder-light",
+      "component": "input",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "8db0a6adea1d46f59a969c566b632258d0a80e960b88c6f0bb8b3fd256a002cd",
+      "openui_rgba_sha256": "ed9269782bccd103c34af866f2d481e1c79802d8b20d11343e96c59de134216d",
+      "mismatched_pixels": 221,
+      "status": "different",
+      "diff_bbox": [
+        37,
+        29,
+        65,
+        39
+      ],
+      "max_channel_delta": 70
+    },
+    {
+      "fixture": "input-value-dark",
+      "component": "input",
+      "theme": "dark",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "fc306943b36b905ea4062f15d287a4283799e300bc88413a341912bdbd5597d6",
+      "openui_rgba_sha256": "3acf58e81757a2550f9ea542e8ee5bfb778a8090c912400a4e23e4c53678c3d6",
+      "mismatched_pixels": 800,
+      "status": "different",
+      "diff_bbox": [
+        45,
+        29,
+        162,
+        41
+      ],
+      "max_channel_delta": 108
+    },
+    {
+      "fixture": "input-value-light",
+      "component": "input",
+      "theme": "light",
+      "profile": "legacy-800x600@1",
+      "chromium_rgba_sha256": "cf72d86b548af9762fecc9e71d2d2eb76be86a81636780f8cfdf9e081c8fdc70",
+      "openui_rgba_sha256": "dfc9867ad6416412637b38703f0527f199cb38a1de1eb7ce9327315d5522f12a",
+      "mismatched_pixels": 764,
+      "status": "different",
+      "diff_bbox": [
+        45,
+        29,
+        162,
+        41
+      ],
+      "max_channel_delta": 115
     },
     {
       "fixture": "label-basic-dark",

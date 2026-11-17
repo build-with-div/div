@@ -11,6 +11,7 @@ mod button;
 mod card;
 mod css;
 pub mod fonts;
+mod input;
 mod label;
 pub mod primitives;
 mod separator;
@@ -26,6 +27,7 @@ pub use card::{
     CardTitle, CardTitleProps,
 };
 pub use fonts::register_fonts;
+pub use input::{Input, InputProps};
 pub use label::{Label, LabelProps};
 pub use separator::{Orientation, Separator, SeparatorProps};
 pub use switch::{Switch, SwitchProps, SwitchSize};

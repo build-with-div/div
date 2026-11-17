@@ -9,6 +9,8 @@
     "hidden",
     "disabled",
     "value",
+    "placeholder",
+    "aria-invalid",
     "aria-selected",
     "aria-checked",
     "aria-required",
@@ -115,6 +117,31 @@
         {"press": "Tab"},
         {"click": "switch#0"},
         {"press": " "}
+      ]
+    },
+    {
+      "id": "input-keyboard",
+      "fixture": "input-placeholder",
+      "description": "Tab focuses the input",
+      "steps": [
+        {"press": "Tab"}
+      ]
+    },
+    {
+      "id": "input-pointer",
+      "fixture": "input-placeholder",
+      "description": "A click focuses the input",
+      "steps": [
+        {"click": "input#0"}
+      ]
+    },
+    {
+      "id": "input-disabled",
+      "fixture": "input-disabled",
+      "description": "A disabled input: Tab finds nothing to focus, and a click leaves focus on the body",
+      "steps": [
+        {"press": "Tab"},
+        {"click": "input#0"}
       ]
     }
   ]
