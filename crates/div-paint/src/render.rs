@@ -565,6 +565,16 @@ fn record_fragment_impl(
     let program_scope = capture_program.then(|| {
         crate::paint_program::PaintProgramScope::new(recording_canvas.raw_tracking_target())
     });
+    // The document is one Chromium layer; cc decides once for all of its
+    // opacity groups whether they keep LCD text.
+    let lcd_text_contents =
+        crate::painter::layer_lcd_text_contents(std::slice::from_ref(fragment), doc);
+    let lcd_text_layer = crate::paint_record::LcdTextLayerScope::new(
+        recording_canvas.raw_tracking_target(),
+        lcd_surface,
+        lcd_text_contents.draws_text,
+        lcd_text_contents.has_save_layer,
+    );
     recording_canvas.clear(SkColor::WHITE);
     if fragment.viewport_scrollport.is_none() {
         crate::painter::paint_canvas_background(
@@ -583,6 +593,7 @@ fn record_fragment_impl(
         doc,
         div_geometry::PhysicalOffset::zero(),
     );
+    drop(lcd_text_layer);
     let viewport_content_layer = crate::painter::take_viewport_content_layer();
     let mut content_program = program_scope.as_ref().map(|scope| scope.snapshot());
     drop(program_scope);
