@@ -52,6 +52,7 @@
 //! | [`AnimationFrameHandle`] | A callback from [`Document::request_animation_frame`], run at the next frame |
 //! | [`ListenerHandle`] | One event listener from [`Element::on`] or [`Element::on_with`], removable on its own |
 //! | [`ListenerOptions`] | `capture`, `once` and `passive`, as the web's `AddEventListenerOptions` |
+//! | [`WheelDeltaMode`] | The unit of a wheel event's deltas, as the web's `WheelEvent.deltaMode` |
 //! | [`ResizeObserver`] | Calls back when observed elements' boxes change size |
 //! | [`ReportedError`] | An error a document reports to [`Document::on_error`] |
 //!
@@ -151,7 +152,7 @@ pub use document::Document;
 pub use element::{Element, WeakElement};
 pub use events::{
     Event, EventPhase, InputEventInfo, InputType, KeyEventType, ListenerHandle, ListenerOptions,
-    Modifiers, MouseButton, MouseEventType,
+    Modifiers, MouseButton, MouseEventType, WheelDeltaMode,
 };
 pub use keyboard::Key;
 pub use scroll_button::{

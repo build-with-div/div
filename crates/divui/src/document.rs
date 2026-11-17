@@ -3,7 +3,7 @@
 use crate::element::{class_tokens, validate_class_token, Element};
 use crate::events::{
     Event, EventCallback, EventPhase, InputType, KeyEventType, Listener, Modifiers, MouseButton,
-    MouseEventType,
+    MouseEventType, WheelDeltaMode,
 };
 use crate::style::{Bitmap, Error};
 use div_compositor::SoftwareCompositor;
@@ -1532,6 +1532,9 @@ impl Document {
         Ok(true)
     }
 
+    /// Dispatch a `wheel` event in CSS pixels at a viewport point, then
+    /// scroll as its default action. Deltas are the DOM's: positive scrolls
+    /// right or down.
     pub fn dispatch_wheel_event(
         &self,
         x: f32,
@@ -1540,16 +1543,58 @@ impl Document {
         delta_y: f32,
         modifiers: Modifiers,
     ) -> Result<(), Error> {
+        self.dispatch_wheel_event_with_mode(
+            x,
+            y,
+            delta_x,
+            delta_y,
+            WheelDeltaMode::Pixel,
+            modifiers,
+        )
+    }
+
+    /// [`Self::dispatch_wheel_event`] with deltas in `mode`'s unit.
+    ///
+    /// The default action follows Chromium 147 on Windows and Linux:
+    /// - Ctrl+wheel zooms the page there instead of scrolling
+    ///   (`WebMouseWheelEvent::GetPlatformSpecificDefaultEventAction`). Div
+    ///   has no page zoom, so it does not scroll.
+    /// - Shift+wheel with no horizontal delta scrolls horizontally by the
+    ///   vertical delta (`MouseWheelEventQueue`). The event keeps its deltas.
+    /// - Each scroller in the chain moves at most its client size, a line
+    ///   is 40 pixels and a page is 87.5% of the smaller of the scroller and
+    ///   the viewport ([`div_engine::Engine::scroll_wheel_by`]).
+    pub fn dispatch_wheel_event_with_mode(
+        &self,
+        x: f32,
+        y: f32,
+        delta_x: f32,
+        delta_y: f32,
+        mode: WheelDeltaMode,
+        modifiers: Modifiers,
+    ) -> Result<(), Error> {
         let target = self.with_engine_mut(|engine| engine.hit_test(x, y))?;
-        if let Some(target) = target {
-            let event = Event::wheel(x, y, delta_x, delta_y, modifiers);
-            self.dispatch_to(target, &event)?;
-            if !event.default_prevented() {
-                self.with_engine_mut(|engine| {
-                    engine.scroll_wheel_from_target(target, delta_x as f64, delta_y as f64)
-                })?;
-            }
+        let Some(target) = target else {
+            return Ok(());
+        };
+        let event = Event::wheel(x, y, delta_x, delta_y, mode, modifiers);
+        self.dispatch_to(target, &event)?;
+        if event.default_prevented() || modifiers.contains(Modifiers::CTRL) {
+            return Ok(());
         }
+        let (scroll_x, scroll_y) = if modifiers.contains(Modifiers::SHIFT) && delta_x == 0.0 {
+            (delta_y as f64, 0.0)
+        } else {
+            (delta_x as f64, delta_y as f64)
+        };
+        let granularity = match mode {
+            WheelDeltaMode::Pixel => div_engine::WheelGranularity::Pixel,
+            WheelDeltaMode::Line => div_engine::WheelGranularity::Line,
+            WheelDeltaMode::Page => div_engine::WheelGranularity::Page,
+        };
+        self.with_engine_mut(|engine| {
+            engine.scroll_wheel_from_target_by(target, scroll_x, scroll_y, granularity)
+        })?;
         Ok(())
     }
 

@@ -66,10 +66,10 @@ uses.)
 
 | # | Item | State |
 | --- | --- | --- |
-| 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Not started |
+| 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | In review |
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
-| 0.12 A | Listener handles and options (sample-editor gap 29) | In review |
+| 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
 | 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Not started |
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Not started |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
@@ -92,6 +92,100 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 16 November 2026: native wheel direction, pixels per notch and `deltaMode` (Tier 0 item 0.9)
+
+Problem (sample-interactions F2, I3): native wheels scrolled the wrong way,
+since `div-platform` passed winit's deltas (positive when the content moves
+down) as the DOM's (positive when the view does). A notch was 40px on every
+platform, Shift+wheel did not scroll horizontally, and events had no
+`deltaMode`.
+
+Oracle: `tools/qualification/capture_wheel_oracle.py` gives pinned Chrome
+147.0.7727.50 real platform wheel input, not CDP's, which takes deltas in
+CSS pixels and skips the conversion under test.
+- Windows: `WM_MOUSEWHEEL` and `WM_MOUSEHWHEEL` are posted to the headed
+  browser window, with the key state in `wParam`. The window is made topmost,
+  because Chromium drops a wheel whose point is not over its own window.
+- Linux: X11 wheel buttons 4 to 7 and the Shift key go through XTEST, with
+  `--ozone-platform=x11` on WSLg's X server.
+- Each OS is captured at 1x and 1.25x with `--force-device-scale-factor`
+  (RFC 0010), and every capture runs twice and must match.
+- Output: `tests/fidelity/fixtures/wheel-events-v1/chromium-windows.json` and
+  `chromium-linux-x11.json`.
+
+Chromium's behavior, from the capture:
+- **Notch size:** 100px per notch on Windows (the default 3 lines, at 100/3
+  px a line, and 3 characters horizontally) and 120px on Linux, in CSS px at
+  both scales. `deltaMode` is 0, and `button` and `buttons` are 0.
+- **Shift+wheel:** the event keeps `deltaY`, and the page scrolls
+  horizontally.
+- **Scroll limit:** a scroll moves at most the scroller's client size, so 3
+  notches (300px) moved a 290px-high scroller 290px.
+
+Ctrl+wheel is not captured: Chromium zooms the page, and whether the zoom
+lands before the event varies between runs.
+
+Change:
+- `div-platform` (`wheel.rs`): `WheelSettings` converts winit's line deltas
+  as Chromium does: `WebMouseWheelEventBuilder::Build` on Windows, which
+  reads `SPI_GETWHEELSCROLLLINES`/`CHARS` on every event, and
+  `kWheelScrollAmount` on Linux. Touchpad pixel deltas are flipped.
+  `PlatformEvent::Wheel` carries `delta_mode`, and Windows' page setting
+  reports pages.
+- `divui`:
+  - `Event::delta_mode` (`WheelDeltaMode`), and wheel events report button 0.
+  - `Document::dispatch_wheel_event_with_mode` scrolls horizontally for
+    Shift with no horizontal delta (`MouseWheelEventQueue`), and doesn't
+    scroll for Ctrl (`GetPlatformSpecificDefaultEventAction`; Div has no
+    page zoom).
+- **Engine** (`crates/div-engine/src/lib.rs`, in its own commit for the
+  engine track's review): `scroll_wheel_by` and `scroll_wheel_from_target_by`
+  take a `WheelGranularity`. Following cc's `LimitDeltaToScrollerSize`
+  (`kLimitScrollDeltaToScrollerSize`) and `ResolveScrollGranularityToPixels`,
+  each scroller in the chain limits a pixel or line scroll to its client
+  size, resolves a line as 40px, and resolves a page as
+  0.875 × min(scroller, viewport). These are clean-room readings of the
+  BSD-licensed `cc/input` sources.
+- **C ABI:** the frozen v0.2 raw event has no delta mode, so Windows'
+  page-mode notch reaches C as one pixel.
+
+Named gaps, each with its owner. The last three are from the engine
+track's review of the engine commit on #63.
+- **`device-scale-scroll-offset`** (engine, RFC 0011): at 1.25x Chromium
+  snaps scroll offsets to device pixels, so a 50px scroll ends at 150.4. Div
+  keeps CSS pixels.
+- **`wheel-cancelable`** (framework): with only passive listeners,
+  Chromium's wheel events are not `cancelable`. Div's are, though passive
+  listeners still cannot cancel them.
+- **Untested sources** (framework): X11 smooth-scroll valuators, Wayland,
+  and Ctrl with precise touchpad deltas follow source reading only.
+  `wheelDeltaX`/`wheelDeltaY` and `deltaZ` are not exposed.
+- **`wheel-limit-unsnapped-client`** (engine, RFC 0011): cc limits a scroll
+  to `container_bounds`, a whole-pixel `gfx::Size` (device pixels under
+  zoom for DSF). Div limits to the unsnapped `LayoutUnit` client size, so
+  the two differ for fractional client sizes.
+- **`wheel-page-unmeasured`** (framework, follow-up filler): the page
+  values, for an element (whole versus fractional offsets) and for the root
+  viewport (which size stands for its `container_bounds`), come from cc's
+  source, not the oracle. A page wheel needs Windows' "one screen at a time"
+  setting. The capture script won't change that system setting, so the
+  filler's real-input capture runs with it set by hand.
+- **`wheel-transformed-scroller`** (engine, already a gap): cc limits and
+  resolves deltas in the scroller's local space, after the inverse screen
+  transform. Div applies wheel deltas untransformed (before this change
+  too), so a transformed or zoomed scroller differs.
+
+Verification (Windows, MSVC, on main `eed71eab`):
+- `cargo test --locked -p divui --features "windows testing" --test wheel_events`
+  passes 2 tests. One replays both oracles at both scales, the other covers
+  Ctrl, lines and pages from source.
+- `cargo test --locked -p div-engine --test wheel_scroll_limits` passes 3
+  tests.
+- `cargo test --locked -p div-platform --features windows --lib wheel`
+  passes 3 tests.
+- Mutants: the old direction fails the oracle test; no Shift swap fails both
+  divui tests; no clamp fails 2 engine tests.
 
 ### 16 November 2026: listener handles and options (Tier 0 item 0.12 A)
 

@@ -472,11 +472,15 @@ fn platform_event(event: &div_platform::PlatformEvent) -> DivUiPlatformEvent {
             };
             raw.modifiers = modifiers(keys);
         }
+        // The frozen v0.2 raw event has no delta mode. Native wheels report
+        // pixels; only Windows' "one screen at a time" setting reports pages,
+        // whose notch then reaches C as one pixel.
         PlatformEvent::Wheel {
             x,
             y,
             delta_x,
             delta_y,
+            delta_mode: _,
             modifiers: keys,
         } => {
             raw.event_type = 4;

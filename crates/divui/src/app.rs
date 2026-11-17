@@ -336,12 +336,18 @@ impl div_platform::PlatformApplication for App {
                 y,
                 delta_x,
                 delta_y,
+                delta_mode,
                 modifiers: keys,
-            } => self.document.dispatch_wheel_event(
+            } => self.document.dispatch_wheel_event_with_mode(
                 *x,
                 *y,
                 *delta_x,
                 *delta_y,
+                match delta_mode {
+                    div_platform::WheelDeltaMode::Pixel => crate::WheelDeltaMode::Pixel,
+                    div_platform::WheelDeltaMode::Line => crate::WheelDeltaMode::Line,
+                    div_platform::WheelDeltaMode::Page => crate::WheelDeltaMode::Page,
+                },
                 platform_modifiers(*keys),
             ),
             PlatformEvent::Key {
