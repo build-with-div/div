@@ -1,12 +1,14 @@
 //! Content and backgrounds under rounded clips against pinned Chromium 147.
 //!
-//! `tests/fidelity/fixtures/rounded-clip-v1/pages.txt` describes five
+//! `tests/fidelity/fixtures/rounded-clip-v1/pages.txt` describes six
 //! pages: a circular overflow clip around a green block that overflows it,
 //! the same clip around a green `<img>` (css_backgrounds/border-radius-clip-001,
 //! `#bg` and `#img-contain`), a rounded overflow clip inside a solid
 //! border, a background color clipped to a rounded padding box
-//! (background-clip-padding-box-with-border-radius) and a solid gradient
-//! clipped to a rounded content box (background-rounded-image-clip-001).
+//! (background-clip-padding-box-with-border-radius), a solid gradient
+//! clipped to a rounded content box (background-rounded-image-clip-001)
+//! and a local background of a rounded scroll container under a
+//! translucent border (background-attachment-local-hidden).
 //! The fixture holds Chromium's frames at device scales 1, 1.25, 1.5
 //! and 2, captured through the census oracle (headless Chromium at real zoom
 //! above scale 1, RFC 0010); regenerate them with
@@ -19,9 +21,9 @@
 #![cfg(all(target_os = "linux", feature = "testing"))]
 
 use div::typed_style::{
-    parse_literal, BackgroundClip, BackgroundLayer, Color, CssImage, CssLinearGradient,
-    GradientColorSpace, GradientStop, GradientStopPosition, RendererStyleValue, StyleColor,
-    StyleProperty, StyleValue,
+    parse_literal, BackgroundAttachment, BackgroundClip, BackgroundLayer, Color, CssImage,
+    CssLinearGradient, GradientColorSpace, GradientStop, GradientStopPosition, RendererStyleValue,
+    StyleColor, StyleProperty, StyleValue,
 };
 use div::{Document, Element, EngineOptions, RasterConfiguration, ViewportMetrics};
 
@@ -47,10 +49,14 @@ const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 // - `gradient-clip` at 1.25x: green 128 against 129 on the clip's curve,
 //   where Chromium's dithered gradient blend rounds differently at this
 //   scale. Owner: fidelity (gradient dither at fractional scales).
+// - `local-hidden` at 1.25x: the box's 10px border and its offset of 10px
+//   fall on half device pixels (12.5). Owner: layout in device pixels
+//   (engine, RFC 0011).
 const GAPS: &[(&str, &str, usize)] = &[
     ("rrect", "1.25", 23),
     ("padding-clip", "1.25", 457),
     ("gradient-clip", "1.25", 36),
+    ("local-hidden", "1.25", 1161),
 ];
 
 // (depth, tag, declarations) of each box, page by page in spec order.
@@ -126,6 +132,18 @@ fn style(element: &Element, declarations: &str) {
                 .set_property(
                     StyleProperty::BackgroundClip,
                     StyleValue::Renderer(RendererStyleValue::BackgroundClip(clip)),
+                )
+                .unwrap();
+            continue;
+        }
+        if name == "background-attachment" {
+            assert_eq!(value, "local");
+            element
+                .set_property(
+                    StyleProperty::BackgroundAttachment,
+                    StyleValue::Renderer(RendererStyleValue::BackgroundAttachment(
+                        BackgroundAttachment::Local,
+                    )),
                 )
                 .unwrap();
             continue;

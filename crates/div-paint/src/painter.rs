@@ -20997,6 +20997,10 @@ fn paint_box_decoration_background(
                     // clip is not a border fill, so Blink takes the slow path
                     // instead: RoundedInnerRectClipper clips the renderable
                     // contour, then FillRect fills the snapped border box.
+                    // Blink decides on the specified clip (`is_border_fill`):
+                    // a local background of a scroll container clipped to its
+                    // border box is clipped to the padding box but stays a
+                    // border fill, so it keeps the rounded-rect fill.
                     let clip_radii = normalize_radii_to_rect(clip_radii, &bg_rect);
                     let hard_clip_x =
                         style.overflow_x == Overflow::Clip && style.overflow_y == Overflow::Visible;
@@ -21011,7 +21015,7 @@ fn paint_box_decoration_background(
                             false,
                         );
                     }
-                    if effective_background_clip != BackgroundClip::BorderBox {
+                    if style.background_clip != BackgroundClip::BorderBox {
                         canvas.save();
                         canvas.clip_rrect(
                             RRect::new_rect_radii(bg_rect, &clip_radii),
