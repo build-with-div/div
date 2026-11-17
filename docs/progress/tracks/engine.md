@@ -183,3 +183,9 @@ on branch `components/c4-assets` and the shared findings note.
   apart from 2 named gaps (`var()` and `inherit`, item 0.5). The census
   and CSS Grid coverage are unchanged at all four profiles.
   [Record](../style-attribute-r0b-2026-11-17.md).
+- 17 November 2026: `div-text` builds a text blob whose glyphs sit at
+  caller-given positions (T1, an engine filler for SVG text). A run
+  rasterizes the same way whichever builder positions its glyphs, and
+  placements equal to the advances give the advance blob. The census and
+  CSS Grid coverage are unchanged at all four profiles.
+  [Record](../positioned-text-blob-t1-2026-11-17.md).
