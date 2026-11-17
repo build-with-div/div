@@ -25,11 +25,6 @@ const LINUX_X11: &str =
 /// Chromium). Each must still differ, so fixing one fails this test until
 /// its row is removed.
 const GAPS: &[(&str, &str, usize, &str, f64, f64)] = &[
-    // `scroll-delta-limited-to-scroller`: cc clamps a wheel scroll to the
-    // scroller's client size (`InputHandler::LimitDeltaToScrollerSize`,
-    // `kLimitScrollDeltaToScrollerSize`), so 3 notches (300px) move a
-    // 290px-high scroller 290px. Div's engine scrolls the whole delta.
-    ("chromium-windows", "1.0", 4, "moved_y", 300.0, 290.0),
     // `device-scale-scroll-offset`: at 1.25x Chromium snaps the scroll
     // offset to device pixels (50 CSS px is 62.5 device px, kept as 63, so
     // 50.4 CSS px). Div keeps CSS pixels at every scale.
@@ -286,8 +281,8 @@ fn native_wheel_input_matches_chromium() {
 /// What the oracle cannot capture, from Chromium 147's source: Ctrl+wheel
 /// zooms the page instead of scrolling
 /// (`WebMouseWheelEvent::GetPlatformSpecificDefaultEventAction`), a line is
-/// 40 pixels and a page 87.5% of the viewport
-/// (`cc::InputHandler::ResolveScrollGranularityToPixels`).
+/// 40 pixels and a page 87.5% of the smaller of the scroller and the
+/// viewport (`cc::InputHandler::ResolveScrollGranularityToPixels`).
 #[test]
 fn ctrl_does_not_scroll_and_lines_and_pages_resolve_to_pixels() {
     let document = Document::with_viewport_metrics(
@@ -311,6 +306,13 @@ fn ctrl_does_not_scroll_and_lines_and_pages_resolve_to_pixels() {
         .unwrap();
     }
     let offset = || (root.scroll_left().unwrap(), root.scroll_top().unwrap());
+    // The root's client area, inside its scrollbars, is smaller than the
+    // 200x160 viewport, so it sets the page.
+    let client_width = root.client_width().unwrap() as f64;
+    let client_height = root.client_height().unwrap() as f64;
+    assert!(client_width < 200.0 && client_height < 160.0);
+    let page_y = 80.0 + 0.875 * client_height;
+    let page_x = 0.875 * client_width;
 
     document
         .dispatch_wheel_event(50.0, 50.0, 0.0, 100.0, Modifiers::CTRL)
@@ -323,7 +325,11 @@ fn ctrl_does_not_scroll_and_lines_and_pages_resolve_to_pixels() {
     document
         .dispatch_wheel_event_with_mode(50.0, 50.0, 0.0, 1.0, WheelDeltaMode::Page, Modifiers::NONE)
         .unwrap();
-    assert_eq!(offset(), (0.0, 80.0 + 140.0), "a page is 87.5% of 160px");
+    assert_eq!(
+        offset(),
+        (0.0, page_y),
+        "a page is 87.5% of the client height"
+    );
     document
         .dispatch_wheel_event_with_mode(
             50.0,
@@ -336,8 +342,8 @@ fn ctrl_does_not_scroll_and_lines_and_pages_resolve_to_pixels() {
         .unwrap();
     assert_eq!(
         offset(),
-        (175.0, 220.0),
-        "Shift pages horizontally, 87.5% of 200px"
+        (page_x, page_y),
+        "Shift pages horizontally, 87.5% of the client width"
     );
     assert_eq!(
         *modes.borrow(),

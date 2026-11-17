@@ -1561,8 +1561,9 @@ impl Document {
     ///   has no page zoom, so it does not scroll.
     /// - Shift+wheel with no horizontal delta scrolls horizontally by the
     ///   vertical delta (`MouseWheelEventQueue`). The event keeps its deltas.
-    /// - Lines are 40 pixels, and a page is 87.5% of the viewport
-    ///   (`cc::InputHandler::ResolveScrollGranularityToPixels`).
+    /// - Each scroller in the chain moves at most its client size, a line
+    ///   is 40 pixels and a page is 87.5% of the smaller of the scroller and
+    ///   the viewport ([`div_engine::Engine::scroll_wheel_by`]).
     pub fn dispatch_wheel_event_with_mode(
         &self,
         x: f32,
@@ -1586,17 +1587,13 @@ impl Document {
         } else {
             (delta_x as f64, delta_y as f64)
         };
-        let (step_x, step_y) = match mode {
-            WheelDeltaMode::Pixel => (1.0, 1.0),
-            WheelDeltaMode::Line => (40.0, 40.0),
-            WheelDeltaMode::Page => {
-                let (width, height) =
-                    self.with_engine(|engine| engine.viewport().logical_size())?;
-                (0.875 * width, 0.875 * height)
-            }
+        let granularity = match mode {
+            WheelDeltaMode::Pixel => div_engine::WheelGranularity::Pixel,
+            WheelDeltaMode::Line => div_engine::WheelGranularity::Line,
+            WheelDeltaMode::Page => div_engine::WheelGranularity::Page,
         };
         self.with_engine_mut(|engine| {
-            engine.scroll_wheel_from_target(target, scroll_x * step_x, scroll_y * step_y)
+            engine.scroll_wheel_from_target_by(target, scroll_x, scroll_y, granularity)
         })?;
         Ok(())
     }
