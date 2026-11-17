@@ -24,6 +24,7 @@ own declarations, native defaults and animations.
 | The presentational-hint level, for SVG presentation attributes (RFC 0009, E2): `Engine::set_presentational_hint` and `remove_presentational_hint`, hidden until the SVG lane parses presentation attributes | `div-engine` | `crates/div-engine/src/rule_cascade.rs`, `lib.rs` |
 | The cascade, the scrollbar-width capture and `Engine::cursor` read the cascaded declarations instead of the element's own | `div-engine` | `authored_source.rs`, `control_geometry.rs`, `lib.rs` |
 | Conservative invalidation (below) | `div-engine` | `lib.rs`, `interaction.rs`, `rule_cascade.rs` |
+| The state hooks on the Pointer Events routing (build-with-div/div#68): `route_pointer` when the hover path changes (pointer events and the rehover after capture ends), `pointer_event_with_buttons` on press, release and cancel (`:active`), `pointer_leave`, `forget_pointer`, and `note_keyboard_event` when it first records a key press (`:focus-visible`) | `div-engine` | `interaction.rs` |
 
 ### Invalidation
 
@@ -53,13 +54,16 @@ incremental restyle must equal a full re-cascade, value for value.
 | --- | --- | --- |
 | Cascade order and the gate | `cargo test --locked -p div-engine --test rule_cascade` (Windows) | 9 passed (below) |
 | Touched crates, on `main` at `7bbddf8c` | `cargo test --locked -p div-style -p div-layout -p div-engine --no-fail-fast`, then `-p divui -p div-compositor -p div-paint` (Windows), head `510c975d` | 6,600 and 1,626 passed, 0 failed, 8 and 9 ignored |
-| Touched crates, rebased on `main` at `6e7f5f02` | the same two commands, head `68e9077` | 6,607 and 1,627 passed, 0 failed, 8 and 9 ignored |
+| Touched crates, rebased on `main` at `5231c6cf` | the same two commands with `-j 4`, head `4901068` | 6,617 and 1,629 passed, 0 failed, 8 and 9 ignored |
+| The state hooks pin their paths | a script removes each of the seven hooks (press/release/cancel, hover routing, `pointer_leave`, `forget_pointer`, `note_keyboard_event`, node removal, `blur`) in turn and runs `cargo test -p div-engine --test rule_cascade restyle` | a test fails for each of the seven; the tree is restored |
 | Generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check`; `fidelity_data.py verify --profile all` | all pass once `author-style-inventory.json` lists `rule_cascade.rs` (its `Iterator::position` and `HashMap::clear` calls match the generator's name search) |
 | Expanded census, all four profiles (WSL) | `run_renderer_matrix.py --suite expanded` under `census_lock.py`, real-zoom oracle (RFC 0010), head `510c975d` (the later commit only regenerates the inventory), against the fidelity lane's run of `main` at `7bbddf8c` | 16,287 of 23,728 exact before and after, the real-zoom baseline's count; Chromium identical in all 23,728; 0 Div images changed ([delta](evidence/rule-cascade-r0a-div-census-v1.json)) |
 | CSS Grid coverage, all four profiles (WSL) | coverage matrix, same head, against a run of `main` at `7bbddf8c` (the fidelity lane's run of the same commit matches it page for page) | 1,459 of 4,204 exact before and after; 0 statuses or Div images changed ([delta](evidence/rule-cascade-r0a-div-coverage-v1.json)) |
 
 The census and coverage measure head `510c975d` on `7bbddf8c`; the rebased
-head was not re-measured. Without an adopted sheet the cascade reads each
+head was not re-measured. The rebase onto the Pointer Events rework (#68)
+moved the state hooks into its new routing, which changes no frame of a page
+without an adopted sheet. Without an adopted sheet the cascade reads each
 element's own declarations, as before, and no census or coverage page adopts
 one, so the rebase onto the grid auto-placement (build-with-div/div#14) and
 wheel (build-with-div/div#63) changes brings in their frames, not new ones
@@ -81,6 +85,15 @@ The tests in `crates/div-engine/tests/rule_cascade.rs`:
 - matched declarations inherit, and stop when a class change unmatches;
 - a sheet using `:invalid` is rejected;
 - an animation overrides a normal rule and not an `!important` one;
+- each state path restyles: `pointer_state_changes_restyle` steps through
+  hover enter and leave, press, release, a cancel where the pointer already
+  was, a capture released outside the element and the rehover after it,
+  `pointer_leave` and `forget_pointer`; `keyboard_input_restyles_focus_visible`,
+  `removing_the_focused_node_restyles_its_ancestors`,
+  `removing_the_pressed_node_restyles_its_ancestors` and
+  `blurring_restyles_the_ancestors` check `:focus-visible`, and `:focus-within`
+  and `:active` on a grandparent above the former parent, which only the state
+  hook reaches. The framework track reviewed the pointer hooks against #68;
 - the gate: a sheet with child, sibling, structural, attribute, `:has()`,
   `:empty`, `:checked`, `:focus` and `:focus-within` rules, and 14
   mutations (classes, ids, attributes, detaching, inserting, removing,
