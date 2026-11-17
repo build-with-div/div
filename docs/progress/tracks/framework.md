@@ -150,17 +150,31 @@ Change:
 - **C ABI:** the frozen v0.2 raw event has no delta mode, so Windows'
   page-mode notch reaches C as one pixel.
 
-Named gaps:
-- **`device-scale-scroll-offset`** (engine): at 1.25x Chromium snaps scroll
-  offsets to device pixels, so a 50px scroll ends at 150.4. Div keeps CSS
-  pixels.
-- **`wheel-cancelable`:** with only passive listeners, Chromium's wheel
-  events are not `cancelable`; Div's are, though passive listeners still
-  cannot cancel them.
-- **Untested sources:**
-  - X11 smooth-scroll valuators, Wayland and Ctrl with precise touchpad
-    deltas follow source reading only.
-  - `wheelDeltaX`/`wheelDeltaY` and `deltaZ` are not exposed.
+Named gaps, each with its owner. The last three are from the engine
+track's review of the engine commit on #63.
+- **`device-scale-scroll-offset`** (engine, RFC 0011): at 1.25x Chromium
+  snaps scroll offsets to device pixels, so a 50px scroll ends at 150.4. Div
+  keeps CSS pixels.
+- **`wheel-cancelable`** (framework): with only passive listeners,
+  Chromium's wheel events are not `cancelable`. Div's are, though passive
+  listeners still cannot cancel them.
+- **Untested sources** (framework): X11 smooth-scroll valuators, Wayland,
+  and Ctrl with precise touchpad deltas follow source reading only.
+  `wheelDeltaX`/`wheelDeltaY` and `deltaZ` are not exposed.
+- **`wheel-limit-unsnapped-client`** (engine, RFC 0011): cc limits a scroll
+  to `container_bounds`, a whole-pixel `gfx::Size` (device pixels under
+  zoom for DSF). Div limits to the unsnapped `LayoutUnit` client size, so
+  the two differ for fractional client sizes.
+- **`wheel-page-unmeasured`** (framework, follow-up filler): the page
+  values, for an element (whole versus fractional offsets) and for the root
+  viewport (which size stands for its `container_bounds`), come from cc's
+  source, not the oracle. A page wheel needs Windows' "one screen at a time"
+  setting. The capture script won't change that system setting, so the
+  filler's real-input capture runs with it set by hand.
+- **`wheel-transformed-scroller`** (engine, already a gap): cc limits and
+  resolves deltas in the scroller's local space, after the inverse screen
+  transform. Div applies wheel deltas untransformed (before this change
+  too), so a transformed or zoomed scroller differs.
 
 Verification (Windows, MSVC, on main `eed71eab`):
 - `cargo test --locked -p divui --features "windows testing" --test wheel_events`
