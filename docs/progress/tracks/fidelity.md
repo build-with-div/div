@@ -4,6 +4,14 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## Open gaps
+
+Each named gap is pinned by a test that fails if its count changes.
+
+| Gap | Owner | Pinned by | Size | Opened |
+| --- | --- | --- | --- | --- |
+| `opacity-lcd-grayscale-raster`: Chromium's grayscale raster of LCD-configured text in an opacity group that cc does not let keep LCD text differs from Div's | fidelity (text raster) | `native_opacity_lcd_text.rs`, page `filter-elsewhere` | 1,271 text pixels at 1x, plus 700 in the blurred box | 17 November 2026 |
+
 ## 17 November 2026: LCD text inside opacity groups, where cc keeps it
 
 - **Problem:** the components' disabled buttons (`disabled:opacity-50`)
@@ -54,7 +62,8 @@ style or the cascade go to the engine track.
   Above 1x, every page's LCD-colored pixel count equals Chromium's. The
   remaining differences there match the no-group page's. They are
   device-pixel layout (owner: engine, RFC 0011).
-- **Remaining gap:** in the not-eligible page, Chromium's grayscale raster
+- **Remaining gap** (`opacity-lcd-grayscale-raster`, under Open gaps):
+  in the not-eligible page, Chromium's grayscale raster
   of LCD-configured text differs from Div's: 1,271 text pixels at 1x, plus
   700 in the blurred box. Owner: fidelity (follow-up).
 - **Census and coverage** (WSL, 16 jobs, under the census lock), base
@@ -66,6 +75,11 @@ style or the cascade go to the engine track.
   No page was lost or gained, and no Div image changed. Most census pages
   draw aliased Ahem, and only real-font pages use `chromium-linux-lcd`. No
   census page exercises this change, so the native test is its evidence.
+- **Expected downstream:** once build-with-div/div#60 merges, the
+  components lane re-measures `button-disabled-light` and `-dark` (502
+  and 489 pixels at 1x). They are expected to drop to the blend-rounding
+  remainder, about 56 and 62 pixels, each off by at most 2 per channel. That measurement
+  is still to come.
 - **Verification:**
   - `cargo test --locked -p divui --features "divui/async divui/http
     divui/testing" --test native_opacity_lcd_text` (WSL, CI Skia flags)
