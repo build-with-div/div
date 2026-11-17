@@ -143,7 +143,10 @@ section 6 specifies:
   - A main-button or tap `click` whose count is 2 is followed by
     `dblclick`.
 - **Behavior change:** on Linux, `contextmenu` now follows the secondary
-  button's `mousedown`, as in Chromium; Windows is unchanged.
+  button's `mousedown`, as in Chromium; Windows is unchanged. The Pointer
+  Events oracle (#68) is a Windows capture, so on other hosts its test now
+  moves each expected `contextmenu` to the press, with the press's buttons,
+  as the Linux click-count fixture shows. Its fixture is unchanged.
 - **`div-platform`:** `DoubleClickLimits::system()` (new) reads
   `GetDoubleClickTime`, `SM_CXDOUBLECLK` and `SM_CYDOUBLECLK` on Windows.
   It adds the `Win32_UI_Input_KeyboardAndMouse` feature of `windows-sys`.
@@ -196,7 +199,10 @@ Verification (Windows, MSVC, this branch on main `85fa7380`):
 - Linux (WSL, X11 features): `cargo test --locked -p divui --features
   "linux testing" --test click_count_oracle` passes 4 tests. Here the
   document replays the Linux fixture, so `contextmenu` follows the
-  press. `--lib testing::` passes 8 tests.
+  press. `--lib testing::` passes 8 tests. `--test pointer_events_oracle`
+  passes 2 tests; before the test's host adjustment, it failed in four
+  secondary-button steps (`chorded` 2 and 3, `right_click` 1 and 2), only
+  in where `contextmenu` falls.
 
 ### 17 November 2026: licence incident, `mouse_event.cc` (disclosure)
 
