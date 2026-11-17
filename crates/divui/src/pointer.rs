@@ -30,7 +30,7 @@ impl PointerType {
 pub struct PointerId(pub i32);
 
 impl PointerId {
-    pub const MOUSE: Self = Self(1);
+    pub const MOUSE: Self = Self(div_engine::MOUSE_POINTER_ID as i32);
 
     pub(crate) fn engine(self) -> u64 {
         self.0 as u64

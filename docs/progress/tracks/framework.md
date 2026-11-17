@@ -269,9 +269,11 @@ Change:
   removed captor loses capture to the root; `set_pointer_capture` fails
   with `PointerNotFound` for an unknown pointer and
   `PointerCaptureDisconnected` for a disconnected node, and does nothing
-  without a pressed button. Per-pointer buttons, the previous target for
-  `out`/`over`, the pressed node on an up, and `local_point` (the padding
-  box point through transforms) are new.
+  without a pressed button. The mouse (id 1) is always active, as in
+  Chromium's `PointerEventFactory` (`pointer_event_factory.cc`, BSD), so
+  capturing it before its first event does nothing (engine review). Per-pointer
+  buttons, the previous target for `out`/`over`, the pressed node on an up,
+  and `local_point` (the padding box point through transforms) are new.
 - **divui**: the RFC's types (`PointerType`, `PointerId`, `Buttons`,
   `MouseInfo`, `PointerInfo`, `Point`), `Event::mouse_info` and
   `pointer_info`, and `Document::dispatch_pointer_input(PointerInput)`,
@@ -305,7 +307,8 @@ Behavior changes:
   works and warns; the components track owns it.
 - `Document::dispatch_pointer_event` and `dispatch_pointer_leave` are
   deprecated wrappers over `dispatch_pointer_input`.
-- `set_pointer_capture` for an inactive pointer fails (was a no-op).
+- `set_pointer_capture` for an inactive pointer fails (was a no-op); the
+  mouse is always active.
 - The C ABI keeps its functions and ids (frozen for v0.2). Its pointer
   listeners now receive only `pointer*` events: the mouse→pointer listener
   aliases are gone because the mouse fires both. Its direct
@@ -321,6 +324,9 @@ Named gaps (steps of the replay that must keep differing until fixed):
   for the next event.
 - `touch-action-pan` (engine and framework): a touch move pans and cancels
   the pointer in Chromium; Div has no `touch-action`.
+- `local_point` for a fragmented box uses its first fragment, and an
+  inline-level target gets the client point; Chromium maps both through
+  their boxes (engine review note; no sample needs it yet).
 - Not compared: pressure (CDP's mouse reports 0, so a unit test pins the
   RFC's 0.5 while pressed) and the screen point (equal to the client point
   headless; a window's position is not applied yet).
@@ -336,8 +342,9 @@ Verification (Windows, MSVC, this branch on main `79b8c25d`):
   scenarios outside the 5 gap steps, which still differ; the other pins the
   RFC's pointer defaults.
 - `cargo test --locked -p div-engine --test pointer_capture` passes 5
-  tests: pending capture, the capture errors, a removed captor, a cancel,
-  and local points through a border and a transform.
+  tests: pending capture, the capture errors (with the always-active
+  mouse, which fails without it), a removed captor, a cancel, and local
+  points through a border and a transform.
 - Mutants: ignoring a cancelled `pointerdown` fails 5 replay steps and the
   gap 16 focus check; boundary events without the input's `button` fail 4
   steps. On main the replay does not compile (no Pointer Events API).

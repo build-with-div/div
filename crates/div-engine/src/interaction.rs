@@ -44,9 +44,15 @@ pub enum CaptureChange {
     Got(NodeHandle),
 }
 
+/// The mouse's pointer id, as in Chromium. The mouse is always an active
+/// pointer: Chromium's `PointerEventFactory` registers it when created and
+/// never removes it, so capturing it before its first event does nothing
+/// rather than failing.
+pub const MOUSE_POINTER_ID: u64 = 1;
+
 /// Per-pointer state behind capture, as Chromium's `PointerEventManager`
 /// keeps it: pending capture, the pointers it knows and their buttons.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct PointerStates {
     /// What `setPointerCapture` asked for; it becomes the active capture
     /// at the pointer's next event.
@@ -60,6 +66,17 @@ pub(crate) struct PointerStates {
     /// sends a removed node no `pointerout`
     /// (`BoundaryEventDispatchTracksNodeRemoval`).
     pub(crate) hover_target_removed: HashSet<u64>,
+}
+
+impl Default for PointerStates {
+    fn default() -> Self {
+        Self {
+            pending_capture: HashMap::new(),
+            lost_to_root: HashSet::new(),
+            buttons: HashMap::from([(MOUSE_POINTER_ID, 0)]),
+            hover_target_removed: HashSet::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -449,7 +466,9 @@ impl Engine {
     }
 
     /// A pointer event with the buttons it implies: a down presses the
-    /// primary button and every other kind releases all buttons.
+    /// primary button and every other kind releases all buttons. A caller
+    /// that tracks chorded buttons uses [`Self::pointer_event_with_buttons`],
+    /// so a second button's release stays a move.
     pub fn pointer_event(
         &mut self,
         pointer_id: u64,
@@ -630,8 +649,13 @@ impl Engine {
 
     /// Forget a pointer that is no longer active, such as a lifted touch.
     /// Its hover path is not reported; call [`Self::pointer_leave`] first.
+    /// The mouse stays active, with no buttons pressed.
     pub fn forget_pointer(&mut self, pointer_id: u64) {
-        self.pointers.buttons.remove(&pointer_id);
+        if pointer_id == MOUSE_POINTER_ID {
+            self.pointers.buttons.insert(pointer_id, 0);
+        } else {
+            self.pointers.buttons.remove(&pointer_id);
+        }
         self.pointers.pending_capture.remove(&pointer_id);
         self.pointers.lost_to_root.remove(&pointer_id);
         self.pointers.hover_target_removed.remove(&pointer_id);

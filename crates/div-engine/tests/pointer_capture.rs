@@ -16,7 +16,7 @@ use div_engine::{
 use div_geometry::Length;
 use div_style::{parse_literal, RendererStyleValue, StyleProperty, StyleValue};
 
-const MOUSE: u64 = 1;
+const MOUSE: u64 = div_engine::MOUSE_POINTER_ID;
 const INNER: (f32, f32) = (100.0, 80.0);
 const SIBLING: (f32, f32) = (300.0, 60.0);
 
@@ -149,11 +149,12 @@ fn set_pointer_capture_checks_the_pointer_and_the_node() {
     let Page {
         mut engine, inner, ..
     } = page();
+    // The mouse is always active, as in Chromium's `PointerEventFactory`:
+    // before its first event, capturing it does nothing rather than fail.
+    engine.set_pointer_capture(MOUSE, inner).unwrap();
+    assert!(!engine.has_pointer_capture(MOUSE, inner));
+    engine.release_pointer_capture(MOUSE, inner).unwrap();
     // The oracle's `capture_errors` scenario.
-    assert_eq!(
-        engine.set_pointer_capture(MOUSE, inner),
-        Err(EngineError::PointerNotFound)
-    );
     event(&mut engine, PointerEventKind::Move, INNER, 0);
     assert_eq!(
         engine.set_pointer_capture(7, inner),
@@ -222,9 +223,18 @@ fn a_cancel_keeps_capture_until_the_caller_releases_it() {
         engine.end_pointer_capture(MOUSE),
         [CaptureChange::Lost(inner)]
     );
+    // The mouse stays active with no buttons, so capturing it does
+    // nothing; a forgotten touch is no longer active.
     engine.forget_pointer(MOUSE);
+    engine.set_pointer_capture(MOUSE, inner).unwrap();
+    assert!(!engine.has_pointer_capture(MOUSE, inner));
+    const TOUCH: u64 = 2;
+    engine
+        .pointer_event_with_buttons(TOUCH, PointerEventKind::Down, INNER.0, INNER.1, 1)
+        .unwrap();
+    engine.forget_pointer(TOUCH);
     assert_eq!(
-        engine.set_pointer_capture(MOUSE, inner),
+        engine.set_pointer_capture(TOUCH, inner),
         Err(EngineError::PointerNotFound)
     );
 }

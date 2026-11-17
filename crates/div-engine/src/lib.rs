@@ -46,7 +46,7 @@ pub use animation::{
 pub use interaction::{
     ActivationResult, CaptureChange, CheckableActivation, ControlAdjustment, ControlState,
     EditCommand, EventPhase, EventRoute, FocusOrigin, PointerEventKind, PointerUpdate,
-    RangeSelectionMode, RouteStep, SelectionDirection, TextDirection, TextUnit,
+    RangeSelectionMode, RouteStep, SelectionDirection, TextDirection, TextUnit, MOUSE_POINTER_ID,
 };
 
 use authored_source::NativeStyleSource;
