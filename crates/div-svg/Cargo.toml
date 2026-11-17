@@ -14,4 +14,5 @@ description = "SVG geometry for Div: path data, basic shapes, lengths, transform
 skia-safe = "0.94"
 
 [dev-dependencies]
+png = "0.17"
 serde_json = { workspace = true, features = ["float_roundtrip"] }

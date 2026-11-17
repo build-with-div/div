@@ -7,6 +7,7 @@ Tools for the inline SVG work in RFC 0009
 | --- | --- |
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2 |
 
 ## Geometry corpus
 
@@ -105,6 +106,108 @@ The gaps:
   below what a float matrix can carry.
 - The size of an outer `svg` with no width or height (1 field): layout's
   answer (E3), an input to `div-svg`.
+
+## Paint corpus
+
+`div_svg::paint` ports Blink's SVG painters at 147.0.7727.50, which are
+BSD-licensed:
+
+- `core/paint/svg_shape_painter`, `svg_object_painter`,
+  `svg_model_object_painter`, `svg_root_painter` and
+  `svg_container_painter`;
+- `platform/geometry/stroke_data`.
+
+The sources are read-only in `out\chromium-ref` (`SOURCES-svg-2026-11-17.txt`
+there). It paints a `div-svg` shape with resolved fill, stroke, opacities,
+fill rule and stroke geometry onto any Skia canvas. Nothing in it flushes,
+reads back or assumes the canvas is the final surface.
+
+`paint_corpus.py list` prints the cases. `capture` writes each sheet as one
+page of absolutely positioned 112-px slots. It captures the sheet through
+`render_chrome` in `tools/accountability/run_all_pixel_comparisons.py`:
+nothing is emulated at scale 1, and scale 2 runs at real zoom
+(`--force-device-scale-factor`, RFC 0010).
+
+| Sheet | Cases | What it pins down |
+| --- | --- | --- |
+| 1x `fill/` | 21 | rects (integer, half and quarter pixel), rounded rects, circles (small too), an ellipse, polygons under both fill rules, curves, arcs, subpaths, colours, `fill-opacity`, overlap, the initial black fill |
+| 1x `stroke/`, `both/` | 25 | widths 0.1 to 3 and 0, the initial width, circles, ellipses and rounded rects, every cap and join, miter limits, a zero-length round cap, `stroke-opacity`, fill plus stroke |
+| 1x `transform/` | 8 | translate by half a pixel, rotate, scale (non-uniform too), skew, a matrix, nested groups, inherited paint |
+| 1x `viewbox/`, `nested/`, `offset/` | 13 | `viewBox` at scales 2, 1.25 and 0.75, an offset `viewBox`, `meet`, `slice`, `none` and `xMinYMax`, the root clip, nested `svg` viewports (clipped, at half pixels), roots at fractional page offsets |
+| 1x and 2x `lucide/` | 40 + 40 | the 20 vendored Lucide icons at 16 and 24 px, `#09090b` (`currentColor`) on white |
+
+**Evidence** is one capture per OS in `tests/fidelity/fixtures/svg-paint-v1/`.
+Each capture has a JSON file of cases and slots, plus one PNG per scale:
+
+- `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
+- `chromium-windows*`, from Windows CfT 147.0.7727.50.
+
+The Linux and Windows sheets are pixel-identical.
+
+`crates/div-svg/tests/paint_corpus.rs` paints every case through
+`div_svg::paint` and compares each slot exactly. It rasterizes as Div's
+renderer rasterizes a page: 256-px `raster_n32_premul` tiles, stepping by
+254, after cc's tiling as `div-paint`'s `render.rs` models it. Each case
+is painted in the device space of each tile that shows it, on a full
+256-px tile surface.
+
+**Production raster tiling.** This is not a test-only model. `div-paint`
+already rasterizes a page this way (`crates/div-paint/src/render.rs`):
+`RASTER_TILE_SIZE_PX` = 256, `RASTER_TILE_STEP_PX` = 254, each tile drawn
+on a full tile surface translated by `-tile_x, -tile_y`, and every tile
+but the first cropping its leading row and column. The test repeats the
+same rule standalone because `div_svg::paint` is not yet called from a
+page. Layers no larger than 512 px whose content fits
+(`should_replay_untiled`, after cc's `max_untiled_layer_size`) replay
+untiled in both Chromium and Div; the corpus sheets are wider than that,
+so it measures the tiled path only. Painted instead at the origin of a
+surface the size of the case, 37 of the 147 captures differed.
+
+**Why tiles matter.** Both details are needed for exact pixels.
+- The tile translation matters because Skia strokes and maps points in
+  single precision in device space. A case painted at the origin instead
+  of at its place in the tile differs by a few levels along stroke edges.
+- The tile size matters because analytic anti-aliasing takes a different
+  route for a path that leaves the device.
+
+To recapture:
+
+```sh
+# Linux, in WSL
+python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
+# Windows
+python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
+```
+
+`DIV_SVG_PAINT_DUMP=<dir>` makes the test write Div's pixels for each
+differing case.
+
+### What `div_svg::paint` matches
+
+All 147 captures (107 at scale 1, 40 at scale 2) are exact on Windows
+(MSVC) and on Linux (WSL). `known-gaps.txt` is empty.
+
+The corpus settled these points:
+
+- A square-cornered `rect` is drawn with `drawRect`, and a `circle` or
+  `ellipse` with `drawOval`, on the object bounding box
+  (`SVGShapePainter`). Everything else, rounded rects included, is drawn
+  as its path.
+- The colour's alpha is multiplied by the opacity in single precision
+  (`PreparePaint`), and anti-aliasing is on.
+- An inline root is translated to its pixel-snapped border box. The
+  snapping scale adjustment (`SvgInlineRootPixelSnappingScaleAdjustment`)
+  is a test-only feature in 147, so it does not apply.
+- A nested `svg` clips to its viewport with an anti-aliased clip, which
+  `nested/svg-half` (viewport edges on half pixels) checks.
+
+**Not claimed.**
+- Anything about the page path. The engine does not call the painter
+  yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
+- The untiled path (layers of 512 px or less) for SVG content: the
+  corpus pages are tiled.
+- Dashes, `paint-order`, markers, `vector-effect`, `shape-rendering`,
+  paint servers, and scales other than 1 and 2.
 
 ## Lucide capture plan (V1 stage 1 gate)
 
