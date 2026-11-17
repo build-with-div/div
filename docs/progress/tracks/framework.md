@@ -167,6 +167,15 @@ Approximations, documented in the code:
 - A touch that moved beyond the tap slop forgets the previous tap. No
   oracle scenario covers this case.
 
+Follow-up:
+
+- **`pointer-events-linux-derived`** (framework, a filler after this
+  PR): the Pointer Events oracle has only a Windows capture. On Linux its
+  test moves each `contextmenu` to the press, so that part is derived from
+  the click-count capture, not measured. The filler captures
+  `pointer-events-v1` on Linux (XTEST, pinned Chrome-for-Testing in WSL),
+  compares each OS against its own capture and drops the move.
+
 Verification (Windows, MSVC, this branch on main `85fa7380`):
 
 - `cargo test --locked -p divui --features "windows testing" --test
