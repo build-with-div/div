@@ -39,16 +39,38 @@ const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 
 // Rows that are not exact: (scale, row index, differing pixels).
 //
-// Row 2, Inter 13px at 1.25, 1.5 and 2: the advances match (the ink spans
-// the same columns), but Chromium's baseline sits 1 device pixel lower at
-// 1.25 and 2 lower at 1.5 and 2, on a whole device pixel, while Div's first
-// ink row is faint, as from a baseline at a fractional device y. That is
-// line-box metrics or layout, not glyph rasterization. Chromium uses
-// `opsz` 14 (13px clamped to Inter's minimum) at every scale, measured by
-// capturing the row with explicit `font-variation-settings`; Div gives the
-// same counts with `'opsz' 14` set explicitly, so optical sizing is not
+// The frames above scale 1 are real zoom (`--force-device-scale-factor`,
+// RFC 0010): Blink lays the line boxes out in device pixels. Div lays out
+// in CSS px and replays paint at the scale, so its baselines can land one
+// device pixel away from Chromium's. In 11 of the 14 rows the glyph raster
+// is identical and the whole row is offset by one device pixel: Div's ink
+// is 1 device px higher (Geist Mono and Geist 650) or 1 device px lower
+// (Inter 16px), and shifting Div's row by that pixel leaves 0 differing
+// pixels. Owner: line-box layout in device pixels (engine, RFC 0011).
+//
+// Row 2, Inter 13px at 1.25, 1.5 and 2, was not exact under the emulated
+// oracle either: Div's first ink row is faint, as from a baseline at a
+// fractional device y, while Chromium's sits on a whole device pixel. A
+// one-pixel shift still leaves 1,339, 2,423 and 4,153 pixels. Chromium
+// uses `opsz` 14 (13px clamped to Inter's minimum) at every scale; Div gives
+// the same counts with `'opsz' 14` set explicitly, so optical sizing is not
 // the cause.
-const GAPS: &[(&str, usize, usize)] = &[("1.25", 2, 2729), ("1.5", 2, 4227), ("2", 2, 5889)];
+const GAPS: &[(&str, usize, usize)] = &[
+    ("1.25", 1, 3125),
+    ("1.25", 2, 2729),
+    ("1.25", 3, 3596),
+    ("1.25", 5, 3710),
+    ("1.5", 0, 3058),
+    ("1.5", 2, 3503),
+    ("1.5", 3, 4405),
+    ("1.5", 4, 3648),
+    ("2", 0, 4122),
+    ("2", 1, 5296),
+    ("2", 2, 4263),
+    ("2", 3, 6315),
+    ("2", 4, 4804),
+    ("2", 5, 6083),
+];
 
 struct Line {
     font: &'static str,
