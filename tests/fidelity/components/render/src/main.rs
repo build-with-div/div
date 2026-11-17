@@ -931,6 +931,33 @@ mod tests {
         );
     }
 
+    /// The card header auto-places its title and description from the first
+    /// grid cell, beside the action placed at column 2, rows 1 and 2.
+    /// Chromium 147's rects at 1x (`legacy-800x600@1`, measured by the
+    /// components track at `main` 154d0a72): the header is 44 px tall, the
+    /// title starts at y = 41 and the description at y = 65. Div placed the
+    /// title in row 2 until grid auto-placement stopped moving its cursor
+    /// past explicitly placed items.
+    #[test]
+    fn the_card_header_places_its_title_in_the_first_row() {
+        for fixture in ["card-action-light", "card-action-dark"] {
+            let value = geometry(fixture, 800.0, 600.0, 1.0).unwrap();
+            let rect = |slot: &str| -> [f64; 4] {
+                let found = value["boxes"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|b| b["slot"] == slot)
+                    .unwrap_or_else(|| panic!("{fixture}: no `{slot}` box"));
+                serde_json::from_value(found["rect"].clone()).unwrap()
+            };
+            let header = rect("card-header");
+            assert_eq!([header[1], header[3]], [41.0, 44.0], "{fixture} header");
+            assert_eq!(rect("card-title")[1], 41.0, "{fixture} title");
+            assert_eq!(rect("card-description")[1], 65.0, "{fixture} description");
+        }
+    }
+
     /// Preflight gives buttons `font: inherit` and `letter-spacing: inherit`;
     /// Div has no `inherit` literal, so its button must already inherit.
     #[test]

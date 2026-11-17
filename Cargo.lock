@@ -948,6 +948,7 @@ dependencies = [
  "div-geometry",
  "div-style",
  "div-text",
+ "serde_json",
  "unicode-linebreak",
  "unicode-segmentation",
 ]
