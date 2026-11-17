@@ -23,7 +23,8 @@ fn counting_updates_the_label() {
     ui.click(&button);
     ui.click(&button);
     assert_eq!(state.count.get(), 2);
-    assert!(ui.find_text("Clicked 2 times").is_some());
+    // Waits for the label, up to 1 s, as it would for async work.
+    ui.find_by_text("Clicked 2 times");
 }
 
 #[test]

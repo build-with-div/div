@@ -1,5 +1,6 @@
-//! Headless UI tests: mount a view, find elements, click and type, run
-//! tasks and compare the rendered pixels with accepted snapshots.
+//! Headless UI tests: mount a view, find elements, send pointer, wheel and
+//! key input, wait for the work it starts, and compare the rendered pixels
+//! with accepted snapshots.
 //!
 //! Enable the `testing` feature for tests only:
 //!
@@ -21,6 +22,27 @@
 //! div::assert_snapshot!(app, "after-one-click");
 //! ```
 //!
+//! # Input and waiting
+//!
+//! Input returns once the event is dispatched and the UI work it made
+//! ready has run, as a browser returns to the page after an event and its
+//! microtasks. It does not wait for timers or background work, so a test
+//! can act while a task is still running, and waits explicitly, as with
+//! Testing Library's `waitFor`:
+//!
+//! ```no_run
+//! # use div::prelude::*;
+//! # use div::testing::TestApp;
+//! # let mut app = TestApp::new(LogicalSize::new(200.0, 100.0)).mount(|| view! { <p>"Fetch"</p> });
+//! app.click(&app.by_text("Fetch"));
+//! app.click(&app.by_text("Cancel")); // the fetch is still running
+//! app.wait_for(|app| app.find_text("Cancelled").is_some());
+//! let row = app.find_by_text("Loaded"); // waits, then panics if absent
+//! ```
+//!
+//! [`wait_for`](TestApp::wait_for) runs UI tasks, timers and frames until
+//! its condition holds and panics after [`DEFAULT_WAIT_TIMEOUT`].
+//!
 //! Helpers panic with a description of what was missing, as test
 //! assertions do.
 //!
@@ -33,14 +55,31 @@
 
 use crate::app::{HeadlessApp, LogicalSize};
 use crate::element::Element;
-use crate::events::{KeyEventType, Modifiers, MouseButton, MouseEventType};
+use crate::events::{KeyEventType, Modifiers, MouseButton};
+use crate::pointer::{Point, PointerId, PointerInput, PointerInputKind};
 use crate::view_node::IntoView;
 use crate::Document;
 use div_engine::ViewportMetrics;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 /// The environment variable that lets snapshot assertions write snapshots.
 pub const UPDATE_SNAPSHOTS: &str = "DIV_UPDATE_SNAPSHOTS";
+
+/// How long [`TestApp::wait_for`], [`TestApp::find_by_text`] and
+/// [`TestApp::find_by_id`] wait before they panic: 1 s, as Testing
+/// Library's `waitFor`.
+pub const DEFAULT_WAIT_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// The interval between the frames [`TestApp::wait_for`] runs while it
+/// waits: a 60 Hz display's.
+const WAIT_FRAME_INTERVAL: Duration = Duration::from_millis(16);
+
+/// How long [`TestApp::run_until_idle`] runs before it panics.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The touch contact the single-touch helpers use, as a first finger.
+pub const FIRST_TOUCH: PointerId = PointerId(2);
 
 /// A headless app under test.
 pub struct TestApp {
@@ -64,7 +103,8 @@ impl TestApp {
         }
     }
 
-    /// Mount `view` as the app's root and run the tasks it starts.
+    /// Mount `view` as the app's root and run the tasks it starts, to the
+    /// end ([`run_until_idle`](Self::run_until_idle)).
     pub fn mount<V: IntoView>(mut self, view: impl FnOnce() -> V) -> Self {
         self.app.mount(view).expect("the view mounts");
         self.run_until_idle();
@@ -81,10 +121,15 @@ impl TestApp {
 
     /// The element with id `id`.
     pub fn by_id(&self, id: &str) -> Element {
+        self.find_id(id)
+            .unwrap_or_else(|| panic!("no element has id `{id}`"))
+    }
+
+    /// Like [`by_id`](Self::by_id), but `None` when nothing matches.
+    pub fn find_id(&self, id: &str) -> Option<Element> {
         self.document()
             .element_by_id(id)
             .expect("the document answers")
-            .unwrap_or_else(|| panic!("no element has id `{id}`"))
     }
 
     /// The innermost element whose text, with surrounding white space
@@ -99,25 +144,235 @@ impl TestApp {
         innermost_with_text(&self.document().body(), text.trim())
     }
 
-    /// Press and release the primary button at the centre of `element`, as
-    /// a user would. The click reaches whatever is drawn there.
-    pub fn click(&mut self, element: &Element) {
+    /// Wait for an element with the text `text`, as
+    /// [`wait_for`](Self::wait_for) does, and return it. Panics after
+    /// [`DEFAULT_WAIT_TIMEOUT`] when none appears.
+    pub fn find_by_text(&mut self, text: &str) -> Element {
+        let mut found = None;
+        let appeared = self.poll_until(DEFAULT_WAIT_TIMEOUT, |app| {
+            found = app.find_text(text);
+            found.is_some()
+        });
+        match found {
+            Some(element) if appeared => element,
+            _ => panic!(
+                "no element has the text `{text}` after {:?}",
+                DEFAULT_WAIT_TIMEOUT
+            ),
+        }
+    }
+
+    /// Wait for the element with id `id`, as [`wait_for`](Self::wait_for)
+    /// does, and return it. Panics after [`DEFAULT_WAIT_TIMEOUT`] when none
+    /// appears.
+    pub fn find_by_id(&mut self, id: &str) -> Element {
+        let mut found = None;
+        let appeared = self.poll_until(DEFAULT_WAIT_TIMEOUT, |app| {
+            found = app.find_id(id);
+            found.is_some()
+        });
+        match found {
+            Some(element) if appeared => element,
+            _ => panic!("no element has id `{id}` after {:?}", DEFAULT_WAIT_TIMEOUT),
+        }
+    }
+
+    /// Run UI tasks, timers and frames until `condition` holds. Panics
+    /// after [`DEFAULT_WAIT_TIMEOUT`].
+    ///
+    /// The condition is checked first, then after each round of work. While
+    /// it waits, a frame ([`advance_frame`](Self::advance_frame)) runs
+    /// every 16 ms of real time, by the time that passed, so animations,
+    /// animation frame callbacks and scroll events advance with the timers.
+    pub fn wait_for(&mut self, condition: impl FnMut(&TestApp) -> bool) {
+        self.wait_for_with(DEFAULT_WAIT_TIMEOUT, condition);
+    }
+
+    /// [`wait_for`](Self::wait_for) with another timeout.
+    pub fn wait_for_with(&mut self, timeout: Duration, condition: impl FnMut(&TestApp) -> bool) {
+        if !self.poll_until(timeout, condition) {
+            panic!("the condition did not hold within {timeout:?}");
+        }
+    }
+
+    /// Whether `condition` held within `timeout`.
+    fn poll_until(
+        &mut self,
+        timeout: Duration,
+        mut condition: impl FnMut(&TestApp) -> bool,
+    ) -> bool {
+        let start = Instant::now();
+        let mut last_frame = start;
+        loop {
+            self.run_ready_tasks();
+            if condition(self) {
+                return true;
+            }
+            let now = Instant::now();
+            let elapsed = now - start;
+            if elapsed >= timeout {
+                return false;
+            }
+            let next_frame = WAIT_FRAME_INTERVAL.saturating_sub(now - last_frame);
+            crate::task::wait_for_work(next_frame.min(timeout - elapsed));
+            let now = Instant::now();
+            if now - last_frame >= WAIT_FRAME_INTERVAL {
+                self.app
+                    .advance_frame((now - last_frame).as_secs_f64() * 1000.0)
+                    .expect("the frame runs");
+                last_frame = now;
+            }
+        }
+    }
+
+    /// The centre of `element`'s border box, in viewport coordinates.
+    pub fn center_of(&self, element: &Element) -> Point {
         let rect = element
             .bounding_rect()
             .expect("the document answers")
-            .unwrap_or_else(|| panic!("the element to click has no box"));
-        let (x, y) = (rect.x + rect.width / 2.0, rect.y + rect.height / 2.0);
-        let document = self.document().clone();
-        for kind in [
-            MouseEventType::Move,
-            MouseEventType::Down,
-            MouseEventType::Up,
-        ] {
-            document
-                .dispatch_mouse_event(kind, x, y, MouseButton::Main, Modifiers::NONE)
-                .expect("the click dispatches");
+            .unwrap_or_else(|| panic!("the element has no box"));
+        Point::new(
+            f64::from(rect.x + rect.width / 2.0),
+            f64::from(rect.y + rect.height / 2.0),
+        )
+    }
+
+    /// Send one pointer input, then run the UI work it made ready.
+    pub fn pointer(&mut self, input: PointerInput) {
+        self.send(input);
+        self.run_ready_tasks();
+    }
+
+    /// Move the mouse to `at` while holding `modifiers`.
+    pub fn pointer_move(&mut self, at: Point, modifiers: Modifiers) {
+        self.pointer(mouse(PointerInputKind::Move, at).with_modifiers(modifiers));
+    }
+
+    /// Press the mouse's `button` at `at` while holding `modifiers`.
+    pub fn pointer_down(&mut self, at: Point, button: MouseButton, modifiers: Modifiers) {
+        self.pointer(
+            mouse(PointerInputKind::Down, at)
+                .with_button(button)
+                .with_modifiers(modifiers),
+        );
+    }
+
+    /// Release the mouse's `button` at `at` while holding `modifiers`.
+    pub fn pointer_up(&mut self, at: Point, button: MouseButton, modifiers: Modifiers) {
+        self.pointer(
+            mouse(PointerInputKind::Up, at)
+                .with_button(button)
+                .with_modifiers(modifiers),
+        );
+    }
+
+    /// Move the mouse to the centre of `element`, then press and release
+    /// the primary button there, as a user would. The click reaches
+    /// whatever is drawn there.
+    pub fn click(&mut self, element: &Element) {
+        self.click_with(element, MouseButton::Main, 1);
+    }
+
+    /// [`click`](Self::click) with the secondary button: `auxclick`, then
+    /// `contextmenu`.
+    pub fn right_click(&mut self, element: &Element) {
+        self.click_with(element, MouseButton::Secondary, 1);
+    }
+
+    /// Two primary clicks at the centre of `element`.
+    ///
+    /// Div does not dispatch `dblclick` or count clicks in `detail` yet, so
+    /// this is two `click` events.
+    pub fn double_click(&mut self, element: &Element) {
+        self.click_with(element, MouseButton::Main, 2);
+    }
+
+    fn click_with(&mut self, element: &Element, button: MouseButton, count: usize) {
+        let at = self.center_of(element);
+        self.send(mouse(PointerInputKind::Move, at));
+        for _ in 0..count {
+            self.send(mouse(PointerInputKind::Down, at).with_button(button));
+            self.send(mouse(PointerInputKind::Up, at).with_button(button));
         }
-        self.run_until_idle();
+        self.run_ready_tasks();
+    }
+
+    /// Drag with the primary button from `from` to `to`: move to `from`,
+    /// press, move in `steps` equal steps (at least one) and release at
+    /// `to`.
+    pub fn drag(&mut self, from: Point, to: Point, steps: usize) {
+        self.send(mouse(PointerInputKind::Move, from));
+        self.send(mouse(PointerInputKind::Down, from));
+        for at in path(from, to, steps) {
+            self.send(mouse(PointerInputKind::Move, at));
+        }
+        self.send(mouse(PointerInputKind::Up, to));
+        self.run_ready_tasks();
+    }
+
+    /// Turn the wheel over `at` by `delta` CSS pixels; positive scrolls
+    /// right or down. The `scroll` events follow at the next frame, as in
+    /// Chromium ([`advance_frame`](Self::advance_frame),
+    /// [`wait_for`](Self::wait_for) or [`run_until_idle`](Self::run_until_idle)).
+    pub fn wheel(&mut self, at: Point, delta: Point) {
+        self.document()
+            .clone()
+            .dispatch_wheel_event(
+                at.x as f32,
+                at.y as f32,
+                delta.x as f32,
+                delta.y as f32,
+                Modifiers::NONE,
+            )
+            .expect("the wheel event dispatches");
+        self.run_ready_tasks();
+    }
+
+    /// Start touch contact `id` at `at`.
+    pub fn touch_down(&mut self, id: PointerId, at: Point) {
+        self.pointer(touch(id, PointerInputKind::Down, at));
+    }
+
+    /// Move touch contact `id` to `at`.
+    pub fn touch_move(&mut self, id: PointerId, at: Point) {
+        self.pointer(touch(id, PointerInputKind::Move, at));
+    }
+
+    /// End touch contact `id` at `at`.
+    pub fn touch_up(&mut self, id: PointerId, at: Point) {
+        self.pointer(touch(id, PointerInputKind::Up, at));
+    }
+
+    /// Cancel touch contact `id`, as the platform does when it takes the
+    /// gesture.
+    pub fn touch_cancel(&mut self, id: PointerId, at: Point) {
+        self.pointer(touch(id, PointerInputKind::Cancel, at));
+    }
+
+    /// Tap the centre of `element` with [`FIRST_TOUCH`]: its compatibility
+    /// mouse events, then `click`.
+    pub fn tap(&mut self, element: &Element) {
+        let at = self.center_of(element);
+        self.send(touch(FIRST_TOUCH, PointerInputKind::Down, at));
+        self.send(touch(FIRST_TOUCH, PointerInputKind::Up, at));
+        self.run_ready_tasks();
+    }
+
+    /// [`drag`](Self::drag) with [`FIRST_TOUCH`].
+    pub fn touch_drag(&mut self, from: Point, to: Point, steps: usize) {
+        self.send(touch(FIRST_TOUCH, PointerInputKind::Down, from));
+        for at in path(from, to, steps) {
+            self.send(touch(FIRST_TOUCH, PointerInputKind::Move, at));
+        }
+        self.send(touch(FIRST_TOUCH, PointerInputKind::Up, to));
+        self.run_ready_tasks();
+    }
+
+    fn send(&self, input: PointerInput) {
+        self.document()
+            .clone()
+            .dispatch_pointer_input(input)
+            .expect("the pointer input dispatches");
     }
 
     /// Type `text` into the focused element, one key per character.
@@ -140,7 +395,7 @@ impl TestApp {
                 .dispatch_key_input(KeyEventType::Up, code, Some(text), None, Modifiers::NONE)
                 .expect("the key dispatches");
         }
-        self.run_until_idle();
+        self.run_ready_tasks();
     }
 
     /// Press and release `key` with no modifiers.
@@ -157,24 +412,45 @@ impl TestApp {
         document
             .dispatch_key(KeyEventType::Up, key, modifiers, false)
             .expect("the key dispatches");
-        self.run_until_idle();
+        self.run_ready_tasks();
     }
 
-    /// Run UI tasks, and the timers and background work they await, until
-    /// all are done. Panics after 30 s of unfinished work.
+    /// Run the UI tasks that are ready now, without waiting for timers or
+    /// background work. Input runs this after its events.
+    pub fn run_ready_tasks(&mut self) {
+        self.app.run_ready_tasks().expect("the ready tasks run");
+    }
+
+    /// Run UI tasks, the timers and background work they await, and the
+    /// pending `scroll` events, until all are done. Panics after 30 s of
+    /// unfinished work.
     pub fn run_until_idle(&mut self) {
-        self.app.run_until_idle().expect("tasks finish within 30 s");
+        let deadline = Instant::now() + IDLE_TIMEOUT;
+        loop {
+            self.app.run_until_idle().expect("tasks finish within 30 s");
+            let document = self.document().clone();
+            if !document.has_pending_events().expect("the document answers") {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "events were still pending after {IDLE_TIMEOUT:?}"
+            );
+            document
+                .dispatch_pending_events()
+                .expect("the pending events dispatch");
+        }
     }
 
-    /// Run one frame `delta_ms` milliseconds after the last: animations,
-    /// the callbacks of
+    /// Run one frame `delta_ms` milliseconds after the last: the pending
+    /// `scroll` events, animations, the callbacks of
     /// [`Document::request_animation_frame`](crate::Document::request_animation_frame),
     /// style and layout, and the [`ResizeObserver`](crate::ResizeObserver)
     /// callbacks. Then run the UI tasks the frame made ready. The app
     /// starts at time 0.
     pub fn advance_frame(&mut self, delta_ms: f64) {
         self.app.advance_frame(delta_ms).expect("the frame runs");
-        self.app.run_ready_tasks().expect("the frame's tasks run");
+        self.run_ready_tasks();
     }
 
     /// Run `count` frames, each `delta_ms` after the one before.
@@ -209,6 +485,23 @@ impl TestApp {
         let update = std::env::var_os(UPDATE_SNAPSHOTS).is_some_and(|value| !value.is_empty());
         compare_snapshot(directory.as_ref(), name, &self.render_png(), update)
     }
+}
+
+fn mouse(kind: PointerInputKind, at: Point) -> PointerInput {
+    PointerInput::mouse(kind, at.x as f32, at.y as f32)
+}
+
+fn touch(id: PointerId, kind: PointerInputKind, at: Point) -> PointerInput {
+    PointerInput::touch(id, kind, at.x as f32, at.y as f32)
+}
+
+/// The points of `steps` equal steps from `from` to `to`, ending at `to`.
+fn path(from: Point, to: Point, steps: usize) -> impl Iterator<Item = Point> {
+    let steps = steps.max(1);
+    (1..=steps).map(move |step| {
+        let t = step as f64 / steps as f64;
+        Point::new(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t)
+    })
 }
 
 /// What a snapshot comparison did.
@@ -454,5 +747,250 @@ mod tests {
         app.press(Key::Backspace);
         app.press(Key::Char('!'));
         assert_eq!(field.control_value().unwrap().as_deref(), Some("hi !"));
+    }
+
+    /// Records the type of each event in `types` that reaches `element`,
+    /// with the pointer type for pointer events.
+    fn record(element: &Element, types: &[&str]) -> std::rc::Rc<std::cell::RefCell<Vec<String>>> {
+        let log = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        for event_type in types {
+            let log = log.clone();
+            element
+                .on(event_type, move |event| {
+                    let entry = match event.pointer_info() {
+                        Some(info) => format!("{}:{:?}", event.event_type, info.pointer_type),
+                        None => event.event_type.clone(),
+                    };
+                    log.borrow_mut().push(entry);
+                })
+                .unwrap();
+        }
+        log
+    }
+
+    fn fetch_app() -> (TestApp, crate::Signal<String>) {
+        use crate::task::{spawn_local, time::sleep, Task};
+        let status = create_signal(String::from("Idle"));
+        let fetch: std::rc::Rc<std::cell::RefCell<Option<Task<()>>>> = Default::default();
+        let cancel = fetch.clone();
+        let app = TestApp::new(LogicalSize::new(200.0, 120.0)).mount(move || {
+            view! {
+                <div>
+                    <button on:click={move |_| {
+                        status.set("Loading".into());
+                        let task = spawn_local(async move {
+                            sleep(Duration::from_millis(150)).await;
+                            status.set("Loaded".into());
+                        });
+                        *fetch.borrow_mut() = Some(task);
+                    }}>"Fetch"</button>
+                    <button on:click={move |_| {
+                        cancel.borrow_mut().take();
+                        status.set("Cancelled".into());
+                    }}>"Cancel"</button>
+                    <p>{status.get()}</p>
+                </div>
+            }
+        });
+        (app, status)
+    }
+
+    #[test]
+    fn input_returns_before_the_work_it_starts_and_waits_are_explicit() {
+        let (mut app, status) = fetch_app();
+        app.click(&app.by_text("Fetch"));
+        assert_eq!(
+            status.get(),
+            "Loading",
+            "the click does not wait for the fetch"
+        );
+        app.click(&app.by_text("Cancel"));
+        assert_eq!(status.get(), "Cancelled");
+        app.run_until_idle();
+        assert_eq!(status.get(), "Cancelled", "cancelling dropped the fetch");
+
+        app.click(&app.by_text("Fetch"));
+        assert!(app.find_text("Loading").is_some());
+        let started = Instant::now();
+        let loaded = app.find_by_text("Loaded");
+        assert!(started.elapsed() >= Duration::from_millis(100));
+        assert_eq!(loaded.text_content().unwrap(), "Loaded");
+    }
+
+    fn panic_message(result: std::thread::Result<()>) -> String {
+        let payload = result.unwrap_err();
+        payload
+            .downcast_ref::<String>()
+            .cloned()
+            .or_else(|| payload.downcast_ref::<&str>().map(|text| text.to_string()))
+            .unwrap()
+    }
+
+    #[test]
+    fn waits_time_out_with_a_message() {
+        assert_eq!(DEFAULT_WAIT_TIMEOUT, Duration::from_secs(1));
+        let mut app = app(div_style::Color::from_hex(0xff0000, false));
+        let started = Instant::now();
+        let timed_out = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            app.wait_for_with(Duration::from_millis(40), |_| false)
+        }));
+        assert!(started.elapsed() >= Duration::from_millis(40));
+        assert_eq!(
+            panic_message(timed_out),
+            "the condition did not hold within 40ms"
+        );
+        let missing = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            app.find_by_text("Missing");
+        }));
+        assert_eq!(
+            panic_message(missing),
+            "no element has the text `Missing` after 1s"
+        );
+    }
+
+    #[test]
+    fn waits_run_frames() {
+        let mut app = app(div_style::Color::from_hex(0xff0000, false));
+        let frame_time = create_signal(None::<f64>);
+        app.document()
+            .request_animation_frame(move |time_ms| frame_time.set(Some(time_ms)));
+        app.run_until_idle();
+        assert_eq!(
+            frame_time.get(),
+            None,
+            "only frames run animation frame callbacks"
+        );
+        app.wait_for(|_| frame_time.get().is_some());
+        assert!(frame_time.get().unwrap() >= 16.0);
+    }
+
+    #[test]
+    fn pointer_helpers_send_chromium_sequences() {
+        let mut app = TestApp::new(LogicalSize::new(200.0, 200.0)).mount(|| {
+            view! {
+                <div>
+                    <div id="target" style:width="100px" style:height="100px"></div>
+                </div>
+            }
+        });
+        let target = app.by_id("target");
+        let log = record(
+            &target,
+            &[
+                "pointerdown",
+                "pointermove",
+                "pointerup",
+                "mousedown",
+                "mouseup",
+                "click",
+                "auxclick",
+                "contextmenu",
+                "gotpointercapture",
+                "lostpointercapture",
+            ],
+        );
+        let take = || std::mem::take(&mut *log.borrow_mut());
+
+        app.right_click(&target);
+        assert_eq!(
+            take(),
+            [
+                "pointermove:Mouse",
+                "pointerdown:Mouse",
+                "mousedown",
+                "pointerup:Mouse",
+                "mouseup",
+                "auxclick:Mouse",
+                "contextmenu:Mouse",
+            ]
+        );
+
+        app.double_click(&target);
+        let log = take();
+        assert_eq!(
+            log.iter()
+                .filter(|entry| entry.starts_with("click"))
+                .count(),
+            2,
+            "{log:?}"
+        );
+
+        let captor = target.clone();
+        target
+            .on("pointerdown", move |event| {
+                let id = event.pointer_info().unwrap().pointer_id;
+                captor.set_pointer_capture(id).unwrap();
+            })
+            .unwrap();
+        app.drag(Point::new(50.0, 50.0), Point::new(180.0, 180.0), 4);
+        let log = take();
+        assert_eq!(
+            log.iter()
+                .filter(|entry| entry.as_str() == "pointermove:Mouse")
+                .count(),
+            1 + 4,
+            "the move to the start, then four steps, the last three outside \
+             the target but captured by it: {log:?}"
+        );
+        assert!(
+            log.contains(&"gotpointercapture:Mouse".to_owned()),
+            "{log:?}"
+        );
+        assert!(
+            log.contains(&"lostpointercapture:Mouse".to_owned()),
+            "{log:?}"
+        );
+
+        app.tap(&target);
+        let log = take();
+        assert_eq!(
+            log.first().map(String::as_str),
+            Some("pointerdown:Touch"),
+            "{log:?}"
+        );
+        assert_eq!(
+            log.last().map(String::as_str),
+            Some("click:Touch"),
+            "{log:?}"
+        );
+        assert!(log.contains(&"mousedown".to_owned()), "{log:?}");
+
+        app.touch_down(FIRST_TOUCH, Point::new(10.0, 10.0));
+        app.touch_move(FIRST_TOUCH, Point::new(20.0, 20.0));
+        app.touch_up(FIRST_TOUCH, Point::new(20.0, 20.0));
+        let log = take();
+        assert_eq!(
+            log.first().map(String::as_str),
+            Some("pointerdown:Touch"),
+            "{log:?}"
+        );
+        assert!(log.contains(&"pointermove:Touch".to_owned()), "{log:?}");
+        assert!(log.contains(&"pointerup:Touch".to_owned()), "{log:?}");
+    }
+
+    #[test]
+    fn wheel_scrolls_and_its_scroll_events_follow_at_the_frame_or_idle() {
+        let mut app = TestApp::new(LogicalSize::new(200.0, 200.0)).mount(|| {
+            view! {
+                <div id="port" style:width="100px" style:height="50px" style:overflow="auto">
+                    <div style:height="400px"></div>
+                </div>
+            }
+        });
+        let port = app.by_id("port");
+        let scrolls = record(&port, &["scroll"]);
+        let at = app.center_of(&port);
+        app.wheel(at, Point::new(0.0, 40.0));
+        assert_eq!(port.scroll_top().unwrap(), 40.0);
+        assert!(
+            scrolls.borrow().is_empty(),
+            "scroll events wait for the frame"
+        );
+        app.run_until_idle();
+        assert_eq!(*scrolls.borrow(), ["scroll"]);
+
+        app.wheel(at, Point::new(0.0, 40.0));
+        app.wait_for(|_| scrolls.borrow().len() == 2);
+        assert_eq!(port.scroll_top().unwrap(), 80.0);
     }
 }

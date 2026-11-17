@@ -345,6 +345,26 @@ pub(crate) fn run_until_idle(timeout: Duration) -> Result<(), usize> {
     }
 }
 
+/// Wait until UI work is queued, at most `timeout`. Returns at once when
+/// work is already queued.
+#[cfg(feature = "testing")]
+pub(crate) fn wait_for_work(timeout: Duration) {
+    let queue = ui_queue();
+    if !queue.is_empty() {
+        return;
+    }
+    let guard = queue
+        .runnables
+        .lock()
+        .expect("the UI run queue lock is not poisoned");
+    if guard.is_empty() {
+        let _ = queue
+            .ready
+            .wait_timeout(guard, timeout)
+            .expect("the UI run queue lock is not poisoned");
+    }
+}
+
 /// Counts a UI task as alive until its future is dropped.
 struct Live(Arc<UiQueue>);
 
