@@ -66,7 +66,7 @@ uses.)
 
 | # | Item | State |
 | --- | --- | --- |
-| 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | In review |
+| 0.9 | Wheel direction, lines per notch and `deltaMode` (I3) | Merged (#63) |
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
 | 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
@@ -92,6 +92,59 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 16 November 2026: `scroll_metrics.c` against real-zoom Chromium
+
+Problem: `examples/c/scroll_metrics.c` asserts the same Chromium values at
+1x, 1.25x, 1.5x, 2x and 3x, but the values above 1x came from CDP-emulated
+device scale. Since #59 non-1x oracles use `--force-device-scale-factor`
+(RFC 0010; the fidelity lane's addendum lists this example).
+
+Oracle: `tools/qualification/capture_scroll_metrics_oracle.py` loads the
+example's `viewport`, `nested` and `integer_api` scenarios as HTML in pinned
+Windows Chrome-for-Testing 147.0.7727.50, launched with
+`--force-device-scale-factor` at each scale. It records `clientWidth`,
+`clientHeight`, `scrollWidth`, `scrollHeight`, `scrollLeft`, `scrollTop` and
+`getBoundingClientRect()` at every step, captures each scale twice and
+requires them to match. The output is
+`tests/fidelity/fixtures/scroll-metrics-v1/chromium-windows.json`.
+`integer_table_api` runs at 1x only and is not recaptured.
+
+Result: at 1x, 2x and 3x Chromium matches every value the example asserts.
+At 1.25x and 1.5x it lays out in device pixels and 25 values differ. They
+are named gaps, not tolerances, all owned by the engine under RFC 0011:
+
+- **`device-scale-scroll-offset`** (already named by the 0.9 wheel work, #63):
+  scroll offsets end on whole device pixels. The root's 22×21 range ends at
+  22.4, 21.6 at 1.25x and 22.667, 21.333 at 1.5x; the nested scroller's 50
+  at 1.25x is 50.4 (−49.6 in RTL). Div keeps CSS pixels.
+- **`device-scale-border-width`**: zoomed border widths are floored to whole
+  device pixels (`StyleBuilderConverter::ConvertBorderWidth` in
+  `style_builder_converter.cc`, BSD; licence header checked first, read from
+  the local checkout). A 3px border is 2.4px at 1.25x and 2.667px at 1.5x, so
+  the nested child is at (2, 12.4) and (2.667, 12.667), not (3, 13); a 2px
+  border is 1.6px at 1.25x, so the transformed scroller's bounds are
+  207.4×251.1, not 209×253.5.
+- **`device-scale-scrollbar-thickness`**: the classic scrollbar is
+  round(15 × scale) device pixels, 15.2px at 1.25x and 15.333px at 1.5x
+  (measured with a full-size child of the scroller). The 100.5px scroller's
+  client width is then 85.3px or 85.167px, which `clientWidth` reports as 85,
+  where Div reports 86 (and 65 for 66).
+
+`crates/divui/tests/scroll_metrics_oracle.rs` runs the three scenarios
+through `divui` at each scale and compares every captured value. A value in
+its `GAPS` table must still differ, and every other value must be equal.
+The C example keeps Div's values; its comments now cite the fixture and the
+gaps instead of claiming Chromium has those values at all five scales.
+
+Verification (Windows, MSVC, this branch on main `79b8c25d`): `cargo test
+--locked -p divui --features "windows testing" --test scroll_metrics_oracle`
+passes. Moving the 1.5x scrollbar entry out of `GAPS` fails it with the four
+85 versus 86 values. `clang-format --dry-run --Werror` (18.1.8) passes on
+the C example. `python tools/qualification/capture_scroll_metrics_oracle.py
+--chrome <pinned chrome>` reproduces the fixture byte for byte. The full
+framework test set passes (57 suites, 628 tests), the example apps build,
+`cargo fmt --all --check` passes, and the Linux `cargo check` (WSL) passes.
 
 ### 16 November 2026: native wheel direction, pixels per notch and `deltaMode` (Tier 0 item 0.9)
 

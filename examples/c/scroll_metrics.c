@@ -93,6 +93,9 @@ static void nested(double scale) {
   assert(divui_document_dispatch_event(document, viewport, &event) == DIVUI_OK);
   assert(state.calls == 1);
   double x = 0.0, y = 0.0;
+  /* At 1.25x and 1.5x Chromium floors the 3px border to whole device pixels
+   * and snaps offsets, so its offset and child bounds differ there; see the
+   * oracle test's named gaps. */
   assert(divui_element_get_scroll_offset(viewport, &x, &y) == DIVUI_OK && x == 50.0 && y == 40.0);
   DivUiRect bounds;
   assert(divui_element_get_bounds(child, &bounds) == DIVUI_OK && bounds.x == 3.0f &&
@@ -139,8 +142,12 @@ static void viewport(double scale) {
   property(content, DIVUI_STYLE_PROPERTY_WIDTH, "300px");
   property(content, DIVUI_STYLE_PROPERTY_HEIGHT, "224px");
 
-  /* Chromium's retained viewport has paired 15px gutters and these dimensions
-   * at all five scales. No explicit document update is needed for the query. */
+  /* Pinned Chromium 147 at real zoom (--force-device-scale-factor) has paired
+   * 15px gutters and these dimensions at all five scales. At 1.25x and 1.5x its
+   * scroll offsets end on device pixels (22.4, 21.6 at 1.25x); Div keeps CSS
+   * pixels. crates/divui/tests/scroll_metrics_oracle.rs compares every value
+   * with tests/fidelity/fixtures/scroll-metrics-v1 and names each difference.
+   * No explicit document update is needed for the query. */
   DivUiScrollMetricsV1 original = metrics(root);
   assert(original.client_width == 305.0 && original.client_height == 225.0);
   assert(original.scroll_width == 327.0 && original.scroll_height == 246.0);
@@ -267,6 +274,8 @@ static void integer_api(double scale) {
   property(scroller, DIVUI_STYLE_PROPERTY_SCROLLBAR_WIDTH, "auto");
   property(content, DIVUI_STYLE_PROPERTY_WIDTH, "200.5px");
   property(content, DIVUI_STYLE_PROPERTY_HEIGHT, "160.5px");
+  /* Chromium reports 85x65 at 1.25x and 1.5x, where its classic scrollbar is
+   * a whole number of device pixels; see the oracle test's named gaps. */
   integer_dimensions(scroller, 86, 66, 201, 161);
   DivUiScrollMetricsV1 raw = metrics(scroller);
   assert(raw.client_width == 85.5 && raw.client_height == 65.5);

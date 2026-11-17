@@ -1,0 +1,952 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "scale_method": "--force-device-scale-factor (RFC 0010 real zoom)",
+ "viewport": [
+  320,
+  240
+ ],
+ "source": "examples/c/scroll_metrics.c: viewport, nested and integer_api",
+ "scales": {
+  "1.0": {
+   "viewport": {
+    "original": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "original_scrolled": [
+     22,
+     21
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "asymmetric": {
+     "client": [
+      320,
+      225
+     ],
+     "scroll": [
+      320,
+      225
+     ]
+    },
+    "forced": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      305,
+      225
+     ]
+    },
+    "hidden": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "hidden_scrolled": [
+     7,
+     6
+    ],
+    "resized_offset": [
+     0,
+     0
+    ],
+    "resized": {
+     "client": [
+      360,
+      260
+     ],
+     "scroll": [
+      360,
+      260
+     ]
+    }
+   },
+   "nested": {
+    "original": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      150,
+      140
+     ]
+    },
+    "scrolled": [
+     50,
+     40
+    ],
+    "child_bounds": [
+     3,
+     13,
+     130,
+     120
+    ],
+    "rtl_scrolled": [
+     -50,
+     40
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      100,
+      100
+     ]
+    },
+    "resized": {
+     "client": [
+      160,
+      160
+     ],
+     "scroll": [
+      160,
+      160
+     ]
+    }
+   },
+   "integer_api": {
+    "root": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "scroll": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed_bounds": [
+     -52.25,
+     -84.5,
+     209,
+     253.5
+    ],
+    "hidden": {
+     "client": [
+      101,
+      81
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "inline_block": {
+     "client": [
+      41,
+      21
+     ],
+     "scroll": [
+      41,
+      21
+     ]
+    }
+   }
+  },
+  "1.25": {
+   "viewport": {
+    "original": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "original_scrolled": [
+     22.399999618530273,
+     21.600000381469727
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "asymmetric": {
+     "client": [
+      320,
+      225
+     ],
+     "scroll": [
+      320,
+      225
+     ]
+    },
+    "forced": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      305,
+      225
+     ]
+    },
+    "hidden": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "hidden_scrolled": [
+     7.199999809265137,
+     6.400000095367432
+    ],
+    "resized_offset": [
+     0,
+     0
+    ],
+    "resized": {
+     "client": [
+      360,
+      260
+     ],
+     "scroll": [
+      360,
+      260
+     ]
+    }
+   },
+   "nested": {
+    "original": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      150,
+      140
+     ]
+    },
+    "scrolled": [
+     50.400001525878906,
+     40
+    ],
+    "child_bounds": [
+     2,
+     12.40000057220459,
+     130,
+     120
+    ],
+    "rtl_scrolled": [
+     -49.599998474121094,
+     40
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      100,
+      100
+     ]
+    },
+    "resized": {
+     "client": [
+      160,
+      160
+     ],
+     "scroll": [
+      160,
+      160
+     ]
+    }
+   },
+   "integer_api": {
+    "root": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "scroll": {
+     "client": [
+      85,
+      65
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed": {
+     "client": [
+      85,
+      65
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed_bounds": [
+     -51.85000228881836,
+     -83.70000457763672,
+     207.40000915527344,
+     251.10000610351562
+    ],
+    "hidden": {
+     "client": [
+      101,
+      81
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "inline_block": {
+     "client": [
+      41,
+      21
+     ],
+     "scroll": [
+      41,
+      21
+     ]
+    }
+   }
+  },
+  "1.5": {
+   "viewport": {
+    "original": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "original_scrolled": [
+     22.66666603088379,
+     21.33333396911621
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "asymmetric": {
+     "client": [
+      320,
+      225
+     ],
+     "scroll": [
+      320,
+      225
+     ]
+    },
+    "forced": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      305,
+      225
+     ]
+    },
+    "hidden": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "hidden_scrolled": [
+     7.333333492279053,
+     6
+    ],
+    "resized_offset": [
+     0,
+     0
+    ],
+    "resized": {
+     "client": [
+      360,
+      260
+     ],
+     "scroll": [
+      360,
+      260
+     ]
+    }
+   },
+   "nested": {
+    "original": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      150,
+      140
+     ]
+    },
+    "scrolled": [
+     50,
+     40
+    ],
+    "child_bounds": [
+     2.6666667461395264,
+     12.666666984558105,
+     130,
+     120
+    ],
+    "rtl_scrolled": [
+     -50,
+     40
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      100,
+      100
+     ]
+    },
+    "resized": {
+     "client": [
+      160,
+      160
+     ],
+     "scroll": [
+      160,
+      160
+     ]
+    }
+   },
+   "integer_api": {
+    "root": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "scroll": {
+     "client": [
+      85,
+      65
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed": {
+     "client": [
+      85,
+      65
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed_bounds": [
+     -52.25,
+     -84.5,
+     209,
+     253.5
+    ],
+    "hidden": {
+     "client": [
+      101,
+      81
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "inline_block": {
+     "client": [
+      41,
+      21
+     ],
+     "scroll": [
+      41,
+      21
+     ]
+    }
+   }
+  },
+  "2.0": {
+   "viewport": {
+    "original": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "original_scrolled": [
+     22,
+     21
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "asymmetric": {
+     "client": [
+      320,
+      225
+     ],
+     "scroll": [
+      320,
+      225
+     ]
+    },
+    "forced": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      305,
+      225
+     ]
+    },
+    "hidden": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "hidden_scrolled": [
+     7,
+     6
+    ],
+    "resized_offset": [
+     0,
+     0
+    ],
+    "resized": {
+     "client": [
+      360,
+      260
+     ],
+     "scroll": [
+      360,
+      260
+     ]
+    }
+   },
+   "nested": {
+    "original": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      150,
+      140
+     ]
+    },
+    "scrolled": [
+     50,
+     40
+    ],
+    "child_bounds": [
+     3,
+     13,
+     130,
+     120
+    ],
+    "rtl_scrolled": [
+     -50,
+     40
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      100,
+      100
+     ]
+    },
+    "resized": {
+     "client": [
+      160,
+      160
+     ],
+     "scroll": [
+      160,
+      160
+     ]
+    }
+   },
+   "integer_api": {
+    "root": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "scroll": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed_bounds": [
+     -52.25,
+     -84.5,
+     209,
+     253.5
+    ],
+    "hidden": {
+     "client": [
+      101,
+      81
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "inline_block": {
+     "client": [
+      41,
+      21
+     ],
+     "scroll": [
+      41,
+      21
+     ]
+    }
+   }
+  },
+  "3.0": {
+   "viewport": {
+    "original": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "original_scrolled": [
+     22,
+     21
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "asymmetric": {
+     "client": [
+      320,
+      225
+     ],
+     "scroll": [
+      320,
+      225
+     ]
+    },
+    "forced": {
+     "client": [
+      305,
+      225
+     ],
+     "scroll": [
+      305,
+      225
+     ]
+    },
+    "hidden": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      327,
+      246
+     ]
+    },
+    "hidden_scrolled": [
+     7,
+     6
+    ],
+    "resized_offset": [
+     0,
+     0
+    ],
+    "resized": {
+     "client": [
+      360,
+      260
+     ],
+     "scroll": [
+      360,
+      260
+     ]
+    }
+   },
+   "nested": {
+    "original": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      150,
+      140
+     ]
+    },
+    "scrolled": [
+     50,
+     40
+    ],
+    "child_bounds": [
+     3,
+     13,
+     130,
+     120
+    ],
+    "rtl_scrolled": [
+     -50,
+     40
+    ],
+    "small_offset": [
+     0,
+     0
+    ],
+    "small": {
+     "client": [
+      100,
+      100
+     ],
+     "scroll": [
+      100,
+      100
+     ]
+    },
+    "resized": {
+     "client": [
+      160,
+      160
+     ],
+     "scroll": [
+      160,
+      160
+     ]
+    }
+   },
+   "integer_api": {
+    "root": {
+     "client": [
+      320,
+      240
+     ],
+     "scroll": [
+      320,
+      240
+     ]
+    },
+    "scroll": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed": {
+     "client": [
+      86,
+      66
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "transformed_bounds": [
+     -52.25,
+     -84.5,
+     209,
+     253.5
+    ],
+    "hidden": {
+     "client": [
+      101,
+      81
+     ],
+     "scroll": [
+      201,
+      161
+     ]
+    },
+    "inline_block": {
+     "client": [
+      41,
+      21
+     ],
+     "scroll": [
+      41,
+      21
+     ]
+    }
+   }
+  }
+ }
+}
