@@ -90,6 +90,18 @@ The samples show all three mechanisms:
   - a 1px border is 0.8 CSS px, so the border box is 31.59375 tall, not 32;
   - the scrollbar is 15.2 CSS px (19 device px), so the scroll case is
     184.796875 wide, not 185.
+- **Scroll metrics.** The framework track's real-zoom recapture of
+  `scroll_metrics.c` (build-with-div/div#66) found 25 values that differ
+  at 1.25x and 1.5x. It pins them as named gaps:
+  - `device-scale-border-width`: borders floored to whole device pixels,
+    `ConvertBorderWidth` above;
+  - `device-scale-scrollbar-thickness`: the scrollbar is round(15 × scale)
+    device px, so a `clientWidth` is 85, not 86;
+  - `device-scale-scroll-offset`: scroll offsets snap to device pixels.
+    For example, a 50px scroll ends at 150.4 at 1.25x, which the wheel
+    work (build-with-div/div#63) also pins.
+  Stage 2 is expected to close all three, and the tests pinning them
+  change with it.
 - **Web fonts.** In the real-zoom recapture of the web-font fixtures
   (build-with-div/div#62), 11 of 14 non-exact rows have identical glyph
   rasters, and the baseline is one device pixel off. Blink rounds
@@ -170,7 +182,7 @@ stays in CSS px.**
 | Stage | Change | Census rows it targets (of the 6,277) | Measured by |
 | --- | --- | --- | --- |
 | 1 | CSS `zoom` in style, per-property rounding after zoom. No device scale change | None at 1.25x, 1.5x or 2x. At 1x, census and coverage rows that use `zoom` | the 1x census, `css/css-viewport/zoom` tests |
-| 2 | Device scale as root zoom: layout and paint in device px, replay at scale 1, the API boundary | The 5,632 edge-only rows (snapping comes with the change) and the part of the 645 that are lengths: borders, outline offsets, scrollbars, `LayoutUnit` rounding | the full census and coverage at the real-zoom oracle, against the c82502d baseline |
+| 2 | Device scale as root zoom: layout and paint in device px, replay at scale 1, the API boundary | The 5,632 edge-only rows (snapping comes with the change) and the part of the 645 that are lengths: borders, outline offsets, scrollbars, scroll offsets, `LayoutUnit` rounding | the full census and coverage at the real-zoom oracle, against the c82502d baseline |
 | 3 | Text in device px: shaping at the zoomed size, rounded line metrics | What stage 2 leaves among the text rows, #62's 11 baseline rows, the Inter 400 line-box item | the census, the #62 web-font fixtures |
 
 The split of the 645 rows between stages 2 and 3 is not measured yet.
@@ -179,9 +191,11 @@ Stage 2's census measures it.
 ## Affected tracks
 
 - **Framework.** No API change. Its fixtures at scales other than 1 move
-  from Div's current values to Chromium's. The ResizeObserver
-  `device-scale-edges` gap pinned in #57 is expected to close in stage 2,
-  and that test is updated there.
+  from Div's current values to Chromium's. Stage 2 is expected to close the
+  named gaps the framework pins, and it updates their tests:
+  - ResizeObserver's `device-scale-edges` (#57);
+  - `device-scale-border-width`, `device-scale-scrollbar-thickness` and
+    `device-scale-scroll-offset` (#63, #66).
 - **Components.**
   - No API change.
   - Its real-zoom reference evidence is re-measured after stages 2 and 3.
