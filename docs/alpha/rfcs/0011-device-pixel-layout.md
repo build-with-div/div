@@ -49,7 +49,10 @@ Chromium frames and sorted every differing pixel two ways:
 - **Which engine blends.** At each edge pixel, the classifier checks which
   frame paints an endpoint colour and which paints an anti-aliased one.
 
-The script and per-row results are listed under Migration, step 1.
+The script, the per-row results and the sample crops are in
+`archive/docs/progress/evidence/rfc-0011-real-zoom-classes-2026-11-16/`
+in build-with-div/div-fidelity-data at
+[ae10ca8](https://github.com/build-with-div/div-fidelity-data/tree/ae10ca8c52e117394d3760ed5ef7f84638b2a409/archive/docs/progress/evidence/rfc-0011-real-zoom-classes-2026-11-16).
 
 | Profile | Edge only | Some geometry | Div blends where Chromium is crisp |
 | --- | --- | --- | --- |
@@ -193,8 +196,9 @@ Stage 2's census measures it.
 
 ## Migration
 
-1. **This RFC, docs only.** The classifier script and per-row results go
-   into the data repository with this RFC. The parked 205-row
+1. **This RFC, docs only.** Its measurements are already in the data
+   repository (commit ae10ca8); the next `fidelity-data.lock` bump pins
+   them. The parked 205-row
    layout-at-DSF experiment (emulated oracle) stays closed; this RFC
    replaces it.
 2. **Stage 1**, one engine PR: CSS `zoom`, with its WPT tests, the 1x

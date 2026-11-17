@@ -148,3 +148,9 @@ on branch `components/c4-assets` and the shared findings note.
   unchanged at all four profiles, and CSS Grid coverage gains 7 exact
   comparisons at 1x and 7 at 2x (real-zoom oracle) and loses none.
   [Record](../grid-auto-placement-cursor-2026-11-10.md).
+- 16 November 2026: RFC 0011 proposes layout and paint in device pixels at
+  scales other than 1, with the device scale applied as a zoom, as Chromium
+  does. Of the 6,277 census rows that the real-zoom oracle (RFC 0010) made
+  different, 5,632 differ only at edges and 645 need lengths or text in
+  device pixels. Docs only; nothing is implemented before approval.
+  [RFC](../../alpha/rfcs/0011-device-pixel-layout.md).
