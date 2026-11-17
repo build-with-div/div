@@ -11,6 +11,103 @@ Each named gap is pinned by a test that fails if its count changes.
 | Gap | Owner | Pinned by | Size | Opened |
 | --- | --- | --- | --- | --- |
 | `opacity-lcd-grayscale-raster`: Chromium's grayscale raster of LCD-configured text in an opacity group that cc does not let keep LCD text differs from Div's | fidelity (text raster) | `native_opacity_lcd_text.rs`, page `filter-elsewhere` | 1,271 text pixels at 1x, plus 700 in the blurred box | 17 November 2026 |
+| `rounded-border-raster-1.25x`: the outer curve of a solid rounded border ring at 1.25x differs from Chromium's by up to 7, and the clipped content next to it follows | fidelity (border raster) | `native_rounded_clip.rs`, page `rrect` | 23 pixels at 1.25x, all in the bottom-left corner | 17 November 2026 |
+| `gradient-dither-fractional-scale`: Chromium's dithered gradient blends to 129 on a rounded clip's curve where Div blends to 128 | fidelity (gradient raster) | `native_rounded_clip.rs`, page `gradient-clip` | 36 pixels at 1.25x | 17 November 2026 |
+
+## 17 November 2026: content and backgrounds under rounded clips
+
+- **Problem:** eight census rows at 1x differ from Chromium on the
+  anti-aliased edge of a rounded clip. This change takes the three whose
+  cause it found: `css-backgrounds/border-radius-clip-001`,
+  `background-clip-padding-box-with-border-radius` and
+  `background-rounded-image-clip-001`. The other five are listed under
+  remaining rows below.
+- **Blink's paths** (147.0.7727.50, `box_painter_base.cc`,
+  `rounded_inner_rect_clipper.cc`, `graphics_context.cc`):
+  - A background clipped to the border box takes the fast path,
+    `PaintFastBottomLayer`: one `drawRRect` (or `DrawImageRRect`).
+  - A background clipped to the padding or content box takes the slow
+    path: `RoundedInnerRectClipper` sets one anti-aliased rounded clip, then
+    `FillRect` of the snapped border box (or `DrawTiledBackground` for an
+    image layer, so a gradient keeps its shader, which Chromium dithers).
+  - Content under a rounded `overflow` clip draws through one anti-aliased
+    `ClipRRect`.
+- **Change** (`div-paint`, `painter.rs`):
+  1. Rounded overflow clips use `clip_rrect` with anti-aliasing. The packed
+     coverage mask (a save layer with `DstIn`, one coverage quantum above
+     the shape) is gone, with `packed_rounded_clip_mask`,
+     `rounded_overflow_content_mask` and `fragment_subtree_has_text`.
+  2. A background color whose `background-clip` is the padding or content
+     box is drawn as Blink's slow path: an anti-aliased `clip_rrect` of the
+     clip box, then the border box rectangle. Blink decides on the
+     specified clip (`is_border_fill`), not the clip a local background of
+     a scroll container ends up with: that background is clipped to the
+     padding box but keeps the direct rounded-rect fill.
+  3. A constant gradient (`linear-gradient(green, green)`) under a border
+     radius stays a gradient instead of becoming a solid color, so it is
+     drawn through the gradient shader like Chromium's.
+- **Native test:** `crates/divui/tests/native_rounded_clip.rs` with fixture
+  `tests/fidelity/fixtures/rounded-clip-v1`: six pages at scales 1, 1.25,
+  1.5 and 2 from pinned Linux Chrome 147 (real zoom), captured by
+  `tools/qualification/capture_rounded_clip_oracle.py`. Differing pixels,
+  before → after at 1x and 1.25x, after only at 1.5x and 2x (main was not
+  measured there):
+
+  | Page | 1x | 1.25x | 1.5x | 2x |
+  | --- | --- | --- | --- | --- |
+  | `circle`: green block overflowing a circular clip | 307 → 0 | 0 | 0 | 0 |
+  | `circle-img`: green `<img>` in the same clip | 130 → 0 | 0 | 0 | 0 |
+  | `rrect`: rounded overflow clip inside a solid border | 108 → 0 | 144 → 23 | 0 | 0 |
+  | `padding-clip`: background color clipped to a rounded padding box | 42 → 0 | 456 → 457 | 0 | 0 |
+  | `gradient-clip`: solid gradient clipped to a rounded content box | 18 → 0 | 26 → 36 | 0 | 0 |
+  | `local-hidden`: local background of a rounded scroll container under a translucent border | 0 | 1,161 | 0 | 0 |
+
+  `local-hidden` was added after the first census run of this change lost
+  it (see below), so its row shows only this change. Keying the slow path
+  on Div's effective clip instead of the specified one gives 39, 1,161, 61
+  and 71 differing pixels.
+
+  The remaining frames are pinned as gaps:
+  - `rrect` at 1.25x: `rounded-border-raster-1.25x` (Open gaps).
+  - `padding-clip` at 1.25x: the padding box's edges fall on device 37.5
+    and 162.5. Chromium ends them on whole device pixels; Div lays out in
+    CSS px. Owner: engine (device-pixel layout, RFC 0011). The one added
+    pixel lies on that fractional edge.
+  - `gradient-clip` at 1.25x: `gradient-dither-fractional-scale` (Open
+    gaps). The solid-color shortcut hid the dither difference at this scale
+    and, at 1x, caused the 18 differing pixels.
+  - `local-hidden` at 1.25x: the 10px border and the box's 10px offset fall
+    on half device pixels. Owner: engine (device-pixel layout, RFC 0011).
+- **Census and coverage** (WSL, 16 jobs, under the census lock), base
+  main `5231c6c` against the change at `afbe7eb`:
+  - census: 16,287 → 16,296 exact, 7,441 → 7,432 different, 0 errors on
+    both sides;
+  - coverage: 1,473 exact, 2,575 different, 156 errors on both sides, and
+    no Div image changed.
+
+  No page was lost. Nine became exact: `border-radius-clip-001` and
+  `background-rounded-image-clip-001` at 1x, 1.5x and 2x,
+  `background-clip-padding-box-with-border-radius` at 1x, and the
+  `attachment-local-clipping-color-6-ref` and `-image-6-ref` pages at 1x.
+  18 Div images changed. 15 differ less, and three at 1.25x differ more:
+  `background-rounded-image-clip-001` 26 → 44 (the gradient dither gap),
+  `attachment-local-clipping-color-6-ref` 8,436 → 8,438 and
+  `background-clip-padding-box-with-border-radius` 1,353 → 1,354.
+  The first census run of this change, at `b271bc1`, lost
+  `background-attachment-local-hidden` at 1x (39 pixels) and 1.5x (61);
+  the second commit fixes that, and the `local-hidden` page pins it.
+- **Remaining rounded-clip rows** (not diagnosed): `rounded-clipped-border`
+  and its reference, `border-radius-clipping-with-transform-001` and its
+  reference, and `border-radius-clip-002`.
+- **Verification:**
+  - `cargo test --locked -p divui --features "divui/async divui/http
+    divui/testing" --test native_rounded_clip` (WSL, CI Skia flags) passes.
+  - `python3 tools/qualification/capture_rounded_clip_oracle.py --chrome
+    <pinned Linux chrome> --check` matches the fixture.
+  - The census pair under `census_lock.py`, with per-page comparison of the
+    two `expanded-summary.json` and `coverage-summary.json`.
+  - `cargo test -p div-paint` and the full divui suite were not run
+    locally (another lane's census held the machine); CI runs them.
 
 ## 17 November 2026: LCD text inside opacity groups, where cc keeps it
 
