@@ -135,7 +135,7 @@ pub fn shape(element: &Element, vp: &Viewport) -> Shape {
             .map(|v| Length::parse(v).map_or(0.0, |l| l.resolve(axis, &ctx)))
     };
     let get = |name: &str, axis: Axis| num(name, axis).unwrap_or(0.0);
-    match element.tag.as_str() {
+    let mut out = match element.tag.as_str() {
         "path" => Shape::from_path(path_from_data(&PathData::parse(
             element.attrs.get("d").map_or("", |s| s),
         ))),
@@ -169,10 +169,18 @@ pub fn shape(element: &Element, vp: &Viewport) -> Shape {
             element.tag == "polygon",
         ),
         other => panic!("unexpected probe <{other}>"),
-    }
+    };
+    out.path_length = element.attrs.get("pathLength").map(|v| v.parse().unwrap());
+    out
 }
 
 pub fn stroke_style(style: &BTreeMap<String, String>) -> StrokeStyle {
+    stroke_style_in(style, &length_context(0.0, 0.0))
+}
+
+/// The stroke, with `stroke-dasharray` and `stroke-dashoffset` lengths
+/// resolved in `context` (percentages against the normalized diagonal).
+pub fn stroke_style_in(style: &BTreeMap<String, String>, context: &LengthContext) -> StrokeStyle {
     let mut out = StrokeStyle::default();
     if let Some(w) = style.get("stroke-width") {
         out.width = w.trim_end_matches("px").parse().unwrap();
@@ -194,11 +202,27 @@ pub fn stroke_style(style: &BTreeMap<String, String>) -> StrokeStyle {
         out.dash_array = d
             .split([' ', ','])
             .filter(|s| !s.is_empty())
-            .map(|s| s.parse().unwrap())
+            .map(|s| css_length(s).resolve(Axis::Other, context))
             .collect();
+    }
+    if let Some(o) = style.get("stroke-dashoffset") {
+        out.dash_offset = css_length(o).resolve(Axis::Other, context);
     }
     if style.get("stroke").map(String::as_str) == Some("none") {
         out.width = 0.0;
     }
     out
+}
+
+/// A length in a CSS property value. CSS reads the number in double
+/// precision and stores it as a float, unlike `div-svg`'s attribute scanner,
+/// which accumulates in single precision: `dash/pathlength-path`'s
+/// `0.05 0.03` dashes differ by three pixels with the scanner's values.
+pub fn css_length(text: &str) -> Length {
+    let mut length = Length::parse(text).unwrap_or_else(|| panic!("length {text}"));
+    let end = text
+        .find(|c: char| !(c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E')))
+        .unwrap_or(text.len());
+    length.value = text[..end].parse::<f64>().unwrap() as f32;
+    length
 }

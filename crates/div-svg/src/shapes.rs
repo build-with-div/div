@@ -31,6 +31,9 @@ pub struct Shape {
     /// SVG 2 §10: a `rect` or `ellipse` whose used size is zero, a `circle`
     /// with no radius, or an empty path draws nothing.
     pub empty: bool,
+    /// The `pathLength` attribute, which scales distances along the shape
+    /// (dashes) by the computed length over it.
+    pub path_length: Option<f32>,
 }
 
 impl Shape {
@@ -43,6 +46,7 @@ impl Shape {
             bbox,
             geometry: Geometry::Path,
             empty,
+            path_length: None,
         }
     }
 }
@@ -84,6 +88,7 @@ pub fn rect(x: f32, y: f32, width: f32, height: f32, rx: Option<f32>, ry: Option
             Geometry::Rectangle
         },
         empty: !renders(width, height),
+        path_length: None,
     }
 }
 
@@ -107,6 +112,7 @@ pub fn ellipse(cx: f32, cy: f32, rx: f32, ry: f32) -> Shape {
         bbox: Rect::new(bounds.left, bounds.top, bounds.width(), bounds.height()),
         geometry: Geometry::Ellipse,
         empty: !renders(rx, ry),
+        path_length: None,
     }
 }
 

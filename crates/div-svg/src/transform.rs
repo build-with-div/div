@@ -69,6 +69,24 @@ impl Matrix {
         )
     }
 
+    /// The inverse, in double precision, or `None` when the matrix is not
+    /// invertible (a zero or non-finite determinant).
+    pub fn inverse(&self) -> Option<Self> {
+        let det = self.a * self.d - self.b * self.c;
+        if det == 0.0 || !det.is_finite() {
+            return None;
+        }
+        let (a, b, c, d) = (self.d / det, -self.b / det, -self.c / det, self.a / det);
+        Some(Self::new(
+            a,
+            b,
+            c,
+            d,
+            -(a * self.e + c * self.f),
+            -(b * self.e + d * self.f),
+        ))
+    }
+
     /// The six values in single precision, as Chromium reports them.
     pub fn to_f32(&self) -> [f32; 6] {
         [self.a, self.b, self.c, self.d, self.e, self.f].map(|v| v as f32)
@@ -133,5 +151,15 @@ mod tests {
     fn rejects_the_whole_list_on_an_unknown_function() {
         assert_eq!(parse_transform_list("translate(10 20) bogus(3)"), None);
         assert_eq!(parse_transform_list("rotate(1 2)"), None);
+    }
+
+    #[test]
+    fn inverts_affine_matrices() {
+        let m = Matrix::new(2.0, 0.0, 0.0, 4.0, 10.0, 20.0);
+        assert_eq!(
+            m.inverse(),
+            Some(Matrix::new(0.5, 0.0, 0.0, 0.25, -5.0, -5.0))
+        );
+        assert_eq!(Matrix::scale(3.0, 0.0).inverse(), None);
     }
 }

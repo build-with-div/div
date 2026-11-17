@@ -1,8 +1,12 @@
 //! `div_svg::paint` against Chromium 147's pixels for the paint corpus
-//! (`tools/svg/paint_corpus.py`), each OS against its own capture.
+//! (`tools/svg/paint_corpus.py`), each OS against its own capture. The
+//! corpus has two sets with their own fixtures and gap lists: `v1` (fills,
+//! strokes, transforms, viewports, Lucide icons) and `v2` (dashes,
+//! `pathLength`, `paint-order`, `shape-rendering`, `vector-effect`, chart
+//! compositions).
 //!
 //! Chromium renders every case of a sheet in its own slot of one page, at
-//! scale 1 and, for the Lucide icons, at 2 (real zoom). This test paints
+//! scale 1 and, for a subset, at 2 (real zoom). This test paints
 //! each case with `div-svg` the way Div's renderer rasterizes a page: on
 //! white `raster_n32_premul` tiles of 256 px that step by 254
 //! (`div-paint`'s `render.rs`, after cc's tiling), each case in the device
@@ -20,7 +24,8 @@ mod support;
 use div_svg::geometry::FillRule;
 use div_svg::length::Axis;
 use div_svg::paint::{
-    clip_viewport, paint_shape, root_transform, to_sk_matrix, RootBox, SvgPaint, SvgPaintStyle,
+    clip_viewport, paint_shape, root_transform, to_sk_matrix, PaintOrder, RootBox, ShapeRendering,
+    SvgPaint, SvgPaintStyle,
 };
 use div_svg::transform::{parse_transform_list, Matrix};
 use div_svg::viewport::{parse_view_box, view_box_transform, PreserveAspectRatio};
@@ -29,18 +34,20 @@ use serde_json::Value;
 use skia_safe::{surfaces, AlphaType, Color, Color4f, ColorType, ImageInfo, M44};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use support::{elements, length_context, shape, stroke_style, style_map, Element, Viewport};
+use support::{elements, length_context, shape, stroke_style_in, style_map, Element, Viewport};
 
 #[cfg(target_os = "linux")]
 const ORACLE: (&str, &str) = ("linux", "chromium-linux");
 #[cfg(windows)]
 const ORACLE: (&str, &str) = ("win32", "chromium-windows");
-const KNOWN_GAPS: &str =
+const KNOWN_GAPS_V1: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v1/known-gaps.txt");
+const KNOWN_GAPS_V2: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-paint-v2/known-gaps.txt");
 /// The page's `color`, which `currentColor` resolves to.
 const INK: &str = "#09090b";
 /// The SVG properties the corpus sets, all inherited.
-const PROPERTIES: [&str; 11] = [
+const PROPERTIES: [&str; 14] = [
     "color",
     "fill",
     "fill-opacity",
@@ -52,10 +59,13 @@ const PROPERTIES: [&str; 11] = [
     "stroke-linejoin",
     "stroke-miterlimit",
     "stroke-dasharray",
+    "stroke-dashoffset",
+    "paint-order",
+    "shape-rendering",
 ];
 
-fn fixtures() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fidelity/fixtures/svg-paint-v1")
+fn fixtures(set: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../tests/fidelity/fixtures/{set}"))
 }
 
 struct Node {
@@ -95,6 +105,11 @@ fn tree(markup: &str) -> Node {
 /// attribute, over the parent's values.
 fn cascade(element: &Element, parent: &BTreeMap<String, String>) -> BTreeMap<String, String> {
     let mut out = parent.clone();
+    // `vector-effect` is not inherited.
+    out.remove("vector-effect");
+    if let Some(value) = element.attrs.get("vector-effect") {
+        out.insert("vector-effect".to_owned(), value.clone());
+    }
     for name in PROPERTIES {
         if let Some(value) = element.attrs.get(name) {
             out.insert(name.to_owned(), value.clone());
@@ -113,6 +128,11 @@ fn color(text: &str, current: &str) -> Color4f {
     let hex = text
         .strip_prefix('#')
         .unwrap_or_else(|| panic!("colour {text}"));
+    let hex = if hex.len() == 3 {
+        hex.chars().flat_map(|c| [c, c]).collect()
+    } else {
+        hex.to_owned()
+    };
     let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).unwrap();
     Color4f::from(Color::from_rgb(channel(0), channel(2), channel(4)))
 }
@@ -125,7 +145,7 @@ fn paint_value(value: Option<&String>, initial: SvgPaint, current: &str) -> SvgP
     }
 }
 
-fn paint_style(props: &BTreeMap<String, String>) -> SvgPaintStyle {
+fn paint_style(props: &BTreeMap<String, String>, vp: &Viewport) -> SvgPaintStyle {
     let current = props.get("color").map_or(INK, |s| s);
     let opacity = |name: &str| props.get(name).map_or(1.0, |v| v.parse::<f32>().unwrap());
     let initial = SvgPaintStyle::default();
@@ -138,7 +158,19 @@ fn paint_style(props: &BTreeMap<String, String>) -> SvgPaintStyle {
         },
         stroke: paint_value(props.get("stroke"), SvgPaint::None, current),
         stroke_opacity: opacity("stroke-opacity"),
-        stroke_style: stroke_style(props),
+        stroke_style: stroke_style_in(props, &length_context(vp.width, vp.height)),
+        // An invalid value is ignored, leaving the inherited one; the
+        // corpus sets these on single elements, so that is the initial one.
+        paint_order: props
+            .get("paint-order")
+            .and_then(|v| PaintOrder::parse(v))
+            .unwrap_or_default(),
+        shape_rendering: props
+            .get("shape-rendering")
+            .and_then(|v| ShapeRendering::parse(v))
+            .unwrap_or_default(),
+        non_scaling_stroke: props.get("vector-effect").map(String::as_str)
+            == Some("non-scaling-stroke"),
     }
 }
 
@@ -170,6 +202,7 @@ fn paint_children(
     ctm: &Matrix,
     vp: &Viewport,
     props: &BTreeMap<String, String>,
+    to_host: &Matrix,
 ) {
     for child in &node.children {
         let element = &child.element;
@@ -177,7 +210,7 @@ fn paint_children(
         match element.tag.as_str() {
             "g" => {
                 let ctm = ctm.then_apply(&transform_of(element));
-                paint_children(canvas, child, &ctm, vp, &props);
+                paint_children(canvas, child, &ctm, vp, &props, to_host);
             }
             "svg" => {
                 // A nested `svg` clips to its viewport (overflow is hidden),
@@ -209,14 +242,19 @@ fn paint_children(
                     inner_vp.width = vb.width;
                     inner_vp.height = vb.height;
                 }
-                paint_children(canvas, child, &inner, &inner_vp, &props);
+                paint_children(canvas, child, &inner, &inner_vp, &props, to_host);
                 canvas.restore();
             }
             _ => {
                 let ctm = ctm.then_apply(&transform_of(element));
                 canvas.save();
                 canvas.set_matrix(&M44::from(to_sk_matrix(&ctm)));
-                paint_shape(canvas, &shape(element, vp), &paint_style(&props));
+                paint_shape(
+                    canvas,
+                    &shape(element, vp),
+                    &paint_style(&props, vp),
+                    Some(&to_host.then_apply(&ctm)),
+                );
                 canvas.restore();
             }
         }
@@ -298,7 +336,13 @@ fn render(case: &Value, scale: f64, at: (i32, i32)) -> Vec<u8> {
         false,
     );
     let props = cascade(&svg.element, &BTreeMap::new());
-    paint_children(canvas, &svg, &ctm, &vp, &props);
+    // `vector-effect`'s host space: the root's coordinates before the
+    // paint offset and zoom.
+    let to_host = Matrix::translate(f64::from(snapped.0), f64::from(snapped.1))
+        .then_apply(&Matrix::scale(scale, scale))
+        .inverse()
+        .unwrap();
+    paint_children(canvas, &svg, &ctm, &vp, &props, &to_host);
     canvas.restore();
     pixels(&mut surface, size)
 }
@@ -407,9 +451,18 @@ fn write_png(path: &Path, frame: (i32, i32), rgba: &[u8]) {
 }
 
 #[test]
-fn paint_matches_chromium_147() {
+fn paint_v1_matches_chromium_147() {
+    check("svg-paint-v1", KNOWN_GAPS_V1);
+}
+
+#[test]
+fn paint_v2_matches_chromium_147() {
+    check("svg-paint-v2", KNOWN_GAPS_V2);
+}
+
+fn check(set: &str, known_gaps: &str) {
     let (platform, prefix) = ORACLE;
-    let dir = fixtures();
+    let dir = fixtures(set);
     let document: Value = serde_json::from_str(
         &std::fs::read_to_string(dir.join(format!("{prefix}.json"))).expect("read oracle"),
     )
@@ -456,7 +509,7 @@ fn paint_matches_chromium_147() {
             if count > 0 {
                 if let Some(dir) = &dump {
                     std::fs::create_dir_all(dir).unwrap();
-                    let name = format!("{scale}x-{}.png", id.replace('/', "-"));
+                    let name = format!("{set}-{scale}x-{}.png", id.replace('/', "-"));
                     write_png(&dir.join(name), frame, &actual);
                 }
                 results.insert(format!("{scale}x {id}"), (count, max));
@@ -465,7 +518,7 @@ fn paint_matches_chromium_147() {
     }
 
     let mut listed = BTreeMap::new();
-    for line in KNOWN_GAPS.lines() {
+    for line in known_gaps.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -478,7 +531,7 @@ fn paint_matches_chromium_147() {
     }
 
     let exact = total - results.len();
-    eprintln!("{exact} of {total} captures exact");
+    eprintln!("{set}: {exact} of {total} captures exact");
     let mut problems = Vec::new();
     for (key, (count, max)) in &results {
         match listed.get(key) {

@@ -15,9 +15,14 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-    paint_corpus.py list
-    paint_corpus.py capture --chrome PATH --output-prefix \\
-        tests/fidelity/fixtures/svg-paint-v1/chromium-linux
+There are two sets, each with its own fixtures and gap list: `v1` (fills,
+strokes, transforms, viewports and the Lucide icons) and `v2` (dashes,
+`pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
+chart-shaped compositions).
+
+    paint_corpus.py list [--set v2]
+    paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
+        tests/fidelity/fixtures/svg-paint-v2/chromium-linux
 """
 
 from __future__ import annotations
@@ -200,8 +205,217 @@ def lucide_cases() -> list[dict]:
     return out
 
 
-def sheets() -> list[dict]:
-    """The cases of each sheet: everything at 1x, the Lucide icons at 2x."""
+S = f'fill="none" stroke="{INK}"'
+GRID = "#d4d4d8"
+BLUE = "#2563eb"
+
+
+def dash_cases() -> list[dict]:
+    line = '<line x1="6" y1="32" x2="58" y2="32" stroke-width="2" ' + S + ' %s/>'
+    wide = '<line x1="8" y1="32" x2="56" y2="32" stroke-width="6" ' + S + ' %s/>'
+    return [
+        case("dash/line", line % 'stroke-dasharray="6 4"'),
+        case("dash/line-odd", line % 'stroke-dasharray="6 4 2"'),
+        case("dash/line-single", line % 'stroke-dasharray="5"'),
+        case("dash/line-comma", line % 'stroke-dasharray="6,2,1"'),
+        case("dash/line-fraction", line % 'stroke-dasharray="2.5 1.25"'),
+        case("dash/offset", line % 'stroke-dasharray="6 4" stroke-dashoffset="3"'),
+        case("dash/offset-negative", line % 'stroke-dasharray="6 4" stroke-dashoffset="-3"'),
+        case("dash/offset-large", line % 'stroke-dasharray="6 4" stroke-dashoffset="23.5"'),
+        case("dash/negative", line % 'stroke-dasharray="4 -2"'),
+        case("dash/all-zero", line % 'stroke-dasharray="0 0"'),
+        case("dash/zero-gap", line % 'stroke-dasharray="4 0"'),
+        case("dash/dots-round", wide % 'stroke-dasharray="0 10" stroke-linecap="round"'),
+        case("dash/dots-square", wide % 'stroke-dasharray="0 10" stroke-linecap="square"'),
+        case("dash/dots-butt", wide % 'stroke-dasharray="0 10"'),
+        case("dash/caps-round", wide % 'stroke-dasharray="8 8" stroke-linecap="round"'),
+        case("dash/percent", line % 'stroke-dasharray="10% 5%"'),
+        case("dash/offset-percent", line % 'stroke-dasharray="6 4" stroke-dashoffset="5%"'),
+        case("dash/units", line % 'stroke-dasharray="1mm 2px"'),
+        case("dash/rect", '<rect x="8" y="8" width="48" height="40" stroke-width="2" '
+             'stroke-dasharray="8 4" ' + S + '/>'),
+        case("dash/rect-grid", '<rect x="8.5" y="8.5" width="47" height="39" stroke-width="1" '
+             f'stroke-dasharray="3 3" fill="none" stroke="{GRID}"/>'),
+        case("dash/rect-rounded", '<rect x="8" y="8" width="48" height="40" rx="10" stroke-width="2" '
+             'stroke-dasharray="6 3" ' + S + '/>'),
+        case("dash/circle", '<circle cx="32" cy="32" r="22" stroke-width="3" '
+             'stroke-dasharray="7 4" ' + S + '/>'),
+        case("dash/circle-offset", '<circle cx="32" cy="32" r="22" stroke-width="3" '
+             'stroke-dasharray="7 4" stroke-dashoffset="5" ' + S + '/>'),
+        case("dash/ellipse", '<ellipse cx="32" cy="32" rx="26" ry="14" stroke-width="2" '
+             'stroke-dasharray="5 3" ' + S + '/>'),
+        case("dash/polyline", '<polyline points="8,52 24,12 40,52 56,12" stroke-width="3" '
+             'stroke-dasharray="10 4" ' + S + '/>'),
+        case("dash/polygon", '<polygon points="32,6 58,52 6,52" stroke-width="2" '
+             'stroke-dasharray="9 5" stroke-linejoin="round" ' + S + '/>'),
+        case("dash/path-curve", '<path d="M6 48 C14 4 50 4 58 48" stroke-width="2" '
+             'stroke-dasharray="6 3" ' + S + '/>'),
+        case("dash/path-arc", '<path d="M8 40 A24 24 0 0 1 56 40" stroke-width="3" '
+             'stroke-dasharray="4 4" stroke-linecap="round" ' + S + '/>'),
+        case("dash/path-subpaths", '<path d="M8 16h48M8 32h48M8 48h48" stroke-width="2" '
+             'stroke-dasharray="7 5" ' + S + '/>'),
+        case("dash/path-closed", '<path d="M12 12h40v40h-40z" stroke-width="3" '
+             'stroke-dasharray="15 5" stroke-dashoffset="10" ' + S + '/>'),
+        case("dash/pathlength-line", line % 'pathLength="10" stroke-dasharray="1 0.5"'),
+        case("dash/pathlength-circle", '<circle cx="32" cy="32" r="22" stroke-width="3" '
+             'pathLength="100" stroke-dasharray="10 5" ' + S + '/>'),
+        case("dash/pathlength-rect", '<rect x="8" y="8" width="48" height="40" stroke-width="2" '
+             'pathLength="40" stroke-dasharray="3 2" ' + S + '/>'),
+        case("dash/pathlength-path", '<path d="M6 48 C14 4 50 4 58 48" stroke-width="2" '
+             'pathLength="1" stroke-dasharray="0.05 0.03" ' + S + '/>'),
+        case("dash/pathlength-offset", line % 'pathLength="100" stroke-dasharray="10 5" '
+             'stroke-dashoffset="7"'),
+        case("dash/pathlength-zero", line % 'pathLength="0" stroke-dasharray="6 4"'),
+        case("dash/pathlength-negative", line % 'pathLength="-5" stroke-dasharray="6 4"'),
+        case("dash/transform", '<g transform="rotate(30 32 32) scale(1.5)">'
+             '<line x1="4" y1="21" x2="38" y2="21" stroke-width="2" stroke-dasharray="4 2" '
+             + S + '/></g>'),
+        case("dash/viewbox", '<circle cx="12" cy="12" r="9" stroke-width="2" '
+             'stroke-dasharray="3 2" ' + S + '/>', size=(48, 48), attrs='viewBox="0 0 24 24"'),
+        case("dash/hairline", '<line x1="4" y1="10.5" x2="60" y2="54.5" stroke-width="0.5" '
+             'stroke-dasharray="1 1" ' + S + '/>'),
+        case("dash/opacity", wide % 'stroke-dasharray="8 3" stroke-opacity="0.5"'),
+    ]
+
+
+def order_cases() -> list[dict]:
+    shape = ('<circle cx="32" cy="32" r="18" fill="#93c5fd" stroke="' + INK
+             + '" stroke-width="10" stroke-opacity="0.6" paint-order="%s"/>')
+    return [
+        case("order/normal", shape % "normal"),
+        case("order/stroke", shape % "stroke"),
+        case("order/stroke-fill", shape % "stroke fill"),
+        case("order/fill-stroke", shape % "fill stroke"),
+        case("order/markers", shape % "markers"),
+        case("order/markers-stroke", shape % "markers stroke"),
+        case("order/invalid", shape % "fill fill"),
+        case("order/inherit", '<g paint-order="stroke"><rect x="12" y="12" width="40" height="40" '
+             f'fill="#93c5fd" stroke="{INK}" stroke-width="8"/></g>'),
+    ]
+
+
+def rendering_cases() -> list[dict]:
+    crisp = 'shape-rendering="crispEdges"'
+    return [
+        case("crisp/rect-half", f'<rect x="8.5" y="8.5" width="47" height="40.5" fill="#3b82f6" {crisp}/>'),
+        case("crisp/rect-quarter", f'<rect x="8.25" y="7.75" width="20.5" height="30.4" fill="#3b82f6" {crisp}/>'),
+        case("crisp/circle", f'<circle cx="32.3" cy="31.6" r="20.25" fill="#3b82f6" {crisp}/>'),
+        case("crisp/stroke-1", f'<rect x="8" y="8" width="48" height="48" stroke-width="1" {S} {crisp}/>'),
+        case("crisp/stroke-1-half", f'<rect x="8.5" y="8.5" width="47" height="47" stroke-width="1" {S} {crisp}/>'),
+        case("crisp/stroke-3", f'<rect x="8.3" y="8.3" width="47" height="47" stroke-width="3" {S} {crisp}/>'),
+        case("crisp/diagonal", f'<line x1="4" y1="10" x2="60" y2="54" stroke-width="2" {S} {crisp}/>'),
+        case("crisp/path", f'<path d="M8 40 C8 8 56 8 56 40 Q32 64 8 40z" fill="#93c5fd" '
+             f'stroke="{INK}" stroke-width="2" {crisp}/>'),
+        case("crisp/rotate", f'<rect x="20" y="24" width="24" height="16" fill="#3b82f6" '
+             f'transform="rotate(30 32 32)" {crisp}/>'),
+        case("crisp/inherit", f'<g {crisp}><circle cx="32" cy="32" r="20" fill="none" '
+             f'stroke="{INK}" stroke-width="2"/></g>'),
+        case("crisp/dash-grid", f'<g {crisp} stroke="{GRID}" stroke-dasharray="3 3">'
+             '<line x1="0" y1="16.5" x2="64" y2="16.5"/><line x1="0" y1="40" x2="64" y2="40"/>'
+             '<line x1="20.5" y1="0" x2="20.5" y2="64"/><line x1="44" y1="0" x2="44" y2="64"/></g>'),
+        case("rendering/optimize-speed", '<circle cx="32" cy="32" r="20.5" fill="#3b82f6" '
+             'shape-rendering="optimizeSpeed"/>'),
+        case("rendering/geometric-precision", '<circle cx="32" cy="32" r="20.5" fill="#3b82f6" '
+             'shape-rendering="geometricPrecision"/>'),
+        case("rendering/auto", '<circle cx="32" cy="32" r="20.5" fill="#3b82f6" shape-rendering="auto"/>'),
+    ]
+
+
+def non_scaling_cases() -> list[dict]:
+    ns = 'vector-effect="non-scaling-stroke"'
+    return [
+        case("nonscaling/scale", f'<rect x="3" y="3" width="15" height="12" stroke-width="2" {S} {ns} '
+             'transform="scale(3)"/>'),
+        case("nonscaling/scale-nonuniform", f'<circle cx="10" cy="30" r="8" stroke-width="2" {S} {ns} '
+             'transform="scale(3 1)"/>'),
+        case("nonscaling/skew", f'<rect x="8" y="16" width="30" height="24" stroke-width="2" {S} {ns} '
+             'transform="skewX(25)"/>'),
+        case("nonscaling/rotate", f'<rect x="20" y="24" width="24" height="16" stroke-width="3" {S} {ns} '
+             'transform="rotate(30 32 32)"/>'),
+        case("nonscaling/viewbox", f'<path d="M4 12h16M12 4v16" stroke="{INK}" stroke-width="2" {ns}/>',
+             size=(48, 48), attrs='viewBox="0 0 24 24"'),
+        case("nonscaling/viewbox-none", f'<circle cx="50" cy="25" r="20" stroke-width="2" {S} {ns}/>',
+             size=(60, 60), attrs='viewBox="0 0 100 50" preserveAspectRatio="none"'),
+        case("nonscaling/nested",
+             '<svg x="4" y="4" width="56" height="56" viewBox="0 0 14 14">'
+             f'<circle cx="7" cy="7" r="5" stroke-width="1.5" {S} {ns}/></svg>'),
+        case("nonscaling/dash", f'<line x1="2" y1="10" x2="28" y2="10" stroke-width="2" {S} {ns} '
+             'stroke-dasharray="4 2" transform="scale(2)"/>'),
+        case("nonscaling/fill", f'<rect x="4" y="4" width="16" height="12" fill="#93c5fd" stroke="{INK}" '
+             f'stroke-width="2" {ns} transform="scale(2.5)"/>'),
+        case("nonscaling/line", f'<line x1="2" y1="2" x2="20" y2="14" stroke-width="1.5" {S} {ns} '
+             'transform="scale(2.5)"/>'),
+        case("nonscaling/curve", f'<path d="M2 18 C4 2 16 2 18 18" stroke-width="2" {S} {ns} '
+             'stroke-linecap="round" transform="scale(3 2.5)"/>'),
+        case("nonscaling/group", f'<g {ns} transform="scale(3)"><rect x="3" y="3" width="15" height="12" '
+             f'stroke-width="2" {S}/></g>'),
+        case("nonscaling/offset", f'<rect x="3" y="3" width="15" height="12" stroke-width="2" {S} {ns} '
+             'transform="scale(3)"/>', offset=(0.5, 0.25)),
+    ]
+
+
+def chart_cases() -> list[dict]:
+    """Hand-written in the shape of Recharts' output (shadcn charts), with no
+    text: grid, lines, dots, bars, an area, a draw-in state and sectors."""
+    size = (100, 80)
+    grid = (f'<g stroke="{GRID}" stroke-dasharray="3 3" fill="none">'
+            + "".join(f'<line x1="0" y1="{y}" x2="100" y2="{y}"/>' for y in (10, 30, 50, 70))
+            + "".join(f'<line x1="{x}" y1="0" x2="{x}" y2="80"/>' for x in (12, 37, 62, 87))
+            + "</g>")
+    line_d = "M5,60C15,60,20,25,30,25C40,25,45,45,55,45C65,45,70,15,80,15C88,15,92,30,95,30"
+    dots = "".join(f'<circle cx="{x}" cy="{y}" r="4" fill="#fff" stroke="{BLUE}" stroke-width="2"/>'
+                   for x, y in ((5, 60), (30, 25), (55, 45), (80, 15)))
+    bars = "".join(f'<path d="M{x},{y + 4}a4,4 0 0 1 4,-4h8a4,4 0 0 1 4,4v{76 - y}h-16z" '
+                   f'fill="{BLUE}" fill-opacity="0.8"/>'
+                   for x, y in ((6, 30), (30, 12), (54, 44), (78, 22)))
+    sectors = "".join(
+        f'<path d="M50,40L{x1},{y1}A30,30 0 0 1 {x2},{y2}Z" fill="{c}" stroke="#fff" stroke-width="2"/>'
+        for (x1, y1, x2, y2, c) in ((50, 10, 80, 40, "#2563eb"), (80, 40, 50, 70, "#60a5fa"),
+                                    (50, 70, 23.5, 54.1, "#93c5fd"), (23.5, 54.1, 50, 10, "#1e40af")))
+    return [
+        case("chart/grid", grid, size=size),
+        case("chart/line", f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="2" '
+             'stroke-linejoin="round" stroke-linecap="round"/>', size=size),
+        case("chart/line-dots", f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="2"/>'
+             + dots, size=size),
+        case("chart/bars", bars, size=size),
+        case("chart/area", f'<path d="{line_d}L95,80L5,80Z" fill="{BLUE}" fill-opacity="0.4"/>'
+             f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="2"/>', size=size),
+        case("chart/draw-in", f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="2" '
+             'stroke-dasharray="55.5px 200px" stroke-dashoffset="0px"/>', size=size),
+        case("chart/reference", grid + '<line x1="50.5" y1="0" x2="50.5" y2="80" stroke="#ef4444" '
+             'stroke-width="1" stroke-dasharray="4 4"/>', size=size),
+        case("chart/pie", sectors, size=size),
+        case("chart/radial", f'<circle cx="50" cy="40" r="30" fill="none" stroke="{GRID}" stroke-width="10"/>'
+             f'<circle cx="50" cy="40" r="30" fill="none" stroke="{BLUE}" stroke-width="10" '
+             'pathLength="100" stroke-dasharray="68 100" stroke-linecap="round" '
+             'transform="rotate(-90 50 40)"/>', size=size),
+    ]
+
+
+SCALE_2 = {
+    "dash/line", "dash/offset", "dash/dots-round", "dash/rect-grid", "dash/rect-rounded",
+    "dash/circle", "dash/path-curve", "dash/pathlength-circle", "dash/hairline", "dash/viewbox",
+    "crisp/rect-half", "crisp/rect-quarter", "crisp/circle", "crisp/stroke-1", "crisp/stroke-1-half",
+    "crisp/diagonal", "crisp/dash-grid", "rendering/optimize-speed",
+    "nonscaling/scale", "nonscaling/scale-nonuniform", "nonscaling/viewbox", "nonscaling/dash",
+    "nonscaling/nested", "nonscaling/offset",
+    "order/stroke", "chart/grid", "chart/line-dots", "chart/bars", "chart/draw-in", "chart/radial",
+}
+
+
+def sheets(corpus: str = "v1") -> list[dict]:
+    """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
+    v2: everything at 1x, the `SCALE_2` subset at 2x."""
+    if corpus == "v2":
+        everything = (dash_cases() + order_cases() + rendering_cases() + non_scaling_cases()
+                      + chart_cases())
+        ids = {c["id"] for c in everything}
+        assert SCALE_2 <= ids, SCALE_2 - ids
+        return [
+            {"scale": 1, "cases": everything},
+            {"scale": 2, "cases": [dict(c) for c in everything if c["id"] in SCALE_2]},
+        ]
     everything = fill_cases() + stroke_cases() + transform_cases() + viewport_cases()
     lucide = lucide_cases()
     return [
@@ -253,13 +467,15 @@ def browser_version(chrome: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("list")
+    lst = sub.add_parser("list")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2"), default="v1")
     cap = sub.add_parser("capture")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
 
-    all_sheets = sheets()
+    all_sheets = sheets(args.corpus)
     for sheet in all_sheets:
         ids = [c["id"] for c in sheet["cases"]]
         if len(set(ids)) != len(ids):
