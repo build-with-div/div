@@ -4,6 +4,79 @@ The fidelity lane owns text rasterization and font fidelity (`div-text`,
 raster profiles) and paint-level pixel fidelity. Root causes in layout,
 style or the cascade go to the engine track.
 
+## 17 November 2026: LCD text inside opacity groups, where cc keeps it
+
+- **Problem:** the components' disabled buttons (`disabled:opacity-50`)
+  differ from Chromium by 502 (light) and 489 (dark) pixels at 1x.
+  Chromium keeps the label as LCD text inside the 50% group, but Div drew
+  it in grayscale.
+- **cc's condition** (147.0.7727.50, `cc/paint/paint_op_buffer.cc`
+  `PaintOpBuffer::Playback`): cc decides once per buffer, which is one cc
+  layer's display list. It preserves LCD text when:
+  - the layer's raster can use LCD text (pixel geometry known),
+  - the buffer draws text, and
+  - no op in it, including ops in nested records, is a `SaveLayerOp`.
+
+  When it preserves, every `SaveLayerAlphaOp` in the layer opens with
+  `kPreserveLCDText | kInitWithPrevious`. Blink emits a `SaveLayerOp` for
+  a filter, a blend mode or a mask (`paint_chunks_to_cc_layer.cc`).
+  Opacity alone emits a `SaveLayerAlphaOp`, and backdrop-filter emits a
+  `SaveLayerFiltersOp`; neither prevents preservation. So one filter
+  anywhere in the layer turns preservation off for every opacity group in
+  that layer.
+- **Change** (`div-paint`):
+  - `paint_record.rs`: an `LcdTextLayerScope` per recording canvas. These
+    are the document picture (`render.rs`) and the viewport's scrolling
+    contents (`painter.rs`).
+  - A `will-change: transform` subtree, which Div rasters on a non-LCD
+    surface, gets a scope without LCD text.
+  - `layer_lcd_text_contents` scans the layer's fragments for text and
+    for filters or masks.
+  - CSS opacity (`save_layer_opacity_f`) opens with both flags when the
+    scope allows it. Emulation alpha layers are unchanged.
+- **Second cause:** when a picture is finished, SkRecord's optimizer folds
+  SaveLayer → one draw → Restore into the draw. At 1x, a group holding one
+  text run therefore had no layer at all. cc never folds a
+  `SaveLayerAlphaOp` into text (`paint_op_buffer_iterator.cc`). Div now
+  draws text inside Save + clip to the local clip bounds + Restore, which
+  the optimizer keeps.
+- **Native test:** `crates/divui/tests/native_opacity_lcd_text.rs` with
+  fixture `tests/fidelity/fixtures/opacity-lcd-text-v1`. The fixture holds
+  four pages at scales 1, 1.25, 1.5 and 2 from pinned Linux Chrome 147
+  (real zoom), captured by
+  `tools/qualification/capture_opacity_lcd_oracle.py`:
+  - text in a group over the page: 1,329 → 0 differing pixels at 1x;
+  - a disabled-button-like box: 557 → 0 at 1x;
+  - the same group with a blurred box elsewhere in the layer (not
+    eligible): Chromium and Div now both draw the text in grayscale;
+  - the text without a group: the reference page.
+
+  Above 1x, every page's LCD-colored pixel count equals Chromium's. The
+  remaining differences there match the no-group page's. They are
+  device-pixel layout (owner: engine, RFC 0011).
+- **Remaining gap:** in the not-eligible page, Chromium's grayscale raster
+  of LCD-configured text differs from Div's: 1,271 text pixels at 1x, plus
+  700 in the blurred box. Owner: fidelity (follow-up).
+- **Census and coverage** (WSL, 16 jobs, under the census lock), base
+  main `7bbddf8` against the change at `929ae81`, with the real-zoom
+  fidelity data `c82502d`:
+  - census: 16,287 exact, 7,441 different, 0 errors on both sides;
+  - coverage: 1,459 exact, 2,589 different, 156 errors on both sides.
+
+  No page was lost or gained, and no Div image changed. Most census pages
+  draw aliased Ahem, and only real-font pages use `chromium-linux-lcd`. No
+  census page exercises this change, so the native test is its evidence.
+- **Verification:**
+  - `cargo test --locked -p divui --features "divui/async divui/http
+    divui/testing" --test native_opacity_lcd_text` (WSL, CI Skia flags)
+    passes.
+  - `cargo test --locked -p div-paint` and the divui suite pass.
+  - `python3 tools/qualification/capture_opacity_lcd_oracle.py --chrome
+    <pinned Linux chrome> --check` matches the fixture (captured twice).
+  - The census pair: `census_lock.py run --wait -- div-census.sh <sha>`,
+    with per-page comparison of the two `expanded-summary.json` and
+    `coverage-summary.json`.
+
 ## 16 November 2026: the site showcase at real zoom
 
 - **What:** `site/showcase/capture.py` rerun on the real-zoom launcher
