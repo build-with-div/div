@@ -4,7 +4,7 @@
 //! `tools/qualification/capture_active_chain_oracle.py`.
 
 use div::prelude::*;
-use div::PointerEventKind;
+use div::{PointerInput, PointerInputKind};
 use std::collections::BTreeSet;
 
 const ORACLE: &str =
@@ -95,15 +95,15 @@ fn active_chain_matches_chromium() {
     for step in steps {
         for event in step["events"].as_array().unwrap() {
             let kind = match event[0].as_str().unwrap() {
-                "press" => PointerEventKind::Down,
-                "move" => PointerEventKind::Move,
-                "release" => PointerEventKind::Up,
+                "press" => PointerInputKind::Down,
+                "move" => PointerInputKind::Move,
+                "release" => PointerInputKind::Up,
                 other => panic!("unknown event {other}"),
             };
             let x = event[1].as_f64().unwrap() as f32;
             let y = event[2].as_f64().unwrap() as f32;
             document
-                .dispatch_pointer_event(1, kind, x, y, MouseButton::Left, Modifiers::NONE, true)
+                .dispatch_pointer_input(PointerInput::mouse(kind, x, y))
                 .unwrap();
         }
         let expected: BTreeSet<&str> = step["active"]
@@ -132,19 +132,11 @@ fn a_pressed_disabled_button_is_active_but_not_clicked() {
     disabled
         .on("click", move |_| counted.set(counted.get() + 1))
         .unwrap();
-    for kind in [PointerEventKind::Down, PointerEventKind::Up] {
+    for kind in [PointerInputKind::Down, PointerInputKind::Up] {
         document
-            .dispatch_pointer_event(
-                1,
-                kind,
-                130.0,
-                125.0,
-                MouseButton::Left,
-                Modifiers::NONE,
-                true,
-            )
+            .dispatch_pointer_input(PointerInput::mouse(kind, 130.0, 125.0))
             .unwrap();
-        if kind == PointerEventKind::Down {
+        if kind == PointerInputKind::Down {
             assert!(disabled.is_active().unwrap());
         }
     }

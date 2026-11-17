@@ -1,0 +1,7526 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "input": "CDP Input.dispatchMouseEvent and Input.dispatchTouchEvent",
+ "viewport": [
+  400,
+  300
+ ],
+ "scale": 1.0,
+ "boxes": {
+  "outer": [
+   20,
+   20,
+   200,
+   150,
+   "body"
+  ],
+  "inner": [
+   60,
+   50,
+   80,
+   60,
+   "outer"
+  ],
+  "sibling": [
+   240,
+   20,
+   120,
+   80,
+   "body"
+  ],
+  "transformed": [
+   240,
+   140,
+   40,
+   30,
+   "body"
+  ]
+ },
+ "button": [
+  20,
+  200,
+  80,
+  30
+ ],
+ "field": [
+  120,
+  200,
+  100,
+  30
+ ],
+ "scenarios": {
+  "hover": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      380,
+      280,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      30,
+      30,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        30,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        30,
+        30
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        30,
+        30
+       ],
+       "offset": [
+        10,
+        10
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      300,
+      60,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      380,
+      280,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        140,
+        260
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        140,
+        260
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        140,
+        260
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        140,
+        260
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        380,
+        280
+       ],
+       "offset": [
+        380,
+        280
+       ]
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "click": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "prevent_pointerdown": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      105,
+      80,
+      1
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        105,
+        80
+       ],
+       "offset": [
+        45,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      105,
+      80,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        105,
+        80
+       ],
+       "offset": [
+        45,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        105,
+        80
+       ],
+       "offset": [
+        45,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      106,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        106,
+        80
+       ],
+       "offset": [
+        46,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        106,
+        80
+       ],
+       "offset": [
+        46,
+        30
+       ]
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "focus_click": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      60,
+      215,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      60,
+      215,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "button",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "button",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "focus",
+       "target": "button"
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      60,
+      215,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "click",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      170,
+      215,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        150,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        150,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "field",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "field",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        150,
+        15
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        150,
+        15
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "field",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      170,
+      215,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "field",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "field",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ]
+      },
+      {
+       "type": "blur",
+       "target": "button"
+      },
+      {
+       "type": "focus",
+       "target": "field"
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      170,
+      215,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ]
+      },
+      {
+       "type": "click",
+       "target": "field",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        170,
+        215
+       ],
+       "offset": [
+        50,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "field"
+  },
+  "prevent_mousedown": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      60,
+      215,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      60,
+      215,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "button",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "button",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      60,
+      215,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "click",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "prevent_pointerdown_focus": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      60,
+      215,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        60,
+        215
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "button",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      60,
+      215,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "button",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      60,
+      215,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "click",
+       "target": "button",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        60,
+        215
+       ],
+       "offset": [
+        40,
+        15
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "chorded": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "right",
+      3
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": 2,
+       "buttons": 3,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 2,
+       "buttons": 3,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "right",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": 2,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 2,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "auxclick",
+       "target": "inner",
+       "button": 2,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      },
+      {
+       "type": "contextmenu",
+       "target": "inner",
+       "button": 2,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "right_click": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "right",
+      2
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 2,
+       "buttons": 2,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 2,
+       "buttons": 2,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "right",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 2,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 2,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "auxclick",
+       "target": "inner",
+       "button": 2,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      },
+      {
+       "type": "contextmenu",
+       "target": "inner",
+       "button": 2,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "middle_click": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "middle",
+      4
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 1,
+       "buttons": 4,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 1,
+       "buttons": 4,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "middle",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "auxclick",
+       "target": "inner",
+       "button": 1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "prevent_mouseup": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "drag_elsewhere": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      300,
+      60,
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerout",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      300,
+      60,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "click",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        300,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "capture": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      300,
+      60,
+      1
+     ],
+     "events": [
+      {
+       "type": "gotpointercapture",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      305,
+      60,
+      1
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      305,
+      60,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ]
+      },
+      {
+       "type": "lostpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      },
+      {
+       "type": "pointerout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        285,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerover",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        245,
+        10
+       ]
+      },
+      {
+       "type": "mouseleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        285,
+        40
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      306,
+      60,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        306,
+        60
+       ],
+       "offset": [
+        66,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        306,
+        60
+       ],
+       "offset": [
+        66,
+        40
+       ]
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "capture_removed": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "move",
+      300,
+      60,
+      1
+     ],
+     "events": [
+      {
+       "type": "gotpointercapture",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ]
+      },
+      {
+       "type": "lostpointercapture",
+       "target": "document",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        300,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0.5
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0.5
+      },
+      {
+       "type": "pointerover",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0.5
+      },
+      {
+       "type": "pointerenter",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0.5
+      },
+      {
+       "type": "mouseleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        280,
+        40
+       ]
+      },
+      {
+       "type": "mouseover",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        60,
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "wait"
+     ],
+     "events": []
+    },
+    {
+     "input": [
+      "move",
+      305,
+      60,
+      1
+     ],
+     "events": [
+      {
+       "type": "pointermove",
+       "target": "sibling",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      305,
+      60,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "sibling",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        305,
+        60
+       ],
+       "offset": [
+        65,
+        40
+       ]
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "capture_errors": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      100,
+      80,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "set-inactive-7",
+       "result": "NotFoundError"
+      },
+      {
+       "type": "set-mouse-no-buttons",
+       "result": "ok"
+      },
+      {
+       "type": "has-capture",
+       "result": false
+      },
+      {
+       "type": "set-detached",
+       "result": "InvalidStateError"
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      100,
+      80,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "set-pressed",
+       "result": "ok"
+      },
+      {
+       "type": "has-capture-now",
+       "result": true
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      100,
+      80,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "gotpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "lostpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "touch_tap": {
+   "steps": [
+    {
+     "input": [
+      "touch",
+      "touchStart",
+      100,
+      80
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      }
+     ]
+    },
+    {
+     "input": [
+      "touch",
+      "touchEnd",
+      100,
+      80
+     ],
+     "events": [
+      {
+       "type": "gotpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "lostpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mousemove",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mousedown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "mouseup",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ]
+      },
+      {
+       "type": "click",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  },
+  "touch_move": {
+   "steps": [
+    {
+     "input": [
+      "touch",
+      "touchStart",
+      100,
+      80
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        100,
+        80
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "outer",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        80,
+        60
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerenter",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointerdown",
+       "target": "inner",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        100,
+        80
+       ],
+       "offset": [
+        40,
+        30
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      }
+     ]
+    },
+    {
+     "input": [
+      "touch",
+      "touchMove",
+      300,
+      60
+     ],
+     "events": [
+      {
+       "type": "gotpointercapture",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointermove",
+       "target": "inner",
+       "button": -1,
+       "buttons": 1,
+       "client": [
+        300,
+        60
+       ],
+       "offset": [
+        240,
+        10
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 1
+      },
+      {
+       "type": "pointercancel",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        -60,
+        -50
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "lostpointercapture",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        -60,
+        -50
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerout",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        -60,
+        -50
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "inner",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        -60,
+        -50
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "outer",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        -20,
+        -20
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerleave",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        0,
+        0
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "pointerId": 2,
+       "pointerType": "touch",
+       "isPrimary": true,
+       "pressure": 0
+      }
+     ]
+    },
+    {
+     "input": [
+      "touch",
+      "touchEnd",
+      300,
+      60
+     ],
+     "events": []
+    }
+   ],
+   "focused": "body"
+  },
+  "transformed_offset": {
+   "steps": [
+    {
+     "input": [
+      "move",
+      250,
+      150,
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerover",
+       "target": "transformed",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "document",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "html",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "body",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "pointerenter",
+       "target": "transformed",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseover",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "document",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "html",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "body",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        250,
+        150
+       ]
+      },
+      {
+       "type": "mouseenter",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ]
+      },
+      {
+       "type": "pointermove",
+       "target": "transformed",
+       "button": -1,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousemove",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "down",
+      250,
+      150,
+      "left",
+      1
+     ],
+     "events": [
+      {
+       "type": "pointerdown",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mousedown",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 1,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ]
+      }
+     ]
+    },
+    {
+     "input": [
+      "up",
+      250,
+      150,
+      "left",
+      0
+     ],
+     "events": [
+      {
+       "type": "pointerup",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": true,
+       "pressure": 0
+      },
+      {
+       "type": "mouseup",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ]
+      },
+      {
+       "type": "click",
+       "target": "transformed",
+       "button": 0,
+       "buttons": 0,
+       "client": [
+        250,
+        150
+       ],
+       "offset": [
+        5,
+        5
+       ],
+       "pointerId": 1,
+       "pointerType": "mouse",
+       "isPrimary": false,
+       "pressure": 0
+      }
+     ]
+    }
+   ],
+   "focused": "body"
+  }
+ }
+}

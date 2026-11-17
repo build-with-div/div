@@ -105,7 +105,7 @@ fn native_scroll_buttons_share_pointer_key_and_accessibility_defaults() {
                 event,
                 rect.x + 12.0,
                 rect.y + 10.0,
-                MouseButton::Left,
+                MouseButton::Main,
                 Modifiers::NONE,
             )
             .unwrap();
@@ -1459,7 +1459,7 @@ fn button_pointer_activation_dispatches_click() {
             MouseEventType::Down,
             10.0,
             10.0,
-            MouseButton::Left,
+            MouseButton::Main,
             Modifiers::NONE,
         )
         .unwrap();
@@ -1468,7 +1468,7 @@ fn button_pointer_activation_dispatches_click() {
             MouseEventType::Up,
             10.0,
             10.0,
-            MouseButton::Left,
+            MouseButton::Main,
             Modifiers::NONE,
         )
         .unwrap();
@@ -2060,8 +2060,24 @@ fn modal_focus_is_contained_and_restored() {
 fn pointer_capture_lifecycle_is_validated() {
     let document = document();
     let element = child(&document, "div");
-    element.set_pointer_capture(7).unwrap();
-    element.release_pointer_capture(7).unwrap();
+    sized(&element, 80.0, 40.0);
+    document.update_all().unwrap();
+    // An inactive pointer cannot capture (RFC 0007 section 4).
+    assert!(matches!(
+        element.set_pointer_capture(PointerId(7)),
+        Err(div::Error::Engine(div::EngineError::PointerNotFound))
+    ));
+    assert!(matches!(
+        element.release_pointer_capture(PointerId(7)),
+        Err(div::Error::Engine(div::EngineError::PointerNotFound))
+    ));
+    document
+        .dispatch_pointer_input(PointerInput::mouse(PointerInputKind::Down, 10.0, 10.0))
+        .unwrap();
+    element.set_pointer_capture(PointerId::MOUSE).unwrap();
+    assert!(element.has_pointer_capture(PointerId::MOUSE).unwrap());
+    element.release_pointer_capture(PointerId::MOUSE).unwrap();
+    assert!(!element.has_pointer_capture(PointerId::MOUSE).unwrap());
 }
 
 #[test]
@@ -2075,7 +2091,7 @@ fn hover_and_active_state_follow_pointer() {
             MouseEventType::Move,
             10.0,
             10.0,
-            MouseButton::Left,
+            MouseButton::Main,
             Modifiers::NONE,
         )
         .unwrap();
@@ -2085,7 +2101,7 @@ fn hover_and_active_state_follow_pointer() {
             MouseEventType::Down,
             10.0,
             10.0,
-            MouseButton::Left,
+            MouseButton::Main,
             Modifiers::NONE,
         )
         .unwrap();

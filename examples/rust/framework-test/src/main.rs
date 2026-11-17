@@ -86,7 +86,7 @@ fn run_headless(path: &Path) -> Result<(), Error> {
         MouseEventType::Up,
         bounds.x + bounds.width / 2.0,
         bounds.y + bounds.height / 2.0,
-        MouseButton::Left,
+        MouseButton::Main,
         Modifiers::NONE,
     )?;
     let after = app.render_at(0.0)?;

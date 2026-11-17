@@ -15,6 +15,9 @@ pub use crate::document::Document;
 pub use crate::element::{Element, WeakElement};
 pub use crate::events::*;
 pub use crate::keyboard::Key;
+pub use crate::pointer::{
+    Buttons, MouseInfo, Point, PointerId, PointerInfo, PointerInput, PointerInputKind, PointerType,
+};
 pub use crate::renderer::{DynChild, For, Show};
 pub use crate::reported_error::ReportedError;
 pub use crate::resize_observer::{

@@ -760,16 +760,18 @@ mod tests {
         }
     }
 
+    /// A mouse click as a person makes one: the pointer arrives first, so
+    /// hover redraws the menu before the press.
     fn click(document: &Document, x: f32, y: f32) {
-        document
-            .dispatch_mouse_event(
-                MouseEventType::Up,
-                x,
-                y,
-                MouseButton::Left,
-                crate::Modifiers::NONE,
-            )
-            .unwrap();
+        for kind in [
+            MouseEventType::Move,
+            MouseEventType::Down,
+            MouseEventType::Up,
+        ] {
+            document
+                .dispatch_mouse_event(kind, x, y, MouseButton::Main, crate::Modifiers::NONE)
+                .unwrap();
+        }
     }
 
     fn click_on(document: &Document, element: &Element) -> crate::Rect {

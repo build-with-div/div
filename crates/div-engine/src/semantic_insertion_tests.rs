@@ -120,7 +120,14 @@ fn origin_cannot_move_under_its_owned_button_or_descendant_in_any_presentation_s
             let marker = node(&mut e, descendant, ElementTag::Span);
             let focus = node(&mut e, root, ElementTag::Button);
             e.focus(focus).unwrap();
+            // Pointer 7 is pressed, and its capture takes effect at its
+            // next event.
+            e.pointer_event(7, PointerEventKind::Down, 0.0, 0.0)
+                .unwrap();
             e.set_pointer_capture(7, focus).unwrap();
+            e.pointer_event_with_buttons(7, PointerEventKind::Move, 0.0, 0.0, 1)
+                .unwrap();
+            assert_eq!(e.pointer_capture(7), Some(focus));
             match presentation {
                 1 => e
                     .set_property(origin, StyleProperty::Display, Display::None.into())

@@ -3,6 +3,7 @@
 use crate::{Engine, EngineError, NodeHandle};
 use div_dom::{ElementTag, FormControlRole};
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,9 +33,60 @@ pub enum PointerEventKind {
     Cancel,
 }
 
+/// A change of a pointer's capture, reported before the pointer event that
+/// processed it, in order. The caller fires `lostpointercapture` or
+/// `gotpointercapture` at the node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureChange {
+    /// Capture ended. When the captor was removed from the document this is
+    /// the root, which stands for the document.
+    Lost(NodeHandle),
+    Got(NodeHandle),
+}
+
+/// The mouse's pointer id, as in Chromium. The mouse is always an active
+/// pointer: Chromium's `PointerEventFactory` registers it when created and
+/// never removes it, so capturing it before its first event does nothing
+/// rather than failing.
+pub const MOUSE_POINTER_ID: u64 = 1;
+
+/// Per-pointer state behind capture, as Chromium's `PointerEventManager`
+/// keeps it: pending capture, the pointers it knows and their buttons.
+#[derive(Debug)]
+pub(crate) struct PointerStates {
+    /// What `setPointerCapture` asked for; it becomes the active capture
+    /// at the pointer's next event.
+    pub(crate) pending_capture: HashMap<u64, NodeHandle>,
+    /// Pointers whose active captor was removed from the document.
+    pub(crate) lost_to_root: HashSet<u64>,
+    /// The active pointers and their pressed buttons, as the DOM's
+    /// `buttons` bits.
+    pub(crate) buttons: HashMap<u64, u16>,
+    /// Pointers whose hover target was removed from the document. Chromium
+    /// sends a removed node no `pointerout`
+    /// (`BoundaryEventDispatchTracksNodeRemoval`).
+    pub(crate) hover_target_removed: HashSet<u64>,
+}
+
+impl Default for PointerStates {
+    fn default() -> Self {
+        Self {
+            pending_capture: HashMap::new(),
+            lost_to_root: HashSet::new(),
+            buttons: HashMap::from([(MOUSE_POINTER_ID, 0)]),
+            hover_target_removed: HashSet::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PointerUpdate {
     pub target: Option<NodeHandle>,
+    /// The pointer's target before this event, which receives `pointerout`
+    /// when it differs from [`Self::target`].
+    pub previous_target: Option<NodeHandle>,
+    /// Capture changes processed before this event, in dispatch order.
+    pub capture_changes: Vec<CaptureChange>,
     /// Nodes left by this pointer, from the former target toward the root.
     pub left: Vec<NodeHandle>,
     /// Nodes entered by this pointer, from the root toward the new target.
@@ -42,6 +94,10 @@ pub struct PointerUpdate {
     /// Candidate click target. The caller applies activation only when neither
     /// pointer-up nor click was canceled by an event listener.
     pub activation: Option<NodeHandle>,
+    /// On an up, the node the pointer pressed, whether or not it is the
+    /// target. `None` when no press is pending, as after another button's
+    /// release consumed it.
+    pub pressed: Option<NodeHandle>,
     /// Deferred range-control default action. The frontend applies this only
     /// after listeners have had an opportunity to prevent the pointer event.
     pub range_value: Option<(NodeHandle, f32)>,
@@ -409,6 +465,10 @@ impl Engine {
         Ok(EventRoute { target, steps })
     }
 
+    /// A pointer event with the buttons it implies: a down presses the
+    /// primary button and every other kind releases all buttons. A caller
+    /// that tracks chorded buttons uses [`Self::pointer_event_with_buttons`],
+    /// so a second button's release stays a move.
     pub fn pointer_event(
         &mut self,
         pointer_id: u64,
@@ -416,11 +476,90 @@ impl Engine {
         x: f32,
         y: f32,
     ) -> Result<PointerUpdate, EngineError> {
+        let buttons = u16::from(kind == PointerEventKind::Down);
+        self.pointer_event_with_buttons(pointer_id, kind, x, y, buttons)
+    }
+
+    /// Route a pointer event at (x, y) for a pointer whose pressed buttons
+    /// are now `buttons` (the DOM's bits). Pending capture is processed
+    /// first; the event then goes to the captor, or else to the hit node,
+    /// and hover boundaries are computed against that target. Capture is not
+    /// released here: after dispatching an up or cancel the caller calls
+    /// [`Self::end_pointer_capture`], then [`Self::pointer_rehover`].
+    pub fn pointer_event_with_buttons(
+        &mut self,
+        pointer_id: u64,
+        kind: PointerEventKind,
+        x: f32,
+        y: f32,
+        buttons: u16,
+    ) -> Result<PointerUpdate, EngineError> {
         if !x.is_finite() || !y.is_finite() {
             return Err(EngineError::InvalidInput(
                 "pointer coordinates must be finite",
             ));
         }
+        self.pointers.buttons.insert(pointer_id, buttons);
+        let capture_changes = self.process_pending_capture(pointer_id);
+        let mut update = self.route_pointer(pointer_id, x, y, kind == PointerEventKind::Cancel)?;
+        update.capture_changes = capture_changes;
+        let target = update.target;
+
+        let range_target = match kind {
+            PointerEventKind::Down => target,
+            PointerEventKind::Move | PointerEventKind::Up => {
+                self.active_pointers.get(&pointer_id).copied()
+            }
+            PointerEventKind::Cancel => None,
+        };
+        update.range_value = if let Some(range) = range_target {
+            let is_range = self
+                .controls
+                .get(&range.index)
+                .is_some_and(|control| control.role == FormControlRole::Range)
+                && !self.is_disabled(range);
+            let bounds = is_range.then(|| self.bounds(range)).transpose()?.flatten();
+            bounds
+                .filter(|bounds| bounds.width > 0.0)
+                .map(|bounds| (range, ((x - bounds.x) / bounds.width).clamp(0.0, 1.0)))
+        } else {
+            None
+        };
+        update.activation = match kind {
+            PointerEventKind::Down => {
+                // As in Blink's `Document::UpdateActiveState`, the pressed
+                // element becomes active even when it is disabled; only its
+                // activation on release checks the disabled state.
+                if let Some(target) = target {
+                    self.active_pointers.insert(pointer_id, target);
+                }
+                None
+            }
+            PointerEventKind::Up => {
+                update.pressed = self.active_pointers.remove(&pointer_id);
+                update
+                    .pressed
+                    .filter(|pressed| Some(*pressed) == target && !self.is_disabled(*pressed))
+            }
+            PointerEventKind::Cancel => {
+                self.active_pointers.remove(&pointer_id);
+                None
+            }
+            PointerEventKind::Move => None,
+        };
+        Ok(update)
+    }
+
+    /// The target and hover boundaries for `pointer_id` at (x, y): its
+    /// captor, or the hit node. `clear` forgets the hover path, as a cancel
+    /// does.
+    fn route_pointer(
+        &mut self,
+        pointer_id: u64,
+        x: f32,
+        y: f32,
+        clear: bool,
+    ) -> Result<PointerUpdate, EngineError> {
         let target = if let Some(captured) = self.pointer_capture(pointer_id) {
             Some(captured)
         } else {
@@ -439,60 +578,119 @@ impl Engine {
         let left = old_path[..old_path.len().saturating_sub(common)].to_vec();
         let mut entered = new_path[..new_path.len().saturating_sub(common)].to_vec();
         entered.reverse();
-        if kind == PointerEventKind::Cancel {
+        if clear {
             self.hover_paths.remove(&pointer_id);
         } else {
             self.hover_paths.insert(pointer_id, new_path);
         }
-
-        let range_target = match kind {
-            PointerEventKind::Down => target,
-            PointerEventKind::Move | PointerEventKind::Up => {
-                self.active_pointers.get(&pointer_id).copied()
-            }
-            PointerEventKind::Cancel => None,
-        };
-        let range_value = if let Some(range) = range_target {
-            let is_range = self
-                .controls
-                .get(&range.index)
-                .is_some_and(|control| control.role == FormControlRole::Range)
-                && !self.is_disabled(range);
-            let bounds = is_range.then(|| self.bounds(range)).transpose()?.flatten();
-            bounds
-                .filter(|bounds| bounds.width > 0.0)
-                .map(|bounds| (range, ((x - bounds.x) / bounds.width).clamp(0.0, 1.0)))
-        } else {
+        let previous_target = if self.pointers.hover_target_removed.remove(&pointer_id) {
             None
-        };
-        let activation = match kind {
-            PointerEventKind::Down => {
-                // As in Blink's `Document::UpdateActiveState`, the pressed
-                // element becomes active even when it is disabled; only its
-                // activation on release checks the disabled state.
-                if let Some(target) = target {
-                    self.active_pointers.insert(pointer_id, target);
-                }
-                None
-            }
-            PointerEventKind::Up => self
-                .active_pointers
-                .remove(&pointer_id)
-                .filter(|pressed| Some(*pressed) == target && !self.is_disabled(*pressed)),
-            PointerEventKind::Cancel => {
-                self.active_pointers.remove(&pointer_id);
-                self.pointer_capture.remove(&pointer_id);
-                None
-            }
-            PointerEventKind::Move => None,
+        } else {
+            old_path.first().copied()
         };
         Ok(PointerUpdate {
             target,
+            previous_target,
+            capture_changes: Vec::new(),
             left,
             entered,
-            activation,
-            range_value,
+            activation: None,
+            pressed: None,
+            range_value: None,
         })
+    }
+
+    /// Make pending capture active, as Chromium's `PointerEventManager::
+    /// ProcessPendingPointerCapture` does before each pointer event.
+    fn process_pending_capture(&mut self, pointer_id: u64) -> Vec<CaptureChange> {
+        let mut changes = Vec::new();
+        if self.pointers.lost_to_root.remove(&pointer_id) {
+            changes.push(CaptureChange::Lost(self.root()));
+        }
+        let active = self.pointer_capture.get(&pointer_id).copied();
+        let pending = self.pointers.pending_capture.get(&pointer_id).copied();
+        if active != pending {
+            if let Some(active) = active {
+                changes.push(CaptureChange::Lost(active));
+            }
+            if let Some(pending) = pending {
+                changes.push(CaptureChange::Got(pending));
+                self.pointer_capture.insert(pointer_id, pending);
+            } else {
+                self.pointer_capture.remove(&pointer_id);
+            }
+        }
+        changes
+    }
+
+    /// Release `pointer_id`'s capture after its up or cancel was dispatched
+    /// (implicit release) and report the `lostpointercapture` to fire.
+    pub fn end_pointer_capture(&mut self, pointer_id: u64) -> Vec<CaptureChange> {
+        self.pointers.pending_capture.remove(&pointer_id);
+        self.process_pending_capture(pointer_id)
+    }
+
+    /// Hit-test `pointer_id` again after capture ended, as Chromium does on
+    /// a pointer-up that released capture, and report the boundaries crossed
+    /// from the former captor to the node under the pointer.
+    pub fn pointer_rehover(
+        &mut self,
+        pointer_id: u64,
+        x: f32,
+        y: f32,
+    ) -> Result<PointerUpdate, EngineError> {
+        if !x.is_finite() || !y.is_finite() {
+            return Err(EngineError::InvalidInput(
+                "pointer coordinates must be finite",
+            ));
+        }
+        self.route_pointer(pointer_id, x, y, false)
+    }
+
+    /// Forget a pointer that is no longer active, such as a lifted touch.
+    /// Its hover path is not reported; call [`Self::pointer_leave`] first.
+    /// The mouse stays active, with no buttons pressed.
+    pub fn forget_pointer(&mut self, pointer_id: u64) {
+        if pointer_id == MOUSE_POINTER_ID {
+            self.pointers.buttons.insert(pointer_id, 0);
+        } else {
+            self.pointers.buttons.remove(&pointer_id);
+        }
+        self.pointers.pending_capture.remove(&pointer_id);
+        self.pointers.lost_to_root.remove(&pointer_id);
+        self.pointers.hover_target_removed.remove(&pointer_id);
+        self.pointer_capture.remove(&pointer_id);
+        self.active_pointers.remove(&pointer_id);
+        self.hover_paths.remove(&pointer_id);
+    }
+
+    /// The point (x, y) in `handle`'s padding box, through its transforms,
+    /// as `MouseEvent.offsetX` and `offsetY`. A node without a box, or whose
+    /// transform cannot be inverted, gets the point unchanged.
+    pub fn local_point(
+        &mut self,
+        handle: NodeHandle,
+        x: f32,
+        y: f32,
+    ) -> Result<(f32, f32), EngineError> {
+        let node = self.resolve(handle)?;
+        if !self.node_is_connected(node) {
+            return Ok((x, y));
+        }
+        self.update()?;
+        let Some(inverse) = self
+            .fragment_box_worlds
+            .get(&node)
+            .and_then(|world| world.inverse())
+        else {
+            return Ok((x, y));
+        };
+        let (border_left, border_top) = self
+            .reveal_fragment(node)
+            .map(|fragment| (fragment.border.left.to_f32(), fragment.border.top.to_f32()))
+            .unwrap_or_default();
+        let (local_x, local_y) = inverse.project_point(x, y);
+        Ok((local_x - border_left, local_y - border_top))
     }
 
     /// The pointer left the window. As in Blink's
@@ -503,11 +701,20 @@ impl Engine {
     /// pointer capture are kept: a leave is not a cancel, and a later
     /// pointer-up still ends the press.
     pub fn pointer_leave(&mut self, pointer_id: u64) -> PointerUpdate {
+        let left = self.hover_paths.remove(&pointer_id).unwrap_or_default();
+        let previous_target = if self.pointers.hover_target_removed.remove(&pointer_id) {
+            None
+        } else {
+            left.first().copied()
+        };
         PointerUpdate {
             target: None,
-            left: self.hover_paths.remove(&pointer_id).unwrap_or_default(),
+            previous_target,
+            capture_changes: Vec::new(),
+            left,
             entered: Vec::new(),
             activation: None,
+            pressed: None,
             range_value: None,
         }
     }

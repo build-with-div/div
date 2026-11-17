@@ -489,8 +489,11 @@ fn raw_c_remove_readd_nested_dispatch_uses_live_ids_and_preserves_outer_metadata
     }
 }
 
+/// A C pointer listener receives pointer events only: since Pointer Events
+/// (RFC 0007 section 4) the mouse fires both `pointerdown` and `mousedown`,
+/// so the C kind no longer stands for the mouse event too.
 #[test]
-fn raw_c_pointer_kind_preserves_rust_mouse_and_pointer_listener_distinction() {
+fn raw_c_pointer_kind_receives_pointer_events_only() {
     let f = fixture(0);
     let shared = Rc::new(Shared::default());
     let c = CallbackContext {
@@ -524,7 +527,13 @@ fn raw_c_pointer_kind_preserves_rust_mouse_and_pointer_listener_distinction() {
         .native
         .dispatch_event(&f.native, &div::Event::native("mousedown", 0))
         .unwrap();
-    assert_eq!(*shared.order.borrow(), vec![1, 2]);
+    assert_eq!(*shared.order.borrow(), vec![1]);
+    shared.order.borrow_mut().clear();
+    f.state
+        .native
+        .dispatch_event(&f.native, &div::Event::native("pointerdown", 0))
+        .unwrap();
+    assert_eq!(*shared.order.borrow(), vec![2, 3]);
     assert_eq!(divui_listener_destroy(listener), DivUiStatus::Ok);
     f.native.remove_event("mousedown").unwrap();
     f.native.remove_event("pointerdown").unwrap();

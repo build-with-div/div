@@ -53,6 +53,11 @@
 //! | [`ListenerHandle`] | One event listener from [`Element::on`] or [`Element::on_with`], removable on its own |
 //! | [`ListenerOptions`] | `capture`, `once` and `passive`, as the web's `AddEventListenerOptions` |
 //! | [`WheelDeltaMode`] | The unit of a wheel event's deltas, as the web's `WheelEvent.deltaMode` |
+//! | [`PointerInput`] | One input from a mouse, pen or touch, for [`Document::dispatch_pointer_input`] |
+//! | [`PointerInfo`] | A pointer event's data, as the web's `PointerEvent`, from [`Event::pointer_info`] |
+//! | [`MouseInfo`] | A mouse event's data, as the web's `MouseEvent`, from [`Event::mouse_info`] |
+//! | [`PointerId`] | A pointer's id; the mouse is [`PointerId::MOUSE`], as in Chromium |
+//! | [`Buttons`] | The pressed buttons, as the web's `MouseEvent.buttons` bits |
 //! | [`ResizeObserver`] | Calls back when observed elements' boxes change size |
 //! | [`ReportedError`] | An error a document reports to [`Document::on_error`] |
 //!
@@ -95,6 +100,7 @@ pub mod document;
 pub mod element;
 pub mod events;
 mod keyboard;
+pub mod pointer;
 pub mod scroll_button;
 pub mod style;
 pub mod text_node;
@@ -155,6 +161,9 @@ pub use events::{
     Modifiers, MouseButton, MouseEventType, WheelDeltaMode,
 };
 pub use keyboard::Key;
+pub use pointer::{
+    Buttons, MouseInfo, Point, PointerId, PointerInfo, PointerInput, PointerInputKind, PointerType,
+};
 pub use scroll_button::{
     ScrollButton, ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState,
     ScrollSnapStrictness,
@@ -201,8 +210,8 @@ pub use div_engine::{
     AccessibilityScrollDirection, AccessibilityTreeUpdate, AnimationAttachmentSnapshot,
     AnimationEvent, AnimationEventKind, AnimationId, AnimationResolvedTimelineRanges,
     AnimationState, AnimationTimelineSnapshot, AnimationTimelineSource, ControlAdjustment,
-    EditCommand, EngineOptions, FocusOrigin, PointerEventKind, RangeSelectionMode, RasterBackend,
-    RasterConfiguration, RasterPixelGeometry, ScrollAlignment, ScrollAnimationId,
+    EditCommand, EngineError, EngineOptions, FocusOrigin, PointerEventKind, RangeSelectionMode,
+    RasterBackend, RasterConfiguration, RasterPixelGeometry, ScrollAlignment, ScrollAnimationId,
     ScrollIntoViewContainer, ScrollIntoViewOptions, ScrollMetrics, SelectionDirection,
     TextDirection, TextEdging, TextHinting, TextRasterConfiguration, TextUnit, ViewportAuthority,
     ViewportMetrics, ViewportMetricsError,

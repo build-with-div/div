@@ -98,12 +98,12 @@ fn parent_capture_pointer_and_keyboard_clicks_share_preactivation_and_cancellati
             MouseEventType::Down,
             x,
             y,
-            MouseButton::Left,
+            MouseButton::Main,
             Modifiers::NONE,
         )
         .unwrap();
     document
-        .dispatch_mouse_event(MouseEventType::Up, x, y, MouseButton::Left, Modifiers::NONE)
+        .dispatch_mouse_event(MouseEventType::Up, x, y, MouseButton::Main, Modifiers::NONE)
         .unwrap();
     assert_eq!(&*seen.borrow(), &[(true, false)]);
     assert!(!element.is_checked().unwrap());
