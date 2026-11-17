@@ -47,7 +47,7 @@ each, small fixes first, in the order 1, 2, 6, 5, RFC 0003 requests 3 and
 | 1 | `on:` on a component tag was silently dropped | Merged (#29) |
 | 2 | `{expr}` children that are views (`For`, `Show`) | Merged (#30) |
 | 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
-| 4 | Headless pointer events and pointer capture for drags | Not started |
+| 4 | Headless pointer events and pointer capture for drags | In review: Pointer Events merged (#68), the test helpers in 0.12 C |
 | 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
 | 6 | zbus fails to build with a fresh lockfile (sample-git 24) | Merged (#31) |
 | 7 | Public SVG drawing, for icons | Folded into RFC 0009 (inline SVG); the framework part is F1 below |
@@ -70,8 +70,8 @@ uses.)
 | 0.10 | `requestAnimationFrame` and headless frame advance (R1, T1) | Merged (#47) |
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
 | 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
-| 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | In review |
-| 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Not started |
+| 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Merged (#68) |
+| 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | In review |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
 ## After Tier 0
@@ -92,6 +92,82 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 17 November 2026: test input and explicit waits (Tier 0 item 0.12 C)
+
+Problem (sample-git gap 29, interactions T1, dogfood gap 4):
+
+- `TestApp::click`, `type_text` and `press` ran every task to the end
+  (`run_until_idle`), so a test could not click Cancel while a fetch ran.
+- There were no pointer, drag, wheel or touch helpers.
+- `run_until_idle` left `scroll` events undelivered.
+
+Change, as [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 5 specifies:
+
+- **Behavior change:** `TestApp` input returns once its events are
+  dispatched and the UI work they made ready has run
+  (`TestApp::run_ready_tasks`, the microtask checkpoint's equivalent). It
+  no longer waits for timers or background work. `mount` still runs until
+  idle.
+- **Waits.**
+  - `wait_for(condition)` and `wait_for_with(timeout, condition)` run
+    tasks, timers and frames until the condition holds. While waiting, a
+    frame runs every 16 ms of real time, by the time that passed.
+  - On timeout they panic. `testing::DEFAULT_WAIT_TIMEOUT` is 1 s, as
+    Testing Library's `waitFor`.
+  - `find_by_text` and `find_by_id` wait for their element, then panic if
+    it never appears.
+  - `find_id` is the non-waiting twin of `by_id`, as `find_text` is of
+    `by_text`.
+- **Input helpers.** Each goes through `Document::dispatch_pointer_input`,
+  as native input does:
+  - `pointer_move`, `pointer_down` and `pointer_up`, with a button and
+    modifiers;
+  - `pointer(PointerInput)`;
+  - `right_click`, `double_click` and `drag(from, to, steps)`;
+  - `wheel(at, delta)`;
+  - `touch_down`, `touch_move`, `touch_up` and `touch_cancel`;
+  - `tap` and `touch_drag`, with `testing::FIRST_TOUCH` (id 2);
+  - `center_of(element)`.
+
+  `click` still moves the mouse to the element first.
+- `run_until_idle` also delivers the pending `scroll` events (T1).
+  `advance_frame` already delivered them, at the start of the frame, as
+  Chromium does.
+- The `default` template's test uses `find_by_text`. The showcase snippet
+  (`site/`, website track) awaits no work, so it is unchanged. No
+  components test uses `TestApp`.
+
+Known gap: Div dispatches no `dblclick` and leaves `detail` at 0, because
+`PointerInput` has no click count. `double_click` is two `click` events
+until that lands.
+
+Verification (Windows, MSVC, this branch on main `b0f59f94`):
+
+- `cargo test --locked -p divui --features "windows testing" --lib
+  testing::` passes 7 tests. Five are new:
+  - input returns while the fetch runs, Cancel drops it, and
+    `find_by_text` waits for the loaded row;
+  - the timeout messages;
+  - waits run frames;
+  - the pointer, touch and right-click sequences, with capture during a
+    drag;
+  - wheel scrolling with its `scroll` events at idle and in a wait.
+- Mutants:
+  - input that runs until idle fails the fetch test;
+  - `run_until_idle` without pending events fails the wheel test;
+  - waits without frames fail the frames and wheel tests.
+- These also pass:
+  - the full framework test set (58 suites, 636 tests);
+  - the example builds;
+  - the `divui` doc tests;
+  - `cargo fmt --all --check`;
+  - the Linux `cargo check` of `div-platform`, `divui` and `div-ffi`
+    with their tests (WSL).
+- The `default` template's generated app (`check_cli_template.py`) is
+  left to CI's `cli-template` job: locally its fresh target builds Skia
+  from source, which fails here before reaching Div.
 
 ### 16 November 2026: Pointer Events (Tier 0 item 0.12 B)
 
