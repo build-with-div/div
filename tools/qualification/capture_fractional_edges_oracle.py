@@ -7,14 +7,14 @@ caption split across two columns and an absolutely positioned box whose
 child overflows into the next column, each with an edge at CSS x 45 and a
 top edge at CSS y 21. They are captured at
 device scales 1, 1.25, 1.5 and 2 with the census harness's Chromium launcher,
-which sets the device scale factor through CDP device emulation
-(Emulation.setDeviceMetricsOverride) in headless Chromium. The frames are
+which uses real zoom above scale 1 (--force-device-scale-factor and a
+viewport-only CDP override in headless Chromium; RFC 0010). The frames are
 written as <page>-<scale>.png next to the spec, with manifest.json recording
 each file's SHA-256.
 
-These frames describe Chromium as the census oracle captures it, not every
-Chromium configuration: a real high-DPI display or another emulation path
-may round differently.
+These frames describe Chromium as the census oracle captures it. At real
+zoom Blink lays out in device pixels, so every edge lands on a whole device
+pixel.
 
 The native test crates/divui/tests/native_fractional_edges.rs builds the
 same pages through the public API and compares every frame exactly.
@@ -115,8 +115,9 @@ def main() -> int:
         manifest = {
             "chromium": EXPECTED_CHROMIUM,
             "platform": "linux",
-            "device_scale": "CDP Emulation.setDeviceMetricsOverride, headless "
-            "(tools/accountability/run_all_pixel_comparisons.py)",
+            "device_scale": "real zoom above scale 1: --force-device-scale-factor "
+            "and a viewport-only CDP override, headless (RFC 0010, "
+            "tools/accountability/run_all_pixel_comparisons.py)",
             "viewport": [WIDTH, HEIGHT],
             "scales": SCALES,
             "files": files,

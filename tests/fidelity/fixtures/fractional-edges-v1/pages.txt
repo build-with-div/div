@@ -1,6 +1,7 @@
 # Box edges at fractional device positions, captured through the census
-# oracle: pinned Chromium 147 headless with a CDP-emulated device scale
-# factor (tools/qualification/capture_fractional_edges_oracle.py).
+# oracle: pinned Chromium 147 headless, at real zoom above scale 1
+# (--force-device-scale-factor, RFC 0010;
+# tools/qualification/capture_fractional_edges_oracle.py).
 #
 # Each line is: page | depth | tag | declarations. Depth 0 is a child of
 # body; depth n is a child of the page's previous box at depth n - 1. Every

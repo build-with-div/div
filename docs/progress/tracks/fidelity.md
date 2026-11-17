@@ -49,8 +49,8 @@ style or the cascade go to the engine track.
 - **Not affected:** the canvas (#48) and SVG (#49) lanes capture
   their oracles at scale 1 only, so they need no recapture.
 - **Remaining:** each owner's non-1x oracles, per the RFC 0010 inventory.
-  The fidelity lane's own: the fractional-edges probe (#53, recaptured on
-  its rebase), `webfont-fontations-v1`, the site showcase PNG and the
+  The fidelity lane's own: the fractional-edges probe (#53, recaptured at
+  real zoom, below), `webfont-fontations-v1`, the site showcase PNG and the
   Windows text values.
 
 ## 15 November 2026: root causes of the remaining census differences
@@ -135,37 +135,40 @@ style or the cascade go to the engine track.
   fonts keep FreeType; vertical web-font text and the div-components pages
   were not measured.
 
-## 16 November 2026: fractional box edges against the census oracle
+## 16 November 2026: fractional box edges against the real-zoom oracle
 
 - **What:** a native test that compares box edges at fractional device
-  positions with pinned Chromium, pixel for pixel. It adds no code change.
-  Five 120x80 pages: a single box, two abutting boxes, a block split
-  across two columns, a table caption split across two columns, and an
-  absolutely positioned box whose child overflows into the next column
+  positions with pinned Chromium, pixel for pixel. It adds no renderer
+  change. Five 120x80 pages: a single box, two abutting boxes, a block
+  split across two columns, a table caption split across two columns, and
+  an absolutely positioned box whose child overflows into the next column
   (`tests/fidelity/fixtures/fractional-edges-v1/pages.txt`). They are
   captured at scales 1, 1.25, 1.5 and 2 by
-  `tools/qualification/capture_fractional_edges_oracle.py`; `--check`
+  `tools/qualification/capture_fractional_edges_oracle.py` on the census
+  launcher, which uses real zoom above scale 1 (RFC 0010); `--check`
   recaptures them and requires identical files.
-- **Scope of the finding:** the frames are Chromium as the census oracle
-  captures it: pinned Chrome 147.0.7727.50, headless, with the device scale
-  factor set through CDP `Emulation.setDeviceMetricsOverride`. In those
-  frames Chromium snaps box rects in CSS pixels and antialiases edges that
-  then fall on fractional device positions: an edge at device x 56.25 has
-  coverage 0.25. Abutting edges, and the seam between two columns, leave a
-  conflation seam of 0.1875 white at 1.25x and 0.25 at 1.5x. This was not
-  measured for a real high-DPI display or any other emulation path.
-- **Result on main:** `single`, `abutting` and `multicol` are exact at all
-  four scales. `caption` (64 and 76 pixels at 1.25x and 1.5x) and
-  `overflow` (119 and 142) are pinned as gaps with their own counts.
-  Chromium paints each fragment from its own rect, so the column's first
-  and last rows have partial coverage. Div paints the box whole under a
-  fragmentainer clip that is snapped outward to device pixels and not
-  antialiased, which fills those rows fully. Owner: paint (fidelity lane).
-- **Verification:** `cargo test --locked -p divui --features divui/testing
-  --test native_fractional_edges` (Linux).
-- **Remaining:** the two pinned pages. Painting fragmented boxes from
-  their own fragment rects (fidelity lane, next PR) addresses the column
-  rows. Part of `overflow` is layout (engine): Div gives the 10px
-  positioned box a fragment as tall as each column, so its background
-  also paints at the bottom of the first column and down the second, which
-  adds a second antialiased layer at fractional edges.
+- **What Chromium does:** at real zoom every edge lands on a whole device
+  pixel. Each frame holds only white and green: no antialiased edge and no
+  seam between abutting boxes or columns. The edge at CSS x 45 ends at
+  device 56 at 1.25x and 68 at 1.5x, and the top edge at CSS y 21 starts at
+  26 and 32. (Under the earlier CDP-emulated oracle the same edges were
+  antialiased, with a seam of 0.1875 white at 1.25x; those frames are no
+  longer the reference.)
+- **Result on main:** all five pages are exact at 1x and 2x and differ at
+  1.25x and 1.5x: `single` 113 and 135 pixels, `abutting` 224 and 209,
+  `multicol` 224 and 209, `caption` 169 and 172, `overflow` 194 and 172,
+  pinned as gaps with their own counts. In `single`, `abutting` and
+  `multicol` every differing pixel is one of Div's antialiased edge pixels:
+  Div lays out in CSS px and rasterizes the fractional device edge with
+  partial coverage. In `caption` and `overflow`, 31 (1.25x) and 37 (1.5x)
+  more pixels are fully painted in Div and white in Chromium: Div paints
+  the box whole under a fragmentainer clip snapped outward to device
+  pixels.
+- **Owner:** layout in device pixels and device-pixel edge snapping
+  (engine, RFC 0011). The fragment-rect paint change measured against the
+  emulated oracle does not help here (0 gains and 14 regressions in the
+  real-zoom census) and was dropped.
+- **Verification:** `python3
+  tools/qualification/capture_fractional_edges_oracle.py --chrome <pinned
+  Chromium 147.0.7727.50> --check`; `cargo test --locked -p divui
+  --features divui/testing --test native_fractional_edges` (Linux).

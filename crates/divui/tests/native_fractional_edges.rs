@@ -6,13 +6,13 @@
 //! positioned box whose child overflows into the next column. Each has an
 //! edge at CSS x 45 and a top edge at CSS y 21. The
 //! fixture holds Chromium's frames at device scales 1, 1.25, 1.5 and 2,
-//! captured through the census oracle (headless Chromium with a CDP-emulated
-//! device scale factor); regenerate them with
+//! captured through the census oracle (headless Chromium at real zoom above
+//! scale 1, RFC 0010); regenerate them with
 //! `tools/qualification/capture_fractional_edges_oracle.py`.
 //!
-//! In those frames Chromium keeps box edges at fractional device positions
-//! and anti-aliases them, and abutting edges leave a seam because each edge
-//! is anti-aliased on its own. This test builds the same pages through the
+//! In those frames Chromium lays out in device pixels, so every box edge
+//! lands on a whole device pixel: no edge is anti-aliased and abutting boxes
+//! leave no seam. This test builds the same pages through the
 //! public API with the default raster configuration (the census's
 //! configuration for these rows) and compares each frame pixel for pixel. A
 //! frame that is not exact is listed in `GAPS` with its own pixel count, so
@@ -30,19 +30,27 @@ const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 
 // Frames that are not exact: (page, scale, differing pixels).
 //
-// `caption` and `overflow`: the columns start at device y 26.25 (31.5) and
-// end at 76.25 (91.5). Chromium paints each fragment's own rect, so the
-// boundary rows have partial coverage (0.75 at the top and 0.25 at the
-// bottom at 1.25x). Div draws the box whole under a fragmentainer clip
-// that is snapped outward to device pixels and not anti-aliased, so both
-// rows are fully covered. In `overflow` the column seam at x 56.25 (67.5)
-// also leaves less white than Chromium's two independently anti-aliased
-// edges (0.043 against 0.1875 at 1.25x).
+// Every page at 1.25 and 1.5. The edges at CSS x 45 and y 21 fall on device
+// 56.25 and 26.25 at 1.25x (67.5 and 31.5 at 1.5x). Chromium ends and
+// starts them on whole device pixels (56 and 26; 68 and 32). Div lays out in
+// CSS px and rasterizes the fractional edge with partial coverage, and in
+// `single`, `abutting` and `multicol` every differing pixel is one of those
+// anti-aliased edge pixels. In `caption` and `overflow`, 31 (1.25x) and 37
+// (1.5x) more pixels are fully painted in Div and white in Chromium: Div
+// draws the box whole under a fragmentainer clip snapped outward to device
+// pixels. Owner: layout in device pixels and edge snapping (engine,
+// RFC 0011).
 const GAPS: &[(&str, &str, usize)] = &[
-    ("caption", "1.25", 64),
-    ("caption", "1.5", 76),
-    ("overflow", "1.25", 119),
-    ("overflow", "1.5", 142),
+    ("single", "1.25", 113),
+    ("single", "1.5", 135),
+    ("abutting", "1.25", 224),
+    ("abutting", "1.5", 209),
+    ("multicol", "1.25", 224),
+    ("multicol", "1.5", 209),
+    ("caption", "1.25", 169),
+    ("caption", "1.5", 172),
+    ("overflow", "1.25", 194),
+    ("overflow", "1.5", 172),
 ];
 
 // (depth, tag, declarations) of each box, page by page in spec order.
