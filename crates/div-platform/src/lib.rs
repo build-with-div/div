@@ -21,6 +21,8 @@ pub use desktop::{run, run_windows};
 #[cfg(any(feature = "linux", feature = "windows"))]
 pub use accesskit::{ActionRequest, TreeUpdate};
 
+mod click;
+pub use click::DoubleClickLimits;
 mod wheel;
 pub use wheel::{WheelDeltaMode, WheelDeltas, WheelSettings, WHEEL_PAGESCROLL};
 

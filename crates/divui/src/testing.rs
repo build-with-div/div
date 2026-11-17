@@ -269,6 +269,13 @@ impl TestApp {
     /// Move the mouse to the centre of `element`, then press and release
     /// the primary button there, as a user would. The click reaches
     /// whatever is drawn there.
+    ///
+    /// The click's `detail` is 1 however soon after another click it comes,
+    /// as with Playwright's and Puppeteer's `click`: the helpers give each
+    /// press its count, so a test does not depend on the double-click time.
+    /// [`pointer_down`](Self::pointer_down) and
+    /// [`pointer_up`](Self::pointer_up) leave the count to the document,
+    /// which counts as the platform does.
     pub fn click(&mut self, element: &Element) {
         self.click_with(element, MouseButton::Main, 1);
     }
@@ -279,20 +286,33 @@ impl TestApp {
         self.click_with(element, MouseButton::Secondary, 1);
     }
 
-    /// Two primary clicks at the centre of `element`.
-    ///
-    /// Div does not dispatch `dblclick` or count clicks in `detail` yet, so
-    /// this is two `click` events.
+    /// Double-click the centre of `element`: two press and release pairs
+    /// whose `detail` is 1, then 2, so the second `click` is followed by
+    /// `dblclick`.
     pub fn double_click(&mut self, element: &Element) {
         self.click_with(element, MouseButton::Main, 2);
     }
 
-    fn click_with(&mut self, element: &Element, button: MouseButton, count: usize) {
+    /// Triple-click the centre of `element`: `detail` 1, 2, then 3, and one
+    /// `dblclick`, after the second `click`.
+    pub fn triple_click(&mut self, element: &Element) {
+        self.click_with(element, MouseButton::Main, 3);
+    }
+
+    fn click_with(&mut self, element: &Element, button: MouseButton, count: u32) {
         let at = self.center_of(element);
         self.send(mouse(PointerInputKind::Move, at));
-        for _ in 0..count {
-            self.send(mouse(PointerInputKind::Down, at).with_button(button));
-            self.send(mouse(PointerInputKind::Up, at).with_button(button));
+        for n in 1..=count {
+            self.send(
+                mouse(PointerInputKind::Down, at)
+                    .with_button(button)
+                    .with_click_count(n),
+            );
+            self.send(
+                mouse(PointerInputKind::Up, at)
+                    .with_button(button)
+                    .with_click_count(n),
+            );
         }
         self.run_ready_tasks();
     }
@@ -350,11 +370,12 @@ impl TestApp {
     }
 
     /// Tap the centre of `element` with [`FIRST_TOUCH`]: its compatibility
-    /// mouse events, then `click`.
+    /// mouse events, then `click`, whose `detail` is 1 however soon after
+    /// another tap it comes, as with [`click`](Self::click).
     pub fn tap(&mut self, element: &Element) {
         let at = self.center_of(element);
         self.send(touch(FIRST_TOUCH, PointerInputKind::Down, at));
-        self.send(touch(FIRST_TOUCH, PointerInputKind::Up, at));
+        self.send(touch(FIRST_TOUCH, PointerInputKind::Up, at).with_click_count(1));
         self.run_ready_tasks();
     }
 
@@ -865,6 +886,55 @@ mod tests {
     }
 
     #[test]
+    fn click_helpers_count_clicks() {
+        let mut app = TestApp::new(LogicalSize::new(200.0, 200.0)).mount(|| {
+            view! {
+                <div>
+                    <div id="target" style:width="100px" style:height="100px"></div>
+                </div>
+            }
+        });
+        let target = app.by_id("target");
+        let log: std::rc::Rc<std::cell::RefCell<Vec<String>>> = Default::default();
+        for name in ["mousedown", "mouseup", "click", "dblclick"] {
+            let log = log.clone();
+            target
+                .on(name, move |event| {
+                    let detail = event.mouse_info().unwrap().detail;
+                    log.borrow_mut()
+                        .push(format!("{}:{detail}", event.event_type));
+                })
+                .unwrap();
+        }
+        let take = || std::mem::take(&mut *log.borrow_mut()).join(" ");
+
+        app.click(&target);
+        app.click(&target);
+        assert_eq!(
+            take(),
+            "mousedown:1 mouseup:1 click:1 mousedown:1 mouseup:1 click:1",
+            "each click counts 1, however soon after another"
+        );
+        app.double_click(&target);
+        assert_eq!(
+            take(),
+            "mousedown:1 mouseup:1 click:1 mousedown:2 mouseup:2 click:2 dblclick:2"
+        );
+        app.triple_click(&target);
+        assert_eq!(
+            take(),
+            "mousedown:1 mouseup:1 click:1 mousedown:2 mouseup:2 click:2 dblclick:2 \
+             mousedown:3 mouseup:3 click:3"
+        );
+        app.tap(&target);
+        app.tap(&target);
+        assert_eq!(
+            take(),
+            "mousedown:1 mouseup:1 click:1 mousedown:1 mouseup:1 click:1"
+        );
+    }
+
+    #[test]
     fn pointer_helpers_send_chromium_sequences() {
         let mut app = TestApp::new(LogicalSize::new(200.0, 200.0)).mount(|| {
             view! {
@@ -892,9 +962,10 @@ mod tests {
         let take = || std::mem::take(&mut *log.borrow_mut());
 
         app.right_click(&target);
-        assert_eq!(
-            take(),
-            [
+        // `contextmenu` follows the release on Windows and the press on
+        // Linux, as in Chromium.
+        let expected: &[&str] = if cfg!(target_os = "windows") {
+            &[
                 "pointermove:Mouse",
                 "pointerdown:Mouse",
                 "mousedown",
@@ -903,17 +974,18 @@ mod tests {
                 "auxclick:Mouse",
                 "contextmenu:Mouse",
             ]
-        );
-
-        app.double_click(&target);
-        let log = take();
-        assert_eq!(
-            log.iter()
-                .filter(|entry| entry.starts_with("click"))
-                .count(),
-            2,
-            "{log:?}"
-        );
+        } else {
+            &[
+                "pointermove:Mouse",
+                "pointerdown:Mouse",
+                "mousedown",
+                "contextmenu:Mouse",
+                "pointerup:Mouse",
+                "mouseup",
+                "auxclick:Mouse",
+            ]
+        };
+        assert_eq!(take(), expected);
 
         let captor = target.clone();
         target

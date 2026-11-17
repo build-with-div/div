@@ -47,7 +47,7 @@ each, small fixes first, in the order 1, 2, 6, 5, RFC 0003 requests 3 and
 | 1 | `on:` on a component tag was silently dropped | Merged (#29) |
 | 2 | `{expr}` children that are views (`For`, `Show`) | Merged (#30) |
 | 3 | App services: `contextmenu` and popup menus, window activation, app data directory, reveal in file manager | Not started |
-| 4 | Headless pointer events and pointer capture for drags | In review: Pointer Events merged (#68), the test helpers in 0.12 C |
+| 4 | Headless pointer events and pointer capture for drags | Merged (#68, #72) |
 | 5 | `current_document()` in effect re-runs (sample-git 25) | Not started |
 | 6 | zbus fails to build with a fresh lockfile (sample-git 24) | Merged (#31) |
 | 7 | Public SVG drawing, for icons | Folded into RFC 0009 (inline SVG); the framework part is F1 below |
@@ -71,7 +71,8 @@ uses.)
 | 0.11 | `ResizeObserver`, with the engine's part (O1) | Merged (#52) |
 | 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
 | 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Merged (#68) |
-| 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | In review |
+| 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
+| 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | In review |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
 ## After Tier 0
@@ -92,6 +93,135 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 17 November 2026: click counting, `detail` and `dblclick` (Tier 0 item 0.12 D)
+
+Problem: Div left `detail` at 0 and never dispatched `dblclick`, and
+`TestApp::double_click` was two single clicks. The editor's double-click
+word selection and any multi-click UI need both (the known gap of 0.12 C).
+
+Oracle (new, `tests/fidelity/fixtures/click-count-v1`), captured by
+`tools/qualification/capture_click_count_oracle.py` from pinned
+Chrome-for-Testing 147.0.7727.50:
+
+- **Input.** Real platform input, not CDP:
+  - Windows: `WM_MOUSEMOVE` and `WM_[LMR]BUTTON{DOWN,UP}` posted only to
+    the harness's own window; the real cursor never moves;
+  - Linux (WSL, X11): XTEST;
+  - touch: CDP on both.
+- **Coverage.** Scales 1 and 1.25 (`--force-device-scale-factor`). There
+  are 21 mouse scenarios (time, distance, button, modifier, drags, long
+  presses, moves between clicks, the box's anchor) and 13 touch scenarios
+  (time, distance, a cancelled `pointerdown`).
+- **Repeatability.** Each capture was taken twice, and the two had to
+  match.
+- **Plan correction.** The approved plan's guess was that on Windows a
+  move ends a series so that the release clicks with count 0. Both
+  captures show otherwise: drags and moving long presses click with
+  count 1. Other findings:
+  - the Linux count cycles (the fourth press counts 1), rather than
+    stopping at 3;
+  - Linux fires `contextmenu` on the secondary button's press, Windows on
+    its release.
+
+Change, as the new [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 6 specifies:
+
+- **`divui::click_count`** (new):
+  - `ClickCounter`, with Chromium's `Windows` and `Linux` rules;
+  - `DoubleClickSettings`;
+  - `TapCounter`, for the gesture detector's repeated taps.
+  The module documentation names each rule's Chromium source; the code is
+  Div's own.
+- **Documents count.** Each document counts its mouse and pen input in
+  device pixels, by the host's rule.
+  - `PointerInput::click_count` (new; `with_click_count`) overrides the
+    count of a press or release, and gives a touch release its tap
+    count.
+  - `MouseInfo::detail` (new) is the count on `mousedown`, `mouseup`,
+    `click`, `auxclick` and `dblclick`, and 0 elsewhere.
+  - A main-button or tap `click` whose count is 2 is followed by
+    `dblclick`.
+- **Behavior change:** on Linux, `contextmenu` now follows the secondary
+  button's `mousedown`, as in Chromium; Windows is unchanged. The Pointer
+  Events oracle (#68) is a Windows capture, so on other hosts its test now
+  moves each expected `contextmenu` to the press, with the press's buttons,
+  as the Linux click-count fixture shows. Its fixture is unchanged.
+- **`div-platform`:** `DoubleClickLimits::system()` (new) reads
+  `GetDoubleClickTime`, `SM_CXDOUBLECLK` and `SM_CYDOUBLECLK` on Windows.
+  It adds the `Win32_UI_Input_KeyboardAndMouse` feature of `windows-sys`.
+  Elsewhere it returns Chromium's Linux limits; GTK settings are ignored,
+  as approved. The native runtime passes them to the document before
+  every pointer input.
+- **`TestApp`:**
+  - `click`, `right_click` and `tap` give each press count 1, as
+    Playwright's `click` does, so a test does not depend on the clock;
+  - `double_click` is a real double click (1, 2, then `dblclick`);
+  - `triple_click` (new) counts 1, 2, 3.
+- The C ABI is unchanged.
+
+Approximations, documented in the code:
+
+- Native input is timed when Div receives it, not by the message's own
+  time.
+- A touch that moved beyond the tap slop forgets the previous tap. No
+  oracle scenario covers this case.
+
+Follow-up:
+
+- **`pointer-events-linux-derived`** (framework, a filler after this
+  PR): the Pointer Events oracle has only a Windows capture. On Linux its
+  test moves each `contextmenu` to the press, so that part is derived from
+  the click-count capture, not measured. The filler captures
+  `pointer-events-v1` on Linux (XTEST, pinned Chrome-for-Testing in WSL),
+  compares each OS against its own capture and drops the move.
+
+Verification (Windows, MSVC, this branch on main `85fa7380`):
+
+- `cargo test --locked -p divui --features "windows testing" --test
+  click_count_oracle` passes 4 tests. All are new:
+  - both fixtures through the counters on a simulated clock (the
+    capture's sleeps plus its 10 ms per step), at both scales;
+  - the Windows fixture through a document, comparing every pointer and
+    mouse event but the boundary events (type, `detail`, `button`,
+    `buttons`);
+  - the document's own counter on the real clock.
+
+  Before the change, `detail` is 0 and there is no `dblclick`, so the
+  fixtures fail.
+- `cargo test --locked -p divui --features "windows testing" --lib
+  testing::` passes 8 tests, including the new `click_helpers_count_clicks`.
+- Mutants, each failing the oracle test:
+  - Linux without the cycle;
+  - Windows without the move reset;
+  - Windows anchored at the previous press;
+  - no `dblclick`;
+  - `detail` on every event;
+  - `contextmenu` on press on Windows.
+- These also pass:
+  - the full framework test set (60 suites, 642 tests);
+  - the example builds;
+  - the `divui` doc tests;
+  - `cargo fmt --all --check`;
+  - the Linux `cargo check` of `div-platform`, `divui` and `div-ffi`
+    with their tests (WSL).
+- Linux (WSL, X11 features): `cargo test --locked -p divui --features
+  "linux testing" --test click_count_oracle` passes 4 tests. Here the
+  document replays the Linux fixture, so `contextmenu` follows the
+  press. `--lib testing::` passes 8 tests. `--test pointer_events_oracle`
+  passes 2 tests; before the test's host adjustment, it failed in four
+  secondary-button steps (`chorded` 2 and 3, `right_click` 1 and 2), only
+  in where `contextmenu` falls.
+
+### 17 November 2026: licence incident, `mouse_event.cc` (disclosure)
+
+While planning click counting, one command printed lines 385–450 of `third_party/blink/renderer/core/events/mouse_event.cc` (`MouseEvent::DispatchEvent`), from the local Chromium checkout at 147.0.7727.50, in the same command as the header check. An earlier cross-checkout `git grep` for `kDblclick` had also printed two lines of it. The header is the GNU Library General Public License v2, which is copyleft.
+
+- **Use.** Nothing from the file is ported. The one fact it shows, that `dblclick` follows a trusted `click` whose `detail` is 2, will be established by the click-count oracle (real platform input to pinned Chromium) and the UI Events specification.
+- **Rule since then:**
+  - `head -n 30` runs alone, as its own command, before any other read of a Chromium file, including the local checkout.
+  - The header check is never combined with a content print.
+  - Greps are limited to files whose header has already been checked.
 
 ### 17 November 2026: test input and explicit waits (Tier 0 item 0.12 C)
 

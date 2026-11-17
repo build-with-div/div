@@ -16,6 +16,13 @@
 //! 0.5 while pressed, so pressure is left out (the RFC's defaults are pinned
 //! by `pointer_defaults_follow_the_rfc`). The steps in [`GAPS`] differ for a
 //! named reason and must keep differing until the gap is closed.
+//!
+//! The capture is from Windows, where `contextmenu` follows the secondary
+//! button's release. Chromium on Linux fires it right after that button's
+//! `mousedown`, with the buttons held then (the real-input click-count
+//! oracle, `tests/fidelity/fixtures/click-count-v1/chromium-linux-x11.json`,
+//! RFC 0007 section 6), and so does Div. On other hosts [`on_this_host`]
+//! moves each expected `contextmenu` to its press.
 
 use div::prelude::*;
 use div::typed_style::{parse_literal, RendererStyleValue};
@@ -363,6 +370,50 @@ fn normalize(events: &[Value]) -> Vec<Value> {
     normalized
 }
 
+/// The scenario's steps as Chromium fires them on this host: on hosts other
+/// than Windows, each `contextmenu` that follows a secondary-button release
+/// moves to just after that button's last `mousedown`, with that event's
+/// buttons, point and target.
+fn on_this_host(steps: &[Value]) -> Vec<Value> {
+    let mut steps = steps.to_vec();
+    if cfg!(target_os = "windows") {
+        return steps;
+    }
+    let is_secondary = |step: &Value, kind: &str| {
+        let input = step["input"].as_array().unwrap();
+        input[0] == kind && input.get(3).is_some_and(|button| button == "right")
+    };
+    let mut press: Option<usize> = None;
+    for index in 0..steps.len() {
+        if is_secondary(&steps[index], "down") {
+            press = Some(index);
+            continue;
+        }
+        if !is_secondary(&steps[index], "up") {
+            continue;
+        }
+        let events = steps[index]["events"].as_array_mut().unwrap();
+        let Some(at) = events
+            .iter()
+            .position(|event| event["type"] == "contextmenu")
+        else {
+            continue;
+        };
+        let mut menu = events.remove(at);
+        let press = press.take().expect("a secondary release follows its press");
+        let events = steps[press]["events"].as_array_mut().unwrap();
+        let down = events
+            .iter()
+            .rposition(|event| event["type"] == "mousedown")
+            .expect("the press fires mousedown");
+        for key in ["buttons", "client", "offset", "target"] {
+            menu[key] = events[down][key].clone();
+        }
+        events.insert(down + 1, menu);
+    }
+    steps
+}
+
 fn focused(page: &Page) -> &'static str {
     page.elements
         .iter()
@@ -382,7 +433,10 @@ fn pointer_events_match_chromium() {
     for (name, scenario) in scenarios {
         let page = page(&oracle);
         setup(&page, name);
-        for (index, step) in scenario["steps"].as_array().unwrap().iter().enumerate() {
+        for (index, step) in on_this_host(scenario["steps"].as_array().unwrap())
+            .iter()
+            .enumerate()
+        {
             page.log.borrow_mut().clear();
             send(&page, name, step["input"].as_array().unwrap());
             let actual = page.log.borrow().clone();

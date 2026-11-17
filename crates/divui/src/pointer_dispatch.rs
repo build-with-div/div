@@ -23,8 +23,21 @@
 //!   more than 15px, `max_touch_move_in_pixels_for_click_` in
 //!   `ui/events/gesture_detection/gesture_configuration.h`) then fires the
 //!   compatibility mouse events through the mouse and a `click`.
+//! - Click counts (`detail`) come from [`crate::click_count`]: the input's
+//!   own count, or the document's counter. `detail` is the count on
+//!   `mousedown`, `mouseup`, `click`, `auxclick` and `dblclick`, and 0
+//!   elsewhere. A main-button `click` (or a tap's) whose count is 2 is
+//!   followed by `dblclick` at the same target. On Linux `contextmenu`
+//!   follows the secondary button's `mousedown`; on Windows it follows its
+//!   `auxclick`. The oracle is `tests/fidelity/fixtures/click-count-v1`.
+//!   Inputs are timed when the document receives them, since platform
+//!   input carries no time of its own here; Chromium uses the message's
+//!   time.
 
 use super::*;
+use crate::click_count::{
+    ClickCountRule, ClickCounter, ClickInput, DoubleClickSettings, TapCounter,
+};
 use crate::pointer::{
     Buttons, MouseInfo, Point, PointerId, PointerInfo, PointerInput, PointerInputKind, PointerType,
 };
@@ -33,9 +46,28 @@ use div_engine::{CaptureChange, PointerUpdate};
 /// The distance a touch may move and still tap, in CSS pixels.
 const TAP_SLOP: f32 = 15.0;
 
-#[derive(Debug, Default)]
+/// Whether `contextmenu` follows the secondary button's press, as on Linux,
+/// rather than its release, as on Windows.
+const CONTEXTMENU_ON_PRESS: bool = !cfg!(target_os = "windows");
+
+#[derive(Debug)]
 pub(crate) struct PointerDispatchState {
     pointers: HashMap<PointerId, ActivePointer>,
+    clicks: ClickCounter,
+    taps: TapCounter,
+    /// The clock of the click and tap counters.
+    epoch: std::time::Instant,
+}
+
+impl Default for PointerDispatchState {
+    fn default() -> Self {
+        Self {
+            pointers: HashMap::new(),
+            clicks: ClickCounter::new(ClickCountRule::host(), DoubleClickSettings::DEFAULT),
+            taps: TapCounter::new(),
+            epoch: std::time::Instant::now(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -47,6 +79,9 @@ struct ActivePointer {
     /// suppressed until every button is released.
     suppress_mouse: bool,
     down_at: (f32, f32),
+    /// When the first button was pressed or the touch started, on the
+    /// counters' clock.
+    down_time: std::time::Duration,
     /// A touch moved beyond the tap slop.
     moved: bool,
 }
@@ -69,6 +104,8 @@ struct Step {
     y: f32,
     modifiers: Modifiers,
     pressure: Option<f32>,
+    /// The click count: of a mouse press or release, or of a tap.
+    detail: u32,
 }
 
 impl Step {
@@ -90,6 +127,7 @@ impl Document {
             return self.dispatch_window_leave(&input);
         }
         let step = self.record_pointer_input(&input)?;
+        let step = self.count_clicks(&input, step)?;
         let kind = match input.kind {
             PointerInputKind::Down => PointerEventKind::Down,
             PointerInputKind::Up => PointerEventKind::Up,
@@ -147,6 +185,14 @@ impl Document {
                 }
             }
         }
+        if CONTEXTMENU_ON_PRESS
+            && step.mouse_like()
+            && input.kind == PointerInputKind::Down
+            && step.changed == Some(MouseButton::Secondary)
+        {
+            let menu = self.pointer_event(&step, "contextmenu", target, step.changed, false)?;
+            self.dispatch_to(target, &menu)?;
+        }
         if !prevented {
             if let Some((range, fraction)) = update.range_value {
                 if self.with_engine_mut(|engine| engine.set_range_fraction(range, fraction))? {
@@ -167,6 +213,7 @@ impl Document {
             .pointers
             .try_borrow_mut()
             .map_err(|_| Error::ReentrantMutation)?;
+        let now = state.epoch.elapsed();
         let other_touch = state.pointers.iter().any(|(id, pointer)| {
             *id != input.pointer_id && pointer.pointer_type == PointerType::Touch
         });
@@ -180,6 +227,7 @@ impl Document {
                 is_primary: input.pointer_type != PointerType::Touch || !other_touch,
                 suppress_mouse: false,
                 down_at: (input.x, input.y),
+                down_time: now,
                 moved: false,
             });
         pointer.pointer_type = input.pointer_type;
@@ -197,6 +245,7 @@ impl Document {
         if first_down {
             pointer.suppress_mouse = false;
             pointer.down_at = (input.x, input.y);
+            pointer.down_time = now;
             pointer.moved = false;
         }
         if !before.is_empty()
@@ -217,7 +266,57 @@ impl Document {
             y: input.y,
             modifiers: input.modifiers,
             pressure: input.pressure,
+            // A touch's tap count is known when it lifts (finish_pointer).
+            detail: match (input.pointer_type, input.kind) {
+                (PointerType::Touch, PointerInputKind::Up) => input.click_count.unwrap_or(0),
+                _ => 0,
+            },
         })
+    }
+
+    /// The click count of a mouse or pen input: its own, or the document's
+    /// counter's. Every such input reaches the counter, because a move can
+    /// end a series on Windows.
+    fn count_clicks(&self, input: &PointerInput, mut step: Step) -> Result<Step, Error> {
+        if !step.mouse_like() {
+            return Ok(step);
+        }
+        let scale = self.with_engine(|engine| engine.viewport().device_scale_factor())?;
+        let mut state = self
+            .inner
+            .pointers
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?;
+        let time = state.epoch.elapsed();
+        let counted = state.clicks.count(ClickInput {
+            kind: input.kind,
+            button: input.button,
+            buttons_held: !step.buttons.is_empty(),
+            modifiers: input.modifiers,
+            x: f64::from(input.x) * scale,
+            y: f64::from(input.y) * scale,
+            time,
+        });
+        step.detail = match input.kind {
+            PointerInputKind::Down | PointerInputKind::Up => input.click_count.unwrap_or(counted),
+            _ => 0,
+        };
+        Ok(step)
+    }
+
+    /// Use `settings` for the document's click counter from the next input
+    /// on. The native runtime reads the platform's before each input.
+    pub(crate) fn set_double_click_settings(
+        &self,
+        settings: DoubleClickSettings,
+    ) -> Result<(), Error> {
+        self.inner
+            .pointers
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?
+            .clicks
+            .set_settings(settings);
+        Ok(())
     }
 
     fn update_pointer(
@@ -285,24 +384,46 @@ impl Document {
             let leave =
                 self.with_engine_mut(|engine| Ok(engine.pointer_leave(step.id.engine())))?;
             self.dispatch_boundaries(step, &leave, true, false)?;
-            let (tapped, suppressed) = {
+            let (tapped, suppressed, count) = {
                 let mut state = self
                     .inner
                     .pointers
                     .try_borrow_mut()
                     .map_err(|_| Error::ReentrantMutation)?;
                 let pointer = state.pointers.remove(&step.id);
+                let tapped = kind == PointerInputKind::Up && pointer.is_some_and(|p| !p.moved);
+                // A touch that moved beyond the tap slop is no tap, and the
+                // next tap starts a new series. No oracle scenario covers
+                // this.
+                let count = match pointer {
+                    _ if !tapped => {
+                        state.taps.reset();
+                        0
+                    }
+                    _ if step.detail > 0 => step.detail,
+                    Some(pointer) => {
+                        let now = state.epoch.elapsed();
+                        let down = (f64::from(pointer.down_at.0), f64::from(pointer.down_at.1));
+                        state.taps.tap(down, pointer.down_time, now)
+                    }
+                    None => 1,
+                };
                 (
-                    pointer.is_some_and(|pointer| !pointer.moved),
+                    tapped,
                     pointer.is_some_and(|pointer| pointer.suppress_mouse),
+                    count,
                 )
             };
             self.with_engine_mut(|engine| {
                 engine.forget_pointer(step.id.engine());
                 Ok(())
             })?;
-            if kind == PointerInputKind::Up && tapped {
-                self.dispatch_tap(step, update.activation, suppressed)?;
+            if tapped {
+                let tap = Step {
+                    detail: count,
+                    ..*step
+                };
+                self.dispatch_tap(&tap, update.activation, suppressed)?;
             }
         }
         if ends && !touch {
@@ -322,11 +443,12 @@ impl Document {
     ) -> Result<(), Error> {
         if button == MouseButton::Main {
             let click = self.pointer_event(step, "click", target, Some(button), false)?;
-            return self.dispatch_click(target, &click);
+            self.dispatch_click(target, &click)?;
+            return self.dispatch_double_click(step, target);
         }
         let auxclick = self.pointer_event(step, "auxclick", target, Some(button), false)?;
         self.dispatch_to(target, &auxclick)?;
-        if button == MouseButton::Secondary {
+        if button == MouseButton::Secondary && !CONTEXTMENU_ON_PRESS {
             let menu = self.pointer_event(step, "contextmenu", target, Some(button), false)?;
             self.dispatch_to(target, &menu)?;
         }
@@ -395,8 +517,19 @@ impl Document {
             let click =
                 self.pointer_event(&tap, "click", target, Some(MouseButton::Main), false)?;
             self.dispatch_click(target, &click)?;
+            self.dispatch_double_click(&tap, target)?;
         }
         Ok(())
+    }
+
+    /// `dblclick` after a main-button `click` whose count is 2, at the
+    /// click's target, as Chromium follows such a trusted click.
+    fn dispatch_double_click(&self, step: &Step, target: NodeHandle) -> Result<(), Error> {
+        if step.detail != 2 || !self.with_engine(|engine| engine.is_connected(target))?? {
+            return Ok(());
+        }
+        let event = self.mouse_event(step, "dblclick", target, Some(MouseButton::Main))?;
+        self.dispatch_to(target, &event)
     }
 
     /// The pointer left the window: `pointerout` and `pointerleave` along
@@ -425,7 +558,9 @@ impl Document {
             y: input.y,
             modifiers: input.modifiers,
             pressure: input.pressure,
+            detail: 0,
         };
+        let step = self.count_clicks(input, step)?;
         let update =
             self.with_engine_mut(|engine| Ok(engine.pointer_leave(input.pointer_id.engine())))?;
         self.dispatch_boundaries(&step, &update, true, step.mouse_like())
@@ -498,6 +633,7 @@ impl Document {
     fn mouse_info(
         &self,
         step: &Step,
+        name: &str,
         node: NodeHandle,
         button: Option<MouseButton>,
     ) -> Result<MouseInfo, Error> {
@@ -511,6 +647,10 @@ impl Document {
             offset: Point::new(f64::from(offset_x), f64::from(offset_y)),
             screen: client,
             modifiers: step.modifiers,
+            detail: match name {
+                "mousedown" | "mouseup" | "click" | "auxclick" | "dblclick" => step.detail,
+                _ => 0,
+            },
         })
     }
 
@@ -522,7 +662,7 @@ impl Document {
         button: Option<MouseButton>,
         is_primary: bool,
     ) -> Result<Event, Error> {
-        let mouse = self.mouse_info(step, node, button)?;
+        let mouse = self.mouse_info(step, name, node, button)?;
         Ok(Event::from_pointer_info(
             name,
             PointerInfo::new(mouse, step.id, step.pointer_type, is_primary, step.pressure),
@@ -538,7 +678,7 @@ impl Document {
         node: NodeHandle,
         button: Option<MouseButton>,
     ) -> Result<Event, Error> {
-        let mouse = self.mouse_info(step, node, Some(button.unwrap_or(MouseButton::Main)))?;
+        let mouse = self.mouse_info(step, name, node, Some(button.unwrap_or(MouseButton::Main)))?;
         Ok(Event::from_mouse_info(name, step.id.engine(), mouse))
     }
 }
