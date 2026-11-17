@@ -94,6 +94,18 @@ def census_profiles() -> list[Profile]:
     return profiles
 
 
+def profile_entry(profile: Profile) -> dict[str, object]:
+    """A profile as the evidence records it, with how Chromium set its device
+    scale: `none` at scale 1, `forced` (real zoom) above it (RFC 0010)."""
+    return {
+        "name": profile.name,
+        "logical_size": [profile.logical_width, profile.logical_height],
+        "device_scale": profile.device_scale,
+        "physical_size": list(profile.physical_size),
+        "device_scale_method": pixel_runner.device_scale_method(profile.device_scale),
+    }
+
+
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -210,9 +222,23 @@ def token_entry(row: dict[str, str]) -> dict[str, object]:
 
 
 @contextmanager
-def chromium_page(chrome: Path):
-    """A headless pinned Chromium with one page, driven over CDP."""
+def chromium_page(chrome: Path, profile: Profile | None = None):
+    """A headless pinned Chromium with one page, driven over CDP.
+
+    With a `profile`, the browser is launched for its device scale as the
+    shared pixel launcher does (`device_scale_launch`, RFC 0010): above
+    scale 1 at real zoom (`--force-device-scale-factor`), which is a launch
+    flag, so each profile needs its own browser. Set the viewport with
+    `viewport_override(profile)`.
+    """
     env = pixel_runner.chrome_environment(str(chrome.parent), use_real_font=True)
+    scale_flags = (
+        pixel_runner.device_scale_launch(
+            profile.logical_width, profile.logical_height, profile.device_scale
+        )[0]
+        if profile
+        else []
+    )
     with tempfile.TemporaryDirectory(prefix="div-components-") as profile_dir, ExitStack() as stack:
         process = subprocess.Popen(
             [
@@ -225,6 +251,7 @@ def chromium_page(chrome: Path):
                 "--enable-features=FontDataServiceLinux:typeface/Freetype",
                 "--remote-debugging-port=0",
                 f"--user-data-dir={profile_dir}",
+                *scale_flags,
                 "about:blank",
             ],
             env=env,
@@ -547,11 +574,7 @@ def command_compare(args: argparse.Namespace) -> int:
             "renderer_sha256": sha256_file(args.renderer),
             "raster_configuration": RASTER_CONFIGURATION,
         },
-        "profiles": [
-            {"name": p.name, "logical_size": [p.logical_width, p.logical_height],
-             "device_scale": p.device_scale, "physical_size": list(p.physical_size)}
-            for p in profiles
-        ],
+        "profiles": [profile_entry(p) for p in profiles],
         "unimplemented_fixtures": missing,
         "summary": summarize(results),
         "results": results,
@@ -596,11 +619,18 @@ new Promise(resolve => {
 GEOMETRY_TOLERANCE = 1 / 128
 
 
+def viewport_override(profile: Profile) -> dict[str, object]:
+    """The shared launcher's `Emulation.setDeviceMetricsOverride` for
+    `profile`: the viewport only above scale 1, where the browser was
+    launched at real zoom (`chromium_page(chrome, profile)`)."""
+    return pixel_runner.device_scale_launch(
+        profile.logical_width, profile.logical_height, profile.device_scale
+    )[1]
+
+
 def chromium_geometry(client, page: Path, profile: Profile) -> list[dict[str, object]]:
-    client.command("Emulation.setDeviceMetricsOverride", {
-        "width": profile.logical_width, "height": profile.logical_height,
-        "deviceScaleFactor": profile.device_scale, "mobile": False,
-    })
+    """Border boxes on `page`, in a browser from `chromium_page(chrome, profile)`."""
+    client.command("Emulation.setDeviceMetricsOverride", viewport_override(profile))
     client.command("Page.navigate", {"url": "file:" + urllib.request.pathname2url(str(page))})
     boxes = client.command(
         "Runtime.evaluate",
@@ -668,8 +698,8 @@ def command_geometry(args: argparse.Namespace) -> int:
         by_name = {profile.name: profile for profile in profiles}
         profiles = [by_name[name] for name in args.profile]
     rows = []
-    with chromium_page(args.chrome) as client:
-        for profile in profiles:
+    for profile in profiles:
+        with chromium_page(args.chrome, profile) as client:
             for fixture in fixtures:
                 row = {"fixture": fixture["id"], "profile": profile.name}
                 try:
@@ -685,6 +715,7 @@ def command_geometry(args: argparse.Namespace) -> int:
         write_json(args.output, {
             "schema": "openui-components-geometry-v1",
             "chromium": {"version": version},
+            "profiles": [profile_entry(p) for p in profiles],
             "renderer_sha256": sha256_file(args.renderer),
             "tolerance_css_px": GEOMETRY_TOLERANCE,
             "rows": rows,

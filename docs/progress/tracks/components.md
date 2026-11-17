@@ -16,35 +16,111 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 ## Results
 
-| Component | Fixtures | Exact at 1x | Evidence | Measured at (Div commit) |
+| Component | Fixtures | Exact at @1 / @2 / @1.25 / @1.5 | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 5 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 17 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| card | basic, with action; light, dark | 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 2 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| input | email input: placeholder, value, disabled, invalid; light, dark | 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| label | basic; light, dark | 2 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| separator | horizontal, vertical; light, dark | 4 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
-| tabs | horizontal, vertical, second tab selected; light, dark | 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `3bee58d5`, 16 November 2026 |
+| badge | 6 variants; light, dark | 5 / 5 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 19 / 0 / 0 / 0 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| card | basic, with action; light, dark | 0 / 0 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 2 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| input | email input: placeholder, value, disabled, invalid; light, dark | 0 / 0 / 0 / 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| label | basic; light, dark | 2 / 0 / 0 / 0 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| separator | horizontal, vertical; light, dark | 4 / 4 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 / 0 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 3 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
 
-The current evidence is measured at the `legacy-800x600@1` profile only
-(`"complete": false`). From 16 November 2026 the Chromium oracle at the
-other census profiles (`mobile-375x667@2`, `desktop-1280x720@1.25`,
-`desktop-1920x1080@1.5`) is captured with `--force-device-scale-factor`
-instead of CDP's emulated device scale; those rows are measured again with
-the fidelity lane's shared real-zoom launcher once it lands. The
-four-profile results of 12 November (16 of 216 exact, at `6fc0c1a7`, with
-the emulated oracle) are history, in the [12 November entry](#12-november-2026-tabs-and-the-roving-focus-primitive-c2-group-1).
+The evidence covers all four census profiles (`"complete": true`). Above
+1x the Chromium oracle is captured with `--force-device-scale-factor` by
+the fidelity lane's shared launcher ([RFC 0010](../../alpha/rfcs/0010-real-zoom-oracle.md));
+this baseline starts on 17 November 2026. The four-profile results of
+12 November (16 of 216 exact, at `6fc0c1a7`, with CDP's emulated device
+scale) are history, in the [12 November entry](#12-november-2026-tabs-and-the-roving-focus-primitive-c2-group-1).
 
 Behavior is compared with Radix running in Chromium by the traces in
 [`traces.json`](../../../tests/fidelity/components/traces.json):
 
 | Component | Traces | Same | Evidence | Measured at |
 | --- | --- | --- | --- | --- |
-| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
-| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
-| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `3bee58d5`, 16 November 2026 |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
+| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
+| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
+
+## 17 November 2026: real-zoom baseline
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| `reference_harness.py geometry` launches Chromium for each profile with the shared launcher's flags and viewport override (`device_scale_launch`, [RFC 0010](../../alpha/rfcs/0010-real-zoom-oracle.md)): `--force-device-scale-factor` above scale 1, unchanged at scale 1. It used CDP's emulated `Emulation.setDeviceMetricsOverride`. `compare` already renders through the launcher. The comparison evidence and the geometry output record each profile's `device_scale_method` (`none` or `forced`). | components | `tests/fidelity/components/harness/reference_harness.py` |
+| All 74 fixtures measured again at the four census profiles, with real zoom above 1x. This is a fresh baseline: the earlier non-1x results used the emulated oracle and are not compared with it. | components | `tests/fidelity/components/evidence/reference-v1.json`, `traces-v1.json` |
+
+### Measurement
+
+All 296 comparisons at `84fe5051` (main `5231c6cf` with the change above),
+in the census real-font environment: 45 exact, 251 different, 0 errors
+([`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json),
+`"complete": true`).
+
+| Profile | Device scale | Exact (of 74) | Geometry the same (of 74, diagnostic) |
+| --- | --- | --- | --- |
+| `legacy-800x600@1` | 1, none | 36 | 62 |
+| `mobile-375x667@2` | 2, forced | 9 | 56 |
+| `desktop-1280x720@1.25` | 1.25, forced | 0 | 36 |
+| `desktop-1920x1080@1.5` | 1.5, forced | 0 | 36 |
+
+At 1x, ten rows moved since the input run at `3bee58d5`; the other 64
+have the same images (both hashes) and status, and Chromium's images of
+all 74 are unchanged:
+
+- **card-action** (grid auto-placement cursor, div#14, `6e7f5f02`): the
+  card header is 44px tall instead of 52px. 10,196 and 9,059 pixels
+  different become 8 (dark, 1 in a channel) and 107 (light, up to 12),
+  the same remainder as card-basic; every box is the same as Chromium's.
+- **button-disabled** (opacity groups keep LCD text, div#69, `5231c6cf`):
+  489 and 502 pixels different become 0. Both pages are exact.
+- **tabs**: the text inside every tabs page now matches. The three dark
+  pages are exact (358, 358 and 352 pixels before) and the three light
+  pages differ in 44 pixels, up to 8 in a channel: the active trigger's
+  corners, below. Not attributed to one of the engine changes merged
+  between `3bee58d5` and `5231c6cf`.
+
+10 of 11 behavior traces are the same
+([`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json)),
+as before; `tabs-tab-out` still differs.
+
+### Remaining failures
+
+- **Box edges at fractional scales.** At 1.25 and 1.5 Chromium snaps box
+  edges to device pixels and Div paints the fraction as coverage. The
+  separator's 1px line is 1.25 device pixels at 1.25: Chromium paints one
+  row (`rgb(229 229 229)` at y 20), Div that row and a partial one
+  (`rgb(249 249 249)` at y 21). Every page at these two profiles differs.
+  Owner: engine track, layout and paint
+  ([RFC 0011](../../alpha/rfcs/0011-device-pixel-layout.md)).
+- **Text at 2x.** Glyph ink sits one CSS pixel (two device pixels) higher
+  in Div: on label-basic, Chromium's ink rows are 36–59 and Div's 34–58,
+  in the same columns. Likely the same baseline rounding as the font
+  pages', below. Owner: engine track, text (RFC 0011).
+- **Line height as `calc()`.** Tailwind's `text-sm` line height is
+  `calc(1.25 / 0.875)` and `text-xs`'s is `calc(1 / 0.75)`; Div does not
+  accept `calc()` in `line-height`. The font pages use the number
+  `1.4285714` (19.9999996px at 14px), so Geist's baseline rounds one pixel
+  high (4,451 pixels per page). The components write the computed lengths
+  instead: `20px` in `button.rs`, `card.rs`, `input.rs`, `tabs.rs` and the
+  tabs panels in `render/src/main.rs`, and `16px` in `badge.rs` and
+  `button.rs` (size xs). All switch to shadcn's `calc()` when Div accepts
+  it. Owner: engine track, style.
+- **Active trigger corners (light)**, from the 12 November entry: 44
+  pixels on each light tabs page at 1x.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Comparison, all profiles | `python3 tools/qualification/census_lock.py run --wait -- python3 tests/fidelity/components/harness/reference_harness.py compare --renderer <release div-components-render> --repository-commit 84fe5051… --evidence tests/fidelity/components/evidence/reference-v1.json` in WSL, renderer built with the CI `SKIA_GN_ARGS` | 45 of 296 exact, 251 different, 0 errors; complete |
+| Behavior traces | `reference_harness.py trace --renderer <release div-components-render> --repository-commit 84fe5051… --output tests/fidelity/components/evidence/traces-v1.json` in WSL | 10 of 11 the same; `tabs-tab-out` as before |
+| Geometry, all profiles (diagnostic) | `reference_harness.py geometry --renderer <release div-components-render>` in WSL | 190 of 296 pages with every box the same (62, 56, 36, 36) |
+| Renderer | `sha256sum` of the release `div-components-render` | `2dd7d79e…`, the SHA-256 in both evidence files |
+| Harness unit tests | `python3 -m unittest tests/fidelity/components/harness/test_reference_harness.py` | 25 passed, among them `test_profiles_above_scale_one_use_real_zoom` |
 
 ## 16 November 2026: input (C3)
 
@@ -617,8 +693,7 @@ These are API requests for the framework track, not blockers.
    `primitives` module of `div-components`, on the public `divui` API and
    the RFC's interims. Roving focus, tabs, switch and input are built;
    dialog and checkbox are next. Their `data-state` styles are inline
-   until typed style rules (A1) land. Measure the non-1x profiles again
-   with the real-zoom launcher once it lands.
+   until typed style rules (A1) land.
 3. Lucide icons in Div: the static SVG decoder
    (`crates/div-paint/src/image_resource.rs`) draws only `<rect>`
    shapes, while every Lucide icon is stroked `<path>` data in
