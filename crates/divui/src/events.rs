@@ -78,6 +78,9 @@ struct EventState {
     default_prevented: Cell<bool>,
     propagation_stopped: Cell<bool>,
     immediate_propagation_stopped: Cell<bool>,
+    /// Set while a passive listener runs, as the DOM's "in passive listener
+    /// flag": `prevent_default` does nothing then.
+    in_passive_listener: Cell<bool>,
     dispatching: Cell<bool>,
     completed_propagation_stopped: Cell<bool>,
     completed_immediate_propagation_stopped: Cell<bool>,
@@ -453,10 +456,16 @@ impl Event {
         self.state.cancelable
     }
 
+    /// Cancel the event's default action, if it is cancelable. Inside a
+    /// passive listener this does nothing, as on the web.
     pub fn prevent_default(&self) {
-        if self.cancelable() {
+        if self.cancelable() && !self.state.in_passive_listener.get() {
             self.state.default_prevented.set(true);
         }
+    }
+
+    pub(crate) fn set_in_passive_listener(&self, passive: bool) {
+        self.state.in_passive_listener.set(passive);
     }
 
     pub fn default_prevented(&self) -> bool {
@@ -556,8 +565,71 @@ pub(crate) type EventCallback = Rc<dyn Fn(&Event)>;
 
 #[derive(Clone)]
 pub(crate) struct Listener {
-    pub capture: bool,
+    pub options: ListenerOptions,
     pub callback: EventCallback,
+}
+
+/// How [`Element::on_with`] adds a listener, as the DOM's
+/// `AddEventListenerOptions`.
+///
+/// [`Element::on_with`]: crate::Element::on_with
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ListenerOptions {
+    /// Listen in the capture phase, as [`Element::on_capture`] does.
+    ///
+    /// [`Element::on_capture`]: crate::Element::on_capture
+    pub capture: bool,
+    /// Remove the listener before it is first called.
+    pub once: bool,
+    /// Make [`Event::prevent_default`] do nothing inside the listener.
+    ///
+    /// `None` is the web's default, which Chromium 147 resolves in
+    /// `EventTarget::SetDefaultAddEventListenerOptions`: passive for
+    /// `touchstart`, `touchmove`, `wheel` and `mousewheel` on a top-level
+    /// node (the window, the document, its element or its body, which a
+    /// native document's root stands for), and not passive otherwise.
+    pub passive: Option<bool>,
+}
+
+impl ListenerOptions {
+    /// The passive flag the listener gets on `top_level` or another node.
+    pub(crate) fn resolved_passive(self, event_type: &str, top_level: bool) -> bool {
+        self.passive.unwrap_or(
+            top_level
+                && matches!(
+                    event_type,
+                    "touchstart" | "touchmove" | "wheel" | "mousewheel"
+                ),
+        )
+    }
+}
+
+/// One listener added by [`Element::on`], [`Element::on_capture`] or
+/// [`Element::on_with`], as the callback and capture flag identify a
+/// listener for the DOM's `removeEventListener`.
+///
+/// It is a handle: dropping it leaves the listener in place, as forgetting a
+/// callback does on the web. [`Self::remove`] removes exactly this listener.
+///
+/// [`Element::on`]: crate::Element::on
+/// [`Element::on_capture`]: crate::Element::on_capture
+/// [`Element::on_with`]: crate::Element::on_with
+#[derive(Debug, Clone)]
+pub struct ListenerHandle {
+    pub(crate) document: std::rc::Weak<crate::document::DocumentInner>,
+    pub(crate) id: u64,
+}
+
+impl ListenerHandle {
+    /// Remove this listener. If it is removed during a dispatch, it is not
+    /// called for the rest of it. Removing it again, after its element was
+    /// removed, or after the document is gone does nothing.
+    pub fn remove(&self) -> Result<(), crate::Error> {
+        let Some(inner) = self.document.upgrade() else {
+            return Ok(());
+        };
+        crate::Document { inner }.remove_listener(self.id)
+    }
 }
 
 #[cfg(test)]

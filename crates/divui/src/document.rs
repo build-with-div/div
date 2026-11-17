@@ -55,6 +55,10 @@ pub(crate) enum RegisteredCallback {
 pub(crate) struct RegisteredListener {
     id: u64,
     capture: bool,
+    /// Removed before its first call (`AddEventListenerOptions.once`).
+    once: bool,
+    /// Resolved when added, as Chromium resolves the default.
+    passive: bool,
     callback: RegisteredCallback,
 }
 
@@ -1815,13 +1819,50 @@ impl Document {
         handle: NodeHandle,
         event_type: &str,
         listener: Listener,
-    ) -> Result<(), Error> {
-        self.add_registered_listener(
+    ) -> Result<crate::ListenerHandle, Error> {
+        let options = listener.options;
+        let top_level = self.is_top_level_listener_target(handle)?;
+        let id = self.add_registered_listener(
             handle,
             event_type,
-            listener.capture,
+            options.capture,
+            options.once,
+            options.resolved_passive(event_type, top_level),
             RegisteredCallback::Rust(listener.callback),
         )?;
+        Ok(crate::ListenerHandle {
+            document: Rc::downgrade(&self.inner),
+            id,
+        })
+    }
+
+    /// Chromium 147's `EventTarget::IsTopLevelNode`: the window, the
+    /// document, its element or its body. Documents made through this crate
+    /// are native, and their root stands for all four.
+    fn is_top_level_listener_target(&self, handle: NodeHandle) -> Result<bool, Error> {
+        self.with_engine(|engine| handle == engine.root())
+    }
+
+    /// Remove the listener registered as `id`, if it is still registered.
+    pub(crate) fn remove_listener(&self, id: u64) -> Result<(), Error> {
+        let removed = {
+            let mut map = self
+                .inner
+                .listeners
+                .try_borrow_mut()
+                .map_err(|_| Error::ReentrantMutation)?;
+            let mut removed = None;
+            for list in map.values_mut() {
+                if let Some(index) = list.iter().position(|listener| listener.id == id) {
+                    removed = Some(list.remove(index));
+                    break;
+                }
+            }
+            map.retain(|_, list| !list.is_empty());
+            removed
+        };
+        // The callback's captures can run Drop; release the list borrow first.
+        drop(removed);
         Ok(())
     }
 
@@ -1830,6 +1871,8 @@ impl Document {
         handle: NodeHandle,
         event_type: &str,
         capture: bool,
+        once: bool,
+        passive: bool,
         callback: RegisteredCallback,
     ) -> Result<u64, Error> {
         self.with_engine(|engine| handle.downgrade().upgrade(engine))??;
@@ -1858,6 +1901,8 @@ impl Document {
         let listener = RegisteredListener {
             id,
             capture,
+            once,
+            passive,
             callback,
         };
         if let Some(list) = map.get_mut(&key) {
@@ -1878,10 +1923,13 @@ impl Document {
         capture: bool,
         handler: Rc<ForeignEventHandler>,
     ) -> Result<u64, Error> {
+        // The C ABI is frozen for v0.2: its listeners keep their options.
         self.add_registered_listener(
             handle,
             foreign_event_key(event_type),
             capture,
+            false,
+            false,
             RegisteredCallback::Foreign(handler),
         )
     }
@@ -2378,13 +2426,24 @@ impl Document {
             let Some(listener) = listener else {
                 continue;
             };
-            match listener.callback {
-                RegisteredCallback::Rust(callback) => callback(event),
+            // Chromium's `FireEventListeners` removes a once listener before
+            // calling it, so a nested dispatch doesn't reach it again.
+            if listener.once {
+                self.remove_listener(listener.id)?;
+            }
+            event.set_in_passive_listener(listener.passive);
+            let result: Result<(), Error> = match listener.callback {
+                RegisteredCallback::Rust(callback) => {
+                    callback(event);
+                    Ok(())
+                }
                 #[cfg(feature = "ffi-integration")]
                 RegisteredCallback::Foreign(handler) => {
-                    handler(node, target, event, Some(listener.capture))?
+                    handler(node, target, event, Some(listener.capture))
                 }
-            }
+            };
+            event.set_in_passive_listener(false);
+            result?;
             if event.immediate_propagation_stopped() {
                 break;
             }

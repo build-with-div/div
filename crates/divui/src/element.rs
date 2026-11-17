@@ -1,7 +1,7 @@
 //! Generation-checked element handles for the native retained engine.
 
 use crate::document::{Document, DocumentInner};
-use crate::events::{Event, Listener};
+use crate::events::{Event, Listener, ListenerHandle, ListenerOptions};
 use crate::style::{Error, Rect};
 use div_dom::ElementTag;
 use div_engine::{
@@ -1128,20 +1128,57 @@ impl Element {
             .with_engine_mut(|engine| engine.release_pointer_capture(pointer_id, self.handle))
     }
 
-    pub fn on<F>(&self, event_type: &str, callback: F) -> Result<(), Error>
+    /// Listen for `event_type` in the target and bubble phases, as the DOM's
+    /// `addEventListener` without options. The handle removes exactly this
+    /// listener; dropping it leaves the listener in place.
+    pub fn on<F>(&self, event_type: &str, callback: F) -> Result<ListenerHandle, Error>
     where
         F: Fn(&Event) + 'static,
     {
-        self.add_listener(event_type, false, callback)
+        self.on_with(event_type, ListenerOptions::default(), callback)
     }
 
-    pub fn on_capture<F>(&self, event_type: &str, callback: F) -> Result<(), Error>
+    /// Listen for `event_type` in the capture and target phases, as
+    /// `addEventListener` with `capture: true`.
+    pub fn on_capture<F>(&self, event_type: &str, callback: F) -> Result<ListenerHandle, Error>
     where
         F: Fn(&Event) + 'static,
     {
-        self.add_listener(event_type, true, callback)
+        self.on_with(
+            event_type,
+            ListenerOptions {
+                capture: true,
+                ..ListenerOptions::default()
+            },
+            callback,
+        )
     }
 
+    /// Listen for `event_type` with `options`, as `addEventListener` with
+    /// `AddEventListenerOptions`: `capture`, `once` and `passive`. Each call
+    /// adds a listener, since Rust closures have no identity to deduplicate;
+    /// the handle is the listener's identity.
+    pub fn on_with<F>(
+        &self,
+        event_type: &str,
+        options: ListenerOptions,
+        callback: F,
+    ) -> Result<ListenerHandle, Error>
+    where
+        F: Fn(&Event) + 'static,
+    {
+        self.document.add_listener(
+            self.handle,
+            event_type,
+            Listener {
+                options,
+                callback: Rc::new(callback),
+            },
+        )
+    }
+
+    /// Remove every listener of `event_type` on this element, in all phases.
+    /// The web has no equivalent; [`ListenerHandle::remove`] removes one.
     pub fn remove_event(&self, event_type: &str) -> Result<(), Error> {
         self.document.remove_listeners(self.handle, event_type)
     }
@@ -1154,20 +1191,6 @@ impl Element {
             self.document.remove_node(child)?;
         }
         Ok(())
-    }
-
-    fn add_listener<F>(&self, event_type: &str, capture: bool, callback: F) -> Result<(), Error>
-    where
-        F: Fn(&Event) + 'static,
-    {
-        self.document.add_listener(
-            self.handle,
-            event_type,
-            Listener {
-                capture,
-                callback: Rc::new(callback),
-            },
-        )
     }
 
     fn control_flag(
