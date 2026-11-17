@@ -1,0 +1,11 @@
+div { opacity: 0.1 }
+.a { opacity: 0.2 }
+.b { opacity: 0.3 }
+#x { opacity: 0.4 }
+div.a { color: rgb(0, 0, 255) }
+.a.b { color: rgb(0, 128, 0) }
+.c, #y { opacity: 0.5 }
+#y.c { margin-top: 3px }
+.c:first-child { margin-top: 5px }
+[data-k] { padding-left: 2px }
+.d { padding-left: 4px }

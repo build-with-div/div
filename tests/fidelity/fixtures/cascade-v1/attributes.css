@@ -1,0 +1,9 @@
+[data-a] { padding-left: 1px }
+[data-a="x"] { opacity: 0.2 }
+[data-b~="two"] { opacity: 0.3 }
+[lang|="en"] { margin-top: 2px }
+[data-c^="pre"] { color: rgb(255, 0, 0) }
+[data-c$="post"] { color: rgb(0, 0, 255) }
+[data-c*="mid"] { font-size: 18px }
+[data-d="CaSe" i] { font-weight: 700 }
+[data-d="CaSe"] { padding-left: 5px }

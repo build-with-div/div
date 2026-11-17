@@ -9,6 +9,10 @@
 //! time.
 
 /// How a compound relates to the compound on its right.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Combinator {
     /// `a b`
@@ -22,6 +26,10 @@ pub enum Combinator {
 }
 
 /// A complex selector, right to left.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Selector {
     /// The compound that matches the styled element.
@@ -32,12 +40,20 @@ pub struct Selector {
 }
 
 /// A compound selector: simple selectors in source order. Never empty.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Compound {
     pub simple: Vec<SimpleSelector>,
 }
 
 /// One simple selector.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimpleSelector {
     /// `*`
@@ -56,6 +72,10 @@ pub enum SimpleSelector {
 
 /// An attribute selector. The name is ASCII-lowercase, as attribute names
 /// in an HTML document are matched.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttributeSelector {
     pub name: String,
@@ -66,6 +86,10 @@ pub struct AttributeSelector {
 }
 
 /// How an attribute selector compares the attribute's value.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttributeMatcher {
     /// `[name]`
@@ -85,6 +109,10 @@ pub enum AttributeMatcher {
 }
 
 /// The pseudo-classes RFC 0001 supports. Any other is a compile error.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PseudoClass {
     Hover,
@@ -122,6 +150,10 @@ pub enum PseudoClass {
 
 /// An argument of `:has()`: a selector and the combinator that relates its
 /// leftmost compound to the `:has()` anchor.
+#[cfg_attr(
+    feature = "constructor-tokens",
+    derive(crate::constructor_tokens::ConstructorTokens)
+)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelativeSelector {
     pub combinator: Combinator,

@@ -18,6 +18,48 @@ pub enum CascadeOrigin {
     Author,
 }
 
+/// A class name that a `stylesheet!` sheet uses, as a typed constant.
+///
+/// `stylesheet!` makes one for each class its selectors name, under
+/// `<sheet>::classes`, so a misspelt class is a compile error rather than
+/// a rule that never matches. It reads as the class name: `ClassId` derefs
+/// to `str`, so `element.add_class(&sheet::classes::card)` works.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ClassId(&'static str);
+
+impl ClassId {
+    /// For `stylesheet!` only: the name must be one the sheet uses.
+    #[doc(hidden)]
+    pub const fn __from_sheet(name: &'static str) -> Self {
+        Self(name)
+    }
+
+    /// The class name, as the sheet writes it.
+    pub const fn as_str(self) -> &'static str {
+        self.0
+    }
+}
+
+impl std::ops::Deref for ClassId {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        self.0
+    }
+}
+
+impl AsRef<str> for ClassId {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
+impl std::fmt::Display for ClassId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.0)
+    }
+}
+
 /// One style rule: a selector list and the declarations it applies.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StyleRule {

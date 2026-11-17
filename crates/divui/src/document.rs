@@ -654,6 +654,31 @@ impl Document {
         Ok(crate::TextNode::from_handle(self.clone(), handle))
     }
 
+    /// Adopt a style sheet, as `document.adoptedStyleSheets` does: its rules
+    /// apply to every element of the document, after the rules of the sheets
+    /// adopted before it. `stylesheet!` makes the sheets this takes.
+    pub fn adopt_stylesheet(
+        &self,
+        sheet: &div_style::stylesheet::StyleSheet,
+    ) -> Result<div_engine::StyleSheetId, Error> {
+        let mut engine = self
+            .inner
+            .engine
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?;
+        Ok(engine.adopt_style_sheet(sheet)?)
+    }
+
+    /// Remove an adopted style sheet. Its rules no longer apply.
+    pub fn remove_stylesheet(&self, sheet: div_engine::StyleSheetId) -> Result<(), Error> {
+        let mut engine = self
+            .inner
+            .engine
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?;
+        Ok(engine.remove_style_sheet(sheet)?)
+    }
+
     /// Find the first attached element with this ID in document order.
     pub fn element_by_id(&self, id: &str) -> Result<Option<Element>, Error> {
         let handle = self.with_engine(|engine| engine.element_by_id(id))?;

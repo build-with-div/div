@@ -221,6 +221,7 @@ pub use div_engine::{
     TextDirection, TextEdging, TextHinting, TextRasterConfiguration, TextUnit, ViewportAuthority,
     ViewportMetrics, ViewportMetricsError,
 };
+pub use div_engine::{StyleSheetError, StyleSheetId};
 #[cfg(any(
     all(feature = "linux", target_os = "linux"),
     all(feature = "windows", target_os = "windows")
@@ -229,7 +230,7 @@ pub use div_platform::{KeyboardInput, PlatformEvent};
 
 // ─── Re-exports: proc macros ────────────────────────────────
 
-pub use div_macros::{component, style, view};
+pub use div_macros::{component, style, stylesheet, view};
 
 #[cfg(test)]
 mod form_association_tests;

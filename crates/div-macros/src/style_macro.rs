@@ -110,7 +110,7 @@ fn css_text(input: &TokenStream, source: Option<String>) -> syn::Result<(String,
 
 /// The text between the outer delimiters of `name! { ... }`, `name!( ... )`
 /// or `name![ ... ]`.
-fn macro_body(source: &str) -> Option<&str> {
+pub(crate) fn macro_body(source: &str) -> Option<&str> {
     let bang = source.find('!')?;
     let rest = source[bang + 1..].trim_start();
     let close = match rest.chars().next()? {
@@ -134,7 +134,7 @@ fn macro_body(source: &str) -> Option<&str> {
 /// Rust `//` comments are not CSS. They are dropped outside strings and
 /// brackets (so `url(http://...)` keeps its slashes); the token check still
 /// sees the same tokens because Rust drops them too.
-fn strip_line_comments(text: &str) -> String {
+pub(crate) fn strip_line_comments(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut quote = None;
     let mut depth = 0usize;
