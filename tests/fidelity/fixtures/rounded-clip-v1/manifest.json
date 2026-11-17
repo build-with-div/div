@@ -1,0 +1,40 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux",
+ "device_scale": "real zoom above scale 1: --force-device-scale-factor and a viewport-only CDP override, headless (RFC 0010, tools/accountability/run_all_pixel_comparisons.py)",
+ "viewport": [
+  160,
+  140
+ ],
+ "scales": [
+  "1",
+  "1.25",
+  "1.5",
+  "2"
+ ],
+ "images": {
+  "green-100.png": "0d8a5f0ed3f28f00f0f26389d8ca6ae1aadd0db5aab485d6aaf212f93cb6e9ef"
+ },
+ "files": {
+  "circle-1.png": "5cd1e8ece924d49e5e2486ccce78da894234df660ef3b9abe103a082046349d7",
+  "circle-1.25.png": "4f3bae6c6dd93bd98e69c54fb87d56207d94657bfab9622e1d52fc5d51489f77",
+  "circle-1.5.png": "789234db152316221b0e6637e508edbf814a10df5c1bafef9d2665f526d13fd6",
+  "circle-2.png": "4410dccaeff41abf2057b2d4aca4e12d3f57465fb7e681d2479a5b2bbda993f4",
+  "circle-img-1.png": "386f96d095af34dfecd1feef8d04ca9f663d130b39e689462991f65733dfd87e",
+  "circle-img-1.25.png": "113c9e91b532553a22575f8a36147a83dfbf610cce0dd9f4d4ea8da1e1f2f544",
+  "circle-img-1.5.png": "9cecce71edbc3ba3c9a5864c4257210e2d9ab3f3fb4cd27cebe2f240c2e08c51",
+  "circle-img-2.png": "0425da6693cd1122e9238d2e19abf24e439703ac44559a92c783d17fb2c5edf6",
+  "rrect-1.png": "a280e3da5657874789fbb76a4b8b10b816c9b2eb86889f43dc14a95f5e6294c5",
+  "rrect-1.25.png": "c8b3f2159cf145ec6be76adfa8afe27d76d754f153d5751e25ef28b005426129",
+  "rrect-1.5.png": "ed018018cf0e60254b7899c624c930bf764aa8e70934e79bffa91ac1dc6a41b7",
+  "rrect-2.png": "1944651511ee7d7e1835ebc791bdabcfbcce472f04188f4df1f335ab54e3d979",
+  "padding-clip-1.png": "49c7a6a3941aab3aab23a9d7059fc3425f5d41eb6de481e4e5737c8e2ed54e91",
+  "padding-clip-1.25.png": "a0708537db2976b7a6f7e989460311e0353df5e964690e188e6b0e2c3fbd0dd4",
+  "padding-clip-1.5.png": "42ec472bbf4a0fca0f22a7f1b3fca78c2e2c031dd0e9cbb7a5ba40b02fc71b35",
+  "padding-clip-2.png": "0a3a3500fa4697f522e6670626eec63ec7cee8d718c907a8996232e5c0813570",
+  "gradient-clip-1.png": "406baebd321a7dd642b88cdddfe4319c49e5daf89f5f9e2480baee5d2dd0c510",
+  "gradient-clip-1.25.png": "626c34b54f3ac4f2274d03834a4deb552924e959f0713dcbbfe00e95e612d4db",
+  "gradient-clip-1.5.png": "d3f8c48a9f5ac4fde876fe9d9341f305e51ac9d082a19e1884672d22506f4020",
+  "gradient-clip-2.png": "47b30724e501d9d5000759fef957f0f663695bfcd88b43a8fab5e7c476306daa"
+ }
+}
