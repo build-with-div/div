@@ -49,8 +49,8 @@ style or the cascade go to the engine track.
 - **Not affected:** the canvas (#48) and SVG (#49) lanes capture
   their oracles at scale 1 only, so they need no recapture.
 - **Remaining:** each owner's non-1x oracles, per the RFC 0010 inventory.
-  The fidelity lane's own: the fractional-edges probe (#53, recaptured at
-  real zoom, below), `webfont-fontations-v1`, the site showcase PNG and the
+  The fidelity lane's own: the fractional-edges probe (#53, recaptured on
+  its rebase), `webfont-fontations-v1`, the site showcase PNG and the
   Windows text values.
 
 ## 15 November 2026: root causes of the remaining census differences
