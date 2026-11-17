@@ -1,0 +1,473 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux-x11",
+ "host": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+ "input": "X11 wheel buttons 4-7 and modifier keys through XTEST, --ozone-platform=x11",
+ "scale_method": "--force-device-scale-factor (RFC 0010 real zoom)",
+ "viewport": [
+  480,
+  320
+ ],
+ "page": "one position:fixed overflow:scroll scroller filling the viewport, 4000x4000 content; a passive window wheel listener",
+ "system": {},
+ "scales": {
+  "1.0": {
+   "viewport": [
+    480,
+    344
+   ],
+   "scroller_client": [
+    465,
+    329
+   ],
+   "steps": [
+    {
+     "name": "down",
+     "input": {
+      "button": 5,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "up",
+     "input": {
+      "button": 4,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": -120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": 120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      0
+     ]
+    },
+    {
+     "name": "down",
+     "input": {
+      "button": 5,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "right",
+     "input": {
+      "button": 7,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": -120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      120,
+      120
+     ]
+    },
+    {
+     "name": "left",
+     "input": {
+      "button": 6,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": -120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "right",
+     "input": {
+      "button": 7,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": -120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      120,
+      120
+     ]
+    },
+    {
+     "name": "shift-down",
+     "input": {
+      "button": 5,
+      "shift": true,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": true,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      240,
+      120
+     ]
+    }
+   ]
+  },
+  "1.25": {
+   "viewport": [
+    600,
+    444
+   ],
+   "scroller_client": [
+    585,
+    429
+   ],
+   "steps": [
+    {
+     "name": "down",
+     "input": {
+      "button": 5,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "up",
+     "input": {
+      "button": 4,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": -120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": 120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      0
+     ]
+    },
+    {
+     "name": "down",
+     "input": {
+      "button": 5,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "right",
+     "input": {
+      "button": 7,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": -120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      120,
+      120
+     ]
+    },
+    {
+     "name": "left",
+     "input": {
+      "button": 6,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": -120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      0,
+      120
+     ]
+    },
+    {
+     "name": "right",
+     "input": {
+      "button": 7,
+      "shift": false,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 120,
+       "deltaY": 0,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": -120,
+       "wheelDeltaY": 0,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": false,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      120,
+      120
+     ]
+    },
+    {
+     "name": "shift-down",
+     "input": {
+      "button": 5,
+      "shift": true,
+      "control": false
+     },
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaZ": 0,
+       "deltaMode": 0,
+       "wheelDeltaX": 0,
+       "wheelDeltaY": -120,
+       "button": 0,
+       "buttons": 0,
+       "bubbles": true,
+       "cancelable": false,
+       "shiftKey": true,
+       "ctrlKey": false,
+       "altKey": false,
+       "metaKey": false
+      }
+     ],
+     "scroll": [
+      240,
+      120
+     ]
+    }
+   ]
+  }
+ }
+}

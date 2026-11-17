@@ -151,7 +151,7 @@ pub use document::Document;
 pub use element::{Element, WeakElement};
 pub use events::{
     Event, EventPhase, InputEventInfo, InputType, KeyEventType, ListenerHandle, ListenerOptions,
-    Modifiers, MouseButton, MouseEventType,
+    Modifiers, MouseButton, MouseEventType, WheelDeltaMode,
 };
 pub use keyboard::Key;
 pub use scroll_button::{

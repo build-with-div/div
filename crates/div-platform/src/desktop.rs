@@ -1,7 +1,7 @@
 use crate::{
     BackendPreference, BackendStatus, Clipboard, ClipboardBackend, CursorIcon, KeyPhase, LoopWaker,
     Modifiers, PlatformApplication, PlatformError, PlatformEvent, PointerButton, PointerPhase,
-    SoftwareFrame, WindowCommand, WindowController, WindowOptions,
+    SoftwareFrame, WheelDeltas, WheelSettings, WindowCommand, WindowController, WindowOptions,
 };
 use accesskit_winit::{Adapter as AccessibilityAdapter, WindowEvent as AccessibilityEvent};
 use glutin::config::{ConfigTemplateBuilder, GlConfig};
@@ -1024,9 +1024,11 @@ impl WindowState {
                 self.request_redraw();
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                let (delta_x, delta_y) = match delta {
-                    MouseScrollDelta::LineDelta(x, y) => (x * 40.0, y * 40.0),
-                    MouseScrollDelta::PixelDelta(position) => (
+                // winit's deltas are positive when the content moves right
+                // or down; the web's when the view does (crate::wheel).
+                let wheel = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => WheelSettings::system().deltas(x, y),
+                    MouseScrollDelta::PixelDelta(position) => WheelDeltas::from_content_pixels(
                         (position.x / self.scale_factor) as f32,
                         (position.y / self.scale_factor) as f32,
                     ),
@@ -1034,8 +1036,9 @@ impl WindowState {
                 self.send(PlatformEvent::Wheel {
                     x: self.cursor.x as f32,
                     y: self.cursor.y as f32,
-                    delta_x,
-                    delta_y,
+                    delta_x: wheel.delta_x,
+                    delta_y: wheel.delta_y,
+                    delta_mode: wheel.mode,
                     modifiers: self.modifiers,
                 })?;
                 self.request_redraw();

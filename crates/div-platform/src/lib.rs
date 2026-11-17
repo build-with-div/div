@@ -21,6 +21,9 @@ pub use desktop::{run, run_windows};
 #[cfg(any(feature = "linux", feature = "windows"))]
 pub use accesskit::{ActionRequest, TreeUpdate};
 
+mod wheel;
+pub use wheel::{WheelDeltaMode, WheelDeltas, WheelSettings, WHEEL_PAGESCROLL};
+
 use div_geometry::ViewportMetrics;
 use std::path::PathBuf;
 
@@ -351,11 +354,14 @@ pub enum PlatformEvent {
         button: PointerButton,
         modifiers: Modifiers,
     },
+    /// A wheel or touchpad scroll at a point, with the DOM's deltas:
+    /// positive scrolls right or down, in `delta_mode`'s unit.
     Wheel {
         x: f32,
         y: f32,
         delta_x: f32,
         delta_y: f32,
+        delta_mode: WheelDeltaMode,
         modifiers: Modifiers,
     },
     Key {

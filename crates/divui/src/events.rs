@@ -179,8 +179,14 @@ pub struct Event {
     pub event_type: String,
     pub mouse_x: f32,
     pub mouse_y: f32,
+    /// A `wheel` event's deltas, as the DOM's `WheelEvent.deltaX` and
+    /// `deltaY`: positive scrolls right or down, in [`Self::delta_mode`]'s
+    /// unit. Zero for other events.
     pub delta_x: f32,
     pub delta_y: f32,
+    /// The unit of [`Self::delta_x`] and [`Self::delta_y`], as the DOM's
+    /// `WheelEvent.deltaMode`. Native wheels and touchpads report pixels.
+    pub delta_mode: WheelDeltaMode,
     pub mouse_button: i32,
     pub key_code: i32,
     pub key_text: String,
@@ -242,6 +248,7 @@ impl Event {
             mouse_y: y,
             delta_x: 0.0,
             delta_y: 0.0,
+            delta_mode: WheelDeltaMode::Pixel,
             mouse_button: button as i32,
             key_code: 0,
             key_text: String::new(),
@@ -267,6 +274,7 @@ impl Event {
             mouse_y: 0.0,
             delta_x: 0.0,
             delta_y: 0.0,
+            delta_mode: WheelDeltaMode::Pixel,
             mouse_button: -1,
             key_code,
             key_text: key_text.unwrap_or_default().to_owned(),
@@ -333,10 +341,20 @@ impl Event {
         self.state.input_info.as_ref()
     }
 
-    pub(crate) fn wheel(x: f32, y: f32, dx: f32, dy: f32, modifiers: Modifiers) -> Self {
-        let mut event = Self::pointer("wheel", 0, x, y, MouseButton::Middle, modifiers);
+    pub(crate) fn wheel(
+        x: f32,
+        y: f32,
+        dx: f32,
+        dy: f32,
+        mode: WheelDeltaMode,
+        modifiers: Modifiers,
+    ) -> Self {
+        // Chromium 147 reports `button` 0 for a wheel event, as for every
+        // mouse event without a changed button.
+        let mut event = Self::pointer("wheel", 0, x, y, MouseButton::Left, modifiers);
         event.delta_x = dx;
         event.delta_y = dy;
+        event.delta_mode = mode;
         event
     }
 
@@ -501,6 +519,18 @@ pub enum MouseEventType {
     Down,
     Up,
     Move,
+}
+
+/// The unit of a wheel event's deltas, as the DOM's `WheelEvent.deltaMode`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum WheelDeltaMode {
+    /// `DOM_DELTA_PIXEL` (0): CSS pixels.
+    #[default]
+    Pixel = 0,
+    /// `DOM_DELTA_LINE` (1): lines.
+    Line = 1,
+    /// `DOM_DELTA_PAGE` (2): pages.
+    Page = 2,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
