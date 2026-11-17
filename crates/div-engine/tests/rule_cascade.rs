@@ -491,3 +491,66 @@ fn keyboard_input_restyles_focus_visible() {
     engine.update().unwrap();
     assert_eq!(opacity_of(&engine, button), 0.5, "after a key press");
 }
+
+/// `#grand > div > target`: the grandparent sits above the former parent,
+/// which the child-change restyle does not reach, so only the state hook
+/// restyles it.
+fn grandparent_page(sheet: &StyleSheet, tag: ElementTag) -> (Engine, NodeHandle, NodeHandle) {
+    let mut engine = engine();
+    let root = engine.root();
+    let grand = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(grand, "id", "grand").unwrap();
+    let parent = element(&mut engine, grand, ElementTag::Div);
+    let target = element(&mut engine, parent, tag);
+    for property in [StyleProperty::Width, StyleProperty::Height] {
+        let value = parse_literal(property, "100px").unwrap();
+        engine.set_property(target, property, value).unwrap();
+    }
+    engine.adopt_style_sheet(sheet).unwrap();
+    engine.update().unwrap();
+    (engine, grand, target)
+}
+
+/// Removing the focused node ends `:focus-within` on every ancestor.
+#[test]
+fn removing_the_focused_node_restyles_its_ancestors() {
+    let sheet =
+        StyleSheet::new(CascadeOrigin::Author).with_rule(rule("#grand:focus-within", opacity(0.5)));
+    let (mut engine, grand, button) = grandparent_page(&sheet, ElementTag::Button);
+    engine.focus(button).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 0.5, "after focusing");
+    engine.detach(button).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 1.0, "after removing it");
+}
+
+/// Removing the pressed node ends `:active` on its ancestors.
+#[test]
+fn removing_the_pressed_node_restyles_its_ancestors() {
+    let sheet =
+        StyleSheet::new(CascadeOrigin::Author).with_rule(rule("#grand:active", opacity(0.25)));
+    let (mut engine, grand, pressed) = grandparent_page(&sheet, ElementTag::Div);
+    engine
+        .pointer_event(MOUSE_POINTER_ID, PointerEventKind::Down, 10.0, 10.0)
+        .unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 0.25, "after pressing");
+    engine.detach(pressed).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 1.0, "after removing it");
+}
+
+/// Blurring ends `:focus-within` on every ancestor.
+#[test]
+fn blurring_restyles_the_ancestors() {
+    let sheet =
+        StyleSheet::new(CascadeOrigin::Author).with_rule(rule("#grand:focus-within", opacity(0.5)));
+    let (mut engine, grand, button) = grandparent_page(&sheet, ElementTag::Button);
+    engine.focus(button).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 0.5, "after focusing");
+    engine.blur(button).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, grand), 1.0, "after blurring");
+}
