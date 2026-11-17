@@ -1,0 +1,131 @@
+//! Style sheets for the rule cascade (CSS Cascade 5).
+//!
+//! A [`StyleSheet`] holds [`StyleRule`]s for one cascade origin. A rule pairs
+//! a selector list with its normal and `!important` declarations, and may
+//! belong to a named cascade layer. The engine adopts sheets and orders the
+//! declarations that match an element as CSS Cascade 5 orders them: origin
+//! and importance, then layer, then specificity, then order of appearance.
+
+use crate::selector::Selector;
+use crate::Style;
+
+/// The origin of a style sheet. Div has no user origin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CascadeOrigin {
+    /// The engine's own defaults, such as the user-agent stylesheet.
+    UserAgent,
+    /// The application's styles.
+    Author,
+}
+
+/// One style rule: a selector list and the declarations it applies.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StyleRule {
+    selectors: Vec<Selector>,
+    declarations: Style,
+    important: Style,
+    layer: Option<String>,
+}
+
+impl StyleRule {
+    /// A rule applying `declarations` to the elements `selectors` match.
+    pub fn new(selectors: Vec<Selector>, declarations: Style) -> Self {
+        Self {
+            selectors,
+            declarations,
+            important: Style::default(),
+            layer: None,
+        }
+    }
+
+    /// The rule's `!important` declarations.
+    pub fn with_important(mut self, important: Style) -> Self {
+        self.important = important;
+        self
+    }
+
+    /// Put the rule in the named cascade layer. Layers are ordered by their
+    /// first appearance among the adopted sheets of the same origin. Rules
+    /// outside every layer rank above all layered rules, and below them for
+    /// `!important`. Dotted names are not split into sublayers yet.
+    pub fn in_layer(mut self, layer: impl Into<String>) -> Self {
+        self.layer = Some(layer.into());
+        self
+    }
+
+    pub fn selectors(&self) -> &[Selector] {
+        &self.selectors
+    }
+
+    pub fn declarations(&self) -> &Style {
+        &self.declarations
+    }
+
+    pub fn important(&self) -> &Style {
+        &self.important
+    }
+
+    pub fn layer(&self) -> Option<&str> {
+        self.layer.as_deref()
+    }
+}
+
+/// An ordered list of rules from one origin.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StyleSheet {
+    origin: CascadeOrigin,
+    layers: Vec<String>,
+    rules: Vec<StyleRule>,
+}
+
+impl StyleSheet {
+    pub fn new(origin: CascadeOrigin) -> Self {
+        Self {
+            origin,
+            layers: Vec::new(),
+            rules: Vec::new(),
+        }
+    }
+
+    /// Declare layers in order without adding rules, as `@layer a, b;` does.
+    pub fn declare_layers<I, S>(&mut self, names: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        for name in names {
+            let name = name.into();
+            if !self.layers.contains(&name) {
+                self.layers.push(name);
+            }
+        }
+    }
+
+    /// Append a rule. Its layer, if new, is declared at this point.
+    pub fn push(&mut self, rule: StyleRule) {
+        if let Some(layer) = rule.layer() {
+            if !self.layers.iter().any(|name| name == layer) {
+                self.layers.push(layer.to_owned());
+            }
+        }
+        self.rules.push(rule);
+    }
+
+    pub fn with_rule(mut self, rule: StyleRule) -> Self {
+        self.push(rule);
+        self
+    }
+
+    pub fn origin(&self) -> CascadeOrigin {
+        self.origin
+    }
+
+    /// The sheet's layers, in order of first appearance.
+    pub fn layers(&self) -> &[String] {
+        &self.layers
+    }
+
+    pub fn rules(&self) -> &[StyleRule] {
+        &self.rules
+    }
+}

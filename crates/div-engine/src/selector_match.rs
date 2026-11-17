@@ -678,12 +678,12 @@ fn nth_matches(step: i64, offset: i64, index: i64) -> bool {
     difference % step == 0 && difference / step >= 0
 }
 
-fn is_html_space(c: char) -> bool {
+pub(crate) fn is_html_space(c: char) -> bool {
     matches!(c, ' ' | '\t' | '\n' | '\r' | '\x0C')
 }
 
 /// The HTML local name of an element kind, for type selectors.
-fn local_name(tag: ElementTag) -> Option<&'static str> {
+pub(crate) fn local_name(tag: ElementTag) -> Option<&'static str> {
     Some(match tag {
         ElementTag::Div => "div",
         ElementTag::Span => "span",

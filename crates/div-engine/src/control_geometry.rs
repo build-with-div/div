@@ -73,7 +73,11 @@ impl Engine {
             self.viewport.logical_width() as f32,
             self.viewport.logical_height() as f32,
         );
-        for contribution in slot.authored.contributions() {
+        let cascaded = self
+            .cascaded_declarations(index)
+            .map(|cascaded| cascaded.declarations.into_owned())
+            .unwrap_or_else(|_| slot.authored.clone());
+        for contribution in cascaded.contributions() {
             if contribution
                 .fields()
                 .contains(CanonicalStyleField::ScrollbarWidth)
