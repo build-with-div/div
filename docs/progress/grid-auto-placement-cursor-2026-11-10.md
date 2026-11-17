@@ -69,21 +69,27 @@ every item.
 
 ## Verification
 
-Measured on this branch in Div, rebased onto `main` at `aef406fe`. The
-Windows rows use the CI Skia flags.
+Measured on this branch in Div. The census rows were measured against
+`main` at `aef406fe` (1x) and `b6907b07` (other profiles), and the branch
+was then rebased onto `main` at `eed71eab`, which changes only `divui` and
+documentation; the Windows rows were rerun there. The Windows rows use the
+CI Skia flags.
 
 | Check | Command | Result |
 | --- | --- | --- |
 | Chromium oracle | `python tools/qualification/capture_grid_placement_oracle.py --chrome E:\open-ui\out\chrome-win\win-147.0.7727.50\chrome-win64\chrome.exe` | 4 cases, table above |
 | The four cases against the oracle | `cargo test -p div-layout --test grid_auto_placement_cursor_tests` (Windows) | 4 passed. With `main`'s `grid.rs` all 4 fail, with the "Div before" boxes above |
 | The shadcn card header | `cargo test -p div-components-render the_card_header` (Windows) | passed. With `main`'s `grid.rs` it fails: the header is 52px tall |
-| Touched crates | `cargo test -p div-layout -p div-engine -p div-components-render --no-fail-fast` (Windows) | 6,475 passed, 0 failed, 8 ignored |
+| Touched crates | `cargo test -p div-layout -p div-engine -p div-components-render --no-fail-fast` (Windows) | 6,479 passed, 0 failed, 8 ignored |
 | Generators and ledgers | `check_platform_scoped_tests.py`; `generate_renderer_contract.py`, `generate_v02_contract.py`, `generate_properties.py`, `generate_ffi.py` and the four `tools/wpt` closure generators with `--check`; `cargo fmt --all --check`; `fidelity_data.py verify` | all pass. `generate_v02_contract.py` regenerated `docs/v02/generated/dependency-policy.json`, whose lockfile hash changes with the new dev-dependency |
 | Expanded census, 1x (WSL) | `run_renderer_matrix.py --suite expanded --profile legacy-800x600@1` under `census_lock.py`, head `d98e55ce`, base `main` at `aef406fe` | 5,888 of 5,932 exact before and after; Chromium identical in all 5,932; 0 Div images changed ([delta](evidence/grid-placement-cursor-div-census-1x-v1.json)) |
 | CSS Grid coverage, 1x (WSL) | coverage matrix with `--profile legacy-800x600@1`, same head and base | 572 → 579 of 1,051 exact: 7 gained, 0 lost (below) ([delta](evidence/grid-placement-cursor-div-coverage-1x-v1.json)) |
+| Expanded census, 1.25x, 1.5x and 2x (WSL) | `run_renderer_matrix.py --suite expanded` with the three profiles, real-zoom oracle (RFC 0010), under `census_lock.py`, head `e33af8fc`, base `main` at `b6907b07` | 10,399 of 17,796 exact before and after, the real-zoom baseline's count; Chromium identical in all 17,796; 0 Div images changed ([delta](evidence/grid-placement-cursor-div-census-zoom-v1.json)) |
+| CSS Grid coverage, 1.25x, 1.5x and 2x (WSL) | coverage matrix with the three profiles, same head and base | 887 → 894 of 3,153 exact: 7 gained, 0 lost (below) ([delta](evidence/grid-placement-cursor-div-coverage-zoom-v1.json)) |
 
-The census and CSS Grid coverage ran at 1x only, under the census lock on
-16 November. The gains are seven tests:
+The census and CSS Grid coverage ran under the census lock on 16 November,
+at 1x against the emulation-era `main` and at the other three profiles
+against the real-zoom oracle. At 1x the gains are seven tests:
 `grid-percent-cols-filled-shrinkwrap-001` and its reference, the reference
 of `grid-percent-rows-filled-shrinkwrap-001`, and the references of
 `subgrid/grid-gap-004`, `grid-gap-larger-001`, `grid-gap-normal-001` and
@@ -92,10 +98,14 @@ image changed in 17 other comparisons that stay different, and every one
 has fewer mismatched pixels than before. The same 39 coverage tests fail to
 render in Div in both runs, so this change does not cause them.
 
-The 1.25x, 1.5x and 2x profiles move to the real-zoom oracle (RFC 0010), whose
-Div baseline exists but whose launcher is not on `main` yet. They are measured
-against that baseline once the launcher merges, and this PR does not merge
-before then.
+At 1.25x, 1.5x and 2x, with the real-zoom oracle, the census is unchanged
+and `main` reproduces the real-zoom baseline (10,399 exact). Coverage gains
+the same seven tests at 2x. At 1.25x and 1.5x their Div images change but
+stay different, as most rows do at those scales until layout and paint work
+in device pixels (RFC 0011). Div's image changed in 65 other comparisons
+that stay different, and every one has fewer mismatched pixels than before.
+The same 117 coverage comparisons (39 tests in each profile) fail to render
+in both runs.
 
 ### Measured in Open UI before the move to Div
 

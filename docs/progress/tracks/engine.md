@@ -144,7 +144,7 @@ on branch `components/c4-assets` and the shared findings note.
   in Chromium: items with a definite position no longer move the
   auto-placement cursor, so the shadcn card header (`card-action`) is 44px
   tall, not 52px. Checked against four grids measured in pinned Chromium and
-  the components track's card-action rectangles at 1x. At 1x the census
-  is unchanged and CSS Grid coverage gains 7 exact comparisons and loses
-  none; the other scales wait for the real-zoom baseline.
+  the components track's card-action rectangles at 1x. The census is
+  unchanged at all four profiles, and CSS Grid coverage gains 7 exact
+  comparisons at 1x and 7 at 2x (real-zoom oracle) and loses none.
   [Record](../grid-auto-placement-cursor-2026-11-10.md).

@@ -1,10 +1,10 @@
 {
   "repository": "https://github.com/build-with-div/div-fidelity-data",
-  "commit": "e14dd8915c1ec564bc0a6774319f325a77c3c39f",
-  "manifest_sha256": "8209cebd9d2512e1f489d61c0e91c1932c8fb7c83238a0fef904ba4dbf36054e",
+  "commit": "a7d31c9d0b589c3328f9384cefbb975a6523ba1a",
+  "manifest_sha256": "abfc51faf0a10c9523bd25d900a5d9ec04e14b9937666baabd9147d6aa136432",
   "profiles": {
     "gates": "f97af83d63fa429664d49a3ca02c2811abf223efdbad40a96281323ace1967a2",
-    "archive": "4d37d68dea071cee1a34b9427423478a683b8211bf85da99c3829b0f05fdef9a"
+    "archive": "e5b81e7536c903dd816d3980f5b8f366d070ae22d57dd02952f35d894224d722"
   },
   "source": {
     "repository": "https://github.com/zhuowcui/open-ui",
