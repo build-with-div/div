@@ -174,3 +174,12 @@ on branch `components/c4-assets` and the shared findings note.
   incremental restyle equal to a full re-cascade. The census and CSS Grid
   coverage are unchanged at all four profiles.
   [Record](../rule-cascade-r0a-2026-11-15.md).
+- 17 November 2026: a `style` attribute styles its element, read as
+  Chromium 147 reads one (R0b, the second step of Tier 0 item 0.1).
+  Declarations Div cannot use are dropped and reported, and the rest
+  apply. The normal declarations rank just below the element's own
+  declarations, and the `!important` ones above author `!important` rules.
+  54 attributes measured in pinned Chromium give the same declarations,
+  apart from 2 named gaps (`var()` and `inherit`, item 0.5). The census
+  and CSS Grid coverage are unchanged at all four profiles.
+  [Record](../style-attribute-r0b-2026-11-17.md).

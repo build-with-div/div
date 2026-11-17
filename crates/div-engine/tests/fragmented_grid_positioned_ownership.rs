@@ -55,6 +55,14 @@ impl FixtureEngine {
             .expect("fixture append")
     }
     fn set_attribute(&mut self, node: NodeId, name: impl Into<String>, value: impl Into<String>) {
+        let name = name.into();
+        // The translator lowers each element's cascaded style, its `style`
+        // attribute included, into the typed setters, and records the
+        // attribute's text as well. Applying that text again would rank it
+        // above values the cascade gave to `!important` rules.
+        if name.eq_ignore_ascii_case("style") {
+            return;
+        }
         self.inner
             .set_attribute(node, name, value)
             .expect("fixture attribute")
