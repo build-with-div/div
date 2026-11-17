@@ -1,0 +1,16 @@
+# Paint corpus v3 (clipPath) gaps, one per line: [<os>] <scale>x <case> <differing pixels>
+# <largest channel difference>, each under a comment giving its cause and owner. A leading `linux` or
+# `windows` limits a line to that OS. crates/div-svg/tests/paint_corpus.rs fails on an unlisted
+# difference, on a listed one whose numbers change, and on a listed case that is now exact.
+
+# A `text` child of a clipPath: V3a leaves it out of the mask, so the content is clipped away
+# entirely. Owner: SVG lane, after T1 (positioned glyph blobs, engine lane) and, on Windows, the LCD
+# text edging that Chromium uses for SVG text (fidelity lane).
+linux 1x child/text 1043 218
+linux 2x child/text 3864 218
+windows 1x child/text 637 218
+windows 2x child/text 2207 218
+
+# A `use` child of a clipPath: V3a leaves it out of the mask. Owner: SVG lane, V3d (markers and use).
+1x child/use 1320 218
+2x child/use 5280 218

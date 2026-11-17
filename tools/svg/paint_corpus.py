@@ -15,10 +15,10 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-There are two sets, each with its own fixtures and gap list: `v1` (fills,
-strokes, transforms, viewports and the Lucide icons) and `v2` (dashes,
+There are three sets, each with its own fixtures and gap list: `v1` (fills,
+strokes, transforms, viewports and the Lucide icons), `v2` (dashes,
 `pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
-chart-shaped compositions).
+chart-shaped compositions) and `v3` (`clipPath`, every case at both scales).
 
     paint_corpus.py list [--set v2]
     paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
@@ -393,6 +393,148 @@ def chart_cases() -> list[dict]:
     ]
 
 
+def clip_cases() -> list[dict]:
+    """`clipPath` (set v3): every case clips the same content, a filled square
+    crossed by a thick stroke, so both fills and strokes show the clip edge."""
+    content = (f'<rect x="0" y="0" width="64" height="64" fill="{BLUE}"/>'
+               '<path d="M0,64L64,0" stroke="#ef4444" stroke-width="6"/>')
+    star = "32,4 40,56 6,22 58,22 24,56"
+
+    def clipped(case_id: str, clip: str, *, attrs: str = "", defs: str = "",
+                target: str = 'clip-path="url(#c)"', body: str = content, **kw) -> dict:
+        return case(case_id, f'<defs><clipPath id="c"{" " + attrs if attrs else ""}>{clip}'
+                    f'</clipPath>{defs}</defs><g {target}>{body}</g>', **kw)
+
+    second = '<clipPath id="d"><circle cx="32" cy="32" r="24"/></clipPath>'
+    chart_size = (100, 80)
+    line_d = "M5,60C15,60,20,25,30,25C40,25,45,45,55,45C65,45,70,15,80,15C88,15,92,30,95,30"
+    plot = '<clipPath id="c"><rect x="5" y="5" width="90" height="70"/></clipPath>'
+    return [scoped(c, i) for i, c in enumerate([
+        # One child: the path fast path.
+        clipped("clip/rect", '<rect x="8.5" y="8.25" width="40" height="30"/>'),
+        clipped("clip/rect-rounded", '<rect x="8" y="8" width="48" height="40" rx="9"/>'),
+        clipped("clip/circle", '<circle cx="32" cy="32" r="22.3"/>'),
+        clipped("clip/ellipse", '<ellipse cx="32" cy="30" rx="26" ry="14.5"/>'),
+        clipped("clip/path-curve", '<path d="M6,50C6,10,58,10,58,50Q32,62,6,50z"/>'),
+        clipped("clip/polygon", f'<polygon points="{star}"/>'),
+        clipped("clip/line", '<line x1="0" y1="0" x2="64" y2="64" stroke="#000"/>'),
+        clipped("clip/zero-size", '<rect x="8" y="8" width="0" height="30"/>'),
+        clipped("clip/stroke-ignored", '<rect x="16" y="16" width="32" height="32" '
+                'stroke="#000" stroke-width="12"/>'),
+        clipped("clip/fill-none", '<rect x="12" y="12" width="40" height="40" fill="none"/>'),
+        # clip-rule.
+        clipped("rule/evenodd", f'<polygon points="{star}" clip-rule="evenodd"/>'),
+        clipped("rule/inherited", f'<polygon points="{star}"/>', attrs='clip-rule="evenodd"'),
+        clipped("rule/fill-rule-ignored", f'<polygon points="{star}" fill-rule="evenodd"/>'),
+        # Transforms.
+        clipped("xf/child", '<rect x="12" y="20" width="40" height="24" transform="rotate(20 32 32)"/>'),
+        clipped("xf/clippath", '<rect x="12" y="20" width="40" height="24"/>',
+                attrs='transform="rotate(15 32 32)"'),
+        clipped("xf/both", '<rect x="12" y="20" width="40" height="24" transform="scale(1.2)"/>',
+                attrs='transform="translate(-4.5 2)"'),
+        clipped("xf/target", '<rect x="8" y="8" width="40" height="30"/>',
+                target='clip-path="url(#c)" transform="translate(5.5 3.25) scale(0.8)"'),
+        case("xf/shape-target", '<defs><clipPath id="c"><circle cx="32" cy="32" r="20"/></clipPath></defs>'
+             f'<rect x="4" y="4" width="56" height="56" fill="{BLUE}" clip-path="url(#c)" '
+             'transform="rotate(10 32 32)"/>'),
+        # objectBoundingBox units.
+        clipped("units/obb-rect", '<rect x="0.1" y="0.15" width="0.8" height="0.5"/>',
+                attrs='clipPathUnits="objectBoundingBox"'),
+        clipped("units/obb-circle", '<circle cx="0.5" cy="0.5" r="0.4"/>',
+                attrs='clipPathUnits="objectBoundingBox"',
+                body=f'<rect x="4" y="16" width="56" height="32" fill="{BLUE}"/>'),
+        clipped("units/obb-transform", '<rect x="0.2" y="0.2" width="0.6" height="0.6"/>',
+                attrs='clipPathUnits="objectBoundingBox" transform="rotate(10)"'),
+        clipped("units/obb-stroked", '<circle cx="0.5" cy="0.5" r="0.5"/>',
+                attrs='clipPathUnits="objectBoundingBox"',
+                body=f'<rect x="16" y="16" width="32" height="32" fill="{BLUE}" '
+                     'stroke="#ef4444" stroke-width="10"/>'),
+        case("units/obb-shape", '<defs><clipPath id="c" clipPathUnits="objectBoundingBox">'
+             '<rect x="0.25" y="0" width="0.5" height="1"/></clipPath></defs>'
+             f'<circle cx="32" cy="32" r="26" fill="{BLUE}" clip-path="url(#c)"/>'),
+        clipped("units/obb-group", '<rect x="0" y="0" width="0.5" height="0.5"/>',
+                attrs='clipPathUnits="objectBoundingBox"',
+                body=f'<rect x="10" y="10" width="20" height="20" fill="{BLUE}"/>'
+                     '<circle cx="44" cy="44" r="12" fill="#ef4444"/>'),
+        # Several children.
+        clipped("union/disjoint", '<rect x="4" y="4" width="24" height="24"/>'
+                '<circle cx="44" cy="44" r="14"/>'),
+        clipped("union/overlap", '<rect x="8" y="8" width="32" height="32"/>'
+                '<circle cx="40" cy="40" r="18"/>'),
+        clipped("union/mixed-rules", f'<polygon points="{star}" clip-rule="evenodd"/>'
+                '<rect x="28" y="28" width="8" height="8"/>'),
+        clipped("union/three", '<rect x="4" y="4" width="20" height="56"/>'
+                '<rect x="22" y="22.5" width="20" height="20"/><circle cx="52" cy="32" r="10"/>'),
+        clipped("union/transformed", '<rect x="8" y="8" width="24" height="24" transform="rotate(10 20 20)"/>'
+                '<rect x="32" y="32" width="24" height="24"/>'),
+        # Nested clips.
+        clipped("nest/on-clippath", '<rect x="4" y="4" width="40" height="40"/>',
+                attrs='clip-path="url(#d)"', defs=second),
+        clipped("nest/on-child", '<rect x="4" y="4" width="40" height="40" clip-path="url(#d)"/>'
+                '<rect x="44" y="44" width="16" height="16"/>', defs=second),
+        clipped("nest/groups", '<rect x="4" y="4" width="44" height="44"/>', defs=second,
+                body=f'<g clip-path="url(#d)">{content}</g>'),
+        clipped("nest/chain", '<rect x="4" y="4" width="48" height="48"/>',
+                attrs='clip-path="url(#d)"',
+                defs='<clipPath id="d" clip-path="url(#e)"><circle cx="32" cy="32" r="26"/></clipPath>'
+                     '<clipPath id="e"><rect x="16" y="0" width="48" height="64"/></clipPath>'),
+        clipped("nest/union-on-clippath", '<rect x="4" y="4" width="24" height="24"/>'
+                '<rect x="30" y="30" width="30" height="30"/>', attrs='clip-path="url(#d)"', defs=second),
+        # Edges.
+        clipped("edge/display-none", '<rect x="4" y="4" width="56" height="56" display="none"/>'
+                '<circle cx="32" cy="32" r="16"/>'),
+        clipped("edge/visibility-hidden", '<rect x="4" y="4" width="56" height="56" visibility="hidden"/>'
+                '<circle cx="32" cy="32" r="16"/>'),
+        clipped("edge/empty", ""),
+        clipped("edge/missing", '<rect x="8" y="8" width="20" height="20"/>',
+                target='clip-path="url(#nope)"'),
+        clipped("edge/not-clippath", '<rect x="8" y="8" width="20" height="20"/>',
+                defs='<rect id="r" x="8" y="8" width="20" height="20"/>', target='clip-path="url(#r)"'),
+        clipped("edge/self", '<rect x="8" y="8" width="40" height="40"/>', attrs='clip-path="url(#c)"'),
+        clipped("edge/cycle", '<rect x="8" y="8" width="40" height="40"/>', attrs='clip-path="url(#d)"',
+                defs='<clipPath id="d" clip-path="url(#c)"><circle cx="32" cy="32" r="24"/></clipPath>'),
+        clipped("edge/style", '<circle cx="32" cy="32" r="20"/>', target='style="clip-path:url(#c)"'),
+        clipped("edge/offset", '<circle cx="32" cy="32" r="20.5"/>', offset=(0.5, 0.25)),
+        clipped("edge/crisp-child", '<circle cx="32" cy="32" r="20" shape-rendering="crispEdges"/>'),
+        clipped("edge/crisp-target", '<circle cx="32" cy="32" r="20"/>',
+                target='clip-path="url(#c)" shape-rendering="crispEdges"'),
+        clipped("edge/opacity", '<circle cx="32" cy="32" r="22"/>',
+                target='clip-path="url(#c)" opacity="0.5"'),
+        clipped("edge/hairline", '<rect x="8" y="8" width="0.4" height="48"/>'
+                '<rect x="20.3" y="8" width="0.7" height="48"/>'),
+        # Children that are not shapes: named gaps (text needs T1; `use` is V3d).
+        clipped("child/text", '<text x="4" y="44" font-size="40" font-weight="700">Ab</text>'),
+        clipped("child/use", '<use href="#r"/>',
+                defs='<rect id="r" x="10" y="10" width="44" height="30"/>'),
+        # Recharts: the plot-area clip on a `g`.
+        case("chart/line-clip", f'<defs>{plot}</defs><g clip-path="url(#c)">'
+             f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="3"/></g>', size=chart_size),
+        case("chart/area-clip", f'<defs>{plot}</defs><g clip-path="url(#c)">'
+             f'<path d="{line_d}L95,80L5,80Z" fill="{BLUE}" fill-opacity="0.4"/>'
+             f'<path d="{line_d}" fill="none" stroke="{BLUE}" stroke-width="2"/></g>', size=chart_size),
+        case("chart/bars-clip", f'<defs>{plot}</defs><g clip-path="url(#c)">'
+             + "".join(f'<rect x="{x}" y="{y}" width="16" height="{80 - y}" fill="{BLUE}"/>'
+                       for x, y in ((6, 30), (30, 2), (54, 44), (78, 22)))
+             + "</g>", size=chart_size),
+        case("chart/draw-in-clip", '<defs><clipPath id="c"><rect x="0" y="0" width="47.3" height="80"/>'
+             f'</clipPath></defs><g clip-path="url(#c)"><path d="{line_d}" fill="none" stroke="{BLUE}" '
+             'stroke-width="2"/></g>', size=chart_size),
+        case("chart/dots-clip", f'<defs>{plot}</defs><g clip-path="url(#c)">'
+             + "".join(f'<circle cx="{x}" cy="{y}" r="4" fill="#fff" stroke="{BLUE}" stroke-width="2"/>'
+                       for x, y in ((5, 60), (30, 25), (55, 45), (80, 15), (95, 75)))
+             + "</g>", size=chart_size),
+    ])]
+
+
+def scoped(c: dict, index: int) -> dict:
+    """Ids are document-wide and every case of a sheet shares one page, so
+    each case's ids (and its references to them) get the case's own prefix."""
+    prefix = f"k{index}-"
+    svg = (c["svg"].replace('id="', f'id="{prefix}').replace("url(#", f"url(#{prefix}")
+           .replace('href="#', f'href="#{prefix}'))
+    return {**c, "svg": svg}
+
+
 SCALE_2 = {
     "dash/line", "dash/offset", "dash/dots-round", "dash/rect-grid", "dash/rect-rounded",
     "dash/circle", "dash/path-curve", "dash/pathlength-circle", "dash/hairline", "dash/viewbox",
@@ -406,7 +548,13 @@ SCALE_2 = {
 
 def sheets(corpus: str = "v1") -> list[dict]:
     """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
-    v2: everything at 1x, the `SCALE_2` subset at 2x."""
+    v2: everything at 1x, the `SCALE_2` subset at 2x. v3: everything at both."""
+    if corpus == "v3":
+        everything = clip_cases()
+        return [
+            {"scale": 1, "cases": everything},
+            {"scale": 2, "cases": [dict(c) for c in everything]},
+        ]
     if corpus == "v2":
         everything = (dash_cases() + order_cases() + rendering_cases() + non_scaling_cases()
                       + chart_cases())
@@ -468,9 +616,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     lst = sub.add_parser("list")
-    lst.add_argument("--set", dest="corpus", choices=("v1", "v2"), default="v1")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3"), default="v1")
     cap = sub.add_parser("capture")
-    cap.add_argument("--set", dest="corpus", choices=("v1", "v2"), default="v1")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()

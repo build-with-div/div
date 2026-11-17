@@ -617,6 +617,21 @@ stays green between them:
    gradients and `clipPath`; masks, markers and `use`; hit testing;
    focus and accessibility.
 
+   *Amendment (17 November 2026, approved by the parent session):* V3
+   lands in four PRs, in this order:
+
+   | Stage | Scope |
+   | --- | --- |
+   | V3a | `clipPath` in `div-svg`: path-based and mask-based clips, `clipPathUnits`, `clip-rule`, nested and cyclic references, checked by the paint corpus set `v3` |
+   | V3b | gradients and patterns |
+   | V3c | masks |
+   | V3d | markers, `use` and `symbol`, including `use` inside a `clipPath` |
+
+   V3a stays inside `div-svg`. `clip-path: url()` on HTML elements, and
+   wiring references through `div-style` and `div-paint`, are engine item
+   E4 ("clip-path url() and resource references"), after E1. `text`
+   children of a `clipPath` follow T1.
+
 Open questions for the parent and the user:
 
 - **Arc approximation.** If no permissive approximation matches
