@@ -68,7 +68,12 @@ SCROLLERS = [
      'height:20px"></div>'),
     # Overflows only on its hidden axis.
     ("crossAxis", 340, 170, "overflow-x:auto;overflow-y:hidden", 80, 200, ""),
+    # Overflow by a fraction of a pixel (60.4 and 60.6 in 60).
+    ("fractionDown", 10, 290, "overflow:auto", 80, 60.4, ""),
+    ("fractionUp", 120, 290, "overflow:auto", 80, 60.6, ""),
 ]
+# Placed after the gap in tree order, with `divChild`.
+LATE = ("divChild", "crossAxis", "fractionDown", "fractionUp")
 BUTTONS = [f"b{i}" for i in range(1, 7)]
 
 PAGE = """<!DOCTYPE html><html id="html"><head><style>
@@ -112,14 +117,12 @@ def scroller_markup(spec) -> str:
 
 
 def page() -> str:
-    boxes = [scroller_markup(spec) for spec in SCROLLERS
-             if spec[0] not in ("divChild", "crossAxis")]
+    boxes = [scroller_markup(spec) for spec in SCROLLERS if spec[0] not in LATE]
     # A non-focusable wrapper and its child, between the scrollers and the
     # buttons in tree order.
     boxes.append('<div id="gapWrap" style="left:10px;top:170px;width:200px;height:40px">'
                  '<div id="gap" style="left:0;top:0;width:200px;height:40px"></div></div>')
-    boxes.extend(scroller_markup(spec) for spec in SCROLLERS
-                 if spec[0] in ("divChild", "crossAxis"))
+    boxes.extend(scroller_markup(spec) for spec in SCROLLERS if spec[0] in LATE)
     for index, button in enumerate(BUTTONS):
         boxes.append(f'<button id="{button}" style="left:{10 + 70 * index}px;top:250px;'
                      f'width:60px;height:24px">{button}</button>')
@@ -142,6 +145,8 @@ ACTIONS = {
     "focus-plain": focus_action("plain"),
     "focus-divChild": focus_action("divChild"),
     "focus-crossAxis": focus_action("crossAxis"),
+    "focus-fractionDown": focus_action("fractionDown"),
+    "focus-fractionUp": focus_action("fractionUp"),
     "remove-gap": "document.getElementById('gap').remove()",
     "remove-gapWrap": "document.getElementById('gapWrap').remove()",
     "remove-b3": "document.getElementById('b3').remove()",
@@ -158,7 +163,7 @@ SCENARIOS = {
     "tab_order": keys(*["Tab"] * 8),
     "script_focus": [("do", f"focus-{name}") for name in (
         "fits", "hidden", "scrollFits", "negChild", "negScroller", "plain", "divChild",
-        "crossAxis")],
+        "crossAxis", "fractionDown", "fractionUp")],
     "script_focus_then_tab": [("do", "focus-negScroller")] + keys("Tab", "Tab"),
     "tab_to_scroller_down": [("click", "negScrollerContent")] + keys("Tab", "Down"),
     "click_content_tab": [("click", "plainContent")] + keys("Tab", "Down"),
@@ -179,6 +184,8 @@ SCENARIOS = {
     "shift_tab_order": [("click", "b6")] + [("key", "Tab", "s")] * 7,
     "click_content_shift_tab": [("click", "plainContent"), ("key", "Tab", "s")],
     "click_gap_shift_tab": [("click", "gap"), ("key", "Tab", "s")],
+    # From b1 back: the fractional scrollers precede the buttons.
+    "fraction_order": [("click", "b1"), ("key", "Tab", "s"), ("key", "Tab", "s")],
     "removed_start_parent_shift_tab": [("click", "gap"), ("do", "remove-gapWrap"),
                                        ("key", "Tab", "s")],
 }

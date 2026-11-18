@@ -31,6 +31,9 @@ const LINUX: &str =
     include_str!("../../../tests/fidelity/fixtures/focus-navigation-v1/chromium-linux-x11.json");
 
 const EVENTS: &[&str] = &["keydown", "keyup", "click"];
+/// Scrollers placed after the gap in tree order, as the capture script's
+/// `LATE`.
+const LATE: &[&str] = &["divChild", "crossAxis", "fractionDown", "fractionUp"];
 const MODIFIER_KEYS: &[&str] = &["Shift", "Control", "Alt", "Meta"];
 
 type Log = Rc<RefCell<Vec<Value>>>;
@@ -164,11 +167,10 @@ fn page(oracle: &Value) -> Page {
     let body = document.body();
     let mut elements = vec![("body".to_owned(), body.clone())];
     let specs = oracle["scrollers"].as_array().unwrap();
-    // Tree order: the scrollers, the gap, `divChild` and `crossAxis`, the
-    // buttons.
+    // Tree order: the scrollers, the gap, the late scrollers, the buttons.
     for spec in specs
         .iter()
-        .filter(|spec| !["divChild", "crossAxis"].contains(&spec[0].as_str().unwrap()))
+        .filter(|spec| !LATE.contains(&spec[0].as_str().unwrap()))
     {
         scroller(&document, &body, spec, &mut elements);
     }
@@ -178,7 +180,7 @@ fn page(oracle: &Value) -> Page {
     elements.push(("gap".into(), gap));
     for spec in specs
         .iter()
-        .filter(|spec| ["divChild", "crossAxis"].contains(&spec[0].as_str().unwrap()))
+        .filter(|spec| LATE.contains(&spec[0].as_str().unwrap()))
     {
         scroller(&document, &body, spec, &mut elements);
     }

@@ -97,6 +97,24 @@
    80,
    200,
    ""
+  ],
+  [
+   "fractionDown",
+   10,
+   290,
+   "overflow:auto",
+   80,
+   60.4,
+   ""
+  ],
+  [
+   "fractionUp",
+   120,
+   290,
+   "overflow:auto",
+   80,
+   60.6,
+   ""
   ]
  ],
  "buttons": [
@@ -116,6 +134,8 @@
   "focus-plain": "document.activeElement && document.activeElement.blur(); document.getElementById('plain').focus()",
   "focus-divChild": "document.activeElement && document.activeElement.blur(); document.getElementById('divChild').focus()",
   "focus-crossAxis": "document.activeElement && document.activeElement.blur(); document.getElementById('crossAxis').focus()",
+  "focus-fractionDown": "document.activeElement && document.activeElement.blur(); document.getElementById('fractionDown').focus()",
+  "focus-fractionUp": "document.activeElement && document.activeElement.blur(); document.getElementById('fractionUp').focus()",
   "remove-gap": "document.getElementById('gap').remove()",
   "remove-gapWrap": "document.getElementById('gapWrap').remove()",
   "remove-b3": "document.getElementById('b3').remove()",
@@ -193,6 +213,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "negChild",
@@ -268,6 +296,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -347,6 +383,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "hiddenChild",
@@ -424,6 +468,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
@@ -501,6 +553,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -530,6 +590,176 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
+      "target": "fractionDown"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
       "target": "b1"
      }
     ],
@@ -576,165 +806,19 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
     },
     "active": "b1",
-    "input": [
-     "key",
-     "Tab",
-     ""
-    ]
-   },
-   {
-    "events": [
-     {
-      "type": "keydown",
-      "key": "Tab",
-      "code": "Tab",
-      "shift": false,
-      "ctrl": false,
-      "alt": false,
-      "meta": false,
-      "target": "b1"
-     },
-     {
-      "type": "keyup",
-      "key": "Tab",
-      "code": "Tab",
-      "shift": false,
-      "ctrl": false,
-      "alt": false,
-      "meta": false,
-      "target": "b2"
-     }
-    ],
-    "scrolled": [],
-    "offsets": {
-     "root": [
-      0,
-      0
-     ],
-     "fits": [
-      0,
-      0
-     ],
-     "hidden": [
-      0,
-      0
-     ],
-     "scrollFits": [
-      0,
-      0
-     ],
-     "negChild": [
-      0,
-      0
-     ],
-     "disabledChild": [
-      0,
-      0
-     ],
-     "hiddenChild": [
-      0,
-      0
-     ],
-     "negScroller": [
-      0,
-      0
-     ],
-     "plain": [
-      0,
-      0
-     ],
-     "divChild": [
-      0,
-      0
-     ],
-     "crossAxis": [
-      0,
-      0
-     ]
-    },
-    "active": "b2",
-    "input": [
-     "key",
-     "Tab",
-     ""
-    ]
-   },
-   {
-    "events": [
-     {
-      "type": "keydown",
-      "key": "Tab",
-      "code": "Tab",
-      "shift": false,
-      "ctrl": false,
-      "alt": false,
-      "meta": false,
-      "target": "b2"
-     },
-     {
-      "type": "keyup",
-      "key": "Tab",
-      "code": "Tab",
-      "shift": false,
-      "ctrl": false,
-      "alt": false,
-      "meta": false,
-      "target": "b3"
-     }
-    ],
-    "scrolled": [],
-    "offsets": {
-     "root": [
-      0,
-      0
-     ],
-     "fits": [
-      0,
-      0
-     ],
-     "hidden": [
-      0,
-      0
-     ],
-     "scrollFits": [
-      0,
-      0
-     ],
-     "negChild": [
-      0,
-      0
-     ],
-     "disabledChild": [
-      0,
-      0
-     ],
-     "hiddenChild": [
-      0,
-      0
-     ],
-     "negScroller": [
-      0,
-      0
-     ],
-     "plain": [
-      0,
-      0
-     ],
-     "divChild": [
-      0,
-      0
-     ],
-     "crossAxis": [
-      0,
-      0
-     ]
-    },
-    "active": "b3",
     "input": [
      "key",
      "Tab",
@@ -788,6 +872,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -845,6 +937,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
@@ -898,6 +998,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -955,6 +1063,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "negChild",
@@ -1008,6 +1124,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1065,6 +1189,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
@@ -1118,6 +1250,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1175,12 +1315,146 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
     "input": [
      "do",
      "focus-crossAxis"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "do",
+     "focus-fractionDown"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "do",
+     "focus-fractionUp"
     ]
    }
   ],
@@ -1230,6 +1504,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1308,6 +1590,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
@@ -1385,6 +1675,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -1450,6 +1748,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1528,6 +1834,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1609,6 +1923,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
@@ -1674,6 +1996,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1752,6 +2082,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1833,6 +2171,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -1898,6 +2244,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -1978,6 +2332,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -2045,6 +2407,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
@@ -2100,6 +2470,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -2178,6 +2556,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -2245,6 +2631,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
@@ -2300,6 +2694,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -2378,6 +2780,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -2445,6 +2855,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b3",
@@ -2500,6 +2918,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -2578,6 +3004,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b4",
@@ -2645,6 +3079,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b3",
@@ -2700,6 +3142,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -2778,6 +3228,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b4",
@@ -2836,6 +3294,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b3",
@@ -2889,6 +3355,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -2965,6 +3439,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3046,6 +3528,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "negChild",
@@ -3100,6 +3590,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3164,6 +3662,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3244,6 +3750,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "disabledChild",
@@ -3311,6 +3825,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b3",
@@ -3375,6 +3897,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3455,6 +3985,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "divChildInner",
@@ -3520,6 +4058,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3620,6 +4166,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b5",
@@ -3715,6 +4269,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -3814,6 +4376,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b3",
@@ -3909,6 +4479,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -4008,6 +4586,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "b1",
@@ -4047,7 +4633,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "divChildInner"
+      "target": "fractionUp"
      },
      {
       "type": "keyup",
@@ -4057,7 +4643,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "divChildInner"
+      "target": "fractionUp"
      }
     ],
     "scrolled": [],
@@ -4105,9 +4691,17 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
-    "active": "divChildInner",
+    "active": "fractionUp",
     "input": [
      "key",
      "Tab",
@@ -4124,7 +4718,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "divChildInner"
+      "target": "fractionUp"
      },
      {
       "type": "keydown",
@@ -4134,7 +4728,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "divChildInner"
+      "target": "fractionUp"
      },
      {
       "type": "keyup",
@@ -4144,7 +4738,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "plain"
+      "target": "fractionDown"
      },
      {
       "type": "keyup",
@@ -4154,7 +4748,7 @@
       "ctrl": false,
       "alt": false,
       "meta": false,
-      "target": "plain"
+      "target": "fractionDown"
      }
     ],
     "scrolled": [],
@@ -4202,9 +4796,17 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
-    "active": "plain",
+    "active": "fractionDown",
     "input": [
      "key",
      "Tab",
@@ -4267,6 +4869,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -4367,6 +4977,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
@@ -4434,6 +5052,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
@@ -4532,9 +5158,303 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ],
+  "fraction_order": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b1",
+    "input": [
+     "click",
+     "b1",
+     40,
+     264
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
     "input": [
      "key",
      "Tab",
@@ -4599,6 +5519,14 @@
      "crossAxis": [
       0,
       0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
      ]
     },
     "active": "body",
@@ -4654,6 +5582,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]
@@ -4750,6 +5686,14 @@
       0
      ],
      "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
       0,
       0
      ]

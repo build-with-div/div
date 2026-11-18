@@ -432,8 +432,9 @@ impl Engine {
 ```
 
 - **Focusable scrollers.** A scroller that can scroll on an axis that
-  overflows (`overflow: auto` or `scroll` on that axis, and a scroll range
-  there) is focusable: `focus()` reaches it and `can_focus` reports it.
+  overflows (`overflow: auto` or `scroll` on that axis, and scrollable
+  overflow past the client rectangle there by any amount: 60.4px of
+  content in 60px counts) is focusable: `focus()` reaches it and `can_focus` reports it.
   One whose content fits, one with `overflow: hidden` and one that
   overflows only on a hidden axis are not. Without `tabindex`, it is in
   the sequential order only when no descendant is; descendants with
@@ -454,7 +455,7 @@ impl Engine {
   between the removed subtree's neighbours.
 - **Oracle.** `tests/fidelity/fixtures/focus-navigation-v1`: real XTEST
   input to pinned Chrome-for-Testing 147.0.7727.50 on X11 in WSL, at
-  scale 1, captured twice and required to match: 17 scenarios. Blink's
+  scale 1, captured twice and required to match: 18 scenarios. Blink's
   focus navigation does not depend on the platform, so the test replays
   it on every host. The two focus scenarios of `keyboard-scroll-v1`, on
   both platforms, now match as well.

@@ -117,11 +117,12 @@ Oracle (new, `tests/fidelity/fixtures/focus-navigation-v1`), captured by
 keyboard scrolling capture's browser and input code with its own page:
 
 - Real XTEST keys and buttons to pinned Chrome-for-Testing 147.0.7727.50
-  on X11 in WSL, at scale 1, captured twice and required to match (64 s).
-  17 scenarios.
-- They cover nine scrollers (content that fits, `overflow: scroll` that
-  fits, `overflow: hidden`, overflow only on a hidden axis, and children
-  with `tabindex="-1"`, `disabled`, `display: none` and `tabindex="0"`),
+  on X11 in WSL, at scale 1, captured twice and required to match (68 s).
+  18 scenarios.
+- They cover eleven scrollers (content that fits, `overflow: scroll` that
+  fits, `overflow: hidden`, overflow only on a hidden axis, overflow by
+  0.4px and 0.6px, and children with `tabindex="-1"`, `disabled`,
+  `display: none` and `tabindex="0"`),
   script focus of each, Tab and Shift+Tab after clicks, removals, `blur()`
   and a cancelled `mousedown`, and a focused scroller starting the
   keyboard scroll chain.
@@ -134,9 +135,12 @@ section 8 specifies:
 
 - **Engine** (its own commit, for engine review; `focus_navigation.rs`,
   `interaction.rs`):
-  - A scroller that can scroll on an axis that overflows is focusable.
-    Without `tabindex` it is keyboard focusable only when no descendant
-    is, and it is never mouse focusable.
+  - A scroller that can scroll on an axis that overflows is focusable. Any
+    unsnapped overflow counts: 60.4px of content in 60px is focusable in
+    Chromium, though its snapped scroll range is 0. Without `tabindex` it
+    is keyboard focusable only when no descendant is (one linear walk:
+    a focusable descendant without a negative `tabindex`), and it is
+    never mouse focusable.
   - `Engine::press_focus` (new) and `PressFocus`: the nearest mouse
     focusable element from the target, else clear, else keep when the
     press hit a scrollbar.
@@ -146,6 +150,9 @@ section 8 specifies:
     element, else from it.
   - `has_focus_semantics` (new, public) lets `divui` update layout before
     a script `focus()` that only a scroller rule could allow.
+    `advance_focus` updates layout, and so does `focus_with_origin` for
+    such an element; `can_focus` and `next_focus_target` read the latest
+    layout, as their documentation says.
 - **`divui`:** both press paths use `press_focus`. `focus()` updates
   layout first for an element without `tabindex`, control or `summary`
   semantics.
@@ -176,13 +183,14 @@ Verification (Windows, MSVC, this branch on `framework/keyboard-scroll`
 `b0c443c7`):
 
 - `cargo test --locked -p divui --features "windows testing" --test
-  focus_navigation_oracle` passes: every step of the 17 scenarios matches.
-  Before the change (engine and `divui` source reverted), 53 compared
-  fields differ, in every scenario.
+  focus_navigation_oracle` passes: every step of the 18 scenarios matches.
+  Before the change (engine and `divui` source reverted to `b0c443c7`), 61
+  compared fields differ, in 34 steps of 14 scenarios.
 - `--test keyboard_scroll_oracle` passes 2 tests with the I2b gap steps
   removed from its list.
 - `cargo test --locked -p div-engine --test focus_navigation` passes 4 new
-  tests: which scrollers are focusable; the order around a focusable
+  tests: which scrollers are focusable, fractional overflow included; the
+  order around a focusable
   descendant; a press's focus, including a scrollbar; the start after a
   press, a removal and a blur.
 - `cargo test --locked --no-fail-fast -p div-engine` passes (66 suites, 534
@@ -198,6 +206,15 @@ Verification (Windows, MSVC, this branch on `framework/keyboard-scroll`
   `cargo fmt --all --check` pass.
 - No layout, paint or style code changed, so the census and coverage are
   not affected (decision D4).
+
+Engine review: the engine track approved 7df62ff6 on 17 November 2026
+(read, not built), asking for one change, made: the focusable-descendant
+check was recursive, exponential in the depth of nested scrollers, and is
+now one linear walk with the same answer. On its suggestion, `advance_focus`
+and `focus_with_origin` update layout first. It expected fractional
+overflow not to count, as Blink's pixel-snapped sizes would suggest; the
+oracle's new `fractionDown` scroller (60.4px of content in 60px) shows
+Chromium makes it focusable, so Div compares the unsnapped rectangles.
 
 ### 17 November 2026: keyboard scrolling and `keypress` (Tier 0 item I2a)
 
