@@ -17,6 +17,11 @@
 //! black-box observation, checked by the same test
 //! (`tests/fidelity/fixtures/svg-paint-v3`).
 //!
+//! [`paint_server`] builds the shaders of `linearGradient`, `radialGradient`
+//! and `pattern` (V3b), ported from Blink's BSD gradient and paint-record
+//! pattern code and written from SVG 2 for the rest, checked by the same
+//! test (`tests/fidelity/fixtures/svg-paint-v4`).
+//!
 //! [`text`] lays out `<text>` and `<tspan>`, answers the SVG text DOM
 //! queries (character positions, extents, rotations and the computed text
 //! length) and paints the glyphs. It ports Blink's BSD SVG text layout
@@ -37,6 +42,7 @@ pub mod geometry;
 pub mod length;
 mod number;
 pub mod paint;
+pub mod paint_server;
 pub mod path_data;
 pub mod shapes;
 pub mod text;

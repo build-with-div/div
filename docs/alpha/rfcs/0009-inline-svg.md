@@ -623,7 +623,7 @@ stays green between them:
    | Stage | Scope |
    | --- | --- |
    | V3a | `clipPath` in `div-svg`: path-based and mask-based clips, `clipPathUnits`, `clip-rule`, nested and cyclic references, checked by the paint corpus set `v3` |
-   | V3b | gradients and patterns |
+   | V3b | gradients and patterns in `div-svg` (`paint_server`): linear and radial gradients, patterns, both unit systems, spread methods, `href` inheritance and fallbacks, checked by the paint corpus set `v4` |
    | V3c | masks |
    | V3d | markers, `use` and `symbol`, including `use` inside a `clipPath` |
 

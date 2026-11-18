@@ -8,7 +8,7 @@ Tools for the inline SVG work in RFC 0009
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
 | `text_corpus.py` | Black-box text oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium (`capture`), and screenshots of the same cases plus paint cases (`pixels`), at scale 1 and at real-zoom scale 2 |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in three sets (`--set v1`, `--set v2`, `--set v3`) |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in four sets (`--set v1` to `--set v4`) |
 
 ## Geometry corpus
 
@@ -168,8 +168,25 @@ sheet would otherwise resolve to the first case's `clipPath`.
 | `child/` | 2 | a `text` child and a `use` child: named gaps (T1, V3d) |
 | `chart/` | 5 | Recharts' plot-area clip on a line, an area, bars, dots, and a draw-in clip |
 
+Set `v4` (`--set v4`, fixtures in `tests/fidelity/fixtures/svg-paint-v4/`)
+covers paint servers (V3b), with 103 cases, each at scale 1 and at scale 2.
+Ids are prefixed as in `v3`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `lin/` | 10 | `linearGradient` horizontal, vertical and diagonal; fractions and percentages in `objectBoundingBox`; `userSpaceOnUse` lengths, percentages and percentages of a `viewBox`; a degenerate vector, padded and repeating |
+| `stop/` | 12 | three stops, percentage offsets, unordered and out-of-range offsets, inner stops only, a hard edge, `stop-opacity` (and half), stop properties in `style`, `currentColor`, one stop and none |
+| `spread/` | 4 | `pad`, `reflect` and `repeat`, and `repeat` along a diagonal |
+| `xf/` | 4 | `gradientTransform` rotations (about the centre too), in user space, and with a transformed shape |
+| `paint/` | 9 | a server as `stroke` (both units), with `fill-opacity` (an odd value too), on a circle, a path and a group, on fill and stroke, under `crispEdges` |
+| `href/` | 7 | inherited stops and attributes, a chain, own stops winning, `xlink:href`, a cycle, a radial inheriting from a linear |
+| `ref/` | 7 | a missing server (with and without a fallback), a reference to a non-server, an empty bounding box (with a fallback, and in user space), a stop-less gradient with a fallback |
+| `rad/` | 18 | `radialGradient` in both units, wide boxes, focal points (on the edge and outside), `fr` (with a focus, larger than `r`), `r="0"`, `reflect`, `repeat`, transforms, strokes, circles, inherited focus, opacity |
+| `pat/` | 28 | `pattern` tiles in both units (offsets, fractions), `objectBoundingBox` content, `viewBox` (`slice`, `meet`), `patternTransform`, overflow (fractional too), strokes, `fill-opacity`, circles, transformed shapes, stroked and gradient content, nested patterns, `href` (own content too), zero width (with a fallback), no content, a self reference, inherited style, a checkerboard |
+| `chart/` | 4 | Recharts-shaped area and bars with gradient fills, a pie sector with a radial gradient, hatched bars |
+
 **Evidence** is one capture per OS and set in
-`tests/fidelity/fixtures/svg-paint-v1/`, `svg-paint-v2/` and `svg-paint-v3/`.
+`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v4/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
@@ -180,8 +197,8 @@ in `v3`'s `child/text`.
 
 `crates/div-svg/tests/paint_corpus.rs` paints every case through
 `div_svg::paint` and compares each slot exactly. It rasterizes as Div's
-renderer rasterizes a page: 256-px `raster_n32_premul` tiles, stepping by
-254, after cc's tiling as `div-paint`'s `render.rs` models it. Each case
+renderer rasterizes a page: 256-px N32 premultiplied tiles tagged sRGB
+(`create_raster_surface` in `div-paint`), stepping by 254, after cc's tiling as `div-paint`'s `render.rs` models it. Each case
 is painted in the device space of each tile that shows it, on a full
 256-px tile surface.
 
@@ -207,7 +224,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL (and again with --set v2 and --set v3 into svg-paint-v2/ and svg-paint-v3/)
+# Linux, in WSL (and again with --set v2 to --set v4 into svg-paint-v2/ to svg-paint-v4/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -251,6 +268,38 @@ groups:
   `edge/cycle`. With this structure both are exact.
 - `opacity` on a clipped group wraps the clip: the clipped content is
   drawn into the opacity layer.
+
+Of the 206 `v4` captures, 188 are exact on both OSes. The other 18 differ
+by one channel level in a few pixels of radial gradients and scaled
+pattern tiles, and along the seam of `spread/repeat-diagonal`; they are
+listed in `svg-paint-v4/known-gaps.txt` as rounding in Skia's raster
+pipeline, owned by the fidelity lane with the setup track.
+`div_svg::paint_server` hands Skia what cc does for each case, so the
+remaining difference sits below Div's code. The paint-server corpus
+settled these points; the servers are in `src/paint_server.rs`, and the
+test's harness resolves references and records pattern content:
+
+- `PreparePaint` (BSD) paints a server black with its shader, the
+  opacity quantized to 8 bits as the alpha; a server that does not apply
+  falls back to the fallback colour, or to nothing. Gradients are always
+  dithered (`Gradient::ApplyToFlags`, BSD `gradient.cc`).
+- Gradients follow `gradient.cc` (BSD): the first stop is copied to 0 and
+  the last to 1, `pad`, `reflect` and `repeat` are clamp, mirror and
+  repeat, colours interpolate in sRGB, unpremultiplied, and a radial
+  gradient is a two-point conical one from the focus (with `fr`) to the
+  centre. A gradient with no stops paints transparent, not its fallback.
+- Patterns follow `paint_record_pattern.cc` and `paint_shader.cc` (BSD):
+  the tile is a recorded picture, repeated both ways, rasterized at
+  scale with linear filtering. Nearest filtering differs in every scaled
+  tile.
+- Which attributes and children an `href` inherits, how
+  `objectBoundingBox` units and an empty box resolve, and the pattern
+  tile, content transform and local matrix are clean-room from SVG 2
+  (Blink's resource code is LGPL): common attributes are always
+  inherited, geometry only from the same kind of element, stops and
+  pattern content only when the element has none.
+- Channel values are converted as Blink converts them, `r / 255` in
+  single precision. Multiplying by `1 / 255` changes the dithered pixels.
 
 The corpus settled these points:
 
@@ -298,13 +347,18 @@ The corpus settled these points:
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
 - The untiled path (layers of 512 px or less) for SVG content: the
   corpus pages are tiled.
-- Markers (a later clean-room PR), paint servers, masks, text,
+- Markers (a later clean-room PR), masks, text,
   element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
 - For clipping: `text` and `use` children of a `clipPath`, `clip-path:
   url()` on HTML elements (engine item E4), basic shapes and geometry
   boxes in `clip-path`, and the reference resolution and group painting
   that the test harness models until the engine calls the painter.
+- For paint servers: servers on text with `objectBoundingBox` units,
+  which need the text's bounding box with its glyph ink (V2b, `getBBox`);
+  they fall back for now. `userSpaceOnUse` servers on text use the text
+  painter's shader transform. Also `context-fill` and `context-stroke`,
+  `meshgradient` and `hatch`, and colour interpolation other than sRGB.
 
 ## Text corpus (V2a positions)
 

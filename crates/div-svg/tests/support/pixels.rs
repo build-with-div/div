@@ -8,12 +8,16 @@ use div_svg::geometry::FillRule;
 use div_svg::paint::{
     clip_viewport, root_transform, PaintOrder, RootBox, ShapeRendering, SvgPaint, SvgPaintStyle,
 };
+use div_svg::paint_server::PaintServer;
 use div_svg::transform::Matrix;
 use div_svg::viewport::{parse_view_box, view_box_transform, PreserveAspectRatio};
 use div_svg::Rect;
-use skia_safe::{surfaces, AlphaType, Canvas, Color, Color4f, ColorType, ImageInfo, SurfaceProps};
+use skia_safe::{
+    surfaces, AlphaType, Canvas, Color, Color4f, ColorSpace, ColorType, ImageInfo, SurfaceProps,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::Arc;
 
 /// The page's `color`, which `currentColor` resolves to.
 pub const INK: &str = "#09090b";
@@ -67,30 +71,65 @@ pub fn color(text: &str, current: &str) -> Color4f {
     } else {
         hex.to_owned()
     };
-    let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).unwrap();
-    Color4f::from(Color::from_rgb(channel(0), channel(2), channel(4)))
+    // Blink's `gfx::SRGBLegacyToSRGB`: each 8-bit channel divided by 255,
+    // correctly rounded (Skia's `SkColor4f::FromColor` multiplies by 1/255,
+    // which differs in the last bit for some channels).
+    let channel = |i: usize| f32::from(u8::from_str_radix(&hex[i..i + 2], 16).unwrap()) / 255.0;
+    Color4f::new(channel(0), channel(2), channel(4), 1.0)
 }
 
-fn paint_value(value: Option<&String>, initial: SvgPaint, current: &str) -> SvgPaint {
+/// Resolves the `#id` of a `url()` paint to a paint server.
+pub type Servers<'a> = dyn Fn(&str) -> Option<Arc<PaintServer>> + 'a;
+
+/// `fill` or `stroke` as the corpora write it: `none`, a colour, or
+/// `url(#id)` with an optional fallback colour. A reference that resolves
+/// to no server is its fallback, or `none` without one.
+fn paint_value(
+    value: Option<&String>,
+    initial: SvgPaint,
+    current: &str,
+    servers: &Servers,
+) -> SvgPaint {
     match value.map(String::as_str) {
         None => initial,
         Some("none") => SvgPaint::None,
+        Some(text) if text.starts_with("url(#") => {
+            let close = text.find(')').unwrap();
+            let fallback = match text[close + 1..].trim() {
+                "" | "none" => None,
+                colour => Some(color(colour, current)),
+            };
+            match servers(&text[5..close]) {
+                Some(server) => SvgPaint::Server { server, fallback },
+                None => fallback.map_or(SvgPaint::None, SvgPaint::Color),
+            }
+        }
         Some(text) => SvgPaint::Color(color(text, current)),
     }
 }
 
+/// The paint style, with no paint servers.
 pub fn paint_style(props: &BTreeMap<String, String>, vp: &Viewport) -> SvgPaintStyle {
+    paint_style_with(props, vp, &|_| None)
+}
+
+/// The paint style, with `url()` paints resolved by `servers`.
+pub fn paint_style_with(
+    props: &BTreeMap<String, String>,
+    vp: &Viewport,
+    servers: &Servers,
+) -> SvgPaintStyle {
     let current = props.get("color").map_or(INK, |s| s);
     let opacity = |name: &str| props.get(name).map_or(1.0, |v| v.parse::<f32>().unwrap());
     let initial = SvgPaintStyle::default();
     SvgPaintStyle {
-        fill: paint_value(props.get("fill"), initial.fill, current),
+        fill: paint_value(props.get("fill"), initial.fill, current, servers),
         fill_opacity: opacity("fill-opacity"),
         fill_rule: match props.get("fill-rule").map(String::as_str) {
             Some("evenodd") => FillRule::EvenOdd,
             _ => FillRule::NonZero,
         },
-        stroke: paint_value(props.get("stroke"), SvgPaint::None, current),
+        stroke: paint_value(props.get("stroke"), SvgPaint::None, current, servers),
         stroke_opacity: opacity("stroke-opacity"),
         stroke_style: stroke_style_in(props, &length_context(vp.width, vp.height)),
         // An invalid value is ignored, leaving the inherited one; the
@@ -163,11 +202,11 @@ pub fn render(
 ) -> Vec<u8> {
     let (width, height) = size;
     let tile = (TILE_SIZE, TILE_SIZE);
-    let mut surface = match props {
-        Some(props) => surfaces::raster(&ImageInfo::new_n32_premul(tile, None), None, Some(props)),
-        None => surfaces::raster_n32_premul(tile),
-    }
-    .unwrap();
+    // `div-paint`'s `create_raster_surface`: an sRGB-tagged N32 surface,
+    // which Chromium's raster destination is too (measured: pattern tiles
+    // drawn with filtering match only on a tagged surface).
+    let info = ImageInfo::new_n32_premul(tile, Some(ColorSpace::new_srgb()));
+    let mut surface = surfaces::raster(&info, None, props).unwrap();
     let canvas = surface.canvas();
     canvas.clear(Color::WHITE);
 
