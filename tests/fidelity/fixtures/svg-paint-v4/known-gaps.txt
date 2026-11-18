@@ -4,29 +4,12 @@
 # difference, on a listed one whose numbers change, and on a listed case that is now exact.
 
 # Rounding in Skia's raster pipeline, not isolated. Owner: fidelity lane, with the setup track for
-# the Skia build. div-svg hands Skia what Chromium's cc does (checked against paint_shader.cc,
-# gradient.cc and paint_record_pattern.cc): the same points, radii, stops, positions, local matrix,
-# tile mode, sRGB interpolation, dithering and an sRGB-tagged surface, on the same Skia milestone
-# (m147). The differences are only where a value sits on a rounding boundary: one channel level in
-# a few radial-gradient and scaled pattern-tile pixels, and the seam of a repeating gradient whose
-# parameter is exactly 1 (spread/repeat-diagonal; Chromium takes the last stop, Div the first). A
-# candidate is the raster pipeline's CPU variant (fused multiply-add in its HSW stages).
-1x href/radial-from-linear 1 1
-1x rad/basic 1 1
-1x rad/fr-larger 1 1
-1x rad/reflect 6 1
-1x rad/wide 1 1
-1x spread/repeat-diagonal 38 213
-2x href/attrs 1 1
-2x href/radial-from-linear 2 1
-2x pat/obb-fraction 1 1
-2x pat/transform 1 1
-2x rad/basic 1 1
+# the Skia build. div-svg hands Skia what Chromium's cc does (checked against paint_shader.cc and
+# gradient.cc), and the test binaries initialize Skia at load as Chromium does (SkGraphics::Init),
+# so the raster pipeline runs the same CPU stages; that made 15 of the first 18 gaps exact on
+# Windows and 16 on Linux (the fidelity lane's finding). What remains is one channel level in one or two pixels of three
+# radial gradients with a focal point or a repeat, at scale 2.
 linux 2x rad/focal 2 1
 windows 2x rad/focal 1 1
-2x rad/fr-focal 2 1
-2x rad/fr-larger 1 1
-2x rad/reflect 1 1
-2x rad/repeat 2 1
-2x rad/three 1 1
-2x spread/repeat-diagonal 73 213
+2x rad/fr-focal 1 1
+windows 2x rad/repeat 2 1

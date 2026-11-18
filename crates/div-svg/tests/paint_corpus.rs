@@ -23,6 +23,8 @@
 
 mod support;
 
+div_text::initialize_skia_at_load!();
+
 use div_svg::clip::{clip_content, ClipChild, ClipContent, ClipPath, ClipPathUnits, ClipReference};
 use div_svg::geometry::FillRule;
 use div_svg::length::{Axis, Length};

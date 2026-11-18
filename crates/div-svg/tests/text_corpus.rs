@@ -26,6 +26,8 @@
 
 mod support;
 
+div_text::initialize_skia_at_load!();
+
 use div_geometry::{RasterConfiguration, RasterPixelGeometry};
 use div_style::{FontFamilyList, FontStyleEnum};
 use div_svg::length::{LengthContext, Unit};
