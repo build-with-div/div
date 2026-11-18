@@ -1,8 +1,8 @@
 //! Pointer Events dispatch (RFC 0007 section 4), in Chromium 147's order.
 //!
 //! The order and suppression rules are pinned by the oracle
-//! `tests/fidelity/fixtures/pointer-events-v1/chromium-windows.json`
-//! (`crates/divui/tests/pointer_events_oracle.rs`):
+//! `tests/fidelity/fixtures/pointer-events-v1` (a Windows and a Linux X11
+//! capture; `crates/divui/tests/pointer_events_oracle.rs`):
 //!
 //! - Pending capture is processed first: `lostpointercapture`, then
 //!   `gotpointercapture`.

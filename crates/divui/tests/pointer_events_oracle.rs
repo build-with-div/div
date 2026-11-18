@@ -2,13 +2,17 @@
 //! item 0.12 B).
 //!
 //! `tools/qualification/capture_pointer_events_oracle.py` recorded what
-//! Windows Chrome-for-Testing 147.0.7727.50 fires for a fixed page under CDP
-//! mouse and touch input
-//! (`tests/fidelity/fixtures/pointer-events-v1/chromium-windows.json`). This
-//! test builds the same page, installs the same listeners, replays each
-//! scenario's inputs and compares every event's type, target, `button`,
-//! `buttons`, client and offset points and, for pointer events, the pointer's
-//! id, type and `isPrimary`.
+//! Chrome-for-Testing 147.0.7727.50 fires for a fixed page, on each host
+//! platform (`tests/fidelity/fixtures/pointer-events-v1`):
+//!
+//! - `chromium-windows.json`: Windows, CDP mouse and touch input;
+//! - `chromium-linux-x11.json`: Linux on X11, real mouse input through
+//!   XTEST, and CDP touch input.
+//!
+//! This test builds the same page, installs the same listeners, replays each
+//! scenario's inputs and compares, with the capture of the host's platform,
+//! every event's type, target, `button`, `buttons`, client and offset points
+//! and, for pointer events, the pointer's id, type and `isPrimary`.
 //!
 //! Two differences are not Div's: Div's root stands for `document`, `html`
 //! and `body`, so the oracle's events at those three become one event at the
@@ -17,12 +21,9 @@
 //! by `pointer_defaults_follow_the_rfc`). The steps in [`GAPS`] differ for a
 //! named reason and must keep differing until the gap is closed.
 //!
-//! The capture is from Windows, where `contextmenu` follows the secondary
-//! button's release. Chromium on Linux fires it right after that button's
-//! `mousedown`, with the buttons held then (the real-input click-count
-//! oracle, `tests/fidelity/fixtures/click-count-v1/chromium-linux-x11.json`,
-//! RFC 0007 section 6), and so does Div. On other hosts [`on_this_host`]
-//! moves each expected `contextmenu` to its press.
+//! The two captures differ only where `contextmenu` falls: after the
+//! secondary button's release on Windows, after its `mousedown` on Linux
+//! (`captures_differ_only_in_contextmenu`).
 
 use div::prelude::*;
 use div::typed_style::{parse_literal, RendererStyleValue};
@@ -31,8 +32,17 @@ use serde_json::{json, Value};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-const ORACLE: &str =
+const WINDOWS: &str =
     include_str!("../../../tests/fidelity/fixtures/pointer-events-v1/chromium-windows.json");
+const LINUX: &str =
+    include_str!("../../../tests/fidelity/fixtures/pointer-events-v1/chromium-linux-x11.json");
+
+/// The capture of the host's platform, and that platform's name in it.
+const ORACLE: (&str, &str) = if cfg!(target_os = "windows") {
+    (WINDOWS, "windows")
+} else {
+    (LINUX, "linux-x11")
+};
 
 /// The id CDP's first touch gets, and the one the platform layer gives the
 /// first touch contact.
@@ -370,50 +380,6 @@ fn normalize(events: &[Value]) -> Vec<Value> {
     normalized
 }
 
-/// The scenario's steps as Chromium fires them on this host: on hosts other
-/// than Windows, each `contextmenu` that follows a secondary-button release
-/// moves to just after that button's last `mousedown`, with that event's
-/// buttons, point and target.
-fn on_this_host(steps: &[Value]) -> Vec<Value> {
-    let mut steps = steps.to_vec();
-    if cfg!(target_os = "windows") {
-        return steps;
-    }
-    let is_secondary = |step: &Value, kind: &str| {
-        let input = step["input"].as_array().unwrap();
-        input[0] == kind && input.get(3).is_some_and(|button| button == "right")
-    };
-    let mut press: Option<usize> = None;
-    for index in 0..steps.len() {
-        if is_secondary(&steps[index], "down") {
-            press = Some(index);
-            continue;
-        }
-        if !is_secondary(&steps[index], "up") {
-            continue;
-        }
-        let events = steps[index]["events"].as_array_mut().unwrap();
-        let Some(at) = events
-            .iter()
-            .position(|event| event["type"] == "contextmenu")
-        else {
-            continue;
-        };
-        let mut menu = events.remove(at);
-        let press = press.take().expect("a secondary release follows its press");
-        let events = steps[press]["events"].as_array_mut().unwrap();
-        let down = events
-            .iter()
-            .rposition(|event| event["type"] == "mousedown")
-            .expect("the press fires mousedown");
-        for key in ["buttons", "client", "offset", "target"] {
-            menu[key] = events[down][key].clone();
-        }
-        events.insert(down + 1, menu);
-    }
-    steps
-}
-
 fn focused(page: &Page) -> &'static str {
     page.elements
         .iter()
@@ -424,8 +390,9 @@ fn focused(page: &Page) -> &'static str {
 
 #[test]
 fn pointer_events_match_chromium() {
-    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let oracle: Value = serde_json::from_str(ORACLE.0).unwrap();
     assert_eq!(oracle["chromium"], "147.0.7727.50");
+    assert_eq!(oracle["platform"], ORACLE.1);
     let scenarios = oracle["scenarios"].as_object().unwrap();
     assert_eq!(scenarios.len(), 17);
     let mut failures = Vec::new();
@@ -433,10 +400,7 @@ fn pointer_events_match_chromium() {
     for (name, scenario) in scenarios {
         let page = page(&oracle);
         setup(&page, name);
-        for (index, step) in on_this_host(scenario["steps"].as_array().unwrap())
-            .iter()
-            .enumerate()
-        {
+        for (index, step) in scenario["steps"].as_array().unwrap().iter().enumerate() {
             page.log.borrow_mut().clear();
             send(&page, name, step["input"].as_array().unwrap());
             let actual = page.log.borrow().clone();
@@ -478,7 +442,7 @@ fn pointer_events_match_chromium() {
 /// and buttons, which the oracle cannot show: CDP's mouse reports pressure 0.
 #[test]
 fn pointer_defaults_follow_the_rfc() {
-    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let oracle: Value = serde_json::from_str(ORACLE.0).unwrap();
     let page = page(&oracle);
     let seen = Rc::new(RefCell::new(Vec::new()));
     for event_type in ["pointermove", "pointerdown", "pointerup"] {
@@ -511,4 +475,79 @@ fn pointer_defaults_follow_the_rfc() {
         // Headless, the screen point is the client point.
         assert_eq!(info.mouse.screen, info.mouse.client);
     }
+}
+
+/// The Windows and Linux captures differ only in the secondary button's
+/// `contextmenu`: Windows fires it after the release's `auxclick`, Linux
+/// after the press's `mousedown` (with the buttons held then), as RFC 0007
+/// section 6 says. Pressure differs too (CDP's mouse reports 0) and is left
+/// out.
+#[test]
+fn captures_differ_only_in_contextmenu() {
+    let windows: Value = serde_json::from_str(WINDOWS).unwrap();
+    let linux: Value = serde_json::from_str(LINUX).unwrap();
+    let steps = |oracle: &Value, name: &str| -> Vec<(Value, Vec<Value>)> {
+        oracle["scenarios"][name]["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| {
+                (
+                    step["input"].clone(),
+                    normalize(step["events"].as_array().unwrap()),
+                )
+            })
+            .collect()
+    };
+    let mut differing = Vec::new();
+    for name in windows["scenarios"].as_object().unwrap().keys() {
+        assert_eq!(
+            windows["scenarios"][name]["focused"], linux["scenarios"][name]["focused"],
+            "{name}"
+        );
+        let (windows_steps, linux_steps) = (steps(&windows, name), steps(&linux, name));
+        assert_eq!(windows_steps.len(), linux_steps.len(), "{name}");
+        for (index, (w, l)) in windows_steps.iter().zip(&linux_steps).enumerate() {
+            assert_eq!(w.0, l.0, "{name} step {index}: the same input");
+            if w.1 == l.1 {
+                continue;
+            }
+            let without_menu = |events: &[Value]| -> Vec<Value> {
+                events
+                    .iter()
+                    .filter(|event| event["type"] != "contextmenu")
+                    .cloned()
+                    .collect()
+            };
+            assert_eq!(
+                without_menu(&w.1),
+                without_menu(&l.1),
+                "{name} step {index}"
+            );
+            let menu = |events: &[Value]| {
+                events
+                    .iter()
+                    .position(|event| event["type"] == "contextmenu")
+            };
+            let kind = w.0[0].as_str().unwrap();
+            match kind {
+                // Linux's press ends with `contextmenu` right after `mousedown`.
+                "down" => {
+                    assert_eq!((menu(&w.1), menu(&l.1)), (None, Some(l.1.len() - 1)));
+                    assert_eq!(l.1[l.1.len() - 2]["type"], "mousedown");
+                }
+                // Windows' release ends with `contextmenu` after `auxclick`.
+                "up" => {
+                    assert_eq!((menu(&w.1), menu(&l.1)), (Some(w.1.len() - 1), None));
+                    assert_eq!(w.1[w.1.len() - 2]["type"], "auxclick");
+                }
+                other => panic!("{name} step {index}: {other} differs"),
+            }
+            differing.push(format!("{name} {index}"));
+        }
+    }
+    assert_eq!(
+        differing,
+        ["chorded 2", "chorded 3", "right_click 1", "right_click 2"]
+    );
 }

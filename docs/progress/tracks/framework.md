@@ -72,7 +72,7 @@ uses.)
 | 0.12 A | Listener handles and options (sample-editor gap 29) | Merged (#61) |
 | 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Merged (#68) |
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
-| 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | In review |
+| 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | Merged (#75) |
 | I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
 
 ## After Tier 0
@@ -93,6 +93,73 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 17 November 2026: the Pointer Events oracle on Linux (follow-up `pointer-events-linux-derived`)
+
+Problem: the Pointer Events oracle (`pointer-events-v1`, #68) had only a
+Windows capture. Since click counting (#75), Div fires `contextmenu` on the
+secondary button's press on Linux, so on Linux the test moved each expected
+`contextmenu` from the Windows capture's release to the press. That
+expectation was derived from the click-count capture, not measured.
+
+Capture: `tools/qualification/capture_pointer_events_oracle.py` now also
+runs on Linux. It writes `chromium-linux-x11.json` from pinned
+Chrome-for-Testing 147.0.7727.50:
+
+- **Browser.** The browser is headed on Ozone's X11 platform (WSLg). CDP
+  fixes the 400×300 viewport at scale 1.
+- **Input.** The mouse is real X11 motion and buttons through XTEST. Touch
+  goes through CDP, as on Windows.
+- **Setup per scenario.**
+  - Each scenario gets a fresh browser.
+  - One motion measures the viewport's origin on the screen, and a second
+    motion checks it.
+  - The pointer is then parked outside the window and the page is loaded
+    again, so the page starts with the pointer outside it, as under CDP.
+  - A press or release moves the pointer only when its point changes,
+    because a motion to the same point still reaches the page as a move.
+  - The page cancels `contextmenu` after the logger has recorded it, so no
+    native menu takes the pointer.
+- **Repeatability.** The capture runs twice and the two must match. A
+  third run reproduces the fixture byte for byte.
+- **Windows unchanged.** The Windows path is the same; its recapture
+  reproduces `chromium-windows.json` byte for byte.
+
+Result: the Linux and Windows captures match everywhere except where
+`contextmenu` falls. Linux fires it right after the press's `mousedown`,
+with the buttons held then. Windows fires it after the release's
+`auxclick`. This is exactly what the derived expectation assumed, in
+`chorded` steps 2 and 3 and `right_click` steps 1 and 2. Pressure is left
+out of the comparison, as before.
+
+Change:
+
+- `pointer_events_oracle.rs` compares each host with its own platform's
+  capture and checks the capture's `platform`.
+- The `contextmenu` move is gone.
+- A new test, `captures_differ_only_in_contextmenu`, pins how the two
+  captures differ:
+  - the same inputs and final focus;
+  - the same events apart from `contextmenu`;
+  - on Linux, `contextmenu` after `mousedown`; on Windows, after
+    `auxclick`;
+  - only in those four steps.
+- No product code changed.
+
+Verification, on main `d74065cb`:
+
+- Linux (WSL, X11 features):
+  - `cargo test --locked -p divui --features "linux testing" --test
+    pointer_events_oracle` passes 3 tests.
+  - With `CONTEXTMENU_ON_PRESS` forced to `false`, the Linux comparison
+    fails in exactly the four steps.
+- Windows (MSVC): the same test with `--features "windows testing"` passes
+  3 tests.
+- `cargo fmt --all --check` passes.
+- Recapture: `python3 tools/qualification/capture_pointer_events_oracle.py
+  --chrome <pinned Linux chrome>` in WSL reproduces the Linux fixture byte
+  for byte. Run with Windows Python, the same script reproduces the Windows
+  fixture byte for byte.
 
 ### 17 November 2026: click counting, `detail` and `dblclick` (Tier 0 item 0.12 D)
 
@@ -174,7 +241,8 @@ Follow-up:
   test moves each `contextmenu` to the press, so that part is derived from
   the click-count capture, not measured. The filler captures
   `pointer-events-v1` on Linux (XTEST, pinned Chrome-for-Testing in WSL),
-  compares each OS against its own capture and drops the move.
+  compares each OS against its own capture and drops the move. Closed on
+  17 November 2026 by the Linux Pointer Events capture (entry above).
 
 Verification (Windows, MSVC, this branch on main `85fa7380`):
 
