@@ -1,0 +1,41 @@
+# Content under rounded clips, captured through the census
+# oracle: pinned Chromium 147 headless, at real zoom above scale 1
+# (--force-device-scale-factor, RFC 0010;
+# tools/qualification/capture_rounded_clip_oracle.py).
+#
+# Each line is: page | depth | tag | declarations. Depth 0 is a child of
+# body; depth n is a child of the page's previous box at depth n - 1. Every
+# page is 160x140 CSS px on a white body. An img box shows green-100.png.
+
+# A circular overflow clip around a block that overflows it
+# (css_backgrounds/border-radius-clip-001, #bg). The test's 50% radius is
+# written as 70px, half of the 140px border box, since Div's typed radius
+# literals are lengths; Chromium renders both identically.
+circle | 0 | div | position: absolute; left: 20px; top: 20px; width: 80px; padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 10px; border-top-width: 20px; border-right-width: 20px; border-bottom-width: 20px; border-left-width: 20px; border-top-style: double; border-right-style: double; border-bottom-style: double; border-left-style: double; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; border-top-left-radius: 70px; border-top-right-radius: 70px; border-bottom-right-radius: 70px; border-bottom-left-radius: 70px; overflow-x: hidden; overflow-y: hidden
+circle | 1 | div | margin-top: -10px; margin-right: -10px; margin-bottom: -10px; margin-left: -10px; width: 100px; height: 100px; background-color: green
+
+# The same clip around an <img> (#img-contain): green-100.png, a 100x100
+# solid green image in this folder.
+circle-img | 0 | div | position: absolute; left: 20px; top: 20px; width: 80px; padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 10px; border-top-width: 20px; border-right-width: 20px; border-bottom-width: 20px; border-left-width: 20px; border-top-style: double; border-right-style: double; border-bottom-style: double; border-left-style: double; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; border-top-left-radius: 70px; border-top-right-radius: 70px; border-bottom-right-radius: 70px; border-bottom-left-radius: 70px; overflow-x: hidden; overflow-y: hidden
+circle-img | 1 | img | display: block; margin-top: -10px; margin-right: -10px; margin-bottom: -10px; margin-left: -10px; width: 100px; height: 100px
+
+# A rounded overflow clip inside a solid border, filled by its child.
+rrect | 0 | div | position: absolute; left: 20px; top: 20px; width: 100px; height: 80px; border-top-width: 4px; border-right-width: 4px; border-bottom-width: 4px; border-left-width: 4px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: black; border-right-color: black; border-bottom-color: black; border-left-color: black; border-top-left-radius: 24px; border-top-right-radius: 24px; border-bottom-right-radius: 24px; border-bottom-left-radius: 24px; overflow-x: hidden; overflow-y: hidden
+rrect | 1 | div | width: 100px; height: 80px; background-color: green
+
+# A background color clipped to the padding box under a transparent border
+# (css_backgrounds/background-clip-padding-box-with-border-radius): the
+# padding-box contour has radius 40 - 10 = 30.
+padding-clip | 0 | div | position: absolute; left: 20px; top: 10px; width: 60px; height: 60px; padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px; border-top-width: 10px; border-right-width: 10px; border-bottom-width: 10px; border-left-width: 10px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; border-top-left-radius: 40px; border-top-right-radius: 40px; border-bottom-right-radius: 40px; border-bottom-left-radius: 40px; background-clip: padding-box; background-color: green
+
+# A solid green gradient clipped to a rounded content box over the same
+# green (css_backgrounds/background-rounded-image-clip-001).
+gradient-clip | 0 | div | position: absolute; left: 0px; top: 0px; width: 160px; height: 140px; background-color: green
+gradient-clip | 1 | div | position: absolute; left: 10px; top: 10px; width: 120px; height: 100px; border-top-width: 10px; border-right-width: 10px; border-bottom-width: 10px; border-left-width: 10px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent; border-top-left-radius: 90px; background-clip: content-box; background-image: linear-gradient(green, green)
+
+# A local background of a rounded scroll container under a translucent
+# border (css_backgrounds/background-attachment-local-hidden). Local
+# attachment clips the background to the padding box, but its
+# background-clip is still border-box, so Blink fills the padding box's
+# rounded rect directly (PaintFastBottomLayer) instead of clipping.
+local-hidden | 0 | div | position: absolute; left: 20px; top: 10px; width: 100px; height: 100px; border-top-width: 10px; border-right-width: 10px; border-bottom-width: 10px; border-left-width: 10px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: rgba(255, 0, 0, 0.5); border-right-color: rgba(255, 0, 0, 0.5); border-bottom-color: rgba(255, 0, 0, 0.5); border-left-color: rgba(255, 0, 0, 0.5); border-top-left-radius: 40px; border-top-right-radius: 40px; border-bottom-right-radius: 40px; border-bottom-left-radius: 40px; background-color: lightblue; overflow-x: hidden; overflow-y: hidden; background-attachment: local

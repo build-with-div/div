@@ -8309,9 +8309,7 @@ fn prepaint_collapsed_table_backgrounds(
                 margin_x,
                 margin_y,
             );
-            let packed_mask =
-                rounded_overflow_content_mask(fragment, style, &rrect, margin_x, margin_y, false);
-            let scope = OverflowContentClipScope::new(canvas, clip, packed_mask);
+            let scope = OverflowContentClipScope::new(canvas);
             scope.clip_rounded(rrect);
             scope
         } else {
@@ -8329,7 +8327,7 @@ fn prepaint_collapsed_table_backgrounds(
                 if !clip_y_axis { big } else { y + height },
             );
             let clip = outward_snap_rect_to_physical(clip, doc.device_scale_factor());
-            let scope = OverflowContentClipScope::new(canvas, clip, None);
+            let scope = OverflowContentClipScope::new(canvas);
             canvas.clip_rect(clip, ClipOp::Intersect, false);
             scope
         }
@@ -11046,10 +11044,6 @@ fn paint_touching_unfragmented_descendant_outlines(
     }
 }
 
-fn fragment_subtree_has_text(fragment: &Fragment) -> bool {
-    fragment.kind == FragmentKind::Text || fragment.children.iter().any(fragment_subtree_has_text)
-}
-
 /// The contents of one Chromium layer that cc's LCD text decision for opacity
 /// groups reads (`PaintOpBuffer::Playback`, 147.0.7727.50).
 #[derive(Clone, Copy, Default)]
@@ -12524,73 +12518,30 @@ fn structural_hard_clip_covers_device(canvas: &Canvas, rect: Rect) -> bool {
 }
 
 // Both foreground painting and the table descendant-background phase own
-// the same rounded clip/mask lifetime. A packed mask must be applied after
-// scrolled contents return to the clip's coordinate space, before restoring
-// its isolated layer; the box's own decoration stays outside this scope.
+// the same rounded clip lifetime; the box's own decoration stays outside this
+// scope.
 struct OverflowContentClipScope<'a> {
     canvas: &'a Canvas,
-    packed_mask: Option<(Image, Rect)>,
 }
 
 impl<'a> OverflowContentClipScope<'a> {
-    fn new(canvas: &'a Canvas, clip_rect: Rect, packed_mask: Option<(Image, Rect)>) -> Self {
-        if packed_mask.is_some() {
-            canvas.save_layer_owned(Some(clip_rect), None, SaveLayerFlags::empty());
-        } else {
-            canvas.save();
-        }
-        Self {
-            canvas,
-            packed_mask,
-        }
+    fn new(canvas: &'a Canvas) -> Self {
+        canvas.save();
+        Self { canvas }
     }
 
+    // Chromium's CPU raster clips content to a rounded overflow contour with
+    // one antialiased ClipRRect. Content of every kind (solid fills, images,
+    // text) takes the coverage Skia's direct clip gives it.
     fn clip_rounded(&self, rrect: RRect) {
-        if self.packed_mask.is_none() {
-            self.canvas.clip_rrect(rrect, ClipOp::Intersect, true);
-        }
+        self.canvas.clip_rrect(rrect, ClipOp::Intersect, true);
     }
 }
 
 impl Drop for OverflowContentClipScope<'_> {
     fn drop(&mut self) {
-        if let Some((mask, destination)) = &self.packed_mask {
-            let mut mask_paint = Paint::default();
-            mask_paint.set_anti_alias(false);
-            mask_paint.set_blend_mode(BlendMode::DstIn);
-            self.canvas.draw_image_rect_with_sampling_options(
-                mask.clone(),
-                Some((
-                    &Rect::from_xywh(0.0, 0.0, mask.width() as f32, mask.height() as f32),
-                    SrcRectConstraint::Strict,
-                )),
-                *destination,
-                SamplingOptions::from(FilterMode::Nearest),
-                &mask_paint,
-            );
-        }
         self.canvas.restore();
     }
-}
-
-fn rounded_overflow_content_mask(
-    fragment: &Fragment,
-    style: &ComputedStyle,
-    rrect: &RRect,
-    margin_x: f32,
-    margin_y: f32,
-    has_fragmented_outline_clip: bool,
-) -> Option<(Image, Rect)> {
-    (style.raster_configuration.backend != RasterBackend::GaneshGl
-        && style.overflow_x == Overflow::Hidden
-        && style.overflow_y == Overflow::Hidden
-        && !fragment_subtree_has_text(fragment)
-        && margin_x.abs() <= f32::EPSILON
-        && margin_y.abs() <= f32::EPSILON
-        && fragment.decoration_slice.is_none()
-        && !has_fragmented_outline_clip)
-        .then(|| packed_rounded_clip_mask(rrect, style.device_scale_factor as f32))
-        .flatten()
 }
 
 fn paint_with_overflow_clip(
@@ -12784,16 +12735,6 @@ fn paint_with_overflow_clip(
                 margin_y,
             )
         });
-    let packed_rounded_mask = rounded_clip_rrect.as_ref().and_then(|rrect| {
-        rounded_overflow_content_mask(
-            fragment,
-            style,
-            rrect,
-            margin_x,
-            margin_y,
-            fragmented_outline_clip.is_some(),
-        )
-    });
     let mut fragmented_top_left_tangent = None;
     let composited_scroll_layer = has_composited_scroll_contents(fragment, style)
         || needs_fractional_cpu_scroll_backing(fragment, style, clip_rect);
@@ -12838,7 +12779,6 @@ fn paint_with_overflow_clip(
         && newly_deferred_fragmented_outlines.is_empty()
         && descendant_outline_outset(fragment, doc) == 0.0
         && rounded_clip_rrect.is_none()
-        && packed_rounded_mask.is_none()
         && !composited_scroll_layer
         && !antialias_transformed_clip
         && translation == (0.0, 0.0)
@@ -12853,8 +12793,8 @@ fn paint_with_overflow_clip(
             crate::PaintPropertyDecision::OverflowClip,
         );
     }
-    let content_clip_scope = (!omit_structural_scope)
-        .then(|| OverflowContentClipScope::new(canvas, clip_rect, packed_rounded_mask));
+    let content_clip_scope =
+        (!omit_structural_scope).then(|| OverflowContentClipScope::new(canvas));
 
     // When border-radius is set, clip to a rounded rect so children are
     // clipped along the curves. Otherwise use a simple rect clip.
@@ -13022,87 +12962,6 @@ fn paint_with_overflow_clip(
 
     drop(content_clip_scope);
     paint_element_scrollbars(canvas, fragment, doc, offset);
-}
-
-/// Rasterize an axis-aligned rounded overflow clip on the qualification
-/// device grid and close every non-empty analytic coverage cell upward.
-///
-/// Chromium's packed clip mask retains one more coverage quantum than CPU
-/// Skia's direct `clip_rrect` path. Keeping that policy in a reusable mask
-/// avoids moving the contour geometry or changing fully covered interior
-/// pixels.
-fn packed_rounded_clip_mask(rrect: &RRect, device_scale: f32) -> Option<(Image, Rect)> {
-    if !device_scale.is_finite() || device_scale <= 0.0 {
-        return None;
-    }
-    let bounds = rrect.rect();
-    let physical_left = (bounds.left * device_scale).floor() as i32;
-    let physical_top = (bounds.top * device_scale).floor() as i32;
-    let physical_right = (bounds.right * device_scale).ceil() as i32;
-    let physical_bottom = (bounds.bottom * device_scale).ceil() as i32;
-    let width = physical_right - physical_left;
-    let height = physical_bottom - physical_top;
-    if width <= 0 || height <= 0 {
-        return None;
-    }
-
-    let physical_radii = [
-        rrect.radii(RRectCorner::UpperLeft) * device_scale,
-        rrect.radii(RRectCorner::UpperRight) * device_scale,
-        rrect.radii(RRectCorner::LowerRight) * device_scale,
-        rrect.radii(RRectCorner::LowerLeft) * device_scale,
-    ];
-    let physical_rrect = RRect::new_rect_radii(
-        Rect::from_ltrb(
-            bounds.left * device_scale - physical_left as f32,
-            bounds.top * device_scale - physical_top as f32,
-            bounds.right * device_scale - physical_left as f32,
-            bounds.bottom * device_scale - physical_top as f32,
-        ),
-        &physical_radii,
-    );
-    let mut surface = surfaces::raster_n32_premul((width, height))?;
-    surface.canvas().clear(skia_safe::Color::TRANSPARENT);
-    let mut mask_paint = Paint::default();
-    mask_paint.set_style(PaintStyle::Fill);
-    mask_paint.set_anti_alias(true);
-    mask_paint.set_color(skia_safe::Color::WHITE);
-    surface.canvas().draw_rrect(physical_rrect, &mask_paint);
-
-    let info = ImageInfo::new(
-        (width, height),
-        ColorType::RGBA8888,
-        AlphaType::Premul,
-        None,
-    );
-    let row_bytes = width as usize * 4;
-    let mut pixels = vec![0_u8; row_bytes * height as usize];
-    if !surface.image_snapshot().read_pixels(
-        &info,
-        &mut pixels,
-        row_bytes,
-        (0, 0),
-        skia_safe::image::CachingHint::Allow,
-    ) {
-        return None;
-    }
-    for pixel in pixels.chunks_exact_mut(4) {
-        let alpha = pixel[3];
-        if alpha != 0 && alpha != 255 {
-            let closed = alpha + 1;
-            pixel.fill(closed);
-        }
-    }
-    let image = skia_safe::images::raster_from_data(&info, Data::new_copy(&pixels), row_bytes)?;
-    Some((
-        image,
-        Rect::from_ltrb(
-            physical_left as f32 / device_scale,
-            physical_top as f32 / device_scale,
-            physical_right as f32 / device_scale,
-            physical_bottom as f32 / device_scale,
-        ),
-    ))
 }
 
 /// Build a Skia `RRect` for an overflow clip edge.
@@ -17738,7 +17597,10 @@ fn paint_background_layers(
             BackgroundRepeat::Repeat | BackgroundRepeat::Round
         ) && tile_width > 0.0
             && tile_height > 0.0;
-        let constant_color = repeated_constant_gradient
+        // Under a rounded clip the layer stays a gradient: Blink draws it
+        // through the gradient's (dithered) shader, whose edge blends round
+        // differently from a solid color's.
+        let constant_color = (repeated_constant_gradient && !style.has_border_radius())
             .then(|| solid_gradient_color(&layer.image, &style.color))
             .flatten()
             .or_else(|| {
@@ -21127,10 +20989,18 @@ fn paint_box_decoration_background(
                 } else if effective_background_clip == BackgroundClip::BorderBox
                     || !radii_exceed_rect(&bg_rect, &clip_radii)
                 {
-                    // A solid rounded background is a native rounded-rect
-                    // fill in Blink. Clipping a rectangle through an AA rrect
-                    // creates a separately quantized mask and loses the
-                    // lowest-coverage edge samples.
+                    // A solid rounded border-box background is a native
+                    // rounded-rect fill in Blink (PaintFastBottomLayer's
+                    // FillRoundedRect). Clipping a rectangle through an AA
+                    // rrect creates a separately quantized mask and loses the
+                    // lowest-coverage edge samples. A padding- or content-box
+                    // clip is not a border fill, so Blink takes the slow path
+                    // instead: RoundedInnerRectClipper clips the renderable
+                    // contour, then FillRect fills the snapped border box.
+                    // Blink decides on the specified clip (`is_border_fill`):
+                    // a local background of a scroll container clipped to its
+                    // border box is clipped to the padding box but stays a
+                    // border fill, so it keeps the rounded-rect fill.
                     let clip_radii = normalize_radii_to_rect(clip_radii, &bg_rect);
                     let hard_clip_x =
                         style.overflow_x == Overflow::Clip && style.overflow_y == Overflow::Visible;
@@ -21145,8 +21015,20 @@ fn paint_box_decoration_background(
                             false,
                         );
                     }
-                    if is_opaque_circular_background(&bg_rect, &clip_radii, &style.background_color)
-                    {
+                    if style.background_clip != BackgroundClip::BorderBox {
+                        canvas.save();
+                        canvas.clip_rrect(
+                            RRect::new_rect_radii(bg_rect, &clip_radii),
+                            ClipOp::Intersect,
+                            true,
+                        );
+                        canvas.draw_rect(border_box_rect, &paint);
+                        canvas.restore();
+                    } else if is_opaque_circular_background(
+                        &bg_rect,
+                        &clip_radii,
+                        &style.background_color,
+                    ) {
                         // Chromium retains circular coverage in a float
                         // intermediate before compositing it into the N32
                         // destination. Keeping this primitive-level policy
