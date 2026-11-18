@@ -410,11 +410,11 @@ On Linux, 244 of 290 captures are exact, including every 1x stroke,
 opacity, dash and `paint-order` case. The other 46 are named gaps in
 `pixel-gaps.txt`, all owned by `div-text` in the engine lane:
 
-- **LCD size limit (18).** Skia masks glyphs above 48 device px in
+- **T5, LCD size limit (18).** Skia masks glyphs above 48 device px in
   grayscale, as Chromium's are. Div draws a Linux web font through a
   unit-size font, so Skia keeps the LCD mask. Grayscale edging above
   48 px made all 18 exact in an experiment.
-- **Hinting under rotation and skew (24).** Div's web-font outlines are
+- **T6, hinting under rotation and skew (24).** Div's web-font outlines are
   hinted whatever the transform; Chromium leaves glyphs unhinted when the
   device matrix is not a scale. Unhinted outlines made synthetic italic
   exact and left the rotated cases a few edge pixels off.

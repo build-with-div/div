@@ -34,7 +34,7 @@ engine lane's T1, `ShapeResult::to_positioned_text_blob` (#80).
 - **The pixel test.** `crates/div-svg/tests/text_corpus.rs` gains
   `text_pixels_match_chromium_147`. Its pixel helpers (tiling, the root
   box, the sheet comparison and the gap check) are in
-  `tests/support/pixels.rs`.
+  `tests/support/pixels.rs`, which `paint_corpus.rs` now uses as well.
 
 ## Verification
 
@@ -48,7 +48,8 @@ Linux (WSL, CfT oracle).
 - **Text pixels, Windows:** 0 of 290 exact. All differences are named gaps
   (below).
 - **The other corpora are unchanged:** geometry 76/125, paint v1 147/147,
-  paint v2 115/115.
+  paint v2 115/115, paint v3 104/108 (on `paint_corpus.rs` moved to the
+  shared helpers).
 
 ## Named gaps (`svg-text-v1/pixel-gaps.txt`)
 
@@ -57,13 +58,13 @@ it.
 
 | Gap | Linux | Windows | Owner |
 | --- | --- | --- | --- |
-| **LCD size limit** | 18 | – | engine, `div-text` `web_font_outlines.rs` |
-| **Hinting under rotation and skew** | 24 | – | engine, `div-text` `web_font_outlines.rs` |
+| **T5, LCD size limit** | 18 | – | engine, `div-text` `web_font_outlines.rs` |
+| **T6, hinting under rotation and skew** | 24 | – | engine, `div-text` `web_font_outlines.rs` |
 | **T4 positions** | 4 | in the 13 below | engine, `div-text` |
 | **T3/T4 positions plus Windows raster** | – | 13 | engine, then fidelity |
 | **Windows text raster** | – | 277 | fidelity lane |
 
-- **LCD size limit.** Skia masks glyphs larger than 48 device px
+- **T5, LCD size limit.** Skia masks glyphs larger than 48 device px
   (`SK_MAX_SIZE_FOR_LCDTEXT`) in grayscale, and Chromium's are grayscale
   (not one coloured pixel). Div draws a Linux web font through a unit-size
   font whose typeface holds outlines at the physical size, so Skia sees size
@@ -71,7 +72,7 @@ it.
   - Experiment (local, not committed): grayscale edging for the web-font run
     above 48 px made all 18 captures exact.
   - HTML text in a web font above 48 device px takes the same path.
-- **Hinting under rotation and skew.** `web_font_outlines` hints outlines at
+- **T6, hinting under rotation and skew.** `web_font_outlines` hints outlines at
   the physical size whatever the transform. Chromium's Fontations scaler
   leaves glyphs unhinted when the device matrix is not a scale: a `rotate`
   glyph, a rotated or skewed CTM, synthetic italic.
@@ -106,10 +107,12 @@ it.
 
 ## For the engine lane
 
-- **Two `div-text` requests from this PR**, both in `web_font_outlines.rs`:
-  - keep Skia's 48 px LCD cutoff for unit-size web-font runs;
-  - leave outlines unhinted when the device matrix is not a scale.
-  Both need the size or transform the blob is drawn at.
+- **Two `div-text` requests from this PR**, both in `web_font_outlines.rs`,
+  now engine tasks T5 and T6, each to be fixed with a census:
+  - T5: keep Skia's 48 px LCD cutoff for unit-size web-font runs;
+  - T6: leave outlines unhinted when the device matrix is not a scale.
+  Both need the size or transform the blob is drawn at. Until they land
+  they stay named gaps here.
 - **T4.** SVG text already hands `div-text` its scaled size
   (`TextFont::description`), so T4's truncation will apply.
 

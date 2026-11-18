@@ -6,7 +6,7 @@
 
 # Linux: 244 of 290 captures exact.
 
-# LCD size limit, engine (div-text shaping/web_font_outlines.rs): Skia masks glyphs larger than
+# T5, LCD size limit, engine (div-text shaping/web_font_outlines.rs): Skia masks glyphs larger than
 # 48 device px (SK_MAX_SIZE_FOR_LCDTEXT) in grayscale, and Chromium's are (no coloured pixel).
 # Div draws a Linux web font through a unit-size font whose typeface holds outlines at the
 # physical size, so Skia sees size 1 and keeps the LCD mask. Measured 17 November 2026: giving
@@ -31,8 +31,8 @@ linux 2x run/geist-size-36 2903 146
 linux 2x xf/scale-2 2375 149
 linux 2x xf/viewbox-2 2375 149
 
-# Hinting under rotation and skew, engine (div-text shaping/web_font_outlines.rs): the web-font
-# outlines are hinted at the physical size whatever the transform. Chromium's Fontations scaler
+# T6, hinting under rotation and skew, engine (div-text shaping/web_font_outlines.rs): the
+# web-font outlines are hinted at the physical size whatever the transform. Chromium's Fontations scaler
 # leaves glyphs unhinted when the device matrix is not a scale (a `rotate` glyph, a rotated or
 # skewed CTM, synthetic italic). Measured 17 November 2026: unhinted outlines made run/italic
 # exact and cut the rotated cases to a few edge pixels (list/rotate 1x: 483 to 66), with the
