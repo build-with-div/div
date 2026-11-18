@@ -14,13 +14,22 @@
 //! comment giving the cause and owner. The test fails on a new difference,
 //! on a listed one whose count changes, and on a listed case that becomes
 //! exact, so the list stays true.
+//!
+//! The pixel test paints the same cases, and the pixel-only `paint/` cases,
+//! with `div_svg::text::paint` as Div's renderer rasterizes a page (white
+//! 256-px tiles stepping by 254), and compares each case's slot of
+//! Chromium's sheet (`pixels-<os>-<scale>x.png`) byte for byte. Its gaps are
+//! in `pixel-gaps.txt`, as `<os> <scale>x <case> <differing pixels> <largest
+//! channel difference>`, kept true the same way.
 
 #![cfg(any(target_os = "linux", windows))]
 
 mod support;
 
+use div_geometry::{RasterConfiguration, RasterPixelGeometry};
 use div_style::{FontFamilyList, FontStyleEnum};
 use div_svg::length::{LengthContext, Unit};
+use div_svg::paint::{to_sk_matrix, SvgPaintStyle};
 use div_svg::text::{
     self, parse_length_list, parse_number_list, Baseline, BaselineShift, TextAnchor, TextChild,
     TextFont, TextLayout, TextSpan, TextStyle, WhiteSpace,
@@ -28,10 +37,12 @@ use div_svg::text::{
 use div_svg::transform::{parse_transform_list, Matrix};
 use div_text::{Font, FontAxisRange, FontCollection, FontFaceDescriptor};
 use serde_json::Value;
+use skia_safe::{Canvas, PixelGeometry, SurfaceProps, SurfacePropsFlags, M44};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use support::{elements, style_map, viewport, Viewport};
+use support::pixels::{self, cascade, paint_style, Root};
+use support::{elements, style_map, viewport, Element, Viewport};
 
 /// The oracle's platform, its file, and the OS column of `known-gaps.txt`.
 #[cfg(target_os = "linux")]
@@ -40,6 +51,12 @@ const ORACLE: (&str, &str, &str) = ("linux", "positions-linux", "linux");
 const ORACLE: (&str, &str, &str) = ("win32", "positions-windows", "windows");
 const KNOWN_GAPS: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-text-v1/known-gaps.txt");
+const PIXEL_GAPS: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-text-v1/pixel-gaps.txt");
+#[cfg(target_os = "linux")]
+const PIXELS: &str = "pixels-linux";
+#[cfg(windows)]
+const PIXELS: &str = "pixels-windows";
 /// The inherited text properties the corpus sets.
 const INHERITED: [&str; 9] = [
     "font-family",
@@ -52,6 +69,22 @@ const INHERITED: [&str; 9] = [
     "dominant-baseline",
     "white-space",
 ];
+
+/// The raster configuration of Div's Chromium-matching renderer for real
+/// fonts (`div-paint`'s, and the components fidelity harness's).
+const RASTER: RasterConfiguration = RasterConfiguration::chromium_linux_lcd();
+
+/// The tile surface's text properties for [`RASTER`], as `div-paint`'s
+/// `raster_surface_properties` builds them.
+fn surface_props() -> SurfaceProps {
+    assert_eq!(RASTER.pixel_geometry, RasterPixelGeometry::RgbHorizontal);
+    SurfaceProps::new_with_text_properties(
+        SurfacePropsFlags::default(),
+        PixelGeometry::RGBH,
+        RASTER.contrast(),
+        RASTER.gamma(),
+    )
+}
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -197,6 +230,7 @@ fn span(node: &Node, inherited: &BTreeMap<String, String>, cx: &Context<'_>) -> 
         word_spacing: props
             .get("word-spacing")
             .map_or(0.0, |v| v.parse().unwrap()),
+        raster_configuration: RASTER,
     };
     let x_height = {
         let unscaled = Font::new_in_collection(font.description(1.0), Arc::clone(cx.collection));
@@ -291,6 +325,80 @@ fn layouts(
                 let text = span(element, inherited, cx);
                 let to_device = Matrix::new(scale, 0.0, 0.0, scale, 0.0, 0.0).then_apply(&ctm);
                 out.push(text::layout(&text, cx.collection, &to_device));
+            }
+            other => panic!("unexpected <{other}>"),
+        }
+    }
+}
+
+// ─── Painting ───────────────────────────────────────────────────────────
+
+fn element(node: &Node) -> Element {
+    Element {
+        tag: node.tag.clone(),
+        attrs: node.attrs.clone(),
+    }
+}
+
+/// The paint of a `<text>` and its `tspan`s, in pre-order (the order of
+/// `TextFragment::span`).
+fn span_styles(
+    node: &Node,
+    parent: &BTreeMap<String, String>,
+    vp: &Viewport,
+) -> Vec<SvgPaintStyle> {
+    fn walk(
+        node: &Node,
+        parent: &BTreeMap<String, String>,
+        vp: &Viewport,
+        out: &mut Vec<SvgPaintStyle>,
+    ) {
+        let props = cascade(&element(node), parent);
+        out.push(paint_style(&props, vp));
+        for child in &node.children {
+            if let Child::Element(e) = child {
+                walk(e, &props, vp, out);
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(node, parent, vp, &mut out);
+    out
+}
+
+/// Paints every `<text>` under `node`, whose user space maps to the tile's
+/// pixels by `ctm`. `props` are the inherited text properties and `paints`
+/// the inherited paint properties.
+fn paint_texts(
+    canvas: &Canvas,
+    node: &Node,
+    ctm: &Matrix,
+    props: &BTreeMap<String, String>,
+    paints: &BTreeMap<String, String>,
+    cx: &Context<'_>,
+    root: &Root,
+) {
+    for child in &node.children {
+        let Child::Element(element_node) = child else {
+            continue;
+        };
+        let inherited = props;
+        let mut props = props.clone();
+        props.extend(declared(element_node));
+        let ctm = ctm.then_apply(&transform_of(element_node));
+        match element_node.tag.as_str() {
+            "g" => {
+                let paints = cascade(&element(element_node), paints);
+                paint_texts(canvas, element_node, &ctm, &props, &paints, cx, root);
+            }
+            "text" => {
+                let text = span(element_node, inherited, cx);
+                let layout = text::layout(&text, cx.collection, &ctm);
+                let styles = span_styles(element_node, paints, &root.viewport);
+                canvas.save();
+                canvas.set_matrix(&M44::from(to_sk_matrix(&ctm)));
+                text::paint(canvas, &layout, &|span| styles[span].clone());
+                canvas.restore();
             }
             other => panic!("unexpected <{other}>"),
         }
@@ -440,4 +548,85 @@ fn text_positions_match_chromium_147() {
         differing.len()
     );
     assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+#[test]
+fn text_pixels_match_chromium_147() {
+    let (platform, _, _) = ORACLE;
+    let dir = root().join("tests/fidelity/fixtures/svg-text-v1");
+    let document: Value = serde_json::from_str(
+        &std::fs::read_to_string(dir.join(format!("{PIXELS}.json"))).expect("read oracle"),
+    )
+    .expect("parse oracle");
+    assert_eq!(document["platform"], platform);
+    assert_eq!(document["pinned"], true);
+    let collection = collection();
+    // `DIV_SVG_TEXT_DUMP=<dir>` writes Div's pixels for each differing case.
+    let dump = std::env::var_os("DIV_SVG_TEXT_DUMP").map(PathBuf::from);
+    let props = surface_props();
+
+    let mut results = BTreeMap::new();
+    let mut total = 0;
+    for sheet_meta in document["sheets"].as_array().unwrap() {
+        let scale = sheet_meta["scale"].as_f64().unwrap();
+        let sheet = pixels::decode(&dir.join(sheet_meta["png"].as_str().unwrap()));
+        assert_eq!(
+            (sheet.width, sheet.height),
+            (
+                (sheet_meta["width"].as_f64().unwrap() * scale) as usize,
+                (sheet_meta["height"].as_f64().unwrap() * scale) as usize
+            ),
+            "sheet size at {scale}x"
+        );
+        for case in sheet_meta["cases"].as_array().unwrap() {
+            total += 1;
+            let id = case["id"].as_str().unwrap();
+            let svg = tree(case["svg"].as_str().unwrap());
+            let root_element = element(&svg);
+            let size = (
+                case["width"].as_f64().unwrap(),
+                case["height"].as_f64().unwrap(),
+            );
+            // The slot's frame: the case's box plus one CSS pixel, which
+            // holds a root moved by snapping.
+            let frame = (
+                ((size.0 + 1.0) * scale) as i32,
+                ((size.1 + 1.0) * scale) as i32,
+            );
+            let origin = (
+                (case["x"].as_f64().unwrap() * scale) as usize,
+                (case["y"].as_f64().unwrap() * scale) as usize,
+            );
+            let declared_props = declared(&svg);
+            let paints = cascade(&root_element, &BTreeMap::new());
+            let paint = |canvas: &Canvas, root: &Root| {
+                let cx = Context {
+                    collection: &collection,
+                    viewport: (root.viewport.width, root.viewport.height),
+                };
+                paint_texts(canvas, &svg, &root.ctm, &declared_props, &paints, &cx, root);
+            };
+            let actual = pixels::render_tiled(frame, origin, &|at| {
+                pixels::render(
+                    &root_element,
+                    size,
+                    (0.0, 0.0),
+                    scale,
+                    at,
+                    Some(&props),
+                    &paint,
+                )
+            });
+            let (count, max) = pixels::diff(&actual, &sheet, origin, frame);
+            if count > 0 {
+                if let Some(dir) = &dump {
+                    std::fs::create_dir_all(dir).unwrap();
+                    let name = format!("text-{scale}x-{}.png", id.replace('/', "-"));
+                    pixels::write_png(&dir.join(name), frame, &actual);
+                }
+                results.insert(format!("{scale}x {id}"), (count, max));
+            }
+        }
+    }
+    pixels::check_gaps("svg-text-v1 pixels", total, &results, PIXEL_GAPS);
 }

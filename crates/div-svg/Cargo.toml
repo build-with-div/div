@@ -11,6 +11,7 @@ keywords.workspace = true
 description = "SVG geometry for Div: path data, basic shapes, lengths, transforms and viewports, as Chromium 147 computes them"
 
 [dependencies]
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
 div-style = { version = "=0.2.0", path = "../div-style" }
 div-text = { version = "=0.2.0", path = "../div-text" }
 skia-safe = "0.94"

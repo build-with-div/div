@@ -5,6 +5,8 @@
 
 #![allow(dead_code)]
 
+pub mod pixels;
+
 use div_svg::geometry::{path_from_data, LineCap, LineJoin, StrokeStyle};
 use div_svg::length::{Axis, Length, LengthContext};
 use div_svg::shapes::Shape;

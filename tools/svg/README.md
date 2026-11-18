@@ -7,7 +7,7 @@ Tools for the inline SVG work in RFC 0009
 | --- | --- |
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
-| `text_corpus.py` | Black-box text-position oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium, at scale 1 and at real-zoom scale 2 |
+| `text_corpus.py` | Black-box text oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium (`capture`), and screenshots of the same cases plus paint cases (`pixels`), at scale 1 and at real-zoom scale 2 |
 | `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in three sets (`--set v1`, `--set v2`, `--set v3`) |
 
 ## Geometry corpus
@@ -370,6 +370,62 @@ Both were confirmed by experiment. With them applied, every number
 matches on both OSes. They are listed in `known-gaps.txt` with an `<os>`
 column, and `div-svg` does not work around them. Set
 `DIV_SVG_TEXT_DEBUG=<case prefix>` to print a case's numbers.
+
+## Text pixels (glyph painting)
+
+`text_corpus.py pixels` renders the 131 position cases and 14 paint cases
+(`paint/`) as pixels, 145 in all. Each case gets its own slot on one sheet
+per device scale (1, and 2 at real zoom), and the sheet is rendered through
+`render_chrome` once the web fonts have loaded. `list --pixels` prints the
+cases. The output is `div-svg-text-pixels-v1`:
+`pixels-<os>.json` plus `pixels-<os>-<scale>x.png` in
+`tests/fidelity/fixtures/svg-text-v1/`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `paint/` | 14 | `stroke` with fill, alone, wide and round-joined, `paint-order="stroke"`, `fill-opacity` and `stroke-opacity`, a dashed stroke, a stroke under `scale(1.5)` and its `non-scaling-stroke` counterpart, a stroked `tspan`, `currentColor`, `shape-rendering="crispEdges"` (ignored for text), 96 px glyphs, stroked `rotate` glyphs |
+
+To recapture:
+
+```sh
+# Linux, in WSL
+python3 tools/svg/text_corpus.py pixels \
+  --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome \
+  --output-prefix tests/fidelity/fixtures/svg-text-v1/pixels-linux
+# Windows
+python tools/svg/text_corpus.py pixels \
+  --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe \
+  --output-prefix tests/fidelity/fixtures/svg-text-v1/pixels-windows
+```
+
+### What `div_svg::text::paint` matches
+
+`crates/div-svg/tests/text_corpus.rs` paints every case with
+`div_svg::text::paint`, rasterizing as Div's renderer does (white 256-px
+tiles stepping by 254, an RGB-stripe LCD surface with gamma 1.2 and
+contrast 0.2, the `chromium_linux_lcd` raster configuration), and compares
+each slot byte for byte.
+
+On Linux, 244 of 290 captures are exact, including every 1x stroke,
+opacity, dash and `paint-order` case. The other 46 are named gaps in
+`pixel-gaps.txt`, all owned by `div-text` in the engine lane:
+
+- **T5, LCD size limit (18).** Skia masks glyphs above 48 device px in
+  grayscale, as Chromium's are. Div draws a Linux web font through a
+  unit-size font, so Skia keeps the LCD mask. Grayscale edging above
+  48 px made all 18 exact in an experiment.
+- **T6, hinting under rotation and skew (24).** Div's web-font outlines are
+  hinted whatever the transform; Chromium leaves glyphs unhinted when the
+  device matrix is not a scale. Unhinted outlines made synthetic italic
+  exact and left the rotated cases a few edge pixels off.
+- **T4 (4).** The positions of `xf/scale-nonuniform` and
+  `xf/viewbox-none` already differ.
+
+On Windows, no capture is exact yet. Both sides paint LCD glyphs, and 269
+of the 277 cases without a position gap differ only in tone, by at most 16
+per channel. That is Windows text rasterization, which the fidelity lane
+owns. The other 13 have T3 or T4 position gaps as well. Set
+`DIV_SVG_TEXT_DUMP=<dir>` to write Div's pixels for each differing case.
 
 ## Lucide capture plan (V1 stage 1 gate)
 

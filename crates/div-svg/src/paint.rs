@@ -263,7 +263,7 @@ pub fn paint_shape(
 
 /// `SVGObjectPainter::PreparePaint` for a colour: the colour's alpha is
 /// multiplied by the opacity, in single precision.
-fn prepare_paint(paint: SvgPaint, opacity: f32) -> Option<Paint> {
+pub(crate) fn prepare_paint(paint: SvgPaint, opacity: f32) -> Option<Paint> {
     let SvgPaint::Color(color) = paint else {
         return None;
     };
@@ -273,7 +273,7 @@ fn prepare_paint(paint: SvgPaint, opacity: f32) -> Option<Paint> {
 
 /// `StrokeData::SetupPaint`, with `SetLineDash`'s intervals scaled by
 /// `pathLength`'s factor.
-fn setup_stroke(stroke: &StrokeStyle, dash_scale: f32, flags: &mut Paint) {
+pub(crate) fn setup_stroke(stroke: &StrokeStyle, dash_scale: f32, flags: &mut Paint) {
     flags.set_style(PaintStyle::Stroke);
     flags.set_stroke_width(stroke.width);
     flags.set_stroke_cap(match stroke.cap {
