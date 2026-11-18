@@ -175,7 +175,9 @@ Gaps:
 
 - `keyboard-focusable-scrollers`: closed. Its I2a oracle steps match on
   both platforms and are removed from that test's gap list.
-- `focus-navigation-windows-unmeasured`: no Windows focus capture.
+- `focus-navigation-windows-unmeasured`: no Windows focus capture, so
+  every rule this oracle measures, the fractional overflow rule included,
+  is measured on Linux only. The I2a oracle's Windows focus steps match.
 - `scrollbar-press-transformed` (engine, unmeasured): the scrollbar test
   ignores transforms.
 
@@ -214,7 +216,9 @@ now one linear walk with the same answer. On its suggestion, `advance_focus`
 and `focus_with_origin` update layout first. It expected fractional
 overflow not to count, as Blink's pixel-snapped sizes would suggest; the
 oracle's new `fractionDown` scroller (60.4px of content in 60px) shows
-Chromium makes it focusable, so Div compares the unsnapped rectangles.
+Chromium makes it focusable, so Div compares the unsnapped rectangles. The
+engine track approved that change, 5fd659b, on 17 November 2026 (read, not
+built).
 
 ### 17 November 2026: keyboard scrolling and `keypress` (Tier 0 item I2a)
 
