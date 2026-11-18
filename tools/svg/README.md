@@ -269,7 +269,7 @@ groups:
 - `opacity` on a clipped group wraps the clip: the clipped content is
   drawn into the opacity layer.
 
-Of the 206 `v4` captures, 188 are exact on Windows. The other 18 differ
+Of the 206 `v4` captures, 188 are exact on both OSes. The other 18 differ
 by one channel level in a few pixels of radial gradients and scaled
 pattern tiles, and along the seam of `spread/repeat-diagonal`; they are
 listed in `svg-paint-v4/known-gaps.txt` as rounding in Skia's raster

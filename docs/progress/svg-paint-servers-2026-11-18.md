@@ -51,7 +51,7 @@ SVG lane, RFC 0009 V3b, the second of the four V3 stages in the RFC's
 
 Command: `cargo test --locked --package div-svg`.
 
-Windows (MSVC):
+Windows (MSVC) and Linux (WSL, Ubuntu, CfT oracle) give the same results:
 
 - v1: 147 of 147 exact;
 - v2: 115 of 115 exact;
@@ -61,18 +61,19 @@ Windows (MSVC):
 - the geometry corpus (76/125) and the text corpus (positions and
   pixels) are unchanged.
 
-Linux (WSL, CfT oracle): not yet run on this branch. WSL's file system
-went read-only on 18 November, and Linux work is held until it
-recovers. The Linux capture of `v4` was taken before that and is
-byte-identical to the Windows one. CI's Linux job runs the same tests.
+The Linux capture of `v4` was retaken after WSL recovered from a
+read-only file system on 18 November. The retake is byte-identical to the
+first Linux capture and to the Windows one, apart from its timestamp.
+Linux was run with `CARGO_INCREMENTAL=0` and `-j 4`.
 
 `cargo fmt --all --check` and
 `python tools/release/generate_v02_contract.py --check` pass.
 
 ## Named gaps
 
-`tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt` lists 18 Windows
-captures; Linux lines follow once Linux is measured. All differ only where a value sits on a rounding
+`tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt` lists 18 captures
+on each OS. They are the same on both, except that `rad/focal` at scale 2
+differs in 2 pixels on Linux and 1 on Windows. All differ only where a value sits on a rounding
 boundary:
 
 - one channel level in 1 to 6 pixels of radial gradients
