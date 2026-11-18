@@ -1,5 +1,6 @@
 //! Normalized input routing and retained form-control state.
 
+use crate::focus_navigation::FocusStart;
 use crate::{Engine, EngineError, NodeHandle};
 use div_dom::{ElementTag, FormControlRole};
 use std::cmp::Ordering;
@@ -535,6 +536,7 @@ impl Engine {
                     // Set before `pointerdown` and `mousedown`, so it holds
                     // even when they are cancelled.
                     self.mouse_press_node = Some(target);
+                    self.focus_start = Some(FocusStart::Node(target));
                 }
                 None
             }
@@ -743,9 +745,12 @@ impl Engine {
         handle: NodeHandle,
         origin: FocusOrigin,
     ) -> Result<Option<NodeHandle>, EngineError> {
-        if !self.can_focus(handle)? {
+        if !self.can_focus(handle)?
+            || (matches!(origin, FocusOrigin::Pointer) && !self.is_mouse_focusable(handle))
+        {
             return Err(EngineError::NotFocusable);
         }
+        self.focus_start = Some(FocusStart::Node(handle));
         let previous = self.focused;
         if previous != Some(handle) {
             if let Some(previous) = previous {
@@ -840,31 +845,45 @@ impl Engine {
         if candidates.is_empty() {
             return Ok(None);
         }
+        // Navigation starts from the focused element, else from the
+        // sequential focus navigation starting point.
+        let start_node = match self.focus_start {
+            Some(FocusStart::Node(node)) if self.focused.is_none() => Some(node),
+            _ => None,
+        };
         let current = self
             .focused
-            .and_then(|focused| candidates.iter().position(|node| *node == focused));
-        if current.is_none() {
-            if let Some(focused) = self.focused {
-                let eligible: std::collections::HashSet<_> = candidates.iter().copied().collect();
-                let mut document_order = Vec::new();
-                self.collect_focus_document_order(
-                    self.modal_root.unwrap_or_else(|| self.root()),
-                    &mut document_order,
-                )?;
-                if let Some(anchor) = document_order.iter().position(|node| *node == focused) {
-                    let next = if direction == 1 {
-                        document_order[anchor + 1..]
-                            .iter()
-                            .find(|node| eligible.contains(*node))
-                    } else {
-                        document_order[..anchor]
-                            .iter()
-                            .rev()
-                            .find(|node| eligible.contains(*node))
-                    };
-                    if let Some(next) = next {
-                        return Ok(Some(*next));
-                    }
+            .or(start_node)
+            .and_then(|anchor| candidates.iter().position(|node| *node == anchor));
+        if current.is_none() && (self.focused.is_some() || self.focus_start.is_some()) {
+            let eligible: std::collections::HashSet<_> = candidates.iter().copied().collect();
+            let mut document_order = Vec::new();
+            self.collect_focus_document_order(
+                self.modal_root.unwrap_or_else(|| self.root()),
+                &mut document_order,
+            )?;
+            // A node that is not in the order, as Blink's tabindex -1 start,
+            // goes on in tree order.
+            let anchor = match self.focused {
+                Some(focused) => document_order
+                    .iter()
+                    .position(|node| *node == focused)
+                    .map(|index| (index, true)),
+                None => self.focus_start_anchor(&document_order),
+            };
+            if let Some((index, after)) = anchor {
+                let next = if direction == 1 {
+                    document_order[index + usize::from(after)..]
+                        .iter()
+                        .find(|node| eligible.contains(*node))
+                } else {
+                    document_order[..index]
+                        .iter()
+                        .rev()
+                        .find(|node| eligible.contains(*node))
+                };
+                if let Some(next) = next {
+                    return Ok(Some(*next));
                 }
             }
         }
@@ -1815,14 +1834,9 @@ impl Engine {
             }
             ancestor = data.parent;
         }
-        let tabindex = self
-            .attribute(handle, "tabindex")
-            .ok()
-            .flatten()
-            .and_then(|value| value.parse::<i32>().ok());
-        tabindex.is_some()
-            || self.controls.contains_key(&handle.index)
-            || self.element_tag(handle) == Ok(ElementTag::Summary)
+        // A scroller is focusable by script and keyboard; it reads the
+        // latest layout (`focus_navigation.rs`).
+        self.has_focus_semantics(handle) || self.is_focusable_scroller(handle)
     }
 
     fn is_inside_modal(&self, handle: NodeHandle) -> bool {
@@ -1859,13 +1873,8 @@ impl Engine {
         order: &mut usize,
         result: &mut Vec<(Option<i32>, usize, NodeHandle)>,
     ) -> Result<(), EngineError> {
-        if self.is_focusable(node) {
-            let tabindex = self
-                .attribute(node, "tabindex")?
-                .and_then(|value| value.parse::<i32>().ok());
-            if !tabindex.is_some_and(|value| value < 0) {
-                result.push((tabindex, *order, node));
-            }
+        if self.is_keyboard_focusable(node) {
+            result.push((self.tabindex(node), *order, node));
         }
         *order += 1;
         for child in self.presentation_children(node)? {

@@ -8,6 +8,7 @@ mod client_geometry;
 mod compositor_scene;
 mod control_geometry;
 mod element_dimensions;
+mod focus_navigation;
 mod forms;
 mod hit_geometry;
 mod interaction;
@@ -26,6 +27,7 @@ pub use scroll_button::{
     ScrollButtonAvailability, ScrollButtonDirection, ScrollButtonState, ScrollSnapStrictness,
 };
 
+pub use focus_navigation::PressFocus;
 pub use keyboard_scroll::ScrollGranularity;
 pub use resize_observation::{LogicalBoxSize, ResizeObservation};
 pub use rule_cascade::{StyleSheetError, StyleSheetId};
@@ -390,6 +392,8 @@ pub struct Engine {
     /// Blink's `MouseEventManager::MousePressNode`: the node the latest
     /// press hit, where keyboard scrolling starts without focus.
     mouse_press_node: Option<NodeHandle>,
+    /// The sequential focus navigation starting point (`focus_navigation.rs`).
+    focus_start: Option<focus_navigation::FocusStart>,
     controls: HashMap<u32, ControlState>,
     scroll_buttons: scroll_button::ScrollButtons,
     radio_associations: HashMap<u32, forms::RadioAssociation>,
@@ -496,6 +500,7 @@ impl Engine {
             hover_paths: HashMap::new(),
             active_pointers: HashMap::new(),
             mouse_press_node: None,
+            focus_start: None,
             controls: HashMap::new(),
             scroll_buttons: scroll_button::ScrollButtons::default(),
             radio_associations: HashMap::new(),
@@ -1229,6 +1234,7 @@ impl Engine {
         let mut descendants = Vec::new();
         self.collect_subtree(node, &mut descendants);
         let former_parent = self.document.node(node).parent;
+        let former_next = self.document.node(node).next_sibling;
         self.document.detach(node);
         self.relocate_owned_scroll_buttons()?;
         let detached_handles: Vec<_> = descendants
@@ -1236,7 +1242,7 @@ impl Engine {
             .filter_map(|node| self.node_slots.get(node))
             .map(|index| self.handle_for_slot(*index))
             .collect();
-        self.clear_subtree_presentation_state(&detached_handles, former_parent);
+        self.clear_subtree_presentation_state(&detached_handles, former_parent, former_next);
         self.refresh_inherited_styles(node)?;
         self.remove_radio_subtree(node)?;
         self.restyle_for_selectors(SelectorChange::Children(former_parent))?;
@@ -1245,8 +1251,14 @@ impl Engine {
         Ok(())
     }
 
-    fn clear_subtree_presentation_state(&mut self, handles: &[NodeHandle], former_parent: NodeId) {
+    fn clear_subtree_presentation_state(
+        &mut self,
+        handles: &[NodeHandle],
+        former_parent: NodeId,
+        former_next: NodeId,
+    ) {
         self.cancel_animations_for_handles(handles);
+        self.note_focus_start_removal(handles, former_parent, former_next);
         // Blink's `HandleRemoveSubtree` moves the press node to the
         // removed subtree's parent, which stays connected.
         if self
@@ -1313,13 +1325,14 @@ impl Engine {
         let mut descendants = Vec::new();
         self.collect_subtree(node, &mut descendants);
         let former_parent = self.document.node(node).parent;
+        let former_next = self.document.node(node).next_sibling;
         self.document.detach(node);
         let removed_handles: Vec<_> = descendants
             .iter()
             .filter_map(|node| self.node_slots.get(node))
             .map(|index| self.handle_for_slot(*index))
             .collect();
-        self.clear_subtree_presentation_state(&removed_handles, former_parent);
+        self.clear_subtree_presentation_state(&removed_handles, former_parent, former_next);
         self.forget_scroll_button_handles(&removed_handles);
         self.remove_radio_subtree(node)?;
         for node in &descendants {
