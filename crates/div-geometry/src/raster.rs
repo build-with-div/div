@@ -130,6 +130,26 @@ impl RasterConfiguration {
         }
     }
 
+    /// Windows Chromium's text raster with ClearType on, RGB order and no
+    /// per-display ClearType tuning: LCD text everywhere, Skia's sRGB gamma
+    /// curve and contrast 1.0, Chromium's Windows build defaults (RFC 0012).
+    ///
+    /// Selecting this configuration never reads system settings. The backend
+    /// is the software Skia one, as in the measurement that found it exact.
+    pub const fn chromium_windows_lcd() -> Self {
+        let lcd = TextRasterConfiguration::chromium_lcd();
+        Self {
+            backend: RasterBackend::Skia,
+            author_text: lcd,
+            native_text: lcd,
+            embedded_text: lcd,
+            pixel_geometry: RasterPixelGeometry::RgbHorizontal,
+            // 0 selects Skia's sRGB transfer curve (`SK_GAMMA_SRGB`).
+            gamma_milli: 0,
+            contrast_milli: 1000,
+        }
+    }
+
     /// Chromium-aligned Linux text policy replayed through Ganesh OpenGL.
     ///
     /// Selecting this configuration never probes the environment. Callers
@@ -309,6 +329,28 @@ mod tests {
         assert_eq!(lcd.author_text.edging, TextEdging::SubpixelAntiAlias);
         assert_eq!(lcd.author_text.hinting, TextHinting::Slight);
         assert_eq!(lcd.native_text.hinting, TextHinting::Slight);
+    }
+
+    #[test]
+    fn windows_lcd_profile_matches_chromium_windows_defaults() {
+        let configuration = RasterConfiguration::chromium_windows_lcd();
+        assert_eq!(configuration.backend, RasterBackend::Skia);
+        for text in [
+            configuration.author_text,
+            configuration.native_text,
+            configuration.embedded_text,
+        ] {
+            assert_eq!(text, TextRasterConfiguration::chromium_lcd());
+        }
+        assert_eq!(
+            configuration.pixel_geometry,
+            RasterPixelGeometry::RgbHorizontal
+        );
+        assert_eq!(configuration.gamma(), 0.0);
+        assert_eq!(configuration.contrast(), 1.0);
+        // The app default stays grayscale until the framework adopts the
+        // system configuration (RFC 0012).
+        assert_ne!(RasterConfiguration::default(), configuration);
     }
 
     #[test]

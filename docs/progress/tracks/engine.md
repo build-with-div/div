@@ -205,3 +205,10 @@ on branch `components/c4-assets` and the shared findings note.
   1.25x, all closer to Chromium, with exact counts unchanged; CSS Grid
   coverage is unchanged at all four profiles.
   [Record](../font-size-precision-t4-2026-11-17.md).
+- 18 November 2026: `RasterConfiguration::chromium_windows_lcd()`, the
+  text raster Windows Chromium 147 uses with ClearType on, RGB order and no
+  ClearType tuning, and an oracle pin in `windows_chrome.py` that refuses
+  to capture under any other Windows text settings (RFC 0012, engine
+  part). No default changes, so the census and CSS Grid coverage cannot
+  change.
+  [Record](../windows-lcd-preset-rfc0012-2026-11-18.md).
