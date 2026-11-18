@@ -62,34 +62,28 @@ linux 2x xf/rotate-30 707 208
 linux 2x xf/rotate-tick 823 168
 linux 2x xf/skew 886 200
 
-# T4, engine (div-text font size handling): these positions differ already
-# (svg-text-v1/known-gaps.txt), so the glyphs do too. Re-measure once T4 lands.
-linux 1x xf/scale-nonuniform 608 144
-linux 1x xf/viewbox-none 608 144
-linux 2x xf/scale-nonuniform 1710 255
-linux 2x xf/viewbox-none 1710 255
+# Engine (div-text), after T4: the positions are exact, but the glyphs under a non-uniform
+# scale still differ. The cause is not measured yet; the engine lane measures it with T5 and T6.
+linux 1x xf/scale-nonuniform 578 144
+linux 1x xf/viewbox-none 578 144
+linux 2x xf/scale-nonuniform 1526 255
+linux 2x xf/viewbox-none 1526 255
 
 # Windows: 0 of 290 captures exact.
 
-# T3 and T4, engine (div-text): these positions differ already (svg-text-v1/known-gaps.txt);
-# the Windows text raster below applies as well.
+# T3, engine (div-text): these positions differ already (svg-text-v1/known-gaps.txt); the
+# Windows text raster below applies as well.
 windows 1x list/dx-em 350 56
 windows 1x spacing/letter-em 662 16
 windows 1x tspan/fill-only 560 16
 windows 1x tspan/font-size 658 16
 windows 1x tspan/font-weight 574 16
-windows 1x xf/scale-nonuniform 539 32
-windows 1x xf/skew 402 24
-windows 1x xf/viewbox-none 539 32
 windows 2x run/geist-size-12.5 731 16
 windows 2x spacing/letter-em 1444 16
-windows 2x xf/scale-nonuniform 1154 96
-windows 2x xf/skew 861 24
-windows 2x xf/viewbox-none 1154 96
 
 # Windows text raster, fidelity lane (font edging and DirectWrite glyph masks): Chromium and Div
 # both paint these web-font glyphs with LCD masks. In the cases inspected (run/geist-16-400 and
-# others) the ink, bounds and placement match; 269 of these 277 differ by at most 16 per
+# others) the ink, bounds and placement match; 275 of these 283 differ by at most 16 per
 # channel, a tone difference. Grayscale masks (glyphs above 48 px) differ by up to 9, and stroked
 # glyphs at 1x by up to 67; the same strokes are exact on Linux.
 windows 1x anchor/end 278 16
@@ -225,10 +219,13 @@ windows 1x xf/scale-0.5 136 16
 windows 1x xf/scale-1.25 538 16
 windows 1x xf/scale-1.37 567 16
 windows 1x xf/scale-2 851 16
+windows 1x xf/scale-nonuniform 539 16
+windows 1x xf/skew 402 16
 windows 1x xf/text-transform 616 16
 windows 1x xf/translate-fraction 387 16
 windows 1x xf/viewbox-1.25 538 16
 windows 1x xf/viewbox-2 851 16
+windows 1x xf/viewbox-none 539 16
 windows 2x anchor/end 611 16
 windows 2x anchor/end-chunks 1019 16
 windows 2x anchor/end-rotate 774 16
@@ -365,7 +362,10 @@ windows 2x xf/scale-0.5 398 16
 windows 2x xf/scale-1.25 1111 16
 windows 2x xf/scale-1.37 1148 16
 windows 2x xf/scale-2 1975 9
+windows 2x xf/scale-nonuniform 1066 16
+windows 2x xf/skew 857 16
 windows 2x xf/text-transform 1251 16
 windows 2x xf/translate-fraction 864 16
 windows 2x xf/viewbox-1.25 1111 16
 windows 2x xf/viewbox-2 1975 9
+windows 2x xf/viewbox-none 1066 16

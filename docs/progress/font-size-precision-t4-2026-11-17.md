@@ -31,6 +31,7 @@ All measurements are on Windows Chrome-for-Testing 147.0.7727.50. Each case lays
 | --- | --- | --- |
 | Chromium oracle | `tools/qualification/capture_font_size_precision_oracle.py` on Windows with pinned Chrome 147.0.7727.50, written to `tests/fidelity/fixtures/font-size-precision-v1/chromium-windows.json` | 78 runs, 4,514 cases, for DejaVu Sans and Geist as web fonts. Page runs at 1x: the 2,001 two-decimal sizes, thousandths around 13.33, 16.00 and 25.29, and `size-adjust` 150% and 110% and `font-size-adjust` 0.6. Each size alone at 1.5x and 2x. Eight size pairs in both orders on one page at 1.5x and 2x |
 | Oracle test | `cargo test --locked -p div-engine --test font_size_precision` (Windows) | Div gives two sizes one font exactly when Chromium does in all 4,008,046 pairs, apart from 25 named gaps (below) |
+| SVG text corpus | `cargo test --locked -p div-svg --test text_corpus` on Windows and on Linux (WSL), at `main` `de980254` | The 10 `xf/*` gaps that `tests/fidelity/fixtures/svg-text-v1/known-gaps.txt` listed under T4 are exact, so this PR removes them. All 24,056 Linux numbers are now exact; on Windows only the 7 T3 cases still differ. In `pixel-gaps.txt` (on `main` `de980254`, after #85), the 6 Windows `xf/*` captures now differ only in raster tone (at most 16 per channel) and move to the Windows text raster block; the 4 Linux captures under a non-uniform scale (`xf/scale-nonuniform`, `xf/viewbox-none`) drop from 608 to 578 differing pixels at 1x and from 1,710 to 1,526 at 2x, and stay listed as an engine gap whose cause is not yet measured (T5/T6). Linux was run with CI's Skia flags |
 | Unit tests | `font_cache_size_truncates_device_pixels_to_hundredths_in_f32`, `font_cache_key_size_truncates_twice`, `sizes_with_one_font_cache_key_share_a_font` | Pass |
 | Touched crates | `cargo test --locked -j 4 -p div-text -p div-layout -p div-paint -p div-engine --no-fail-fast` (Windows) | 8,883 passed, 0 failed |
 | Generators and ledgers | `check_platform_scoped_tests.py`, the renderer, v0.2, property, FFI and WPT closure generators with `--check`, `cargo fmt --all --check`, `fidelity_data.py verify --profile all` | All pass |
@@ -47,7 +48,7 @@ All five rows paint scroll-button or `input` text, whose default size is 13.333 
 | `wpt/css_position/position-absolute-semi-replaced-stretch-input` | 77,428 | 77,424 |
 | `wpt/css_position/position-absolute-semi-replaced-stretch-input-ref` | 77,428 | 77,424 |
 
-The census measured `77529df1` on `main` at `85fa7380`. This PR is rebased onto a later `main`, which no measured commit includes. Its T4 commit is otherwise the measured one. The evidence is in div-fidelity-data `24125445`. `fidelity-data.lock` on `main` already pins `f70a3744` (0.1 PR 3a), which contains it, so this PR does not change the lock.
+The census measured `77529df1` on `main` at `85fa7380`. This PR is rebased onto a later `main` (`de980254`), which no measured commit includes. Its T4 commit is otherwise the measured one. The evidence is in div-fidelity-data `24125445`. `fidelity-data.lock` on `main` already pins `f70a3744` (0.1 PR 3a), which contains it, so this PR does not change the lock.
 
 ## Named gaps
 
