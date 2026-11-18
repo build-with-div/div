@@ -74,7 +74,7 @@ uses.)
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
 | 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | Merged (#75) |
 | I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | Merged (#86) |
-| I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`, RFC 0007 section 8) | In review |
+| I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`, RFC 0007 section 8) | Merged (#89) |
 
 ## After Tier 0
 
@@ -94,6 +94,68 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 18 November 2026: the native root's scrollbar gutters count once (#57 review notes)
+
+Problem (non-blocking notes 1 and 2 of the engine review on #57):
+
+1. `Engine::resize_observation` clamps the native root's border box to the
+   root scroll area's client rect, which leaves the viewport's scrollbars
+   out. It then still subtracted the root fragment's `element_scrollbars`
+   gutters. Layout gives the native root none today, but if it ever did
+   (for example from `scrollbar-gutter` on the root), the scrollbars would
+   be subtracted twice.
+2. No test covered a browser-shaped document's `<html>`.
+
+Change (`crates/div-engine/src/resize_observation.rs`, sent to the engine
+track for review): for the native root (the root of a document with no
+`<html>`), the gutters are zero after the clamp. Every other element keeps
+its gutters.
+
+Tests:
+
+- `the_native_root_counts_its_scrollbar_gutters_once` gives the retained
+  root fragment of an `overflow: scroll` root a 15px right and bottom
+  gutter, then measures it. Before the change the content box is 278 ×
+  198; after it, 293 × 213, the client rect less border and padding, as
+  without the gutter.
+- `a_browser_shaped_html_matches_chromium_at_1x` builds the oracle's page
+  as root, `<html>`, `<body>` and the child, and checks every 1x case of
+  `tests/fidelity/fixtures/resize-observer-root-v1/chromium-windows.json`.
+  All three match pinned Windows Chromium 147 exactly, inline and block:
+  border box 200 × 32, 185 × 32 and 185 × 512. So the gap `root-block-size`
+  belongs to the native root alone. This test covers behavior that
+  already held and passes before and after the change.
+
+Gap found while probing, not changed: `root-scrollbar-gutter-unmeasured`
+(engine). With `scrollbar-gutter: stable` (or `stable both-edges`) and
+`overflow: hidden` or `auto`, the native root reserves no viewport gutter
+(client 320 × 240 at a 320 × 240 viewport). Whether Chromium reserves one
+for `<html>` there has not been captured.
+
+Verification (this branch on main `c65b1245`):
+
+- Linux (WSL): `cargo test --locked -p div-engine --lib resize_observation`
+  passes 9 tests. With the change reverted,
+  `the_native_root_counts_its_scrollbar_gutters_once` fails (278 × 198
+  against 293 × 213).
+- Linux (WSL): `cargo test --locked --no-fail-fast -p div-engine` passes
+  64 of 65 suites (529 tests). The failure is
+  `original_edge_and_all_eight_controls_keep_real_property_boundaries`
+  (`tests/source_layer_raster.rs`): at 1.25x one pixel is 163 where
+  Chromium is 160. It fails the same way in this WSL checkout with
+  `resize_observation.rs` at main `c65b1245`, so it predates this change.
+  The Linux CI job passed this suite on #89.
+- Linux (WSL): `cargo test --locked -p divui --features "linux testing"
+  --test resize_observer` passes 11 tests, the native root's oracle test
+  included.
+- `python tools/qualification/generate_renderer_contract.py --check` and
+  `cargo fmt --all --check` pass.
+- No layout, paint or style code changed (decision D4).
+
+Engine review: the engine track approved 2f2b4f4 on 18 November 2026 with
+no changes. It takes `root-scrollbar-gutter-unmeasured` as an engine
+filler, to measure Chromium before acting.
 
 ### 17 November 2026: focusable scrollers and the focus starting point (Tier 0 item I2b)
 
