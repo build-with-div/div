@@ -73,7 +73,7 @@ uses.)
 | 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Merged (#68) |
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
 | 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | Merged (#75) |
-| I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | In review |
+| I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | Merged (#86) |
 | I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`, RFC 0007 section 8) | In review |
 
 ## After Tier 0
@@ -181,8 +181,7 @@ Gaps:
 - `scrollbar-press-transformed` (engine, unmeasured): the scrollbar test
   ignores transforms.
 
-Verification (Windows, MSVC, this branch on `framework/keyboard-scroll`
-`b0c443c7`):
+Verification (Windows, MSVC, this branch rebased on main `4815e9da`):
 
 - `cargo test --locked -p divui --features "windows testing" --test
   focus_navigation_oracle` passes: every step of the 18 scenarios matches.
@@ -197,7 +196,7 @@ Verification (Windows, MSVC, this branch on `framework/keyboard-scroll`
   press, a removal and a blur.
 - `cargo test --locked --no-fail-fast -p div-engine` passes (66 suites, 534
   tests, 3 ignored).
-- The full framework test set passes (63 suites, 657 tests, including
+- The full framework test set passes (65 suites, 666 tests, including
   `div-components`), as do the example builds and the `divui` doc tests.
   No existing test relied on the old press focus.
 - Linux (WSL, X11 features): `cargo test --locked -p divui --features
@@ -218,7 +217,8 @@ overflow not to count, as Blink's pixel-snapped sizes would suggest; the
 oracle's new `fractionDown` scroller (60.4px of content in 60px) shows
 Chromium makes it focusable, so Div compares the unsnapped rectangles. The
 engine track approved that change, 5fd659b, on 17 November 2026 (read, not
-built).
+built). Rebased on main `4815e9da`, the two engine commits are `724d181`
+and `88274be`, unchanged.
 
 ### 17 November 2026: keyboard scrolling and `keypress` (Tier 0 item I2a)
 
