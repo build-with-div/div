@@ -4,6 +4,7 @@
 //! Contains glyph runs with IDs, positions, and per-character metadata
 //! for cursor placement, hit testing, and line breaking.
 
+use std::ops::Range;
 use std::sync::Arc;
 
 use skia_safe::{
@@ -48,6 +49,170 @@ fn chromium_lcd_raster_x(device_x: f32, font_size: f32) -> f32 {
     } else {
         device_x
     }
+}
+
+/// The font a run's strike is built from: the resolved font itself, or an
+/// adjusted copy (compatible outlines, or the physical size).
+enum RasterFont<'a> {
+    Resolved(&'a skia_safe::Font),
+    Adjusted(skia_safe::Font),
+}
+
+impl RasterFont<'_> {
+    fn font(&self) -> &skia_safe::Font {
+        match self {
+            Self::Resolved(font) => font,
+            Self::Adjusted(font) => font,
+        }
+    }
+}
+
+/// A run's effective raster policy and the font its strike is built from,
+/// shared by every blob builder so that a run rasterizes the same way
+/// whoever positions its glyphs. `device_scale` is finite and positive.
+fn run_raster(
+    run: &ShapeResultRun,
+    raster_policy: TextRasterPolicy,
+    device_scale: f32,
+) -> (TextRasterPolicy, RasterFont<'_>) {
+    let source_font = run.font_data.sk_font();
+    // Author text follows the resolved face's raster parameters. A
+    // registered alias and a fallback run must not inherit another
+    // face's edging from the authored family list or enclosing blob.
+    let raster_policy = match raster_policy {
+        TextRasterPolicy::ChromiumAuthorLcd | TextRasterPolicy::ChromiumAuthorAliased => {
+            match source_font.edging() {
+                Edging::Alias => TextRasterPolicy::ChromiumAuthorAliased,
+                Edging::SubpixelAntiAlias => TextRasterPolicy::ChromiumAuthorLcd,
+                Edging::AntiAlias => TextRasterPolicy::Skia,
+            }
+        }
+        policy => policy,
+    };
+    // Linux Chromium instantiates a web font with Fontations, whose
+    // outlines and hinting `web_font_outlines` reproduces; system
+    // faces, and the test collection standing in for them, keep the
+    // resolved FreeType font. Monochrome strikes keep the policies
+    // above.
+    let web_font = raster_policy == TextRasterPolicy::Skia
+        && crate::font::GlyphRasterizer::platform()
+            == crate::font::GlyphRasterizer::FreeTypeOrFontations
+        && source_font.edging() != Edging::Alias
+        && run
+            .font_data
+            .source_info()
+            .application_face()
+            .is_some_and(|face| face.is_web_font());
+    let scaled = (device_scale - 1.0).abs() > f32::EPSILON;
+    let aliased = matches!(
+        raster_policy,
+        TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
+    );
+    // Chromium asks FreeType/fontations for the device-size aliased
+    // strike. Building the compatible outline at the CSS size and
+    // scaling its already grid-fitted path widened every rotated Ahem
+    // glyph by another device pixel (and two pixels at 1.5x/2x).
+    // Hint at the physical size once and keep that custom outline at
+    // its unit font size; glyph positions are converted by the caller.
+    let physical_outline = (web_font || aliased) && scaled;
+    let physical_source_font;
+    let compatible_source_font = if physical_outline {
+        let mut font = source_font.clone();
+        font.set_size(source_font.size() * device_scale);
+        physical_source_font = font;
+        &physical_source_font
+    } else {
+        source_font
+    };
+    // Windows Chromium rasterizes these faces with DirectWrite, the
+    // scaler behind `source_font`; only Linux Chromium substitutes
+    // Fontations outlines.
+    let compatible_font = if web_font {
+        super::web_font_outlines::web_font(compatible_source_font, &run.glyphs)
+    } else {
+        (raster_policy != TextRasterPolicy::Skia
+            && crate::font::GlyphRasterizer::platform()
+                == crate::font::GlyphRasterizer::FreeTypeOrFontations)
+            .then(|| fontations_compatible_font(compatible_source_font, &run.glyphs, raster_policy))
+            .flatten()
+    };
+    let raster_font = match compatible_font {
+        // The compatible outline is already at the physical size.
+        Some(font) if physical_outline || !scaled => RasterFont::Adjusted(font),
+        Some(mut font) => {
+            let size = font.size();
+            font.set_size(size * device_scale);
+            RasterFont::Adjusted(font)
+        }
+        None if scaled => {
+            let mut font = source_font.clone();
+            font.set_size(source_font.size() * device_scale);
+            RasterFont::Adjusted(font)
+        }
+        // Keep the legacy unit-scale font object byte-for-byte unchanged.
+        // Calling set_size with its existing value still rebuilds Skia's
+        // strike descriptor and shifts aliased Ahem masks by one row in
+        // fragmented paint.
+        None => RasterFont::Resolved(source_font),
+    };
+    (raster_policy, raster_font)
+}
+
+/// The x handed to Skia for a glyph whose origin is `local_x` from the blob
+/// origin. Monochrome runs keep their local positions. LCD runs select a
+/// mask phase from the enclosing device origin.
+fn raster_x(
+    local_x: f32,
+    device_origin_x: Option<f32>,
+    raster_policy: TextRasterPolicy,
+    font_size: f32,
+) -> f32 {
+    if raster_policy == TextRasterPolicy::ChromiumAuthorAliased {
+        return local_x;
+    }
+    device_origin_x.map_or(local_x, |origin| {
+        let mut device_x = origin + local_x;
+        if matches!(
+            raster_policy,
+            TextRasterPolicy::ChromiumNativeControl | TextRasterPolicy::ChromiumAuthorLcd
+        ) {
+            // Blink hands native-control glyph origins to Skia in
+            // LayoutUnit coordinates. Preserve that 1/64-device-
+            // pixel boundary before Skia selects its LCD phase.
+            device_x = (device_x * 64.0).round() / 64.0;
+        }
+        chromium_lcd_raster_x(device_x, font_size) - origin
+    })
+}
+
+/// The glyphs of a run that cover the run-relative characters
+/// `[start, end)`, or `None` if the range splits a cluster.
+fn whole_cluster_glyphs(run: &ShapeResultRun, start: usize, end: usize) -> Option<Range<usize>> {
+    if run.clusters.is_empty() {
+        // Without cluster data only a one-to-one run can be split safely.
+        return (run.num_glyphs == run.num_characters).then_some(start..end);
+    }
+    let is_boundary =
+        |index: usize| index == 0 || index == run.num_characters || run.clusters.contains(&index);
+    if !is_boundary(start) || !is_boundary(end) {
+        return None;
+    }
+    let mut first = usize::MAX;
+    let mut last = 0;
+    let mut count = 0;
+    for (glyph, &cluster) in run.clusters.iter().enumerate() {
+        if (start..end).contains(&cluster) {
+            first = first.min(glyph);
+            last = last.max(glyph);
+            count += 1;
+        }
+    }
+    if count == 0 {
+        return Some(0..0);
+    }
+    // A range whose glyphs are not contiguous in run order cannot be one
+    // positioned run.
+    (last + 1 - first == count).then_some(first..last + 1)
 }
 
 pub(super) struct SkiaPathPen(pub(super) PathBuilder);
@@ -511,121 +676,16 @@ impl ShapeResult {
             if run.num_glyphs == 0 {
                 continue;
             }
-            let source_font = run.font_data.sk_font();
-            // Author text follows the resolved face's raster parameters. A
-            // registered alias and a fallback run must not inherit another
-            // face's edging from the authored family list or enclosing blob.
-            let raster_policy = match raster_policy {
-                TextRasterPolicy::ChromiumAuthorLcd | TextRasterPolicy::ChromiumAuthorAliased => {
-                    match source_font.edging() {
-                        Edging::Alias => TextRasterPolicy::ChromiumAuthorAliased,
-                        Edging::SubpixelAntiAlias => TextRasterPolicy::ChromiumAuthorLcd,
-                        Edging::AntiAlias => TextRasterPolicy::Skia,
-                    }
-                }
-                policy => policy,
-            };
-            // Linux Chromium instantiates a web font with Fontations, whose
-            // outlines and hinting `web_font_outlines` reproduces; system
-            // faces, and the test collection standing in for them, keep the
-            // resolved FreeType font. Monochrome strikes keep the policies
-            // above.
-            let web_font = raster_policy == TextRasterPolicy::Skia
-                && crate::font::GlyphRasterizer::platform()
-                    == crate::font::GlyphRasterizer::FreeTypeOrFontations
-                && source_font.edging() != Edging::Alias
-                && run
-                    .font_data
-                    .source_info()
-                    .application_face()
-                    .is_some_and(|face| face.is_web_font());
-            // Monochrome runs retain their local positions. Only LCD runs
-            // select a mask phase using the enclosing logical origin.
-            let device_origin_x = if raster_policy == TextRasterPolicy::ChromiumAuthorAliased {
-                None
-            } else {
-                device_origin_x
-            };
-            // Chromium asks FreeType/fontations for the device-size aliased
-            // strike. Building the compatible outline at the CSS size and
-            // scaling its already grid-fitted path widened every rotated Ahem
-            // glyph by another device pixel (and two pixels at 1.5x/2x).
-            // Hint at the physical size once and keep that custom outline at
-            // its unit font size; glyph positions are converted below.
-            let mut physical_source_font;
-            let compatible_source_font = if (web_font
-                || matches!(
-                    raster_policy,
-                    TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
-                ))
-                && (device_scale - 1.0).abs() > f32::EPSILON
-            {
-                physical_source_font = source_font.clone();
-                physical_source_font.set_size(source_font.size() * device_scale);
-                &physical_source_font
-            } else {
-                source_font
-            };
-            // Windows Chromium rasterizes these faces with DirectWrite, the
-            // scaler behind `source_font`; only Linux Chromium substitutes
-            // Fontations outlines.
-            let compatible_font = if web_font {
-                super::web_font_outlines::web_font(compatible_source_font, &run.glyphs)
-            } else {
-                (raster_policy != TextRasterPolicy::Skia
-                    && crate::font::GlyphRasterizer::platform()
-                        == crate::font::GlyphRasterizer::FreeTypeOrFontations)
-                    .then(|| {
-                        fontations_compatible_font(
-                            compatible_source_font,
-                            &run.glyphs,
-                            raster_policy,
-                        )
-                    })
-                    .flatten()
-            };
-            let sk_font = compatible_font.as_ref().unwrap_or(source_font);
-            let mut physical_font;
-            let compatible_outline_is_physical = compatible_font.is_some()
-                && (web_font
-                    || matches!(
-                        raster_policy,
-                        TextRasterPolicy::ChromiumAliased | TextRasterPolicy::ChromiumAuthorAliased
-                    ))
-                && (device_scale - 1.0).abs() > f32::EPSILON;
-            let raster_font =
-                if (device_scale - 1.0).abs() > f32::EPSILON && !compatible_outline_is_physical {
-                    physical_font = sk_font.clone();
-                    physical_font.set_size(sk_font.size() * device_scale);
-                    &physical_font
-                } else {
-                    // Keep the legacy unit-scale font object byte-for-byte
-                    // unchanged. Calling set_size with its existing value still
-                    // rebuilds Skia's strike descriptor and shifts aliased Ahem
-                    // masks by one row in fragmented paint.
-                    sk_font
-                };
+            let (raster_policy, raster_font) = run_raster(run, raster_policy, device_scale);
+            let font_size = run.font_data.sk_font().size();
             let (glyphs_out, positions_out) =
-                builder.alloc_run_pos(raster_font, run.num_glyphs, None);
+                builder.alloc_run_pos(raster_font.font(), run.num_glyphs, None);
             glyphs_out.copy_from_slice(&run.glyphs);
 
             let mut x = run_x;
             for i in 0..run.num_glyphs {
                 let local_x = x + run.offsets[i].0;
-                let raster_x = device_origin_x.map_or(local_x, |origin| {
-                    let mut device_x = origin + local_x;
-                    if matches!(
-                        raster_policy,
-                        TextRasterPolicy::ChromiumNativeControl
-                            | TextRasterPolicy::ChromiumAuthorLcd
-                    ) {
-                        // Blink hands native-control glyph origins to Skia in
-                        // LayoutUnit coordinates. Preserve that 1/64-device-
-                        // pixel boundary before Skia selects its LCD phase.
-                        device_x = (device_x * 64.0).round() / 64.0;
-                    }
-                    chromium_lcd_raster_x(device_x, source_font.size()) - origin
-                });
+                let raster_x = raster_x(local_x, device_origin_x, raster_policy, font_size);
                 positions_out[i] =
                     Point::new(raster_x * device_scale, run.offsets[i].1 * device_scale);
                 x += run.advances[i];
@@ -633,6 +693,80 @@ impl ShapeResult {
             run_x = x;
         }
 
+        builder.make()
+    }
+
+    /// Build a blob for the glyphs of `characters`, each at a position the
+    /// caller gives, for text that places its characters itself (SVG text's
+    /// `x`, `y`, `dx`, `dy` and anchoring).
+    ///
+    /// `characters` indexes this result's characters. `placements` holds one
+    /// glyph origin per glyph of the range, in run order, measured from the
+    /// blob origin in the units of the advances. It replaces the
+    /// advance-accumulated x and the glyph offset. Each run keeps the raster
+    /// font and policy [`Self::to_text_blob_with_raster_policy_at_scale`]
+    /// gives it, and positions scale by `device_scale` the same way, so
+    /// placements equal to the advances give the same blob. With
+    /// `device_scale` 1 the run's font is used as resolved, for a caller
+    /// that shaped at a scaled size and paints under the inverse scale.
+    ///
+    /// Returns `None` for an empty range, for a range that splits a cluster,
+    /// and when `placements` does not hold one entry per glyph of the range.
+    pub fn to_positioned_text_blob(
+        &self,
+        characters: Range<usize>,
+        placements: &[(f32, f32)],
+        raster_policy: TextRasterPolicy,
+        device_scale: f32,
+        device_origin_x: Option<f32>,
+    ) -> Option<TextBlob> {
+        let start = characters.start;
+        let end = characters.end.min(self.num_characters);
+        if start >= end {
+            return None;
+        }
+        let device_scale = if device_scale.is_finite() && device_scale > 0.0 {
+            device_scale
+        } else {
+            1.0
+        };
+
+        let mut pieces = Vec::new();
+        let mut glyph_count = 0;
+        for run in &self.runs {
+            let run_start = run.start_index;
+            let run_end = run_start + run.num_characters;
+            if run.num_glyphs == 0 || run_end <= start || run_start >= end {
+                continue;
+            }
+            let glyphs = whole_cluster_glyphs(
+                run,
+                start.max(run_start) - run_start,
+                end.min(run_end) - run_start,
+            )?;
+            if glyphs.is_empty() {
+                continue;
+            }
+            glyph_count += glyphs.len();
+            pieces.push((run, glyphs));
+        }
+        if glyph_count == 0 || glyph_count != placements.len() {
+            return None;
+        }
+
+        let mut builder = TextBlobBuilder::new();
+        let mut placements = placements.iter();
+        for (run, glyphs) in pieces {
+            let (raster_policy, raster_font) = run_raster(run, raster_policy, device_scale);
+            let font_size = run.font_data.sk_font().size();
+            let (glyphs_out, positions_out) =
+                builder.alloc_run_pos(raster_font.font(), glyphs.len(), None);
+            glyphs_out.copy_from_slice(&run.glyphs[glyphs]);
+            for (position, &(x, y)) in positions_out.iter_mut().zip(&mut placements) {
+                let raster_x = raster_x(x, device_origin_x, raster_policy, font_size);
+                *position = Point::new(raster_x * device_scale, y * device_scale);
+            }
+        }
         builder.make()
     }
 
