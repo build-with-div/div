@@ -21,14 +21,27 @@ image and passed on 20261103.298.1, whichever runner a job got.
 - `tools/ci/msvc_toolset.py verify` checks four things: the toolset exists,
   the pins agree, Skia gets the same version, and clang compiles against
   exactly that STL. The STL's compiler check is never relaxed.
-- Not covered: cli-template (windows-2025) compiles Skia from the generated
-  app's `.cargo/config.toml`, outside `skia_prebuilt.py`, so on the new
-  image it still meets STL1000.
+- cli-template (windows-2025) compiles Skia from the generated app's own
+  `.cargo/config.toml`, outside `skia_prebuilt.py`, and its check strips the
+  job's Skia variables on purpose. There, `msvc_toolset.py skia-vc` makes
+  rust-skia's first fallback VC directory
+  (`C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC`) hold only a
+  junction to the pinned toolset. Skia's GN reads only
+  `Tools/MSVC/<version>/{include,lib,bin}` there.
+  `verify --skia app` checks that Skia resolves that toolset. The job also
+  enables `core.longpaths`, as windows-msvc does, for rust-skia's dependency
+  checkouts ("Filename too long" in spirv-cross and harfbuzz test data).
+- `VCINSTALLDIR` is not used: it would make find-msvc-tools take `link.exe`
+  from `PATH`, where Git bash puts GNU `link.exe` first. Skia would also
+  still take the highest toolset under that directory.
+- No other workflow job runs on Windows: `release.yml`, `hardening.yml`,
+  `components.yml` and `site.yml` run on Linux only.
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Pin unit tests | `python -m unittest tools.test_skia_prebuilt` | 8 passed on Windows and in WSL |
+| Pin unit tests | `python -m unittest tools.test_skia_prebuilt tools.ci.test_msvc_toolset` | 11 passed on Windows and in WSL |
 | Toolset check, local | `msvc_toolset.py verify` with Build Tools 14.44.35207, clang 23.1.3 | passes; a mismatched `VCToolsVersion` or a missing toolset fails |
+| App-build check, local | `msvc_toolset.py verify --skia app`, the same toolset | passes with vcvars' `VCINSTALLDIR`; fails without it, where rust-skia resolves no VC directory and Skia would search for one itself |
 | On the runner image | windows-msvc on the pull request | the CI run of this change |
 
 ## alpha.1 definition 16 November 2026

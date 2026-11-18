@@ -241,6 +241,7 @@ jobs:
             tools.qualification.test_scrollbar_probe_tools \
             tools.style.test_generate_properties \
             tools.test_skia_prebuilt \
+            tools.ci.test_msvc_toolset \
             tools.release.test_v02_packaging \
             tools.release.test_windows_sdk \
             tools.release.test_dependency_security
@@ -449,7 +450,8 @@ jobs:
             tools.qualification.test_scrollbar_probe_tools \
             tools.style.test_generate_properties \
             tools.test_skia_prebuilt \
-            tools.ci.test_check_platform_scoped_tests
+            tools.ci.test_check_platform_scoped_tests \
+            tools.ci.test_msvc_toolset
 
       - name: Verify immutable closure ledgers
         run: |
@@ -494,6 +496,10 @@ jobs:
     env:
       PYTHONUTF8: "1"
     steps:
+      - name: Enable long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+
       - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
@@ -512,6 +518,18 @@ jobs:
         run: |
           python -m pip install ninja==1.13.0
           echo 'LIBCLANG_PATH=C:\Program Files\LLVM\bin' >> "$GITHUB_ENV"
+          # The MSVC toolset windows-msvc pins (see its env). The apps take
+          # Skia's options from their own config, so Skia gets the toolset
+          # through a VC directory that holds only it (msvc_toolset.py skia-vc).
+          echo 'VCToolsVersion=14.44.35207' >> "$GITHUB_ENV"
+          echo 'VCToolsInstallDir=C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.44.35207\' >> "$GITHUB_ENV"
+
+      - name: Pin the MSVC toolset for every compiler, Skia included
+        if: runner.os == 'Windows'
+        run: |
+          python tools/ci/msvc_toolset.py list
+          python tools/ci/msvc_toolset.py skia-vc
+          python tools/ci/msvc_toolset.py verify --skia app
 
       - name: Install Rust
         run: |
