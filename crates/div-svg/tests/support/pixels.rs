@@ -22,7 +22,7 @@ use std::sync::Arc;
 /// The page's `color`, which `currentColor` resolves to.
 pub const INK: &str = "#09090b";
 /// The inherited paint properties the corpora set.
-pub const PROPERTIES: [&str; 14] = [
+pub const PROPERTIES: [&str; 15] = [
     "color",
     "fill",
     "fill-opacity",
@@ -37,6 +37,7 @@ pub const PROPERTIES: [&str; 14] = [
     "stroke-dashoffset",
     "paint-order",
     "shape-rendering",
+    "visibility",
 ];
 
 /// Inherited properties: presentation attributes, then the `style`

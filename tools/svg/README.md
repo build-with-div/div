@@ -8,7 +8,7 @@ Tools for the inline SVG work in RFC 0009
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
 | `text_corpus.py` | Black-box text oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium (`capture`), and screenshots of the same cases plus paint cases (`pixels`), at scale 1 and at real-zoom scale 2 |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in four sets (`--set v1` to `--set v4`) |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in five sets (`--set v1` to `--set v5`) |
 
 ## Geometry corpus
 
@@ -185,8 +185,24 @@ Ids are prefixed as in `v3`.
 | `pat/` | 28 | `pattern` tiles in both units (offsets, fractions), `objectBoundingBox` content, `viewBox` (`slice`, `meet`), `patternTransform`, overflow (fractional too), strokes, `fill-opacity`, circles, transformed shapes, stroked and gradient content, nested patterns, `href` (own content too), zero width (with a fallback), no content, a self reference, inherited style, a checkerboard |
 | `chart/` | 4 | Recharts-shaped area and bars with gradient fills, a pie sector with a radial gradient, hatched bars |
 
+Set `v5` (`--set v5`, fixtures in `tests/fidelity/fixtures/svg-paint-v5/`)
+covers `mask` (V3c), with 58 cases, each at scale 1 and at scale 2. Most
+mask the same content as `v3`. Ids are prefixed as in `v3`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `lum/` | 14 | luminance coverage: white, grey, black, red, green and blue, mixed colours, `fill-opacity` and `opacity` on the mask's child, a circle, a star, a stroke, overlapping children, a cut-out |
+| `type/` | 4 | `mask-type="alpha"` (half-transparent too, and in `style`), explicit `luminance` |
+| `region/` | 9 | the initial region against a wide stroke, `objectBoundingBox` fractions and percentages, `userSpaceOnUse` lengths at fractional positions, percentages and the initial values, zero and negative sizes, a rotated target |
+| `units/` | 4 | `maskContentUnits="objectBoundingBox"` on a group, with a circle, with a child `transform`; both units in user space |
+| `grad/` | 5 | a linear fade (horizontal, vertical), a radial spot, an alpha mask from `stop-opacity`, a striped pattern |
+| `target/` | 5 | a mask on a rect, a circle, a stroked rect, a transformed group, a root at a fractional page offset |
+| `nest/` | 5 | a mask on the mask's child, a `clip-path` on the mask's child, `clip-path` and `mask` on one element, `opacity` with a mask, nested masked groups |
+| `edge/` | 10 | a missing reference, a reference to a non-`mask`, an empty mask, hidden and `display: none` children, a self reference, `mask` in `style`, `crispEdges` and hairline children, a line target (an empty bounding box) in both units |
+| `chart/`, `icon/` | 2 | an area faded by a gradient mask, an avatar with a badge cut-out |
+
 **Evidence** is one capture per OS and set in
-`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v4/`.
+`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v5/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
@@ -224,7 +240,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL (and again with --set v2 to --set v4 into svg-paint-v2/ to svg-paint-v4/)
+# Linux, in WSL (and again with --set v2 to --set v5 into svg-paint-v2/ to svg-paint-v5/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -305,6 +321,30 @@ test's harness resolves references and records pattern content:
 - Channel values are converted as Blink converts them, `r / 255` in
   single precision. Multiplying by `1 / 255` changes the dithered pixels.
 
+All 116 `v5` captures are exact on both OSes, and
+`svg-paint-v5/known-gaps.txt` is empty. The mask painter is in
+`src/mask.rs`; the test's harness resolves `mask` references and records
+the mask's content. The mask corpus settled these points:
+
+- The mask layer follows `PaintSVGMaskLayer` (BSD
+  `svg_mask_painter.cc`): it is clipped to the mask region without
+  anti-aliasing (with anti-aliasing every `region/` case differs, by up to
+  162 levels), the content is drawn under the content transform, and a
+  luminance mask goes through Skia's luma colour filter. It is composited
+  onto the masked content with `DstIn`.
+- The region and both units are clean-room from SVG 2 and CSS Masking
+  (Blink's masker is LGPL): `x`, `y`, `width` and `height` in
+  `maskUnits`, initially `objectBoundingBox` -10%, -10%, 120% and 120%; a
+  region of zero or negative size, or an `objectBoundingBox` region on an
+  empty bounding box, masks the element out.
+- A reference that resolves to nothing, to an element that is not a
+  `mask`, or back to a mask being resolved leaves the element unmasked
+  (`HasSingleInvalidSVGMaskLayer`, BSD `css_mask_painter.cc`, and
+  `edge/self`).
+- The mask clip, the mask region united with the element's visual rect
+  (`ResourceBoundsForSVGChild`), is ported but changes no capture in this
+  corpus.
+
 The corpus settled these points:
 
 - A square-cornered `rect` is drawn with `drawRect`, and a `circle` or
@@ -351,7 +391,7 @@ The corpus settled these points:
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
 - The untiled path (layers of 512 px or less) for SVG content: the
   corpus pages are tiled.
-- Markers (a later clean-room PR), masks, text,
+- Markers (a later clean-room PR), text,
   element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
 - For clipping: `text` and `use` children of a `clipPath`, `clip-path:
@@ -363,6 +403,10 @@ The corpus settled these points:
   they fall back for now. `userSpaceOnUse` servers on text use the text
   painter's shader transform. Also `context-fill` and `context-stroke`,
   `meshgradient` and `hatch`, and colour interpolation other than sRGB.
+- For masks: `text` and `use` children of a `mask`, `mask` on HTML
+  elements and CSS `mask-image` with images or several layers (engine
+  work after E1), `mask-mode`, `foreignObject` zoom, and
+  `color-interpolation` on the mask.
 
 ## Text corpus (V2a positions)
 

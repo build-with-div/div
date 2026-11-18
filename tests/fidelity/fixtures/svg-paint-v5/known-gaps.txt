@@ -1,0 +1,4 @@
+# Paint corpus v5 (masks) gaps, one per line: [<os>] <scale>x <case> <differing pixels>
+# <largest channel difference>, each under a comment giving its cause and owner. A leading `linux` or
+# `windows` limits a line to that OS. crates/div-svg/tests/paint_corpus.rs fails on an unlisted
+# difference, on a listed one whose numbers change, and on a listed case that is now exact.

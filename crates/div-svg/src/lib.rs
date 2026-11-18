@@ -22,6 +22,11 @@
 //! pattern code and written from SVG 2 for the rest, checked by the same
 //! test (`tests/fidelity/fixtures/svg-paint-v4`).
 //!
+//! [`mask`] masks content with a resolved `mask` (V3c), ported from
+//! Blink's BSD SVG and CSS mask painters and written from SVG 2 and CSS
+//! Masking for the rest, checked by the same test
+//! (`tests/fidelity/fixtures/svg-paint-v5`).
+//!
 //! [`text`] lays out `<text>` and `<tspan>`, answers the SVG text DOM
 //! queries (character positions, extents, rotations and the computed text
 //! length) and paints the glyphs. It ports Blink's BSD SVG text layout
@@ -40,6 +45,7 @@ mod arc;
 pub mod clip;
 pub mod geometry;
 pub mod length;
+pub mod mask;
 mod number;
 pub mod paint;
 pub mod paint_server;

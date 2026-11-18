@@ -279,7 +279,7 @@ impl GradientAttributes {
 /// What lengths resolve against in `units`: the referencing element's
 /// context, or the unit square for `objectBoundingBox`, where a
 /// percentage is a fraction.
-fn units_context(units: Units, context: &LengthContext) -> LengthContext {
+pub(crate) fn units_context(units: Units, context: &LengthContext) -> LengthContext {
     match units {
         Units::UserSpaceOnUse => *context,
         Units::ObjectBoundingBox => LengthContext {
