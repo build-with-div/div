@@ -7,6 +7,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools import skia_prebuilt
 
@@ -33,6 +34,17 @@ class SkiaPrebuiltTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
+
+    def test_archives_live_in_the_census_locks_shared_out(self) -> None:
+        # The same rule as the census lock, so every clone finds one store.
+        with mock.patch.dict(os.environ, {"DIV_SHARED_OUT": str(self.root / "shared")}):
+            self.assertEqual(skia_prebuilt.main_checkout_out(), self.root / "shared")
+        with mock.patch.dict(os.environ):
+            os.environ.pop("DIV_SHARED_OUT", None)
+            self.assertEqual(
+                skia_prebuilt.main_checkout_out(),
+                skia_prebuilt.shared_out(skia_prebuilt.REPO),
+            )
 
     def test_target_dir_follows_cargo(self) -> None:
         env = {"CARGO_TARGET_DIR": "from-env"}

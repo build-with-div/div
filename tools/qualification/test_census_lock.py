@@ -73,6 +73,50 @@ class CensusLockTests(unittest.TestCase):
         self.assertEqual(census_lock.main_checkout(tree / "tools").resolve(), main.resolve())
         self.assertEqual(census_lock.main_checkout(main).resolve(), main.resolve())
 
+    def make_worktree(self, main: Path, name: str, at: Path) -> Path:
+        (main / ".git" / "worktrees" / name).mkdir(parents=True)
+        (at / "tools").mkdir(parents=True)
+        (at / ".git").write_text(
+            f"gitdir: {(main / '.git' / 'worktrees' / name).as_posix()}\n", encoding="utf-8"
+        )
+        return at
+
+    def test_a_clone_under_a_checkouts_out_shares_the_outer_out(self) -> None:
+        # E:\open-ui (checkout), E:\open-ui\out\div-fidelity (clone) and a
+        # worktree of the clone kept under the outer checkout's worktrees.
+        outer = Path(self.temporary.name) / "open-ui"
+        (outer / ".git").mkdir(parents=True)
+        clone = outer / "out" / "div-fidelity"
+        (clone / ".git").mkdir(parents=True)
+        (clone / "tools").mkdir()
+        tree = self.make_worktree(
+            clone, "track", outer / ".claude" / "worktrees" / "setup" / "out" / "div-track"
+        )
+        own = outer / ".claude" / "worktrees" / "setup"
+        self.make_worktree(outer, "setup", own)
+        for start in (outer, clone / "tools", tree / "tools", own / "tools"):
+            with self.subTest(start=start):
+                self.assertEqual(
+                    census_lock.shared_out(start, environ={}).resolve(), (outer / "out").resolve()
+                )
+
+    def test_a_standalone_checkout_uses_its_own_out(self) -> None:
+        main = Path(self.temporary.name) / "main"
+        (main / ".git").mkdir(parents=True)
+        tree = self.make_worktree(main, "track", main / ".claude" / "worktrees" / "track")
+        self.assertEqual(
+            census_lock.shared_out(tree / "tools", environ={}).resolve(), (main / "out").resolve()
+        )
+
+    def test_the_environment_names_the_shared_out(self) -> None:
+        main = Path(self.temporary.name) / "main"
+        (main / ".git").mkdir(parents=True)
+        shared = Path(self.temporary.name) / "shared"
+        self.assertEqual(
+            census_lock.shared_out(main, environ={census_lock.SHARED_OUT_ENV: str(shared)}),
+            shared,
+        )
+
     def test_windows_gitdir_maps_to_wsl_mount(self) -> None:
         path = census_lock.native_path("E:/open-ui/.git/worktrees/track")
         if census_lock.os.name == "nt":

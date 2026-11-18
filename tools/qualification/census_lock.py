@@ -3,8 +3,10 @@
 
 A full census takes about 75 minutes, 16 jobs and half the host's memory, so
 two at once slow both and can exhaust WSL. Every worktree, from Windows or
-WSL, shares one lock file in the main checkout's ``out/`` directory
-(``E:\\open-ui\\out\\census.lock`` is ``/mnt/e/open-ui/out/census.lock``).
+WSL, shares one lock file in the machine's shared ``out/`` directory
+(``E:\\open-ui\\out\\census.lock`` is ``/mnt/e/open-ui/out/census.lock``):
+``DIV_SHARED_OUT`` if set, else ``out/`` of the outermost main checkout, so a
+clone kept under ``E:\\open-ui\\out\\`` and its worktrees share it too.
 The lock is an exclusively created file, which both operating systems see;
 OS file locks do not cross the WSL boundary.
 
@@ -38,6 +40,7 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Mapping
 from pathlib import Path
 
 POLL_SECONDS = float(os.environ.get("CENSUS_LOCK_POLL_SECONDS", "30"))
@@ -68,8 +71,36 @@ def main_checkout(start: Path) -> Path:
     raise SystemExit(f"census_lock: {start} is not inside a git checkout")
 
 
+SHARED_OUT_ENV = "DIV_SHARED_OUT"
+
+
+def enclosing_checkout(root: Path) -> Path | None:
+    """Return the main checkout whose ``out/`` holds ``root``, if any."""
+    for directory in root.parents:
+        if directory.name == "out" and (directory.parent / ".git").exists():
+            return main_checkout(directory.parent)
+    return None
+
+
+def shared_out(start: Path, environ: Mapping[str, str] | None = None) -> Path:
+    """Return the ``out/`` directory every checkout on this machine shares.
+
+    ``DIV_SHARED_OUT`` names it explicitly. Otherwise it is ``out/`` of the
+    outermost main checkout: a clone kept under another checkout's ``out/``
+    (``E:\\open-ui\\out\\div-fidelity``) and that clone's worktrees use the
+    outer checkout's ``out/`` (``E:\\open-ui\\out``), never their own.
+    """
+    override = (os.environ if environ is None else environ).get(SHARED_OUT_ENV)
+    if override:
+        return native_path(override)
+    root = main_checkout(start)
+    while (outer := enclosing_checkout(root)) is not None:
+        root = outer
+    return root / "out"
+
+
 def default_lock_path() -> Path:
-    return main_checkout(Path(__file__).resolve().parent) / "out" / "census.lock"
+    return shared_out(Path(__file__).resolve().parent) / "census.lock"
 
 
 def system_name() -> str:

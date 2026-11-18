@@ -144,11 +144,33 @@ queue in order and marks stale tickets.
 | `python -m unittest tools.qualification.test_census_lock` | Windows and WSL | 16 passed on each: queue order with two waiter processes, a free lock held back by an older live ticket, `run` without `--wait` refused while a waiter is queued, a killed waiter's ticket dropped, a dead waiter's older ticket skipped, the other system's ticket kept, `release --force --ticket` and `status` |
 | WSL holds `run -- sleep 8` on a scratch lock; a Windows waiter queues, then a WSL waiter; Windows runs `status`, WSL runs `run` without `--wait` | Windows and WSL | `status` lists the Windows then the WSL ticket; `run` exits 1; the commands ran holder, Windows waiter, WSL waiter; the lock and queue are empty after |
 
+### One shared `out/` for every clone (18 November 2026)
+
+`census_lock.py` and `skia_prebuilt.py` found the shared `out/` through
+the main checkout of the checkout they ran from. A lane working in its own
+clone kept under `E:\open-ui\out\` (for example `E:\open-ui\out\div-fidelity`
+and its worktrees) therefore got that clone's `out/`. Its census lock was a
+private file that excluded no one, and `skia_prebuilt.py env` found no
+archive, so Skia compiled from source again. Lanes had to call the copies in
+the `E:\open-ui` checkout by full path.
+
+Both now use one resolver, `census_lock.shared_out()`. It returns
+`DIV_SHARED_OUT` if that is set. Otherwise it takes the main checkout and,
+while that checkout lies under another checkout's `out/`, moves to the
+outer one, then returns its `out/`. `skia_prebuilt.py` no longer asks git.
+
+| Check | Where | Result |
+| --- | --- | --- |
+| `python -m unittest tools.qualification.test_census_lock tools.test_skia_prebuilt` | Windows | 23 passed. The new cases: a nested clone, its worktree, the outer checkout and the outer checkout's worktree all resolve to the outer `out/`; a standalone checkout's worktree resolves to its own `out/`; `DIV_SHARED_OUT` wins; `skia_prebuilt` uses the same rule |
+| `python3 -m unittest tools.qualification.test_census_lock` | WSL | 19 passed |
+| `census_lock.py status` from a worktree of the `E:\open-ui\out\div-fidelity` clone | WSL | `free (/mnt/e/open-ui/out/census.lock)`, the shared lock (before: the clone's own `out/census.lock`) |
+| `default_lock_path()` and `main_checkout_out()` from that worktree | Windows | `E:\open-ui\out\census.lock` and `E:\open-ui\out` |
+
 ### Shared prebuilt Skia (Windows)
 
 `tools/skia_prebuilt.py build` compiles Skia once with the CI
 `SKIA_GN_ARGS` and packs it as a rust-skia binary-cache archive under
-`<main checkout>/out/skia-prebuilt/<rev>-<inputs hash>/`; `env` points a
+`<shared out>/skia-prebuilt/<rev>-<inputs hash>/`; `env` points a
 worktree's Cargo at it with `FORCE_SKIA_BINARIES_DOWNLOAD` and a `file://`
 `SKIA_BINARIES_URL`. See
 [the development guide](../../DEVELOPMENT.md#shared-prebuilt-skia-windows).

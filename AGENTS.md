@@ -66,6 +66,9 @@ have agreed.
   status` names the holder and the queue. Use `release --force` only after
   checking that the holder's census has ended, and `release --force --ticket
   <name>` only for a waiter that has exited. Focused tests need no lock.
+  The lock, like the Skia archives below, lives in the machine's shared
+  `out/`: `DIV_SHARED_OUT` if set, else `out/` of the outermost main
+  checkout, so a clone kept under another checkout's `out/` shares it.
 - On Windows, build Skia once per set of build inputs with
   `tools/skia_prebuilt.py` and install it in each worktree, as described in
   [the development guide](docs/DEVELOPMENT.md).
