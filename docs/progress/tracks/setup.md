@@ -122,6 +122,28 @@ reclaimed; a holder on the other system needs `release --force`.
 | `python -m unittest tools.qualification.test_census_lock` | Windows and WSL | 8 passed on each |
 | WSL holds `run -- sleep 30`; Windows runs `status` and `run` | Windows and WSL | Windows names the WSL holder and `run` exits 1 without running; free after |
 
+### Census lock queue (17 November 2026)
+
+`run --wait` used to poll the lock every 30 seconds, so after a release
+whichever waiter polled first took it, and `status` could not name the
+waiters. On 17 November 2026 the rounded-clip census rerun nearly took the
+lock ahead of the engine's T4 census, which had waited longer. Lanes gated
+on each other's waiter pids by hand until this change.
+
+Now each waiter writes a ticket, an exclusively created file in
+`<lock>.queue/` named by the time it was queued (nanoseconds), its system
+and its pid, and takes the lock only when the lock is free and no live
+ticket is older. Its ticket is removed when it takes the lock or stops
+waiting. A ticket of a dead waiter on the same system is dropped; one from
+the other system keeps its place until `release --force --ticket <name>`.
+`run` without `--wait` fails while anyone is queued. `status` lists the
+queue in order and marks stale tickets.
+
+| Check | Where | Result |
+| --- | --- | --- |
+| `python -m unittest tools.qualification.test_census_lock` | Windows and WSL | 16 passed on each: queue order with two waiter processes, a free lock held back by an older live ticket, `run` without `--wait` refused while a waiter is queued, a killed waiter's ticket dropped, a dead waiter's older ticket skipped, the other system's ticket kept, `release --force --ticket` and `status` |
+| WSL holds `run -- sleep 8` on a scratch lock; a Windows waiter queues, then a WSL waiter; Windows runs `status`, WSL runs `run` without `--wait` | Windows and WSL | `status` lists the Windows then the WSL ticket; `run` exits 1; the commands ran holder, Windows waiter, WSL waiter; the lock and queue are empty after |
+
 ### Shared prebuilt Skia (Windows)
 
 `tools/skia_prebuilt.py build` compiles Skia once with the CI
