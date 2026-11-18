@@ -190,9 +190,10 @@ Gaps, named in the oracle test, each still differing:
 
 Engine review: the engine track approved 966cb58e on 17 November 2026
 (read, not built; the refactor of the page step was checked to be the same
-arithmetic).
+arithmetic). Rebased onto main `b7352743`, it is 44442d16 with the same
+`git patch-id`.
 
-Verification (Windows, MSVC, this branch on main `d74065cb`):
+Verification (Windows, MSVC, this branch rebased on main `b7352743`):
 
 - `cargo test --locked -p divui --features "windows testing" --test
   keyboard_scroll_oracle` passes 2 tests, both new:
@@ -207,9 +208,9 @@ Verification (Windows, MSVC, this branch on main `d74065cb`):
   new tests: the document's line, page and document steps; the chain from
   the pressed node; the removed pressed node; the scroll snapport's
   padding; a hidden axis.
-- `cargo test --locked --no-fail-fast -p div-engine` passes (64 suites, 526
+- `cargo test --locked --no-fail-fast -p div-engine` passes (65 suites, 530
   tests, 3 ignored).
-- The full framework test set passes (61 suites, 644 tests, including
+- The full framework test set passes (62 suites, 656 tests, including
   `div-components`), as do the example builds, the `divui` doc tests (11)
   and `cargo fmt --all --check`.
 - Linux (WSL, X11 features): `cargo test --locked -p divui --features
