@@ -181,6 +181,16 @@ Gaps, named in the oracle test, each still differing:
   `scrollend`).
 - `windows-modified-keys-unmeasured`: Windows uses the modifier rules
   measured on Linux.
+- `touch-press-node` (engine and framework, unmeasured; raised in the
+  engine review): Div sets the press node on every pointer's press, touch
+  included. Blink sets it only in the mouse press path, which touch
+  reaches through a tap's synthesized `mousedown`, at the tap.
+- `overscroll-behavior` lands separately: the engine track owns the
+  `div-style` property and has queued it as an engine filler.
+
+Engine review: the engine track approved 966cb58e on 17 November 2026
+(read, not built; the refactor of the page step was checked to be the same
+arithmetic).
 
 Verification (Windows, MSVC, this branch on main `d74065cb`):
 

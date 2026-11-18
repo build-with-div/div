@@ -406,6 +406,11 @@ impl Engine {
     the keyup; Div has no `scrollend` event yet.
   - `windows-modified-keys-unmeasured`: posted Win32 modifiers do not
     reach Chrome, so Windows uses the modifier rules measured on Linux.
+  - `touch-press-node` (engine and framework, unmeasured): Div sets the
+    press node on every pointer's press. Blink sets it in the mouse press
+    path, which touch reaches only through a tap's synthesized `mousedown`
+    at the tap, so a touch that pans or is cancelled leaves it alone
+    there. The oracle uses only the mouse.
   - Unmeasured and left as Chromium's source reads: snapping after a
     keyboard scroll (not applied yet), Enter's `keypress` with Alt or
     Meta (none), Delete's with modifiers (none).
