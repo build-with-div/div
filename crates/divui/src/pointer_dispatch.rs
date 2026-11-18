@@ -181,7 +181,7 @@ impl Document {
                 // Focus is `mousedown`'s default action: a cancelled or
                 // suppressed `mousedown` leaves it (sample-canvas gap 16).
                 if input.kind == PointerInputKind::Down && !mouse.default_prevented() {
-                    self.focus_from(target, FocusOrigin::Pointer)?;
+                    self.press_focus(target, step.x, step.y)?;
                 }
             }
         }
@@ -497,7 +497,7 @@ impl Document {
                     self.mouse_event(&pressed, "mousedown", target, Some(MouseButton::Main))?;
                 self.dispatch_to(target, &event)?;
                 if !event.default_prevented() {
-                    self.focus_from(target, FocusOrigin::Pointer)?;
+                    self.press_focus(target, step.x, step.y)?;
                 }
             }
             let update = self.with_engine_mut(|engine| {

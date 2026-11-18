@@ -1,0 +1,5710 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux-x11",
+ "host": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+ "input": "X11 keys, modifiers, motion and buttons through XTEST, --ozone-platform=x11",
+ "viewport": [
+  480,
+  400
+ ],
+ "scrollers": [
+  [
+   "fits",
+   10,
+   10,
+   "overflow:auto",
+   80,
+   40,
+   ""
+  ],
+  [
+   "hidden",
+   120,
+   10,
+   "overflow:hidden",
+   80,
+   200,
+   ""
+  ],
+  [
+   "scrollFits",
+   230,
+   10,
+   "overflow:scroll",
+   40,
+   20,
+   ""
+  ],
+  [
+   "negChild",
+   340,
+   10,
+   "overflow:auto",
+   80,
+   200,
+   "<button id=\"negChildBtn\" tabindex=\"-1\" style=\"left:5px;top:5px;width:50px;height:20px\">n</button>"
+  ],
+  [
+   "disabledChild",
+   10,
+   90,
+   "overflow:auto",
+   80,
+   200,
+   "<button id=\"disabledChildBtn\" disabled style=\"left:5px;top:5px;width:50px;height:20px\">d</button>"
+  ],
+  [
+   "hiddenChild",
+   120,
+   90,
+   "overflow:auto",
+   80,
+   200,
+   "<button id=\"hiddenChildBtn\" style=\"display:none;left:5px;top:5px;width:50px;height:20px\">h</button>"
+  ],
+  [
+   "negScroller",
+   230,
+   90,
+   "overflow:auto",
+   80,
+   200,
+   ""
+  ],
+  [
+   "plain",
+   340,
+   90,
+   "overflow:auto",
+   80,
+   200,
+   ""
+  ],
+  [
+   "divChild",
+   230,
+   170,
+   "overflow:auto",
+   80,
+   200,
+   "<div id=\"divChildInner\" tabindex=\"0\" style=\"left:5px;top:5px;width:50px;height:20px\"></div>"
+  ],
+  [
+   "crossAxis",
+   340,
+   170,
+   "overflow-x:auto;overflow-y:hidden",
+   80,
+   200,
+   ""
+  ],
+  [
+   "fractionDown",
+   10,
+   290,
+   "overflow:auto",
+   80,
+   60.4,
+   ""
+  ],
+  [
+   "fractionUp",
+   120,
+   290,
+   "overflow:auto",
+   80,
+   60.6,
+   ""
+  ]
+ ],
+ "buttons": [
+  "b1",
+  "b2",
+  "b3",
+  "b4",
+  "b5",
+  "b6"
+ ],
+ "actions": {
+  "focus-fits": "document.activeElement && document.activeElement.blur(); document.getElementById('fits').focus()",
+  "focus-hidden": "document.activeElement && document.activeElement.blur(); document.getElementById('hidden').focus()",
+  "focus-scrollFits": "document.activeElement && document.activeElement.blur(); document.getElementById('scrollFits').focus()",
+  "focus-negChild": "document.activeElement && document.activeElement.blur(); document.getElementById('negChild').focus()",
+  "focus-negScroller": "document.activeElement && document.activeElement.blur(); document.getElementById('negScroller').focus()",
+  "focus-plain": "document.activeElement && document.activeElement.blur(); document.getElementById('plain').focus()",
+  "focus-divChild": "document.activeElement && document.activeElement.blur(); document.getElementById('divChild').focus()",
+  "focus-crossAxis": "document.activeElement && document.activeElement.blur(); document.getElementById('crossAxis').focus()",
+  "focus-fractionDown": "document.activeElement && document.activeElement.blur(); document.getElementById('fractionDown').focus()",
+  "focus-fractionUp": "document.activeElement && document.activeElement.blur(); document.getElementById('fractionUp').focus()",
+  "remove-gap": "document.getElementById('gap').remove()",
+  "remove-gapWrap": "document.getElementById('gapWrap').remove()",
+  "remove-b3": "document.getElementById('b3').remove()",
+  "blur-active": "document.activeElement.blur()",
+  "focus-b3": "document.activeElement && document.activeElement.blur(); document.getElementById('b3').focus()",
+  "cancel-mousedown": "addEventListener('mousedown', e => e.preventDefault())"
+ },
+ "scenarios": {
+  "tab_order": [
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negChild"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negChild",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negChild"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "disabledChild"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "disabledChild",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "disabledChild"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "hiddenChild"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "hiddenChild",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "hiddenChild"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b1",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "script_focus": [
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "focus-fits"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "focus-hidden"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "focus-scrollFits"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negChild",
+    "input": [
+     "do",
+     "focus-negChild"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negScroller",
+    "input": [
+     "do",
+     "focus-negScroller"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "do",
+     "focus-plain"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChild",
+    "input": [
+     "do",
+     "focus-divChild"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "focus-crossAxis"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "do",
+     "focus-fractionDown"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "do",
+     "focus-fractionUp"
+    ]
+   }
+  ],
+  "script_focus_then_tab": [
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negScroller",
+    "input": [
+     "do",
+     "focus-negScroller"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negScroller"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "tab_to_scroller_down": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negScrollerContent"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negScroller",
+    "input": [
+     "click",
+     "negScrollerContent",
+     272,
+     120
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negScroller"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [
+     "plain"
+    ],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      40
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Down",
+     ""
+    ]
+   }
+  ],
+  "click_content_tab": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plainContent"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "plainContent",
+     380,
+     120
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     },
+     {
+      "type": "keyup",
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [
+     "divChild"
+    ],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      40
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Down",
+     ""
+    ]
+   }
+  ],
+  "click_gap_tab": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "removed_start": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "remove-gap"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "removed_start_parent": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "remove-gapWrap"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "blurred": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b3",
+    "input": [
+     "click",
+     "b3",
+     180,
+     264
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "blur-active"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b4",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "focused_removed": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b3",
+    "input": [
+     "click",
+     "b3",
+     180,
+     264
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "remove-b3"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b4",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "script_blurred": [
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b3",
+    "input": [
+     "do",
+     "focus-b3"
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "blur-active"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b4",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "focused_cancelled_click": [
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negChild"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negChild",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negChild",
+    "input": [
+     "do",
+     "cancel-mousedown"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "negChild",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "negChild"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "disabledChild"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "disabledChild",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "click_away": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b3",
+    "input": [
+     "click",
+     "b3",
+     180,
+     264
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "divChildInner"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "divChildInner",
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "shift_tab_order": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b6"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b6",
+    "input": [
+     "click",
+     "b6",
+     392,
+     264
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b6"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b6"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b5"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b5"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b5",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b5"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b5"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b4",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b4"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b3",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b3"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b2"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b2"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b2",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b2"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b2"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b1",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ],
+  "click_content_shift_tab": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plainContent"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "plainContent",
+     380,
+     120
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ],
+  "click_gap_shift_tab": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ],
+  "fraction_order": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "b1",
+    "input": [
+     "click",
+     "b1",
+     40,
+     264
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "b1"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionUp",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionUp"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "fractionDown"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "fractionDown",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ],
+  "removed_start_parent_shift_tab": [
+   {
+    "events": [
+     {
+      "type": "click",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "gap"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "click",
+     "gap",
+     112,
+     192
+    ]
+   },
+   {
+    "events": [],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "body",
+    "input": [
+     "do",
+     "remove-gapWrap"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keydown",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "body"
+     },
+     {
+      "type": "keyup",
+      "key": "Tab",
+      "code": "Tab",
+      "shift": true,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     },
+     {
+      "type": "keyup",
+      "key": "Shift",
+      "code": "ShiftLeft",
+      "shift": false,
+      "ctrl": false,
+      "alt": false,
+      "meta": false,
+      "target": "plain"
+     }
+    ],
+    "scrolled": [],
+    "offsets": {
+     "root": [
+      0,
+      0
+     ],
+     "fits": [
+      0,
+      0
+     ],
+     "hidden": [
+      0,
+      0
+     ],
+     "scrollFits": [
+      0,
+      0
+     ],
+     "negChild": [
+      0,
+      0
+     ],
+     "disabledChild": [
+      0,
+      0
+     ],
+     "hiddenChild": [
+      0,
+      0
+     ],
+     "negScroller": [
+      0,
+      0
+     ],
+     "plain": [
+      0,
+      0
+     ],
+     "divChild": [
+      0,
+      0
+     ],
+     "crossAxis": [
+      0,
+      0
+     ],
+     "fractionDown": [
+      0,
+      0
+     ],
+     "fractionUp": [
+      0,
+      0
+     ]
+    },
+    "active": "plain",
+    "input": [
+     "key",
+     "Tab",
+     "s"
+    ]
+   }
+  ]
+ }
+}
