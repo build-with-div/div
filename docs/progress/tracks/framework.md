@@ -74,7 +74,7 @@ uses.)
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
 | 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | Merged (#75) |
 | I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | In review |
-| I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`) | Not started |
+| I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`, RFC 0007 section 8) | In review |
 
 ## After Tier 0
 
@@ -94,6 +94,110 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 17 November 2026: focusable scrollers and the focus starting point (Tier 0 item I2b)
+
+Problem: Div's sequential focus order had no scrollers, Tab with nothing
+focused always started at the first element, and a press focused only its
+own target. Chromium puts a scroller with no focusable descendant in the
+Tab order and starts Tab from the last click (the I2a oracle's gap
+`keyboard-focusable-scrollers`, steps `focus_order` 0 to 9 and
+`click_scroller` 1 and 2).
+
+Sources: Chromium 147.0.7727.50's `focus_controller.cc` (Apple/Nuanti
+2-clause BSD, header checked alone first), and the already checked
+`event_handler.cc` and `mouse_event_manager.cc`, from the local checkout.
+They give the press's starting point and focus walk, and the search from a
+start that is not in the order. `element.cc` and `document.cc` are LGPL and
+were not read: which scrollers count, and where a removed start leaves
+navigation, are measured. The code is Div's own.
+
+Oracle (new, `tests/fidelity/fixtures/focus-navigation-v1`), captured by
+`tools/qualification/capture_focus_navigation_oracle.py`, which reuses the
+keyboard scrolling capture's browser and input code with its own page:
+
+- Real XTEST keys and buttons to pinned Chrome-for-Testing 147.0.7727.50
+  on X11 in WSL, at scale 1, captured twice and required to match (64 s).
+  17 scenarios.
+- They cover nine scrollers (content that fits, `overflow: scroll` that
+  fits, `overflow: hidden`, overflow only on a hidden axis, and children
+  with `tabindex="-1"`, `disabled`, `display: none` and `tabindex="0"`),
+  script focus of each, Tab and Shift+Tab after clicks, removals, `blur()`
+  and a cancelled `mousedown`, and a focused scroller starting the
+  keyboard scroll chain.
+- No Windows capture: it needs the foreground and the user's approval for
+  each run, and Blink's focus navigation does not depend on the platform.
+  The test replays the Linux capture on every host.
+
+Change, as the new [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 8 specifies:
+
+- **Engine** (its own commit, for engine review; `focus_navigation.rs`,
+  `interaction.rs`):
+  - A scroller that can scroll on an axis that overflows is focusable.
+    Without `tabindex` it is keyboard focusable only when no descendant
+    is, and it is never mouse focusable.
+  - `Engine::press_focus` (new) and `PressFocus`: the nearest mouse
+    focusable element from the target, else clear, else keep when the
+    press hit a scrollbar.
+  - The sequential focus navigation starting point: set by every press
+    before dispatch and by every focus; on removal it keeps the removed
+    subtree's position. `next_focus_target` starts from the focused
+    element, else from it.
+  - `has_focus_semantics` (new, public) lets `divui` update layout before
+    a script `focus()` that only a scroller rule could allow.
+- **`divui`:** both press paths use `press_focus`. `focus()` updates
+  layout first for an element without `tabindex`, control or `summary`
+  semantics.
+- **Behavior changes:**
+  - A press on content that cannot take focus now clears focus, unless it
+    hit a scrollbar. Before, focus stayed (RFC 0007, Affected tracks).
+  - Scrollers take focus from Tab and `focus()`. Div's accessibility tree
+    reports them focusable, since it reads the same rule; Chromium's
+    accessibility tree was not measured.
+  - Tab and Shift+Tab with nothing focused start after the last click or
+    the last focused element, not at the first element.
+- **Renderer contract:** `author-style-inventory.json` now lists
+  `focus_navigation.rs` for `overflow-x` and `overflow-y`, which it reads
+  from the scroll area. It also lists it for `left`, `top`, `right`,
+  `bottom`, `width`, `height` and `position`, because the scanner matches
+  any `.field` token: geometry fields and `Iterator::position`, not CSS
+  reads.
+
+Gaps:
+
+- `keyboard-focusable-scrollers`: closed. Its I2a oracle steps match on
+  both platforms and are removed from that test's gap list.
+- `focus-navigation-windows-unmeasured`: no Windows focus capture.
+- `scrollbar-press-transformed` (engine, unmeasured): the scrollbar test
+  ignores transforms.
+
+Verification (Windows, MSVC, this branch on `framework/keyboard-scroll`
+`b0c443c7`):
+
+- `cargo test --locked -p divui --features "windows testing" --test
+  focus_navigation_oracle` passes: every step of the 17 scenarios matches.
+  Before the change (engine and `divui` source reverted), 53 compared
+  fields differ, in every scenario.
+- `--test keyboard_scroll_oracle` passes 2 tests with the I2b gap steps
+  removed from its list.
+- `cargo test --locked -p div-engine --test focus_navigation` passes 4 new
+  tests: which scrollers are focusable; the order around a focusable
+  descendant; a press's focus, including a scrollbar; the start after a
+  press, a removal and a blur.
+- `cargo test --locked --no-fail-fast -p div-engine` passes (66 suites, 534
+  tests, 3 ignored).
+- The full framework test set passes (63 suites, 657 tests, including
+  `div-components`), as do the example builds and the `divui` doc tests.
+  No existing test relied on the old press focus.
+- Linux (WSL, X11 features): `cargo test --locked -p divui --features
+  "linux testing" --test focus_navigation_oracle --test
+  keyboard_scroll_oracle` passes 3 tests, and `cargo test --locked -p
+  div-engine --test focus_navigation --test keyboard_scroll` passes 9.
+- `python tools/qualification/generate_renderer_contract.py --check` and
+  `cargo fmt --all --check` pass.
+- No layout, paint or style code changed, so the census and coverage are
+  not affected (decision D4).
 
 ### 17 November 2026: keyboard scrolling and `keypress` (Tier 0 item I2a)
 

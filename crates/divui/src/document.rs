@@ -12,9 +12,9 @@ use div_dom::{ElementTag, FormControlRole};
 use div_engine::{
     AccessibilityAction, AccessibilityTreeUpdate, AnimationEvent, AnimationEventKind, AnimationId,
     AnimationState, ControlAdjustment, EditCommand, Engine, EngineOptions,
-    EventPhase as EngineEventPhase, FocusOrigin, NodeHandle, PointerEventKind, RasterConfiguration,
-    ScrollAnimationId, ScrollButtonDirection, ScrollGranularity, TextDirection, TextUnit,
-    ViewportMetrics,
+    EventPhase as EngineEventPhase, FocusOrigin, NodeHandle, PointerEventKind, PressFocus,
+    RasterConfiguration, ScrollAnimationId, ScrollButtonDirection, ScrollGranularity,
+    TextDirection, TextUnit, ViewportMetrics,
 };
 use div_style::ImageResourceId;
 use div_text::{
@@ -2552,8 +2552,27 @@ impl Document {
         }
     }
 
+    /// A press's focus change, the default action of a `mousedown` that was
+    /// not cancelled: the nearest element a click can focus, else none,
+    /// unless the press hit a scrollbar (Blink's `HandleMouseFocus`).
+    pub(crate) fn press_focus(&self, target: NodeHandle, x: f32, y: f32) -> Result<(), Error> {
+        match self.with_engine_mut(|engine| engine.press_focus(target, x, y)) {
+            Ok(PressFocus::Focus(next)) => self.focus_from(next, FocusOrigin::Pointer),
+            Ok(PressFocus::Clear) => self.change_focus(None, FocusOrigin::Pointer),
+            Ok(PressFocus::Keep) | Err(Error::Engine(div_engine::EngineError::StaleHandle)) => {
+                Ok(())
+            }
+            Err(error) => Err(error),
+        }
+    }
+
     pub(crate) fn focus_element(&self, target: NodeHandle) -> Result<(), Error> {
-        if self.with_engine(|engine| engine.is_scroll_button(target))?? {
+        // A scroll button's focusability, and a scroller's, follow layout.
+        if self.with_engine(|engine| {
+            engine
+                .is_scroll_button(target)
+                .map(|button| button || !engine.has_focus_semantics(target))
+        })?? {
             self.with_engine_mut(|engine| engine.update().map(|_| ()))?;
         }
         self.change_focus(Some(target), FocusOrigin::Script)

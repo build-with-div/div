@@ -391,9 +391,8 @@ impl Engine {
   required to match. 19 scenarios on Linux, 17 on Windows (Windows has no
   modifier scenarios: posted modifiers do not reach Chrome).
 - **Gaps** (named in the test, each still differing):
-  - `keyboard-focusable-scrollers` (engine and framework): a scroller with
-    no focusable descendant is keyboard focusable, and sequential
-    navigation starts at the clicked node. I2b, a separate PR.
+  - `keyboard-focusable-scrollers` (engine and framework): closed by
+    section 8 (I2b).
   - `overscroll-behavior` (engine): Div's style system has no
     `overscroll-behavior`, so `contain` does not end the chain.
   - `edit-caret-reveal` (framework): typing into a control scrolled out of
@@ -415,6 +414,59 @@ impl Engine {
     keyboard scroll (not applied yet), Enter's `keypress` with Alt or
     Meta (none), Delete's with modifiers (none).
 
+### 8. Focusable scrollers and the focus starting point (amended 17 November 2026)
+
+Amended for I2b, the second half of I2. Div's sequential focus order had
+no scrollers, Tab with nothing focused always started at the document's
+first element, and a press focused only its own target.
+
+```rust
+// div-engine (engine-reviewed)
+pub enum PressFocus { Focus(NodeHandle), Clear, Keep }
+impl Engine {
+    pub fn press_focus(&mut self, target: NodeHandle, x: f32, y: f32)
+        -> Result<PressFocus, EngineError>;
+    pub fn has_focus_semantics(&self, handle: NodeHandle) -> bool;
+}
+// divui: no new API.
+```
+
+- **Focusable scrollers.** A scroller that can scroll on an axis that
+  overflows (`overflow: auto` or `scroll` on that axis, and a scroll range
+  there) is focusable: `focus()` reaches it and `can_focus` reports it.
+  One whose content fits, one with `overflow: hidden` and one that
+  overflows only on a hidden axis are not. Without `tabindex`, it is in
+  the sequential order only when no descendant is; descendants with
+  `tabindex="-1"`, disabled ones and `display: none` ones do not count. A
+  click never focuses it.
+- **A press's focus.** A `mousedown` that is not cancelled focuses the
+  nearest element from its target outwards that a click can focus (one
+  with `tabindex`, a control or `summary`). When there is none, it clears
+  focus, unless the press hit a scrollbar
+  (`MouseEventManager::HandleMouseFocus`). Before, a press on content that
+  could not take focus left the focus where it was.
+- **The starting point.** Every press sets it to its target before
+  `mousedown`, so a cancelled `mousedown` sets it too, and every focus
+  sets it to the focused element; `blur()` keeps it. Tab and Shift+Tab
+  start from the focused element, else from the starting point: the next
+  or previous element in tree order when the start is not in the order.
+  When the start or an ancestor is removed, the start stays where it was,
+  between the removed subtree's neighbours.
+- **Oracle.** `tests/fidelity/fixtures/focus-navigation-v1`: real XTEST
+  input to pinned Chrome-for-Testing 147.0.7727.50 on X11 in WSL, at
+  scale 1, captured twice and required to match: 17 scenarios. Blink's
+  focus navigation does not depend on the platform, so the test replays
+  it on every host. The two focus scenarios of `keyboard-scroll-v1`, on
+  both platforms, now match as well.
+- **Gaps:**
+  - `focus-navigation-windows-unmeasured`: the focus oracle has no
+    Windows capture; the keyboard scrolling oracle's Windows focus steps
+    match.
+  - `scrollbar-press-transformed` (engine, unmeasured): whether a press
+    hit a scrollbar ignores transforms.
+  - Unmeasured: focus navigation inside shadow trees, slots,
+    `reading-flow` and carousels, which Div does not have.
+
 ## Affected tracks
 
 - **Components.** Primitives may move from `mouse*` to `pointer*` and use
@@ -428,12 +480,19 @@ impl Engine {
   for the space bar), or the page also scrolls, as in a browser. Text
   committed by a key now arrives after `keypress`, and cancelling
   `keypress` stops it.
+- **Components (section 8).** A press on content that cannot take focus
+  now clears focus, as in a browser, so a component that keeps focus in a
+  field while its other parts are clicked must cancel `mousedown` there.
+  Scrollers can now take focus from Tab and `focus()`.
 - **Engine.** `resize_observation` after layout (section 3), the local
   point of a hit for `offset`, and implicit capture release in
   `interaction.rs`. Agreed through the parent before 0.11 starts.
 - **Engine (section 7).** `scroll_logical`, `ScrollGranularity` and the
   press node (`mouse_press_node`), in one engine-reviewed commit;
   `scroll_button`'s page step is shared, unchanged.
+- **Engine (section 8).** Focusable scrollers, `press_focus` and the
+  starting point (`focus_navigation.rs`, `interaction.rs`), in one
+  engine-reviewed commit.
 - **FFI.** The C ABI is frozen for v0.2; its capture functions keep their
   `u32` ids, and the mouse id it sees becomes 1.
 - **Docs and templates.** The `default` template's test and the showcase
