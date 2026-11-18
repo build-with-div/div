@@ -24,15 +24,17 @@
 use div::prelude::*;
 use div::typed_style::{parse_literal, StyleProperty};
 use div_components::primitives::{
-    ActivationMode, Key, SwitchOptions, SwitchState, TabsOptions, TabsState,
+    ActivationMode, CheckboxOptions, CheckboxState, CheckedState, Key, SwitchOptions, SwitchState,
+    TabsOptions, TabsState,
 };
 use div_components::{
     register_fonts, with_theme, Badge, BadgeProps, BadgeVariant, Button, ButtonProps, ButtonSize,
     ButtonVariant, Card, CardAction, CardActionProps, CardContent, CardContentProps,
     CardDescription, CardDescriptionProps, CardFooter, CardFooterProps, CardHeader,
-    CardHeaderProps, CardProps, CardTitle, CardTitleProps, Input, InputProps, Label, LabelProps,
-    Orientation, Separator, SeparatorProps, Switch, SwitchProps, SwitchSize, Tabs, TabsContent,
-    TabsContentProps, TabsList, TabsListProps, TabsProps, TabsTrigger, TabsTriggerProps, Theme,
+    CardHeaderProps, CardProps, CardTitle, CardTitleProps, Checkbox, CheckboxProps, Input,
+    InputProps, Label, LabelProps, Orientation, Separator, SeparatorProps, Switch, SwitchProps,
+    SwitchSize, Tabs, TabsContent, TabsContentProps, TabsList, TabsListProps, TabsProps,
+    TabsTrigger, TabsTriggerProps, Theme,
 };
 
 type Fixture = fn() -> ViewNode;
@@ -80,6 +82,15 @@ const FIXTURES: &[(&str, Fixture, bool)] = &[
     ("input-value", input_value, true),
     ("input-disabled", input_disabled, true),
     ("input-invalid", input_invalid, true),
+    ("checkbox-unchecked", checkbox_unchecked, false),
+    ("checkbox-checked", checkbox_checked, false),
+    ("checkbox-disabled", checkbox_disabled, false),
+    (
+        "checkbox-disabled-checked",
+        checkbox_disabled_checked,
+        false,
+    ),
+    ("checkbox-invalid", checkbox_invalid, false),
 ];
 
 /// Fixtures of `traceFixtures` in fixtures.tsx, which `trace` runs.
@@ -91,6 +102,8 @@ const TRACE_FIXTURES: &[(&str, Fixture)] = &[
     ("switch-disabled", switch_disabled),
     ("input-placeholder", input_placeholder),
     ("input-disabled", input_disabled),
+    ("checkbox-unchecked", checkbox_unchecked),
+    ("checkbox-disabled", checkbox_disabled),
 ];
 
 // `FontSpecimen` in fixtures.tsx: `flex flex-col gap-1 text-sm` and a font
@@ -413,6 +426,44 @@ fn switch_sm_unchecked() -> ViewNode {
 
 fn switch_sm_checked() -> ViewNode {
     switch_example(SwitchSize::Sm, true, false)
+}
+
+// The checkbox fixtures of fixtures.tsx: one checkbox in a flex row, followed
+// by Radix's server-rendered hidden form input (`CheckboxBubbleInput`, the
+// same element as the switch's), as for the switch.
+
+fn checkbox_example(checked: bool, disabled: bool, invalid: bool) -> ViewNode {
+    let state = CheckboxState::new(CheckboxOptions {
+        default_checked: CheckedState::from(checked),
+        disabled,
+        ..CheckboxOptions::default()
+    });
+    view! {
+        <div style:display="flex">
+            <Checkbox state={state} invalid={invalid} />
+            {ViewNode::Element(bubble_input(checked))}
+        </div>
+    }
+}
+
+fn checkbox_unchecked() -> ViewNode {
+    checkbox_example(false, false, false)
+}
+
+fn checkbox_checked() -> ViewNode {
+    checkbox_example(true, false, false)
+}
+
+fn checkbox_disabled() -> ViewNode {
+    checkbox_example(false, true, false)
+}
+
+fn checkbox_disabled_checked() -> ViewNode {
+    checkbox_example(true, true, false)
+}
+
+fn checkbox_invalid() -> ViewNode {
+    checkbox_example(false, false, true)
 }
 
 // The input fixtures of fixtures.tsx: an email input in a 256px wide column.
@@ -894,6 +945,55 @@ mod tests {
                 ("switch#0", "true"),
             ]
         );
+    }
+
+    #[test]
+    fn space_toggles_the_focused_checkbox_and_enter_does_not() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let result = trace(path, "checkbox-keyboard").unwrap();
+        let states: Vec<(&str, &str, usize)> = result["snapshots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|snapshot| {
+                let elements = snapshot["elements"].as_array().unwrap();
+                let checkbox = &elements[0];
+                assert_eq!(checkbox["name"], "checkbox#0");
+                let indicators = elements
+                    .iter()
+                    .filter(|element| element["name"] == "checkbox-indicator#0")
+                    .count();
+                (
+                    snapshot["focused"].as_str().unwrap(),
+                    checkbox["attributes"]["aria-checked"].as_str().unwrap(),
+                    indicators,
+                )
+            })
+            .collect();
+        // Ready, Tab, Space, Enter, Space.
+        assert_eq!(
+            states,
+            [
+                ("body", "false", 0),
+                ("checkbox#0", "false", 0),
+                ("checkbox#0", "true", 1),
+                ("checkbox#0", "true", 1),
+                ("checkbox#0", "false", 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_disabled_checkbox_stays_unchecked() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../traces.json");
+        let result = trace(path, "checkbox-disabled").unwrap();
+        for snapshot in result["snapshots"].as_array().unwrap() {
+            assert_eq!(snapshot["focused"], "body");
+            let checkbox = &snapshot["elements"][0]["attributes"];
+            assert_eq!(checkbox["aria-checked"], "false");
+            assert_eq!(checkbox["data-state"], "unchecked");
+            assert_eq!(checkbox["data-disabled"], "");
+        }
     }
 
     #[test]

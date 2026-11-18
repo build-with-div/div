@@ -10,6 +10,7 @@
 //! Radix UI is MIT licensed, Copyright (c) 2022 WorkOS; see
 //! `crates/div-components/THIRD_PARTY.md`.
 
+pub mod checkbox;
 pub mod collection;
 pub mod controllable;
 pub mod id;
@@ -18,6 +19,7 @@ pub mod roving_focus;
 pub mod switch;
 pub mod tabs;
 
+pub use checkbox::{CheckboxOptions, CheckboxState, CheckedState};
 pub use controllable::{Controllable, OnChange};
 pub use keys::{Held, Key};
 pub use roving_focus::{Direction, ItemOptions, RovingFocusGroup, RovingFocusOptions};

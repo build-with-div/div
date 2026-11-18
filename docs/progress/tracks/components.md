@@ -18,15 +18,16 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 | Component | Fixtures | Exact at @1 / @2 / @1.25 / @1.5 | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 5 / 5 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 19 / 0 / 0 / 0 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| card | basic, with action; light, dark | 0 / 0 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 2 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| input | email input: placeholder, value, disabled, invalid; light, dark | 0 / 0 / 0 / 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| label | basic; light, dark | 2 / 0 / 0 / 0 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| separator | horizontal, vertical; light, dark | 4 / 4 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 / 0 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
-| tabs | horizontal, vertical, second tab selected; light, dark | 3 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `84fe5051`, 17 November 2026 |
+| badge | 6 variants; light, dark | 5 / 5 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 19 / 0 / 0 / 0 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| card | basic, with action; light, dark | 0 / 0 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| checkbox | unchecked, checked, disabled, disabled and checked, invalid; light, dark | 6 / 6 / 0 / 0 of 10 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 2 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| input | email input: placeholder, value, disabled, invalid; light, dark | 0 / 0 / 0 / 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| label | basic; light, dark | 2 / 0 / 0 / 0 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| separator | horizontal, vertical; light, dark | 4 / 4 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 / 0 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 3 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
 
 The evidence covers all four census profiles (`"complete": true`). Above
 1x the Chromium oracle is captured with `--force-device-scale-factor` by
@@ -40,9 +41,77 @@ Behavior is compared with Radix running in Chromium by the traces in
 
 | Component | Traces | Same | Evidence | Measured at |
 | --- | --- | --- | --- | --- |
-| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
-| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
-| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `84fe5051`, 17 November 2026 |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
+| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
+| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
+| checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
+
+## 17 November 2026: checkbox (C2 group 2, C3)
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| Checkbox primitive, a port of Radix's `react-checkbox` 1.4.1: a `button` with `role="checkbox"`, `aria-checked` (`mixed` when indeterminate) and `data-state`, toggled by a click and by Space through the button's activation; its Enter `keydown` is cancelled, so Enter does not toggle it, as in Radix. An indeterminate checkbox becomes checked when toggled. The indicator (`CheckboxIndicator`, `pointer-events: none`) exists only while the checkbox is checked or indeterminate, as Radix's `Presence` without `forceMount` does; it is built in the document it was declared in, since the effect that adds it reruns from event handlers. | components | `crates/div-components/src/primitives/checkbox.rs` |
+| Styled checkbox, shadcn's `checkbox.tsx`: `size-4`, `rounded-[4px]`, the `border-input` border, `shadow-xs`, `dark:bg-input/30`, the checked `border-primary bg-primary text-primary-foreground`, the disabled styles and `aria-invalid`'s destructive border (a prop, `invalid`). Tailwind orders `data-*` variants after `aria-*` ones, so a checked checkbox keeps `border-primary` when invalid. The `data-state` styles are inline, as for the switch (RFC 0003, request 6). | components | `crates/div-components/src/checkbox.rs` |
+| Lucide's `CheckIcon` in the indicator: the outer `svg` (24 units square, `size-3.5`, stroked in `currentColor`) is built, but not its `<path>`: Div's DOM has no SVG shapes yet ([RFC 0009](../../alpha/rfcs/0009-inline-svg.md), V1 stage 1). Nothing stands in for the check. | components | `crates/div-components/src/checkbox.rs` |
+| Fixtures `checkbox-unchecked`, `-checked`, `-disabled`, `-disabled-checked` and `-invalid`, light and dark, in a flex row with Radix's server-rendered hidden input, as for the switch; trace pages for the unchecked and the disabled checkbox; traces `checkbox-keyboard`, `checkbox-pointer` and `checkbox-disabled`. shadcn's `checkbox.tsx` is vendored unchanged from `shadcn@4.23.0`; `lucide-react` 1.70.0 (ISC), the release of the bundled `lucide-static`, renders its icon in the reference pages. | components | `tests/fidelity/components/reference/`, `traces.json`, `render/src/main.rs` |
+
+### Measurement
+
+All 336 comparisons at `06b9002e`, in the census real-font environment: 57
+exact, 279 different, 0 errors
+([`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json),
+`"complete": true`). The 296 earlier rows have the same images (both
+hashes) and status as the real-zoom baseline at `84fe5051`.
+
+| Checkbox page | `legacy-800x600@1` | `mobile-375x667@2` | `desktop-1280x720@1.25` | `desktop-1920x1080@1.5` |
+| --- | --- | --- | --- | --- |
+| unchecked, disabled, invalid (6) | 6 exact | 6 exact | 6 different | 6 different |
+| checked, disabled and checked (4) | 4 different | 4 different | 4 different | 4 different |
+
+13 of 14 behavior traces are the same
+([`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json)):
+the three checkbox traces (Space toggles and Enter does not, with the
+indicator added and removed; two clicks and Space; a disabled checkbox
+takes no focus and stays unchecked) and the ten that were the same before.
+
+The geometry diagnostic matches no checkbox page, for two reasons and no
+other: the hidden form input (13x13 in Chromium, 0x0 in Div, as on the
+switch pages) and, on the checked pages, the check icon's missing
+`<path>` element. Every other box is the same at 1x.
+
+### Remaining failures
+
+- **The check is not drawn**, on the four checked pages at every profile
+  (at 1x, 34 to 56 pixels, inside the icon's 14px box). Owner: the SVG
+  lane and the framework track (RFC 0009: SVG elements in the DOM,
+  `Element::create_ns`).
+- **Rounded corners of the checked box (light)**: outside the icon box the
+  light checked pages differ only on the antialiased corners, by 1 in a
+  channel; the switch's pill edges are likely the same. Owner: engine
+  track, paint (rounded rectangles).
+- **Fractional scales**: every checkbox page differs at 1.25 and 1.5, on
+  the box's edges, as every other page does (RFC 0011). Owner: engine
+  track.
+- **The hidden form input** is laid out 0x0 (Chromium: 13x13); it has
+  `opacity: 0`, so the pixels are unaffected. Owner: engine track, forms.
+- Not built: `focus-visible` (the 3px ring and the `ring` border, or the
+  destructive ring when invalid) and `transition-shadow`; the cascade
+  (RFC 0003, request 6). Owner: framework track (typed style rules).
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Comparison, all profiles | `python3 tools/qualification/census_lock.py run --wait -- python3 tests/fidelity/components/harness/reference_harness.py compare --renderer <release div-components-render> --repository-commit 06b9002e… --evidence tests/fidelity/components/evidence/reference-v1.json` in WSL, renderer built with the CI `SKIA_GN_ARGS` | 57 of 336 exact, 279 different, 0 errors; complete |
+| Earlier rows unchanged | each row of the new evidence compared with the `84fe5051` evidence by fixture and profile | 296 of 296 the same images and status; 40 new |
+| Behavior traces | `reference_harness.py trace --renderer <release div-components-render> --repository-commit 06b9002e… --output tests/fidelity/components/evidence/traces-v1.json` in WSL | 13 of 14 the same; `tabs-tab-out` as before |
+| Geometry, all profiles (diagnostic) | `reference_harness.py geometry --renderer <release div-components-render>` in WSL | 190 of 336 pages with every box the same (62, 56, 36, 36: as before, and no checkbox page) |
+| Renderer | `sha256sum` of the release `div-components-render` | `f3ee4be9…`, the SHA-256 in both evidence files |
+| Reference pages | `node build.mjs --check` in `tests/fidelity/components/reference` | 97 pages and 27 assets up to date |
+| Tests | `cargo test --locked --release -p div-components -p div-components-render` in WSL | all pass, among them `space_toggles_the_focused_checkbox_and_enter_does_not` and `a_disabled_checkbox_stays_unchecked` |
+| Formatting and lints | `cargo fmt --all --check`; `cargo clippy -p div-components -p div-components-render --all-targets` in WSL | clean; no new warnings in the components crates |
 
 ## 17 November 2026: real-zoom baseline
 
@@ -691,11 +760,13 @@ These are API requests for the framework track, not blockers.
 2. Build the Radix-like primitives (C2) as proposed in
    [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), as a
    `primitives` module of `div-components`, on the public `divui` API and
-   the RFC's interims. Roving focus, tabs, switch and input are built;
-   dialog and checkbox are next. Their `data-state` styles are inline
-   until typed style rules (A1) land.
-3. Lucide icons in Div: the static SVG decoder
-   (`crates/div-paint/src/image_resource.rs`) draws only `<rect>`
-   shapes, while every Lucide icon is stroked `<path>` data in
-   `currentColor`. Owner: engine track (paint); requested before the first
-   component that shows an icon.
+   the RFC's interims. Roving focus, tabs, switch, input and checkbox
+   are built; dialog waits for the top layer (A3). Their `data-state`
+   styles are inline until typed style rules (A1) land.
+3. Lucide icons in Div: every Lucide icon is an inline `svg` of stroked
+   `<path>` data in `currentColor`, and Div's DOM has no SVG shapes yet.
+   The checkbox, the first component with an icon, builds the outer `svg`
+   only. Owner: the SVG lane and the framework track
+   ([RFC 0009](../../alpha/rfcs/0009-inline-svg.md), V1 stage 1, whose gate
+   covers the 20 icons the components import); draw the icons when it
+   lands.

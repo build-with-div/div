@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./shadcn/ui/card"
+import { Checkbox } from "./shadcn/ui/checkbox"
 import { Input } from "./shadcn/ui/input"
 import { Label } from "./shadcn/ui/label"
 import { Separator } from "./shadcn/ui/separator"
@@ -284,6 +285,37 @@ const switchFixtures: Fixture[] = [
     })),
 ]
 
+// Each checkbox state, in a flex row like the switch. Radix renders a hidden
+// form input after the checkbox on the server, which the static pages keep;
+// in the browser it is removed outside a `<form>`. The indicator holds
+// Lucide's check icon while the checkbox is checked.
+const checkboxStates: [
+  string,
+  string,
+  { defaultChecked?: boolean; disabled?: boolean; "aria-invalid"?: boolean },
+][] = [
+  ["unchecked", "unchecked", {}],
+  ["checked", "checked", { defaultChecked: true }],
+  ["disabled", "unchecked and disabled (opacity 50%)", { disabled: true }],
+  [
+    "disabled-checked",
+    "checked and disabled (opacity 50%)",
+    { defaultChecked: true, disabled: true },
+  ],
+  ["invalid", "unchecked with aria-invalid (destructive border)", { "aria-invalid": true }],
+]
+
+const checkboxFixtures: Fixture[] = checkboxStates.map(([state, description, props]) => ({
+  id: `checkbox-${state}`,
+  component: "checkbox",
+  description: `Checkbox, ${description}`,
+  render: () => (
+    <Row>
+      <Checkbox {...props} />
+    </Row>
+  ),
+}))
+
 // An email input, as in the shadcn/ui docs' demo, in a 256px wide column
 // (`w-full` fills it). At 768px and wider `md:text-sm` sets 14px text.
 const inputStates: [string, string, React.ComponentProps<"input">][] = [
@@ -317,8 +349,9 @@ const inputFixtures: Fixture[] = inputStates.map(([state, description, props]) =
 // it with React in the browser; manual activation looks the same as
 // automatic, so it has no static page. The traces select the second tab
 // themselves, so `tabs-password` has no trace page; they toggle the switch
-// themselves, so only the unchecked and the disabled switch have one. The
-// empty and the disabled input have one, for focus.
+// themselves, so only the unchecked and the disabled switch have one, and
+// the same for the checkbox. The empty and the disabled input have one, for
+// focus.
 export const traceFixtures: Fixture[] = [
   ...tabsFixtures.filter((fixture) => fixture.id !== "tabs-password"),
   {
@@ -332,6 +365,9 @@ export const traceFixtures: Fixture[] = [
   ),
   ...inputFixtures.filter(
     (fixture) => fixture.id === "input-placeholder" || fixture.id === "input-disabled"
+  ),
+  ...checkboxFixtures.filter(
+    (fixture) => fixture.id === "checkbox-unchecked" || fixture.id === "checkbox-disabled"
   ),
 ]
 
@@ -381,4 +417,5 @@ export const fixtures: Fixture[] = [
   ...tabsFixtures,
   ...switchFixtures,
   ...inputFixtures,
+  ...checkboxFixtures,
 ]
