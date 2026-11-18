@@ -218,6 +218,11 @@ Verification (Windows, MSVC, this branch rebased on main `b7352743`):
   the Linux capture, modifiers and Delete's `keypress` included.
 - No layout, paint or style code changed, so the census and coverage are
   not affected (decision D4).
+- Renderer contract: `keyboard_scroll.rs` reads `direction`,
+  `writing-mode`, `overflow-x` and `overflow-y`, so the regenerated
+  `docs/renderer/generated/author-style-inventory.json` lists it as a
+  reader of those four. `python tools/qualification/generate_renderer_contract.py
+  --check` passes on main `4b20edd6` (CI's first run reported this drift).
 
 ### 17 November 2026: the Pointer Events oracle on Linux (follow-up `pointer-events-linux-derived`)
 
