@@ -1009,6 +1009,7 @@
         "crates/div-paint/src/render.rs",
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/element_dimensions.rs",
+        "crates/div-engine/src/keyboard_scroll.rs",
         "crates/div-engine/src/lib.rs",
         "crates/div-engine/src/scroll_button.rs",
         "crates/div-engine/src/scroll_into_view.rs",
@@ -2457,6 +2458,7 @@
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/compositor_scene.rs",
         "crates/div-engine/src/control_geometry.rs",
+        "crates/div-engine/src/keyboard_scroll.rs",
         "crates/div-engine/src/lib.rs"
       ],
       "css_name": "overflow-x",
@@ -2485,6 +2487,7 @@
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/compositor_scene.rs",
         "crates/div-engine/src/control_geometry.rs",
+        "crates/div-engine/src/keyboard_scroll.rs",
         "crates/div-engine/src/lib.rs"
       ],
       "css_name": "overflow-y",
@@ -3782,6 +3785,7 @@
         "crates/div-engine/src/animation_timeline.rs",
         "crates/div-engine/src/control_geometry.rs",
         "crates/div-engine/src/element_dimensions.rs",
+        "crates/div-engine/src/keyboard_scroll.rs",
         "crates/div-engine/src/lib.rs",
         "crates/div-engine/src/resize_observation.rs",
         "crates/div-engine/src/scroll_button.rs",

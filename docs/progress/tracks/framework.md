@@ -73,7 +73,8 @@ uses.)
 | 0.12 B | Pointer Events (I1), with sample-canvas gap 16 (focus on `mousedown`) | Merged (#68) |
 | 0.12 C | Test input (T1), with sample-git gap 29 and dogfood gap 4 | Merged (#72) |
 | 0.12 D | Click counting: `detail` and `dblclick` (RFC 0007 section 6) | Merged (#75) |
-| I2 | Keyboard scrolling (sample-markdown MD-23) | Not started |
+| I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | In review |
+| I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`) | Not started |
 
 ## After Tier 0
 
@@ -93,6 +94,135 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 17 November 2026: keyboard scrolling and `keypress` (Tier 0 item I2a)
+
+Problem: arrows, Page Up, Page Down, Home, End and the space bar did nothing
+outside form controls, and Div dispatched no `keypress` (sample-markdown
+MD-23, the last Tier 0 item). Apps and libraries cancel `keypress` to stop a
+character or the space bar's scroll.
+
+Sources: Chromium 147.0.7727.50's `keyboard_event_manager.cc`,
+`scroll_manager.cc`, `mouse_event_manager.cc` (Chromium BSD),
+`event_handler.cc` (Apple 2-clause BSD) and `scrollable_area.cc`
+(Google/Apple 3-clause BSD), from the local checkout, each header checked
+alone first. `element.cc` is LGPL and was not read, so scroller focusability
+is measured only. The code is Div's own.
+
+Oracle (new, `tests/fidelity/fixtures/keyboard-scroll-v1`), captured by
+`tools/qualification/capture_keyboard_scroll_oracle.py` from pinned
+Chrome-for-Testing 147.0.7727.50:
+
+- **Input.** Real key input, not CDP:
+  - Windows: `WM_KEYDOWN` and `WM_KEYUP` posted to Chrome's window, which
+    must be in the foreground (probes showed no unfocused method reaches
+    the page). The script checked the foreground before every input and
+    would have aborted on a change. It ran once (196 s), with the user's
+    approval for that run.
+  - Linux (WSL, X11): XTEST, with modifiers (224 s).
+- **Coverage.** Scales 1 and 1.25. 19 scenarios on Linux, 17 on Windows:
+  posted Win32 modifiers do not reach Chrome, so the two modifier
+  scenarios are Linux only. They cover the document, nested scrollers,
+  `overscroll-behavior`, `scroll-padding`, a horizontal-only scroller, a
+  removed pressed node and its removed ancestor, focused controls and text
+  controls, cancelled `keydown`, `keypress` and `mousedown`, sequential
+  focus, which keys have a `keypress`, and modifiers.
+- **Repeatability.** Each capture was taken twice, and the two had to
+  match. The captures differ only in Delete's `keypress` (Linux has one).
+
+Change, as the new [RFC 0007](../../alpha/rfcs/0007-frames-resize-observer-pointer-events.md)
+section 7 specifies:
+
+- **Engine** (its own commit, for engine review):
+  - `Engine::scroll_logical(direction, granularity)` and
+    `ScrollGranularity` (new). They follow `ScrollManager::LogicalScroll`:
+    the chain starts at the focused element, else the pressed node, else
+    the root. The first scroller that can scroll on the axis and moves
+    ends it. A line is 40 px, a page is 87.5% of the pixel-snapped scroll
+    snapport, and a document is the whole range.
+  - `Engine::mouse_press_node` (new): set on every press, before
+    dispatch. When it is removed or detached, its former parent takes
+    its place.
+  - `scroll_button.rs`: the page-step arithmetic is shared, unchanged.
+- **`divui`:**
+  - `keypress` follows a keydown that was neither cancelled nor handled.
+    It fires for a key that commits text without Ctrl or Meta, for the
+    space bar, and for Enter (also with Shift or Ctrl). On Linux, Delete
+    has one too.
+  - Its default commits the text. On an unconsumed space it pages down,
+    or up with Shift.
+  - An unhandled keydown scrolls by `MapKeyCodeForScroll`'s rules.
+  - `Event::key` reports a `keypress`'s key.
+- **Behavior changes:**
+  - Committed text now waits for `keypress`, so cancelling `keypress`
+    stops it.
+  - Arrows, Home and End scroll when no text control has focus. Before,
+    they went to the editing commands, which did nothing there.
+  - A radio with no other radio to move to lets arrows and Page keys
+    scroll.
+  - `dispatch_key_event` now runs the `keypress` step too, with no
+    committed text.
+  - Components that handle these keys themselves must cancel the
+    `keydown` (RFC 0007, Affected tracks).
+
+Gaps, named in the oracle test, each still differing:
+
+- `keyboard-focusable-scrollers` (engine and framework, I2b, next):
+  `focus_order` 0 to 9 and `click_scroller` 1 and 2.
+- `overscroll-behavior` (engine): Div's style system has no
+  `overscroll-behavior` (`contain` 2 and 3).
+- `edit-caret-reveal` (framework): typing into the textarea scrolled off
+  the top does not reveal the caret (`textarea` 4).
+- `device-scale-scroll-offset` (engine, RFC 0011): at 1.25 Chromium's
+  scrollbars are 19 device pixels and offsets land on device pixels: 14
+  steps at 1.25 only on Windows, 15 on Linux.
+- Not visible in the settled oracle: `keyboard-smooth-scroll` (engine;
+  Chromium animates) and `keyboard-scrollend` (framework; Div has no
+  `scrollend`).
+- `windows-modified-keys-unmeasured`: Windows uses the modifier rules
+  measured on Linux.
+- `touch-press-node` (engine and framework, unmeasured; raised in the
+  engine review): Div sets the press node on every pointer's press, touch
+  included. Blink sets it only in the mouse press path, which touch
+  reaches through a tap's synthesized `mousedown`, at the tap.
+- `overscroll-behavior` lands separately: the engine track owns the
+  `div-style` property and has queued it as an engine filler.
+
+Engine review: the engine track approved 966cb58e on 17 November 2026
+(read, not built; the refactor of the page step was checked to be the same
+arithmetic). Rebased onto main `b7352743`, it is 44442d16 with the same
+`git patch-id`.
+
+Verification (Windows, MSVC, this branch rebased on main `b7352743`):
+
+- `cargo test --locked -p divui --features "windows testing" --test
+  keyboard_scroll_oracle` passes 2 tests, both new:
+  - the Windows capture replayed through a document at both scales. It
+    compares every step's events, `scroll` targets, offsets, focus and
+    control values; only the named gap steps differ, and each still does;
+  - the two captures differ only in Delete's `keypress` and the
+    Linux-only modifier scenarios.
+
+  Before the change (divui reverted, engine kept), 100 steps differ.
+- `cargo test --locked -p div-engine --test keyboard_scroll` passes 5
+  new tests: the document's line, page and document steps; the chain from
+  the pressed node; the removed pressed node; the scroll snapport's
+  padding; a hidden axis.
+- `cargo test --locked --no-fail-fast -p div-engine` passes (65 suites, 530
+  tests, 3 ignored).
+- The full framework test set passes (62 suites, 656 tests, including
+  `div-components`), as do the example builds, the `divui` doc tests (11)
+  and `cargo fmt --all --check`.
+- Linux (WSL, X11 features): `cargo test --locked -p divui --features
+  "linux testing" --test keyboard_scroll_oracle` passes 2 tests, replaying
+  the Linux capture, modifiers and Delete's `keypress` included.
+- No layout, paint or style code changed, so the census and coverage are
+  not affected (decision D4).
+- Renderer contract: `keyboard_scroll.rs` reads `direction`,
+  `writing-mode`, `overflow-x` and `overflow-y`, so the regenerated
+  `docs/renderer/generated/author-style-inventory.json` lists it as a
+  reader of those four. `python tools/qualification/generate_renderer_contract.py
+  --check` passes on main `4b20edd6` (CI's first run reported this drift).
 
 ### 17 November 2026: the Pointer Events oracle on Linux (follow-up `pointer-events-linux-derived`)
 

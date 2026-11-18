@@ -532,6 +532,9 @@ impl Engine {
                 // activation on release checks the disabled state.
                 if let Some(target) = target {
                     self.active_pointers.insert(pointer_id, target);
+                    // Set before `pointerdown` and `mousedown`, so it holds
+                    // even when they are cancelled.
+                    self.mouse_press_node = Some(target);
                 }
                 None
             }

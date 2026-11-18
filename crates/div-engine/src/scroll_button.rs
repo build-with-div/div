@@ -68,7 +68,7 @@ pub(crate) struct ScrollButtons {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Direction {
+pub(super) enum Direction {
     Up,
     Right,
     Down,
@@ -76,14 +76,14 @@ enum Direction {
 }
 
 impl Direction {
-    fn axis(self) -> usize {
+    pub(super) fn axis(self) -> usize {
         if matches!(self, Self::Left | Self::Right) {
             0
         } else {
             1
         }
     }
-    fn sign(self) -> f32 {
+    pub(super) fn sign(self) -> f32 {
         if matches!(self, Self::Left | Self::Up) {
             -1.0
         } else {
@@ -92,7 +92,7 @@ impl Direction {
     }
 }
 
-fn physical_direction(
+pub(super) fn physical_direction(
     direction: ScrollButtonDirection,
     writing: WritingDirectionMode,
 ) -> Direction {
@@ -150,7 +150,7 @@ fn physical_direction(
     }
 }
 
-fn page_step(length: i32) -> f32 {
+pub(super) fn page_step(length: i32) -> f32 {
     // Linux ScrollUtils: preserve f32 multiplication and integer truncation.
     ((length as f32 * 0.875_f32) as i32)
         .max(length - i32::MAX)
@@ -254,6 +254,23 @@ pub(super) fn scroll_snapport(style: &ComputedStyle, area: div_layout::ScrollAre
         (width - left - right).max(0.0),
         (height - top - bottom).max(0.0),
     ]
+}
+
+/// The pixel-snapped length of `VisibleScrollSnapportRect` on `axis` at
+/// scroll `offset`, which `ScrollableArea::PageStep` pages by.
+pub(super) fn visible_snapport_length(
+    area: div_layout::ScrollArea,
+    port: [f32; 4],
+    offset: f32,
+    axis: usize,
+) -> i32 {
+    let size = LayoutUnit::from_f32_round(port[axis + 2]);
+    // VisibleScrollSnapportRect uses the layout-quantized scroll position
+    // minus scroll origin, then the padding inset (not the box border).
+    let location = LayoutUnit::from_f32_round(
+        offset + port[axis] - [area.client_rect.x().to_f32(), area.client_rect.y().to_f32()][axis],
+    );
+    pixel_snapped_size(size, location).max(0)
 }
 
 /// Physical target outsets shared by snap selection and native reveal.
@@ -1223,14 +1240,7 @@ impl Engine {
             state.current_offset.1 as f32 - minimum[1],
         ];
         let port = scroll_snapport(style, area);
-        let size = LayoutUnit::from_f32_round(port[axis + 2]);
-        // VisibleScrollSnapportRect uses the layout-quantized scroll position
-        // minus scroll origin, then the padding inset (not the box border).
-        let location = LayoutUnit::from_f32_round(
-            current[axis] + minimum[axis] + port[axis]
-                - [area.client_rect.x().to_f32(), area.client_rect.y().to_f32()][axis],
-        );
-        let page = pixel_snapped_size(size, location).max(0);
+        let page = visible_snapport_length(area, port, current[axis] + minimum[axis], axis);
         let mut position = current;
         position[axis] += direction.sign() * page_step(page);
         if style.scroll_snap_axis == ScrollSnapAxis::None {
