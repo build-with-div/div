@@ -9,7 +9,11 @@
 //!   algorithm as Blink runs it (`dx`/`dy`, `x`/`y`, chunks and
 //!   `text-anchor`, and the write-back to fragments);
 //! - `core/layout/inline/fragment_item.cc`: the rotation of a character
-//!   about the start of its baseline ([`TextFragment::rotation`]).
+//!   about the start of its baseline ([`TextFragment::rotation`]);
+//! - `core/paint/text_fragment_painter.cc` and `core/paint/text_painter.cc`:
+//!   painting a fragment's glyphs ([`paint`]): the origin, the
+//!   `scale(1 / sf)` and rotation it is drawn under, fill and stroke in
+//!   `paint-order`, and the stroke scaled with the font.
 //!
 //! Blink's SVG inline layout objects (`layout_svg_inline_text`,
 //! `layout_svg_tspan`, `layout_svg_inline`) and its character record
@@ -31,18 +35,26 @@
 //!   from, `alignment-baseline` and `baseline-shift` move a `tspan`'s
 //!   baseline, all in 1/64 px.
 //!
-//! Shaping, fonts and metrics come from `div-text`.
+//! Shaping, fonts, metrics and glyph blobs come from `div-text`: each
+//! fragment's glyphs are a positioned blob over its part of the shaped run
+//! (`ShapeResult::to_positioned_text_blob`), rasterized with the raster
+//! configuration HTML text uses.
 
 use std::ops::Range;
 use std::sync::Arc;
 
+use div_geometry::{RasterBackend, RasterConfiguration, TextEdging};
 use div_style::{FontFamilyList, FontStyleEnum, FontVariation, FontWeight};
+use div_text::shaping::TextRasterPolicy;
 use div_text::{
-    Font, FontCollection, FontDescription, FontMetrics, FontPlatformData, TextDirection, TextShaper,
+    Font, FontCollection, FontDescription, FontMetrics, FontPlatformData, ShapeResult,
+    TextDirection, TextShaper,
 };
+use skia_safe::{Canvas, Paint};
 
 use crate::length::{Axis, Length, LengthContext, Unit};
 use crate::number::Scanner;
+use crate::paint::{prepare_paint, setup_stroke, to_sk_matrix, PaintLayer, SvgPaintStyle};
 use crate::transform::Matrix;
 use crate::{Point, Rect};
 
@@ -151,6 +163,9 @@ pub struct TextFont {
     pub style: FontStyleEnum,
     pub letter_spacing: f32,
     pub word_spacing: f32,
+    /// How glyphs are rasterized: the computed style's raster
+    /// configuration, as for HTML text.
+    pub raster_configuration: RasterConfiguration,
 }
 
 impl TextFont {
@@ -165,6 +180,7 @@ impl TextFont {
         description.style = self.style;
         description.letter_spacing = self.letter_spacing * scaling_factor;
         description.word_spacing = self.word_spacing * scaling_factor;
+        description.raster_configuration = self.raster_configuration;
         // Optical sizing follows the unscaled size (measured with Inter's
         // `opsz` axis at device scale 2).
         description.variation_settings.push(FontVariation {
@@ -307,6 +323,10 @@ pub struct TextFragment {
     /// Advances and offsets in scaled px, from the start of the fragment.
     pub advances: Vec<f32>,
     pub offsets: Vec<(f32, f32)>,
+    /// The shaped run the glyphs come from, and the fragment's characters
+    /// within it. Painting builds the fragment's glyph blob from these.
+    pub shape: Arc<ShapeResult>,
+    pub shape_characters: Range<usize>,
 }
 
 impl TextFragment {
@@ -329,6 +349,8 @@ impl TextFragment {
 #[derive(Clone, Debug)]
 pub struct TextLayout {
     pub scaling_factor: f32,
+    /// The `<text>`'s raster configuration, which painting follows.
+    pub raster_configuration: RasterConfiguration,
     /// Fragments in logical order, one per item.
     pub fragments: Vec<TextFragment>,
     /// For each addressable character, its fragment.
@@ -460,10 +482,13 @@ pub fn layout_scaled(
             glyphs: item.glyphs,
             advances: item.advances,
             offsets: item.offsets,
+            shape: item.shape,
+            shape_characters: item.shape_characters,
         });
     }
     TextLayout {
         scaling_factor: sf,
+        raster_configuration: text.style.font.raster_configuration,
         fragments,
         character_fragments,
     }
@@ -471,6 +496,109 @@ pub fn layout_scaled(
 
 fn clamp_f32(value: f32) -> f32 {
     value.clamp(f32::MIN, f32::MAX)
+}
+
+// ─── Painting ───────────────────────────────────────────────────────────
+
+/// Paints a laid-out `<text>`: Blink's `TextFragmentPainter::Paint` for SVG
+/// text and `TextPainter::PaintSvgTextFragment` (BSD), fragment by
+/// fragment.
+///
+/// The canvas carries the text's transform to device pixels, the one its
+/// scaling factor was computed from. `style` gives each span's paint (by
+/// [`TextFragment::span`]). Each fragment is painted under `scale(1 / sf)`
+/// and its rotation, at its box's origin truncated to 1/64 px plus the
+/// font's integer ascent, with the glyphs at their offsets from the
+/// fragment's start (the advances summed in single precision). Fill and
+/// stroke are always anti-aliased (`shape-rendering` does not apply to
+/// text), in `paint-order`; the stroke's width and dashes are scaled by the
+/// scaling factor unless `vector-effect` is `non-scaling-stroke`.
+pub fn paint(canvas: &Canvas, layout: &TextLayout, style: &dyn Fn(usize) -> SvgPaintStyle) {
+    let sf = layout.scaling_factor;
+    // `div-paint`'s choice for author text: Linux Chromium's monochrome
+    // profile fits aliased strikes; otherwise the resolved font's edging
+    // applies, with the LCD phase taken from the glyph origins.
+    let author = layout.raster_configuration.author_text;
+    let policy = if layout.raster_configuration.backend == RasterBackend::ChromiumLinux
+        && author.edging == TextEdging::Alias
+    {
+        TextRasterPolicy::ChromiumAuthorAliased
+    } else {
+        TextRasterPolicy::Skia
+    };
+    let lcd = author.edging == TextEdging::SubpixelAntiAlias;
+    for fragment in &layout.fragments {
+        let style = style(fragment.span);
+        let paints = fragment_paints(&style, sf);
+        if paints.iter().all(Option::is_none) {
+            continue;
+        }
+        let mut placements = Vec::with_capacity(fragment.advances.len());
+        let mut x = 0.0f32;
+        for (advance, offset) in fragment.advances.iter().zip(&fragment.offsets) {
+            placements.push((x + offset.0, offset.1));
+            x += advance;
+        }
+        // `PhysicalRect::FastAndLossyFromRectF` truncates to layout units.
+        let left = from_layout(to_layout_trunc(fragment.rect.x));
+        let Some(blob) = fragment.shape.to_positioned_text_blob(
+            fragment.shape_characters.clone(),
+            &placements,
+            policy,
+            1.0,
+            lcd.then_some(left),
+        ) else {
+            continue;
+        };
+        let top = from_layout(to_layout_trunc(fragment.rect.y) + to_layout_round(fragment.ascent));
+        canvas.save();
+        if sf != 1.0 {
+            canvas.scale((1.0 / sf, 1.0 / sf));
+        }
+        if fragment.angle != 0.0 {
+            canvas.concat(&to_sk_matrix(&fragment.rotation()));
+        }
+        for paint in paints.iter().flatten() {
+            canvas.draw_text_blob(&blob, (left, top), paint);
+        }
+        canvas.restore();
+    }
+}
+
+/// `PrepareSvgPaints` and `OrderPaints`: the fill and stroke, in
+/// `paint-order`.
+fn fragment_paints(style: &SvgPaintStyle, sf: f32) -> [Option<Paint>; 2] {
+    let fill = style
+        .has_fill()
+        .then(|| prepare_paint(style.fill, style.fill_opacity))
+        .flatten()
+        .map(|mut flags| {
+            flags.set_anti_alias(true);
+            flags
+        });
+    let stroke = style
+        .has_visible_stroke()
+        .then(|| prepare_paint(style.stroke, style.stroke_opacity))
+        .flatten()
+        .map(|mut flags| {
+            flags.set_anti_alias(true);
+            // `PrepareStrokeGeometry`: the stroke follows the scaled font.
+            let scale = if style.non_scaling_stroke { 1.0 } else { sf };
+            setup_stroke(&style.stroke_style, scale, &mut flags);
+            flags.set_stroke_width(style.stroke_style.width * scale);
+            flags
+        });
+    let stroke_first = style
+        .paint_order
+        .0
+        .iter()
+        .find(|layer| **layer != PaintLayer::Markers)
+        == Some(&PaintLayer::Stroke);
+    if stroke_first {
+        [stroke, fill]
+    } else {
+        [fill, stroke]
+    }
 }
 
 // ─── Flattening and white space ─────────────────────────────────────────
@@ -785,6 +913,8 @@ struct Item {
     glyphs: Vec<u16>,
     advances: Vec<f32>,
     offsets: Vec<(f32, f32)>,
+    shape: Arc<ShapeResult>,
+    shape_characters: Range<usize>,
 }
 
 /// Per-character state of the layout algorithm. Blink:
@@ -873,7 +1003,7 @@ fn css_positions(
         }
         let run_text: String = texts[start..end].iter().map(|(_, t)| *t).collect();
         let font = &fonts.fonts[font_index].1;
-        let shaped = shaper.shape(&run_text, font, TextDirection::Ltr);
+        let shaped = Arc::new(shaper.shape(&run_text, font, TextDirection::Ltr));
         // Each glyph's advance, by the character its cluster starts at.
         let mut glyph_advances: Vec<Vec<f32>> = vec![Vec::new(); shaped.num_characters];
         for run in &shaped.runs {
@@ -955,6 +1085,8 @@ fn css_positions(
                     glyphs: Vec::new(),
                     advances: Vec::new(),
                     offsets: Vec::new(),
+                    shape: Arc::clone(&shaped),
+                    shape_characters: item_start..item_end,
                 };
                 for run in &shaped.runs {
                     for g in 0..run.glyphs.len() {
@@ -1148,5 +1280,42 @@ mod tests {
             scaling_factor(&Matrix::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
             1.0
         );
+    }
+
+    fn stroked() -> SvgPaintStyle {
+        SvgPaintStyle {
+            stroke: crate::paint::SvgPaint::Color(skia_safe::Color4f::new(1.0, 0.0, 0.0, 1.0)),
+            shape_rendering: crate::paint::ShapeRendering::CrispEdges,
+            ..SvgPaintStyle::default()
+        }
+    }
+
+    #[test]
+    fn glyph_paints_follow_paint_order_and_are_anti_aliased() {
+        let [first, second] = fragment_paints(&stroked(), 1.0);
+        let (fill, stroke) = (first.unwrap(), second.unwrap());
+        assert_eq!(fill.style(), skia_safe::PaintStyle::Fill);
+        assert_eq!(stroke.style(), skia_safe::PaintStyle::Stroke);
+        // `shape-rendering` does not apply to text.
+        assert!(fill.is_anti_alias() && stroke.is_anti_alias());
+
+        let mut style = stroked();
+        style.paint_order = crate::paint::PaintOrder::parse("stroke").unwrap();
+        let [first, _] = fragment_paints(&style, 1.0);
+        assert_eq!(first.unwrap().style(), skia_safe::PaintStyle::Stroke);
+
+        style.fill = crate::paint::SvgPaint::None;
+        assert!(fragment_paints(&style, 1.0)[1].is_none());
+    }
+
+    #[test]
+    fn the_stroke_follows_the_scaled_font() {
+        let mut style = stroked();
+        style.stroke_style.width = 1.5;
+        let [_, stroke] = fragment_paints(&style, 2.0);
+        assert_eq!(stroke.unwrap().stroke_width(), 3.0);
+        style.non_scaling_stroke = true;
+        let [_, stroke] = fragment_paints(&style, 2.0);
+        assert_eq!(stroke.unwrap().stroke_width(), 1.5);
     }
 }

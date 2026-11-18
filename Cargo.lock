@@ -1026,6 +1026,7 @@ dependencies = [
 name = "div-svg"
 version = "0.2.0"
 dependencies = [
+ "div-geometry",
  "div-style",
  "div-text",
  "png 0.17.16",

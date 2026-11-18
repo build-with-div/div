@@ -20,9 +20,18 @@ SVG text is shaped at its size on screen, so the capture runs once per
 device scale: 1 with nothing emulated, and 2 at real zoom
 (`--force-device-scale-factor`, RFC 0010).
 
-    text_corpus.py list
+`pixels` captures the same cases, plus the paint cases (`paint/`: stroke,
+`paint-order`, opacities, dashes, a non-scaling stroke, large glyphs), as
+pixels: each case in its own slot of one sheet per device scale, rendered
+through `render_chrome` (`tools/accountability/run_all_pixel_comparisons.py`)
+after the web fonts load. `crates/div-svg/tests/text_corpus.rs` paints each
+case with `div_svg::text::paint` and compares its slot exactly.
+
+    text_corpus.py list [--pixels]
     text_corpus.py capture --chrome PATH \\
         --output tests/fidelity/fixtures/svg-text-v1/positions-linux.json
+    text_corpus.py pixels --chrome PATH \\
+        --output-prefix tests/fidelity/fixtures/svg-text-v1/pixels-linux
 """
 
 from __future__ import annotations
@@ -44,6 +53,7 @@ sys.path.insert(0, str(ROOT / "tools/accountability"))
 import run_all_pixel_comparisons as pixel_runner  # noqa: E402
 
 SCHEMA = "div-svg-text-corpus-v1"
+PIXEL_SCHEMA = "div-svg-text-pixels-v1"
 EXPECTED_CHROMIUM = "147.0.7727.50"
 FONTS = ROOT / "tests/fidelity/components/assets/fonts"
 FACES = {
@@ -282,6 +292,138 @@ def corpus() -> list[dict]:
             + baseline_cases() + spacing_cases() + transform_cases() + chart_cases())
 
 
+def paint_cases() -> list[dict]:
+    """Pixel-only cases: how the glyphs are filled and stroked."""
+    word = "Revenue 42"
+    big = 'x="10" y="44"'
+    return [
+        case("paint/stroke", text(word, f'{big} stroke="#ef4444"'), font_size=36,
+             size=(240, 60)),
+        case("paint/stroke-only", text(word, f'{big} fill="none" stroke="#2563eb"'),
+             font_size=36, size=(240, 60)),
+        case("paint/stroke-wide", text(word, f'{big} stroke="#ef4444" stroke-width="3" '
+                                             'stroke-linejoin="round"'),
+             font_size=36, size=(240, 60)),
+        case("paint/order-stroke", text(word, f'{big} stroke="#ef4444" stroke-width="4" '
+                                              'paint-order="stroke"'),
+             font_size=36, size=(240, 60)),
+        case("paint/fill-opacity", text(word, f'{big} fill="#2563eb" fill-opacity="0.5"'),
+             font_size=36, size=(240, 60)),
+        case("paint/stroke-opacity", text(word, f'{big} stroke="#ef4444" stroke-width="2" '
+                                                'stroke-opacity="0.5"'),
+             font_size=36, size=(240, 60)),
+        case("paint/stroke-dash", text(word, f'{big} fill="none" stroke="#09090b" '
+                                             'stroke-dasharray="3 2"'),
+             font_size=36, size=(240, 60)),
+        case("paint/stroke-scaled",
+             f'<g transform="scale(1.5)">{text(word, "x=\"6\" y=\"30\" stroke=\"#ef4444\"")}</g>',
+             font_size=24, size=(240, 60)),
+        case("paint/non-scaling",
+             f'<g transform="scale(1.5)">{text(word, "x=\"6\" y=\"30\" stroke=\"#ef4444\" vector-effect=\"non-scaling-stroke\"")}</g>',
+             font_size=24, size=(240, 60)),
+        case("paint/tspan-stroke",
+             text(f'Total <tspan stroke="#ef4444" fill="none">128</tspan> units', big),
+             font_size=30, size=(240, 60)),
+        case("paint/current-color",
+             text(word, f'{big} fill="currentColor" color="#16a34a"'), font_size=36,
+             size=(240, 60)),
+        case("paint/crisp", text(word, f'{big} shape-rendering="crispEdges"'), font_size=36,
+             size=(240, 60)),
+        case("paint/large", text("Ag", 'x="8" y="86"'), font_size=96, size=(160, 100)),
+        case("paint/rotate-stroke",
+             text("ABCD", 'x="20" y="40" rotate="20" stroke="#ef4444"'), font_size=32,
+             size=(200, 60)),
+    ]
+
+
+def pixel_cases() -> list[dict]:
+    return corpus() + paint_cases()
+
+
+SHEET_WIDTH = 1200
+GAP = 8
+
+
+def pixel_sheet(cases: list[dict], scale: int) -> dict:
+    """Shelf-pack the cases into one sheet, in order, `GAP` px apart."""
+    placed = []
+    x = y = row = 0
+    for c in cases:
+        if x and x + c["width"] > SHEET_WIDTH:
+            x, y, row = 0, y + row + GAP, 0
+        placed.append({**c, "x": x, "y": y})
+        x += c["width"] + GAP
+        row = max(row, c["height"])
+    return {"scale": scale, "width": SHEET_WIDTH, "height": y + row + GAP, "cases": placed}
+
+
+def pixel_page(sheet: dict) -> str:
+    slots = "\n".join(
+        f'<div style="left:{c["x"]}px;top:{c["y"]}px">{c["svg"]}</div>' for c in sheet["cases"])
+    return ("<!doctype html><meta charset=utf-8>"
+            f"<style>{font_faces()}html{{overflow:hidden;background:#fff;color:{INK}}}"
+            "body{margin:0}div{position:absolute}svg{display:block}</style>\n"
+            f"{slots}\n")
+
+
+def capture_pixels(chrome: Path, prefix: Path) -> int:
+    cases = pixel_cases()
+    sheets = [pixel_sheet(cases, scale) for scale in SCALES]
+    version = ""
+    prefix.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="div-svg-text-", ignore_cleanup_errors=True) as tmp:
+        for sheet in sheets:
+            scale = sheet["scale"]
+            page = Path(tmp) / f"sheet-{scale}x.html"
+            page.write_text(pixel_page(sheet), encoding="utf-8")
+            png = prefix.parent / f"{prefix.name}-{scale}x.png"
+            for attempt in range(3):
+                if pixel_runner.render_chrome(
+                    str(page), str(png), str(chrome), str(chrome.parent),
+                    logical_width=sheet["width"], logical_height=sheet["height"],
+                    device_scale=float(scale),
+                ):
+                    break
+                print(f"{scale}x capture attempt {attempt + 1} failed", file=sys.stderr)
+                time.sleep(1)
+            else:
+                raise SystemExit(f"could not capture the {scale}x sheet")
+            sheet["png"] = png.name
+            sheet["png_sha256"] = hashlib.sha256(png.read_bytes()).hexdigest()
+            sheet["method"] = pixel_runner.device_scale_method(scale)
+    version = browser_version(chrome)
+
+    fonts = {family: hashlib.sha256(path.read_bytes()).hexdigest()
+             for family, path in FACES.items()}
+    corpus_text = json.dumps({"sheets": [{k: v for k, v in s.items() if not k.startswith("png")}
+                                         for s in sheets], "fonts": fonts}, sort_keys=True)
+    header = {
+        "schema": PIXEL_SCHEMA,
+        "captured": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "chromium": version,
+        "pinned": EXPECTED_CHROMIUM in version,
+        "platform": sys.platform,
+        "fonts_sha256": fonts,
+        "corpus_sha256": hashlib.sha256(corpus_text.encode()).hexdigest(),
+    }
+    lines = ["{"]
+    lines += [f"{json.dumps(k)}: {json.dumps(v)}," for k, v in sorted(header.items())]
+    lines.append('"sheets": [')
+    sheet_texts = []
+    for sheet in sheets:
+        meta = {k: v for k, v in sheet.items() if k != "cases"}
+        body = ",\n".join(json.dumps(c, sort_keys=True) for c in sheet["cases"])
+        sheet_texts.append(json.dumps(meta, sort_keys=True)[:-1] + ', "cases": [\n' + body + "]}")
+    lines.append(",\n".join(sheet_texts))
+    lines.append("]}")
+    out = prefix.parent / f"{prefix.name}.json"
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    json.loads(out.read_text(encoding="utf-8"))
+    print(f"{len(cases)} cases x {len(SCALES)} scales captured as pixels from {version} "
+          f"into {out}")
+    return 0
+
+
 PAGE_SCRIPT = r"""
 (async () => {
   await document.fonts.ready;
@@ -380,6 +522,24 @@ def capture(chrome: Path, cases: list[dict], scale: int) -> tuple[dict, str]:
         return result["cases"], version
 
 
+def browser_version(chrome: Path) -> str:
+    """The product string of `chrome`, which `render_chrome` does not report."""
+    with tempfile.TemporaryDirectory(prefix="div-svg-text-", ignore_cleanup_errors=True) as tmp,             ExitStack() as stack:
+        profile = Path(tmp) / "profile"
+        process = subprocess.Popen(
+            [str(chrome), "--headless", "--disable-gpu", "--no-sandbox", "--no-first-run",
+             "--no-default-browser-check", "--remote-debugging-port=0",
+             f"--user-data-dir={profile}", "about:blank"],
+            env=pixel_runner.chrome_environment(str(chrome.parent)),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+        stack.callback(pixel_runner._stop_chromium_process, process)
+        port = pixel_runner._wait_for_devtools_endpoint(str(profile), process, timeout=30)
+        client = pixel_runner._CdpWebSocket(pixel_runner._page_websocket_url(port, timeout=30))
+        stack.callback(pixel_runner._close_chromium_client, client)
+        return client.command("Browser.getVersion").get("product", "unknown")
+
+
 def evaluate(client, expression: str, await_promise: bool = False):
     response = client.command(
         "Runtime.evaluate",
@@ -392,16 +552,23 @@ def evaluate(client, expression: str, await_promise: bool = False):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("list")
+    lst = sub.add_parser("list")
+    lst.add_argument("--pixels", action="store_true", help="the pixel set's cases")
     cap = sub.add_parser("capture")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output", type=Path, required=True)
+    pix = sub.add_parser("pixels")
+    pix.add_argument("--chrome", type=Path, required=True)
+    pix.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
 
-    cases = corpus()
-    ids = [c["id"] for c in cases]
+    cases = pixel_cases() if getattr(args, "pixels", False) else corpus()
+    ids = [c["id"] for c in pixel_cases()]
     if len(set(ids)) != len(ids):
         raise SystemExit("duplicate case ids")
+    if args.command == "pixels":
+        return capture_pixels(args.chrome, args.output_prefix)
+    ids = [c["id"] for c in cases]
     if args.command == "list":
         for c in cases:
             print(f'{c["id"]}\t{c["svg"]}')
