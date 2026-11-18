@@ -735,6 +735,7 @@ impl Engine {
     }
 
     /// Validate whether native focus can be requested without changing state.
+    /// A scroller's focusability reads the latest layout: update first.
     pub fn can_focus(&self, handle: NodeHandle) -> Result<bool, EngineError> {
         self.resolve(handle)?;
         Ok(self.is_focusable(handle))
@@ -745,6 +746,11 @@ impl Engine {
         handle: NodeHandle,
         origin: FocusOrigin,
     ) -> Result<Option<NodeHandle>, EngineError> {
+        // Only a scroller rule, which reads layout, can make an element
+        // without focus semantics focusable.
+        if self.resolve(handle).is_ok() && !self.has_focus_semantics(handle) {
+            self.update()?;
+        }
         if !self.can_focus(handle)?
             || (matches!(origin, FocusOrigin::Pointer) && !self.is_mouse_focusable(handle))
         {
@@ -828,6 +834,8 @@ impl Engine {
     }
 
     pub fn advance_focus(&mut self, direction: i32) -> Result<Option<NodeHandle>, EngineError> {
+        // Scrollers' focusability follows layout.
+        self.update()?;
         let next = self.next_focus_target(direction)?;
         if let Some(next) = next {
             self.focus_with_origin(next, FocusOrigin::Keyboard)?;
@@ -837,6 +845,7 @@ impl Engine {
 
     /// Choose a sequential focus target without mutating focus. Native frontends
     /// release their engine borrow before delivering the intervening blur event.
+    /// Scrollers' focusability reads the latest layout: update first.
     pub fn next_focus_target(&self, direction: i32) -> Result<Option<NodeHandle>, EngineError> {
         if direction != -1 && direction != 1 {
             return Err(EngineError::InvalidInput("focus direction must be -1 or 1"));

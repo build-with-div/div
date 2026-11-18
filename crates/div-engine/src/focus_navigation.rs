@@ -9,9 +9,11 @@
 //! `keyboard-scroll-v1`:
 //!
 //! - A scroller is focusable when it can scroll on an axis that overflows:
-//!   `overflow: auto` or `scroll` on that axis and a scroll range there. A
-//!   scroller whose content fits, one with `overflow: hidden`, and one that
-//!   overflows only on a hidden axis are not.
+//!   `overflow: auto` or `scroll` on that axis, and scrollable overflow
+//!   beyond the client rectangle there, by any amount (60.4px of content in
+//!   60px counts, though its snapped scroll range is 0). A scroller whose
+//!   content fits, one with `overflow: hidden`, and one that overflows only
+//!   on a hidden axis are not.
 //! - Such a scroller without `tabindex` is in the sequential order only when
 //!   no descendant is (`focus_controller.cc`: "a scroller with focusable
 //!   children" supports focus but is not keyboard focusable). A descendant
@@ -57,8 +59,9 @@ pub enum PressFocus {
 }
 
 impl Engine {
-    /// A scroller that can scroll on an axis that overflows. The viewport is
-    /// not one. Reads the latest layout; callers that need it fresh update
+    /// A scroller that can scroll on an axis whose scrollable overflow
+    /// extends past its client rectangle, unsnapped. The viewport is not
+    /// one. Reads the latest layout; callers that need it fresh update
     /// first.
     pub(crate) fn is_focusable_scroller(&self, handle: NodeHandle) -> bool {
         let Ok(node) = self.resolve(handle) else {
@@ -73,9 +76,13 @@ impl Engine {
         if !area.is_scroll_container() {
             return false;
         }
-        let ((left, right), (top, bottom)) = area.limits();
-        (area.overflow_x.is_scrollable() && right > left)
-            || (area.overflow_y.is_scrollable() && bottom > top)
+        let (content, client) = (area.content_rect, area.client_rect);
+        let overflows_x =
+            content.x() < client.x() || content.x() + content.width() > client.x() + client.width();
+        let overflows_y = content.y() < client.y()
+            || content.y() + content.height() > client.y() + client.height();
+        (area.overflow_x.is_scrollable() && overflows_x)
+            || (area.overflow_y.is_scrollable() && overflows_y)
     }
 
     pub(crate) fn tabindex(&self, handle: NodeHandle) -> Option<i32> {
@@ -104,10 +111,13 @@ impl Engine {
         self.has_focus_semantics(handle) || !self.has_keyboard_focusable_descendant(handle)
     }
 
+    /// One walk, linear in the subtree: a focusable descendant without a
+    /// negative `tabindex` is either keyboard focusable itself or a scroller
+    /// with a keyboard-focusable descendant, so either way the answer is yes.
     fn has_keyboard_focusable_descendant(&self, handle: NodeHandle) -> bool {
         let mut stack = self.presentation_children(handle).unwrap_or_default();
         while let Some(node) = stack.pop() {
-            if self.is_keyboard_focusable(node) {
+            if self.is_focusable(node) && !self.tabindex(node).is_some_and(|value| value < 0) {
                 return true;
             }
             stack.extend(self.presentation_children(node).unwrap_or_default());

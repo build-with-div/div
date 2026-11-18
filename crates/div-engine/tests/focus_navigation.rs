@@ -101,12 +101,14 @@ fn a_scroller_is_focusable_when_it_can_scroll_an_axis_that_overflows() {
         200.0,
     );
     let (plain, _) = scroller(&mut engine, 10.0, 90.0, AUTO, 200.0);
+    // 0.4px of overflow counts, though the snapped scroll range is 0.
+    let (fraction, _) = scroller(&mut engine, 120.0, 90.0, AUTO, 60.4);
     engine.update().unwrap();
-    let focusable: Vec<_> = [fits, scroll_fits, hidden, cross_axis, plain]
+    let focusable: Vec<_> = [fits, scroll_fits, hidden, cross_axis, plain, fraction]
         .iter()
         .map(|node| engine.can_focus(*node).unwrap())
         .collect();
-    assert_eq!(focusable, [false, false, false, false, true]);
+    assert_eq!(focusable, [false, false, false, false, true, true]);
     // Script focus reaches it; a press never does.
     engine.focus(plain).unwrap();
     assert_eq!(engine.focused(), Some(plain));
