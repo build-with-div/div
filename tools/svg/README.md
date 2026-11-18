@@ -520,9 +520,9 @@ opacity, dash and `paint-order` case. The other 46 are named gaps in
   hinted whatever the transform; Chromium leaves glyphs unhinted when the
   device matrix is not a scale. Unhinted outlines made synthetic italic
   exact and left the rotated cases a few edge pixels off.
-- **Non-uniform scale (4).** `xf/scale-nonuniform` and `xf/viewbox-none`
+- **T7, non-uniform scale (4).** `xf/scale-nonuniform` and `xf/viewbox-none`
   have exact positions since T4, but their glyphs still differ. The cause
-  is not measured yet.
+  is not measured yet; the engine lane measures it after T5 and T6.
 
 On Windows, no capture is exact yet. Both sides paint LCD glyphs, and 275
 of the 283 cases without a position gap differ only in tone, by at most 16

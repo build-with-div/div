@@ -62,8 +62,9 @@ linux 2x xf/rotate-30 707 208
 linux 2x xf/rotate-tick 823 168
 linux 2x xf/skew 886 200
 
-# Engine (div-text), after T4: the positions are exact, but the glyphs under a non-uniform
-# scale still differ. The cause is not measured yet; the engine lane measures it with T5 and T6.
+# T7, glyphs under a non-uniform scale, engine (div-text shaping/web_font_outlines.rs): after T4
+# the positions are exact, but the glyphs still differ. Cause: unmeasured. The engine lane
+# measures it after T5 and T6; it may follow the same hinting rule as T6.
 linux 1x xf/scale-nonuniform 578 144
 linux 1x xf/viewbox-none 578 144
 linux 2x xf/scale-nonuniform 1526 255
