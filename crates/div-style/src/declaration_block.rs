@@ -72,7 +72,10 @@ pub fn parse_declaration_block(text: &str) -> Result<Vec<BlockDeclaration>, Vec<
     }
 }
 
-fn parse_declaration(text: &str, source: Range<usize>) -> Result<BlockDeclaration, BlockError> {
+pub(crate) fn parse_declaration(
+    text: &str,
+    source: Range<usize>,
+) -> Result<BlockDeclaration, BlockError> {
     let declaration = &text[source.clone()];
     let error = |message: String| BlockError::new(message, source.clone());
     if top_level_position(declaration, b'{').is_some() {
@@ -128,7 +131,7 @@ pub(crate) fn split_important(value: &str) -> (&str, bool) {
 /// The text with each comment's bytes replaced by spaces, so byte offsets
 /// still point into the caller's text. A comment separates tokens, which a
 /// space does too.
-fn strip_comments(text: &str) -> Result<String, BlockError> {
+pub(crate) fn strip_comments(text: &str) -> Result<String, BlockError> {
     let mut bytes = text.as_bytes().to_vec();
     let mut index = 0;
     let mut quote = None;
@@ -247,7 +250,7 @@ fn top_level_position(text: &str, target: u8) -> Option<usize> {
     None
 }
 
-fn trimmed_range(text: &str, range: Range<usize>) -> Range<usize> {
+pub(crate) fn trimmed_range(text: &str, range: Range<usize>) -> Range<usize> {
     let slice = &text[range.clone()];
     let start = range.start + (slice.len() - slice.trim_start().len());
     let end = range.end - (slice.len() - slice.trim_end().len());

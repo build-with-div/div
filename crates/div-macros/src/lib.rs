@@ -4,6 +4,7 @@ use proc_macro::TokenStream;
 
 mod component;
 mod style_macro;
+mod stylesheet_macro;
 mod typed_style_cases;
 mod view;
 
@@ -92,6 +93,34 @@ pub fn view(input: TokenStream) -> TokenStream {
 pub fn style(input: TokenStream) -> TokenStream {
     let source = proc_macro::Span::call_site().source_text();
     style_macro::expand(input.into(), source).into()
+}
+
+/// CSS style rules compiled to a typed `div::typed_style::stylesheet::StyleSheet`.
+///
+/// Selectors and values are parsed at compile time, with the same grammar as
+/// `style!`, and emitted as constructors, so nothing is parsed at run time.
+/// The macro defines a module holding the sheet, as `SHEET`, and a `classes`
+/// module with one `ClassId` per class the selectors use.
+/// An unknown property, an invalid value, an unsupported selector or
+/// at-rule, and a misspelt class are compile errors.
+///
+/// ```ignore
+/// div::stylesheet!(pub cards, "src/cards.css");
+/// div::stylesheet!(theme {
+///     @layer base, components;
+///     @layer components { .card { padding: 8px; &:hover { opacity: 0.9 } } }
+/// });
+///
+/// document.adopt_stylesheet(&cards::SHEET)?;
+/// element.add_class(&cards::classes::card);
+/// ```
+///
+/// The braced form reads the macro call's source text, as `style!` does;
+/// inside another macro, use the file form.
+#[proc_macro]
+pub fn stylesheet(input: TokenStream) -> TokenStream {
+    let source = proc_macro::Span::call_site().source_text();
+    stylesheet_macro::expand(input.into(), source).into()
 }
 
 /// Component attribute macro.

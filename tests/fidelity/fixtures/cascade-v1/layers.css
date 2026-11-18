@@ -1,0 +1,16 @@
+@layer base, theme;
+.u { opacity: 0.9 }
+@layer theme {
+  .t { opacity: 0.3 }
+  #imp { color: rgb(0, 0, 255) !important }
+}
+@layer base {
+  .t { opacity: 0.2; padding-left: 7px }
+  #t2 { opacity: 0.25 }
+  #imp { color: rgb(255, 0, 0) !important; opacity: 0.5 }
+}
+#imp { color: rgb(0, 128, 0) !important }
+.later { opacity: 0.4 }
+@layer base {
+  .later { opacity: 0.6 }
+}

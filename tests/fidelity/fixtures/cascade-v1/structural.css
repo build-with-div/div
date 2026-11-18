@@ -1,0 +1,6 @@
+.s > div:first-child { opacity: 0.2 }
+.s > div:last-child { color: rgb(0, 0, 255) }
+.s > div:only-child { padding-left: 3px }
+.s > div:nth-child(2n+1) { margin-top: 1px }
+.s > div:nth-child(2 of .k) { font-size: 20px }
+div:empty { font-weight: 700 }

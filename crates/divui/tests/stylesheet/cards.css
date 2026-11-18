@@ -1,0 +1,17 @@
+/* Read by `stylesheet!(cards, "tests/stylesheet/cards.css")`. */
+@layer base, components;
+
+@layer base {
+  .card { opacity: 0.1; }
+}
+
+@layer components {
+  .card {
+    opacity: 0.2;
+
+    &.active { opacity: 0.3; }
+  }
+}
+
+.card-title { opacity: 0.4 }
+.type { opacity: 0.5 !important }

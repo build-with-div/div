@@ -48,6 +48,8 @@ pub enum Error {
     Platform(String),
     /// UI tasks were still running when a headless wait gave up.
     TasksStillRunning(usize),
+    /// A style sheet could not be adopted or removed.
+    StyleSheet(div_engine::StyleSheetError),
 }
 
 impl std::fmt::Display for Error {
@@ -69,6 +71,7 @@ impl std::fmt::Display for Error {
             Self::TasksStillRunning(count) => {
                 write!(f, "{count} UI task(s) were still running")
             }
+            Self::StyleSheet(error) => error.fmt(f),
         }
     }
 }
@@ -96,6 +99,12 @@ impl From<div_compositor::CompositorError> for Error {
 impl From<div_style::AnimationError> for Error {
     fn from(value: div_style::AnimationError) -> Self {
         Self::Animation(value)
+    }
+}
+
+impl From<div_engine::StyleSheetError> for Error {
+    fn from(value: div_engine::StyleSheetError) -> Self {
+        Self::StyleSheet(value)
     }
 }
 

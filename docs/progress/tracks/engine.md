@@ -189,3 +189,11 @@ on branch `components/c4-assets` and the shared findings note.
   placements equal to the advances give the advance blob. The census and
   CSS Grid coverage are unchanged at all four profiles.
   [Record](../positioned-text-blob-t1-2026-11-17.md).
+- 17 November 2026: `stylesheet!` compiles CSS style rules, from a file
+  or inline, to a typed `StyleSheet` and typed class names (0.1 PR 3a),
+  and a document adopts it. Nesting and named layers are supported;
+  `@media` and other unsupported constructs are compile errors. A
+  cascade oracle of 8 cases in pinned Chromium gives the same computed
+  values for all 344 probes. The census and CSS Grid coverage are
+  unchanged at all four profiles.
+  [Record](../stylesheet-pr3a-2026-11-17.md).

@@ -65,6 +65,25 @@ pub enum StyleSheetError {
     Engine(EngineError),
 }
 
+impl std::fmt::Display for StyleSheetError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PropertyType { property } => write!(
+                formatter,
+                "a `{}` declaration holds a value of another property's type",
+                property.metadata().css_name
+            ),
+            Self::UnsupportedPseudoClass(name) => {
+                write!(formatter, "the cascade does not match `:{name}` yet")
+            }
+            Self::UnknownSheet => formatter.write_str("no adopted style sheet has this id"),
+            Self::Engine(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl std::error::Error for StyleSheetError {}
+
 impl From<EngineError> for StyleSheetError {
     fn from(error: EngineError) -> Self {
         Self::Engine(error)
