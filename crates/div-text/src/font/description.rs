@@ -220,9 +220,84 @@ impl Default for FontDescription {
     }
 }
 
+/// `size` device pixels truncated to 1/100 px, in f32.
+fn truncate_to_hundredths(size: f32) -> f32 {
+    (size * 100.0).floor() / 100.0
+}
+
+fn device_scale(device_scale_factor: f64) -> f32 {
+    if device_scale_factor.is_finite() && device_scale_factor > 0.0 {
+        device_scale_factor as f32
+    } else {
+        1.0
+    }
+}
+
+/// The size, in CSS pixels, a font is made at for `size` CSS pixels at
+/// `device_scale_factor`: the device-pixel size truncated to 1/100 px.
+///
+/// Pinned Chromium 147 makes a font at its device-pixel size truncated to
+/// 1/100 px, after `size-adjust` and `font-size-adjust`. The truncation runs
+/// in f32, so a size whose f32 value lies just below its hundredth (16.05 is
+/// 16.0499992) drops to the hundredth below. Measured in
+/// `tests/fidelity/fixtures/font-size-precision-v1`.
+pub fn font_cache_size(size: f32, device_scale_factor: f64) -> f32 {
+    if !size.is_finite() || size <= 0.0 {
+        return size;
+    }
+    let scale = device_scale(device_scale_factor);
+    truncate_to_hundredths(size * scale) / scale
+}
+
+/// The size, in device pixels, by which a document's font cache finds a font
+/// for `size` CSS pixels at `device_scale_factor`: the device-pixel size
+/// truncated to 1/100 px twice, before `size-adjust` and `font-size-adjust`.
+///
+/// Sizes with one key share the font made for the first of them that the
+/// document meets. Pinned Chromium 147 does the same: at 2x, 16.009px after
+/// 16.001px uses the 32.00px font, while 16.009px alone uses a 32.01px one.
+/// At 1x, 16.22px (made at 16.21) after 16.21px (made at 16.20) uses the
+/// 16.20px font. Measured in `tests/fidelity/fixtures/font-size-precision-v1`.
+pub fn font_cache_key_size(size: f32, device_scale_factor: f64) -> f32 {
+    if !size.is_finite() || size <= 0.0 {
+        return size;
+    }
+    truncate_to_hundredths(truncate_to_hundredths(
+        size * device_scale(device_scale_factor),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn font_cache_size_truncates_device_pixels_to_hundredths_in_f32() {
+        assert_eq!(font_cache_size(16.009, 1.0), 16.0);
+        assert_eq!(font_cache_size(25.298, 1.0), 25.29);
+        assert_eq!(font_cache_size(13.3333, 1.0), 13.33);
+        assert_eq!(font_cache_size(16.01, 1.0), 16.01);
+        // f32(16.05) is 16.0499992.
+        assert_eq!(font_cache_size(16.05, 1.0), 16.04);
+        // 32.018 device pixels are made at 32.01.
+        assert_eq!(font_cache_size(16.009, 2.0), 16.005);
+        // 20.0085 device pixels are made at 20.00.
+        assert_eq!(font_cache_size(13.339, 1.5), 20.0 / 1.5);
+        assert_eq!(font_cache_size(0.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn font_cache_key_size_truncates_twice() {
+        // 16.22 is made at 16.21, whose f32 value 16.2099991 keys at 16.20.
+        assert_eq!(font_cache_key_size(16.22, 1.0), 16.2);
+        assert_eq!(font_cache_key_size(16.21, 1.0), 16.2);
+        assert_eq!(font_cache_key_size(16.23, 1.0), 16.23);
+        // At 2x, 32.002 and 32.018 device pixels share the 32.00 key, while
+        // 26.002 and 26.018 keep 26.00 and 26.01.
+        assert_eq!(font_cache_key_size(16.001, 2.0), 32.0);
+        assert_eq!(font_cache_key_size(16.009, 2.0), 32.0);
+        assert_eq!(font_cache_key_size(13.009, 2.0), 26.01);
+    }
 
     #[test]
     fn percentage_text_size_adjust_changes_used_not_specified_size() {

@@ -5,7 +5,9 @@
 //! pixels, so font-relative lengths and text positions move by fractions of
 //! a CSS pixel with the scale. Div lays out in CSS px at every scale and
 //! keeps its scale-1 value. That value is Chromium's at scale 1 and the one
-//! each test pins at every scale.
+//! each test pins at every scale, except where a font metric moves with the
+//! device size Div makes the font at (T4): such a test pins Div's value per
+//! scale.
 //!
 //! A test lists each value where real-zoom Chromium differs from Div as a gap:
 //! (scale, case, phase, Chromium's value). For a listed gap, Div's value

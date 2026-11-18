@@ -409,20 +409,20 @@ python tools/svg/text_corpus.py capture \
 ### What `div_svg::text` matches
 
 `crates/div-svg/tests/text_corpus.rs` compares 24,056 numbers per OS
-exactly, as f64. On Linux, 129 of 131 cases match at both scales. On
-Windows, 123 match at scale 1 and 126 at scale 2.
+exactly, as f64. On Linux, all 131 cases match at both scales. On
+Windows, 126 match at scale 1 and 129 at scale 2.
 
-Every remaining difference is one of two precision behaviours in
-`div-text`, which the engine lane owns:
+Every number matches on Linux. On Windows, the remaining differences are
+one precision behaviour in `div-text`, which the engine lane owns:
 
 - **T3.** Chromium truncates glyph advances to 1/65536 px; `div-text`
   rounds them. This shows only on Windows.
-- **T4.** Chromium shapes at the font size truncated to 1/100 px;
-  `div-text` uses the exact size.
 
-Both were confirmed by experiment. With them applied, every number
-matches on both OSes. They are listed in `known-gaps.txt` with an `<os>`
-column, and `div-svg` does not work around them. Set
+T4 (the font size truncated to 1/100 px, as Chromium shapes it) is in
+`div-text` and closed its gaps. T3 was confirmed by experiment: with it
+applied, every number matches on Windows too. Its gaps are listed in
+`known-gaps.txt` with an `<os>` column, and `div-svg` does not work around
+them. Set
 `DIV_SVG_TEXT_DEBUG=<case prefix>` to print a case's numbers.
 
 ## Text pixels (glyph painting)
@@ -472,13 +472,14 @@ opacity, dash and `paint-order` case. The other 46 are named gaps in
   hinted whatever the transform; Chromium leaves glyphs unhinted when the
   device matrix is not a scale. Unhinted outlines made synthetic italic
   exact and left the rotated cases a few edge pixels off.
-- **T4 (4).** The positions of `xf/scale-nonuniform` and
-  `xf/viewbox-none` already differ.
+- **Non-uniform scale (4).** `xf/scale-nonuniform` and `xf/viewbox-none`
+  have exact positions since T4, but their glyphs still differ. The cause
+  is not measured yet.
 
-On Windows, no capture is exact yet. Both sides paint LCD glyphs, and 269
-of the 277 cases without a position gap differ only in tone, by at most 16
+On Windows, no capture is exact yet. Both sides paint LCD glyphs, and 275
+of the 283 cases without a position gap differ only in tone, by at most 16
 per channel. That is Windows text rasterization, which the fidelity lane
-owns. The other 13 have T3 or T4 position gaps as well. Set
+owns. The other 7 have T3 position gaps as well. Set
 `DIV_SVG_TEXT_DUMP=<dir>` to write Div's pixels for each differing case.
 
 ## Lucide capture plan (V1 stage 1 gate)

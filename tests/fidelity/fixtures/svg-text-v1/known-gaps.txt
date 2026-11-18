@@ -15,19 +15,3 @@ windows 1x tspan/font-size 3
 windows 1x tspan/font-weight 3
 windows 2x run/geist-size-12.5 3
 windows 2x spacing/letter-em 3
-
-# T4, engine (div-text font size handling): Chromium's font cache truncates the font size to
-# 1/100 px, so a scaled size of 25.298 px shapes as 25.29 px; div-text uses the exact size. This
-# also affects HTML text (sizes 25.29 to 25.299 px give identical widths in Chromium). Measured on
-# Windows 17 November 2026 by the same experiment, and on Linux the same day: truncating the size
-# alone made all 24,056 Linux numbers exact.
-windows 1x xf/scale-nonuniform 26
-windows 1x xf/skew 16
-windows 1x xf/viewbox-none 26
-windows 2x xf/scale-nonuniform 26
-windows 2x xf/skew 22
-windows 2x xf/viewbox-none 26
-linux 1x xf/scale-nonuniform 28
-linux 1x xf/viewbox-none 28
-linux 2x xf/scale-nonuniform 28
-linux 2x xf/viewbox-none 28

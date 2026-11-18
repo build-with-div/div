@@ -13,7 +13,7 @@ use skia_safe::{
     Font as SkFont, FontArguments, FontMgr, Typeface,
 };
 
-use super::description::FontDescription;
+use super::description::{font_cache_key_size, font_cache_size, FontDescription};
 use super::platform::{FontPlatformData, ResolvedFontConfiguration};
 use super::source::{FontFaceSourceInfo, FontInstantiation, FontSelectionSource};
 use crate::hyphenation::HyphenationRegistry;
@@ -885,13 +885,19 @@ impl Default for FontCollection {
 
 impl FontInstanceKey {
     fn new(family: &str, description: &FontDescription) -> Self {
+        // Chromium finds a font by its truncated device size, so sizes with
+        // one `font_cache_key_size` share the font made for the first.
+        let mut keyed = description.clone();
+        keyed.size = font_cache_key_size(description.size, description.device_scale_factor);
+        // The specified size does not change the font made.
+        keyed.specified_size = keyed.size;
         Self {
             family: family.to_ascii_lowercase(),
             // `FontDescription` is a closed typed structure. Its derived
             // representation includes enum payloads, float values, ordered
             // feature/axis lists, locale, palette, synthesis, and harness
             // policy, unlike the former seven-field cache key.
-            description: format!("{description:?}"),
+            description: format!("{keyed:?}"),
         }
     }
 }
@@ -1096,7 +1102,10 @@ fn make_platform_data(
 ) -> Arc<FontPlatformData> {
     let (typeface, instantiation) = instantiate_typeface(typeface, palette, description);
     let source = source.with_instance(&typeface, description, instantiation);
-    let size = adjusted_font_size(&typeface, descriptor, description);
+    let size = font_cache_size(
+        adjusted_font_size(&typeface, descriptor, description),
+        description.device_scale_factor,
+    );
     let oblique_angle = match description.style {
         FontStyleEnum::Italic
             if typeface.font_style().slant() == skia_safe::font_style::Slant::Upright =>

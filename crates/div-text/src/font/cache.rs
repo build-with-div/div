@@ -115,15 +115,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exact_float_bits_participate_in_cache_identity() {
-        let mut first = FontDescription::default();
-        first.size = 16.001;
-        let mut second = first.clone();
-        second.size = 16.009;
-        assert_ne!(
-            FontCache::make_key("sans-serif", &first),
-            FontCache::make_key("sans-serif", &second)
-        );
+    fn sizes_with_one_font_cache_key_share_a_font() {
+        // Chromium finds 16.001px and 16.009px by one key (16.00), and
+        // 16.01px by another (`font_cache_key_size`).
+        let mut cache = FontCache::new();
+        let mut description = FontDescription::default();
+        let mut font = |size: f32| {
+            description.size = size;
+            description.specified_size = size;
+            cache
+                .get_font_platform_data("sans-serif", &description)
+                .expect("sans-serif")
+        };
+        let (first, second, third) = (font(16.001), font(16.009), font(16.01));
+        assert!(Arc::ptr_eq(&first, &second));
+        assert!(!Arc::ptr_eq(&first, &third));
+        assert_eq!((first.size(), third.size()), (16.0, 16.01));
     }
 
     #[test]

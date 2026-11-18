@@ -28,7 +28,7 @@ pub use collection::{
     FontPaletteBase, FontPaletteEntryOverride, FontPaletteHandle, FontPaletteValuesDescriptor,
     FontStyleRange, FontUnicodeRange,
 };
-pub use description::FontDescription;
+pub use description::{font_cache_key_size, font_cache_size, FontDescription};
 pub use fallback::FontFallbackList;
 pub use font::Font;
 pub use metrics::{FontBaseline, FontMetrics};
