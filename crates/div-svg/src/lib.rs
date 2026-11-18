@@ -12,6 +12,11 @@
 //! against Chromium by `tests/paint_corpus.rs`
 //! (`tests/fidelity/fixtures/svg-paint-v1` and `svg-paint-v2`).
 //!
+//! [`clip`] clips content to a resolved `clipPath` (V3a). It ports Blink's
+//! BSD `clip_path_clipper` and writes the rest from the specifications and
+//! black-box observation, checked by the same test
+//! (`tests/fidelity/fixtures/svg-paint-v3`).
+//!
 //! [`text`] lays out `<text>` and `<tspan>` and answers the SVG text DOM
 //! queries (character positions, extents, rotations and the computed text
 //! length). It ports Blink's BSD SVG text layout algorithm and query code;
@@ -25,6 +30,7 @@
 //! no dependency on the DOM, layout or Div's paint crate.
 
 mod arc;
+pub mod clip;
 pub mod geometry;
 pub mod length;
 mod number;

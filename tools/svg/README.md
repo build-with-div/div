@@ -8,7 +8,7 @@ Tools for the inline SVG work in RFC 0009
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
 | `text_corpus.py` | Black-box text-position oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium, at scale 1 and at real-zoom scale 2 |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in two sets (`--set v1`, `--set v2`) |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in three sets (`--set v1`, `--set v2`, `--set v3`) |
 
 ## Geometry corpus
 
@@ -149,14 +149,34 @@ scale 1 and 30 of them again at scale 2:
 | `nonscaling/` | 13 | `vector-effect: non-scaling-stroke` under uniform, non-uniform, skewed and rotated transforms, a `viewBox` (`none` too), a nested `svg`, with dashes, with a fill, on a line and a curve, on a group (no effect) and at a fractional page offset |
 | `chart/` | 9 | hand-written in the shape of Recharts' output, with no text: a `3 3` dashed grid, a monotone line, dots, rounded bars with `fill-opacity`, an area, a draw-in dash state, a dashed reference line, pie sectors and a radial bar using `pathLength` |
 
+Set `v3` (`--set v3`, fixtures in `tests/fidelity/fixtures/svg-paint-v3/`)
+covers `clipPath` (V3a), with 54 cases, each at scale 1 and at scale 2. Most
+clip the same content, a filled square crossed by a thick red stroke, so
+fills and strokes both show the clip edge. `paint_corpus.py` prefixes each
+case's ids (`k<index>-`), because ids are page-wide and every case on a
+sheet would otherwise resolve to the first case's `clipPath`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `clip/` | 10 | one child: rect at fractional positions, rounded rect, circle, ellipse, curve, star polygon, a line (no area), a zero-size rect, a stroke and `fill="none"` (both ignored) |
+| `rule/` | 3 | `clip-rule="evenodd"` on the child and inherited from the `clipPath`; `fill-rule` ignored |
+| `xf/` | 5 | `transform` on the child, on the `clipPath`, on both, on the clipped group, and on a clipped shape |
+| `units/` | 6 | `clipPathUnits="objectBoundingBox"`: a rect and a circle on a group, with a `transform`, with a stroked target, on a shape, on a group of two children |
+| `union/` | 5 | two or three children, disjoint and overlapping, with mixed `clip-rule`s, transformed |
+| `nest/` | 5 | `clip-path` on the `clipPath`, on one child, on nested groups, a chain of three, and on a two-child `clipPath` |
+| `edge/` | 13 | `display: none` and `visibility: hidden` children, an empty `clipPath`, a missing reference, a reference to a non-`clipPath`, a self reference, a two-element cycle, `clip-path` in `style`, a fractional page offset, `crispEdges` on the child and on the target, `opacity` with a clip, hairline children |
+| `child/` | 2 | a `text` child and a `use` child: named gaps (T1, V3d) |
+| `chart/` | 5 | Recharts' plot-area clip on a line, an area, bars, dots, and a draw-in clip |
+
 **Evidence** is one capture per OS and set in
-`tests/fidelity/fixtures/svg-paint-v1/` and `svg-paint-v2/`.
+`tests/fidelity/fixtures/svg-paint-v1/`, `svg-paint-v2/` and `svg-paint-v3/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
 - `chromium-windows*`, from Windows CfT 147.0.7727.50.
 
-The Linux and Windows sheets are pixel-identical.
+The Linux and Windows sheets are pixel-identical, except for the text
+in `v3`'s `child/text`.
 
 `crates/div-svg/tests/paint_corpus.rs` paints every case through
 `div_svg::paint` and compares each slot exactly. It rasterizes as Div's
@@ -187,7 +207,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL (and again with --set v2 into svg-paint-v2/)
+# Linux, in WSL (and again with --set v2 and --set v3 into svg-paint-v2/ and svg-paint-v3/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -201,6 +221,36 @@ differing case.
 All 147 `v1` captures (107 at scale 1, 40 at scale 2) and all 115 `v2`
 captures (85 at scale 1, 30 at scale 2) are exact on Windows (MSVC) and on
 Linux (WSL). Both `known-gaps.txt` files are empty.
+
+Of the 108 `v3` captures, 104 are exact on both OSes. The other four are
+named gaps in `svg-paint-v3/known-gaps.txt`: the `text` child (T1, and on
+Windows the LCD text edging owned by the fidelity lane) and the `use`
+child (V3d). The `clipPath` corpus settled these points; the clip itself is
+in `src/clip.rs`, and the test's harness resolves references and paints
+groups:
+
+- A `clipPath` whose content is one path clips the canvas,
+  anti-aliased. Several children are united in one Skia path-ops build
+  (`OpBuilder`), each with its own `clip-rule`; uniting them one at a time
+  differs in `union/mixed-rules`, and appending them into one path differs
+  for every fill rule. One child's path is used as it is: simplifying it
+  differs for the star polygons.
+- With no nested `clip-path`, the content transform (the `clipPath`'s
+  `transform` and the `objectBoundingBox` map) is applied by the canvas,
+  not to the path: transforming the path first differs by two pixels in
+  `units/obb-circle` at scale 2.
+- A nested reference that resolves to nothing, or closes a cycle (a self
+  reference, or `c` to `d` to `c`, broken at the reference back to `c`),
+  rules out the path-based clip, and the mask chain stops there.
+- The mask draws each child as the shape painter does, a rectangle or an
+  oval as such, opaque. The content is drawn into a layer clipped to the
+  `clipPath` content's bounds; the mask is composited onto it with `DstIn`
+  and is itself unclipped. Skia's scan conversion depends on the clip a
+  path crosses, so the bounds clip changes the stroke's edge pixels in
+  `edge/self`, and clipping the mask too changes the circle's edge in
+  `edge/cycle`. With this structure both are exact.
+- `opacity` on a clipped group wraps the clip: the clipped content is
+  drawn into the opacity layer.
 
 The corpus settled these points:
 
@@ -248,9 +298,13 @@ The corpus settled these points:
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
 - The untiled path (layers of 512 px or less) for SVG content: the
   corpus pages are tiled.
-- Markers (a later clean-room PR), paint servers, clipping, text,
+- Markers (a later clean-room PR), paint servers, masks, text,
   element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
+- For clipping: `text` and `use` children of a `clipPath`, `clip-path:
+  url()` on HTML elements (engine item E4), basic shapes and geometry
+  boxes in `clip-path`, and the reference resolution and group painting
+  that the test harness models until the engine calls the painter.
 
 ## Text corpus (V2a positions)
 
