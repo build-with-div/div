@@ -527,9 +527,22 @@ pub fn paint(canvas: &Canvas, layout: &TextLayout, style: &dyn Fn(usize) -> SvgP
         TextRasterPolicy::Skia
     };
     let lcd = author.edging == TextEdging::SubpixelAntiAlias;
+    // The text's object bounding box includes its glyphs' ink bounds
+    // (`FragmentItem::ObjectBoundingBox`), which come with `getBBox` (V2b).
+    // Until then a paint server in `objectBoundingBox` units does not
+    // apply to text, and its fallback colour paints.
+    let reference_box = None;
     for fragment in &layout.fragments {
         let style = style(fragment.span);
-        let paints = fragment_paints(&style, sf);
+        // `EnsureShaderTransform`: a paint server is drawn under the same
+        // `scale(1 / sf)` and rotation as the glyphs, so its shader takes
+        // their inverse.
+        let shader_transform = fragment
+            .rotation()
+            .inverse()
+            .unwrap_or(Matrix::IDENTITY)
+            .then_apply(&Matrix::scale(f64::from(sf), f64::from(sf)));
+        let paints = fragment_paints(&style, sf, reference_box, &shader_transform);
         if paints.iter().all(Option::is_none) {
             continue;
         }
@@ -567,10 +580,22 @@ pub fn paint(canvas: &Canvas, layout: &TextLayout, style: &dyn Fn(usize) -> SvgP
 
 /// `PrepareSvgPaints` and `OrderPaints`: the fill and stroke, in
 /// `paint-order`.
-fn fragment_paints(style: &SvgPaintStyle, sf: f32) -> [Option<Paint>; 2] {
+fn fragment_paints(
+    style: &SvgPaintStyle,
+    sf: f32,
+    reference_box: Option<Rect>,
+    shader_transform: &Matrix,
+) -> [Option<Paint>; 2] {
     let fill = style
         .has_fill()
-        .then(|| prepare_paint(style.fill, style.fill_opacity))
+        .then(|| {
+            prepare_paint(
+                &style.fill,
+                style.fill_opacity,
+                reference_box,
+                Some(shader_transform),
+            )
+        })
         .flatten()
         .map(|mut flags| {
             flags.set_anti_alias(true);
@@ -578,7 +603,14 @@ fn fragment_paints(style: &SvgPaintStyle, sf: f32) -> [Option<Paint>; 2] {
         });
     let stroke = style
         .has_visible_stroke()
-        .then(|| prepare_paint(style.stroke, style.stroke_opacity))
+        .then(|| {
+            prepare_paint(
+                &style.stroke,
+                style.stroke_opacity,
+                reference_box,
+                Some(shader_transform),
+            )
+        })
         .flatten()
         .map(|mut flags| {
             flags.set_anti_alias(true);
@@ -1292,7 +1324,7 @@ mod tests {
 
     #[test]
     fn glyph_paints_follow_paint_order_and_are_anti_aliased() {
-        let [first, second] = fragment_paints(&stroked(), 1.0);
+        let [first, second] = fragment_paints(&stroked(), 1.0, None, &Matrix::IDENTITY);
         let (fill, stroke) = (first.unwrap(), second.unwrap());
         assert_eq!(fill.style(), skia_safe::PaintStyle::Fill);
         assert_eq!(stroke.style(), skia_safe::PaintStyle::Stroke);
@@ -1301,21 +1333,21 @@ mod tests {
 
         let mut style = stroked();
         style.paint_order = crate::paint::PaintOrder::parse("stroke").unwrap();
-        let [first, _] = fragment_paints(&style, 1.0);
+        let [first, _] = fragment_paints(&style, 1.0, None, &Matrix::IDENTITY);
         assert_eq!(first.unwrap().style(), skia_safe::PaintStyle::Stroke);
 
         style.fill = crate::paint::SvgPaint::None;
-        assert!(fragment_paints(&style, 1.0)[1].is_none());
+        assert!(fragment_paints(&style, 1.0, None, &Matrix::IDENTITY)[1].is_none());
     }
 
     #[test]
     fn the_stroke_follows_the_scaled_font() {
         let mut style = stroked();
         style.stroke_style.width = 1.5;
-        let [_, stroke] = fragment_paints(&style, 2.0);
+        let [_, stroke] = fragment_paints(&style, 2.0, None, &Matrix::IDENTITY);
         assert_eq!(stroke.unwrap().stroke_width(), 3.0);
         style.non_scaling_stroke = true;
-        let [_, stroke] = fragment_paints(&style, 2.0);
+        let [_, stroke] = fragment_paints(&style, 2.0, None, &Matrix::IDENTITY);
         assert_eq!(stroke.unwrap().stroke_width(), 1.5);
     }
 }

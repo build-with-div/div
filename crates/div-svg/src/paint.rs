@@ -9,7 +9,8 @@
 //!   stroke, rectangles and ellipses drawn as such, anti-aliasing from
 //!   `shape-rendering`, and the non-scaling stroke's drawing;
 //! - `core/paint/svg_object_painter.cc`: `HasFill`, `HasVisibleStroke` and
-//!   the colour setup in `PreparePaint`;
+//!   `PreparePaint`, for a colour and for a paint server
+//!   ([`crate::paint_server`]);
 //! - `platform/geometry/stroke_data.cc` (Copyright 2013 Google Inc., BSD):
 //!   `StrokeData::SetupPaint` and `SetLineDash`;
 //! - `core/paint/svg_root_painter.cc`: `TransformToPixelSnappedBorderBox`
@@ -31,6 +32,7 @@
 //! composes its paint property transforms before handing Skia one matrix.
 
 use crate::geometry::{dash_intervals, total_length, FillRule, LineCap, LineJoin, StrokeStyle};
+use crate::paint_server::PaintServer;
 use crate::shapes::{Geometry, Shape};
 use crate::transform::Matrix;
 use crate::Rect;
@@ -38,15 +40,43 @@ use skia_safe::{
     Canvas, ClipOp, Color4f, Paint, PaintCap, PaintJoin, PaintStyle, PathEffect, PathFillType,
     Rect as SkRect,
 };
+use std::sync::Arc;
 
-/// A resolved `fill` or `stroke`. Paint servers (`url(...)`) and context
-/// paints come with later stages.
-#[derive(Clone, Copy, Debug, PartialEq)]
+/// A resolved `fill` or `stroke`. Context paints come with a later stage.
+#[derive(Clone, Debug)]
 pub enum SvgPaint {
     None,
     /// An sRGB colour, not premultiplied, with `currentColor` already
     /// resolved.
     Color(Color4f),
+    /// `url(#id)` resolved to a paint server, with its fallback colour.
+    /// A reference that resolves to no server is its fallback colour, or
+    /// `None` without one; the caller resolves it so.
+    Server {
+        server: Arc<PaintServer>,
+        fallback: Option<Color4f>,
+    },
+}
+
+impl PartialEq for SvgPaint {
+    /// Servers compare by identity.
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::None, Self::None) => true,
+            (Self::Color(a), Self::Color(b)) => a == b,
+            (
+                Self::Server {
+                    server: a,
+                    fallback: fa,
+                },
+                Self::Server {
+                    server: b,
+                    fallback: fb,
+                },
+            ) => Arc::ptr_eq(a, b) && fa == fb,
+            _ => false,
+        }
+    }
 }
 
 /// One of the layers `paint-order` orders.
@@ -222,7 +252,9 @@ pub fn paint_shape(
                 if !style.has_fill() {
                     continue;
                 }
-                if let Some(mut flags) = prepare_paint(style.fill, style.fill_opacity) {
+                if let Some(mut flags) =
+                    prepare_paint(&style.fill, style.fill_opacity, Some(shape.bbox), None)
+                {
                     flags.set_anti_alias(anti_alias);
                     fill_shape(canvas, shape, &flags, style.fill_rule);
                 }
@@ -240,7 +272,9 @@ pub fn paint_shape(
                 } else {
                     None
                 };
-                let Some(mut flags) = prepare_paint(style.stroke, style.stroke_opacity) else {
+                let Some(mut flags) =
+                    prepare_paint(&style.stroke, style.stroke_opacity, Some(shape.bbox), None)
+                else {
                     continue;
                 };
                 flags.set_anti_alias(anti_alias);
@@ -261,11 +295,36 @@ pub fn paint_shape(
     }
 }
 
-/// `SVGObjectPainter::PreparePaint` for a colour: the colour's alpha is
-/// multiplied by the opacity, in single precision.
-pub(crate) fn prepare_paint(paint: SvgPaint, opacity: f32) -> Option<Paint> {
-    let SvgPaint::Color(color) = paint else {
-        return None;
+/// `SVGObjectPainter::PreparePaint`. A paint server that applies to
+/// `reference_box` (the shape's fill box, `ReferenceBoxForEffects`) paints
+/// black with its shader, dithered, the opacity quantized to 8 bits as the
+/// paint's alpha; `additional` is the text painter's shader transform.
+/// Otherwise a colour, or a server's fallback colour, has its alpha
+/// multiplied by the opacity in single precision.
+pub(crate) fn prepare_paint(
+    paint: &SvgPaint,
+    opacity: f32,
+    reference_box: Option<Rect>,
+    additional: Option<&Matrix>,
+) -> Option<Paint> {
+    let color = match paint {
+        SvgPaint::None => return None,
+        SvgPaint::Color(color) => *color,
+        SvgPaint::Server { server, fallback } => {
+            if let Some(shader) = server.shader(reference_box, additional) {
+                let mut flags = Paint::new(Color4f::new(0.0, 0.0, 0.0, 1.0), None);
+                flags.set_alpha_f(
+                    f32::from((opacity * 255.0).round().clamp(0.0, 255.0) as u8) / 255.0,
+                );
+                flags.set_shader(shader);
+                // `Gradient::ApplyToFlags`: gradients are always dithered.
+                if matches!(**server, PaintServer::Gradient(_)) {
+                    flags.set_dither(true);
+                }
+                return Some(flags);
+            }
+            (*fallback)?
+        }
     };
     let color = Color4f::new(color.r, color.g, color.b, color.a * opacity);
     Some(Paint::new(color, None))

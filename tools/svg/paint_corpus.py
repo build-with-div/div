@@ -15,10 +15,12 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-There are three sets, each with its own fixtures and gap list: `v1` (fills,
+There are four sets, each with its own fixtures and gap list: `v1` (fills,
 strokes, transforms, viewports and the Lucide icons), `v2` (dashes,
 `pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
-chart-shaped compositions) and `v3` (`clipPath`, every case at both scales).
+chart-shaped compositions), `v3` (`clipPath`) and `v4` (paint servers:
+gradients and patterns). Every case of `v3` and `v4` is taken at both
+scales.
 
     paint_corpus.py list [--set v2]
     paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
@@ -526,6 +528,232 @@ def clip_cases() -> list[dict]:
     ])]
 
 
+def server_cases() -> list[dict]:
+    """Paint servers (set v4): `linearGradient`, `radialGradient` and `pattern`
+    as `fill` and `stroke`, written from SVG 2 §14 and checked against
+    Chromium's pixels. Colours differ in every channel so that the
+    interpolation, premultiplication and dithering all show."""
+    two = '<stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#f97316"/>'
+    three = ('<stop offset="0" stop-color="#2563eb"/><stop offset="0.5" stop-color="#facc15"/>'
+             '<stop offset="1" stop-color="#dc2626"/>')
+    rect = '<rect x="4" y="4" width="56" height="56" fill="url(#g)"/>'
+
+    def lin(case_id: str, stops: str = two, *, attrs: str = "", body: str = rect,
+            defs: str = "", **kw) -> dict:
+        return case(case_id, f'<defs><linearGradient id="g"{" " + attrs if attrs else ""}>{stops}'
+                    f'</linearGradient>{defs}</defs>{body}', **kw)
+
+    def rad(case_id: str, stops: str = two, *, attrs: str = "", body: str = rect,
+            defs: str = "", **kw) -> dict:
+        return case(case_id, f'<defs><radialGradient id="g"{" " + attrs if attrs else ""}>{stops}'
+                    f'</radialGradient>{defs}</defs>{body}', **kw)
+
+    tile = (f'<rect x="0" y="0" width="8" height="8" fill="{BLUE}"/>'
+            '<circle cx="12" cy="12" r="3.5" fill="#f97316"/>')
+
+    def pat(case_id: str, content: str = tile, *, attrs: str = 'width="16" height="16" '
+            'patternUnits="userSpaceOnUse"', body: str = rect, defs: str = "", **kw) -> dict:
+        return case(case_id, f'<defs><pattern id="g" {attrs}>{content}</pattern>{defs}</defs>'
+                    f'{body}', **kw)
+
+    stroke_body = ('<rect x="10" y="10" width="44" height="44" fill="none" stroke="url(#g)" '
+                   'stroke-width="8"/>')
+    wide = '<rect x="4" y="14" width="56" height="36" fill="url(#g)"/>'
+    area = ("M4,56L4,40C14,40,18,18,28,18C38,18,42,34,52,30L60,26L60,56Z")
+    return [scoped(c, i) for i, c in enumerate([
+        # linearGradient: geometry and units.
+        lin("lin/basic"),
+        lin("lin/vertical", attrs='x2="0" y2="1"'),
+        lin("lin/diagonal", attrs='x2="1" y2="1"', body=wide),
+        lin("lin/fraction", attrs='x1="0.2" y1="0.1" x2="0.7" y2="0.4"'),
+        lin("lin/percent", attrs='x1="10%" x2="90%" y2="25%"'),
+        lin("lin/user", attrs='gradientUnits="userSpaceOnUse" x1="8.5" y1="4" x2="55.25" y2="60"'),
+        lin("lin/user-percent", attrs='gradientUnits="userSpaceOnUse" x1="10%" x2="75%"'),
+        case("lin/user-viewbox", '<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" '
+             f'x1="0" x2="20">{two}</linearGradient></defs>'
+             '<rect x="2" y="2" width="28" height="28" fill="url(#g)"/>', attrs='viewBox="0 0 32 32"'),
+        # Stops.
+        lin("stop/three", three),
+        lin("stop/percent", '<stop offset="25%" stop-color="#2563eb"/>'
+            '<stop offset="75%" stop-color="#f97316"/>'),
+        lin("stop/unordered", '<stop offset="0.6" stop-color="#2563eb"/>'
+            '<stop offset="0.3" stop-color="#facc15"/><stop offset="1" stop-color="#dc2626"/>'),
+        lin("stop/out-of-range", '<stop offset="-0.5" stop-color="#2563eb"/>'
+            '<stop offset="1.5" stop-color="#f97316"/>'),
+        lin("stop/inner", '<stop offset="0.3" stop-color="#2563eb"/>'
+            '<stop offset="0.6" stop-color="#f97316"/>'),
+        lin("stop/hard", '<stop offset="0.5" stop-color="#2563eb"/>'
+            '<stop offset="0.5" stop-color="#f97316"/>'),
+        lin("stop/opacity", '<stop offset="0" stop-color="#dc2626"/>'
+            '<stop offset="1" stop-color="#2563eb" stop-opacity="0"/>'),
+        lin("stop/opacity-half", '<stop offset="0" stop-color="#dc2626" stop-opacity="0.5"/>'
+            '<stop offset="1" stop-color="#2563eb" stop-opacity="0.8"/>'),
+        lin("stop/style", '<stop offset="0" style="stop-color:#16a34a"/>'
+            '<stop offset="1" style="stop-color:#9333ea;stop-opacity:0.6"/>'),
+        lin("stop/current-color", '<stop offset="0" stop-color="currentColor"/>'
+            '<stop offset="1" stop-color="#f97316"/>', attrs='color="#16a34a"'),
+        lin("stop/one", '<stop offset="0.4" stop-color="#16a34a"/>'),
+        lin("stop/none", ""),
+        # Degenerate lines and spreadMethod.
+        lin("lin/degenerate", attrs='x1="0.5" x2="0.5"'),
+        lin("lin/degenerate-repeat", attrs='x1="0.5" x2="0.5" spreadMethod="repeat"'),
+        lin("spread/pad", three, attrs='x1="0.3" x2="0.6"'),
+        lin("spread/reflect", three, attrs='x1="0.3" x2="0.6" spreadMethod="reflect"'),
+        lin("spread/repeat", three, attrs='x1="0.3" x2="0.6" spreadMethod="repeat"'),
+        lin("spread/repeat-diagonal", attrs='x2="0.25" y2="0.25" spreadMethod="repeat"'),
+        # gradientTransform.
+        lin("xf/rotate", attrs='gradientTransform="rotate(30)"'),
+        lin("xf/rotate-center", attrs='gradientTransform="rotate(45 0.5 0.5)"', body=wide),
+        lin("xf/user", attrs='gradientUnits="userSpaceOnUse" x1="8" x2="40" '
+            'gradientTransform="translate(4.5 0) skewX(20)"'),
+        lin("xf/shape", attrs='x2="1"', body='<rect x="12" y="12" width="40" height="40" '
+            'fill="url(#g)" transform="rotate(20 32 32)"/>'),
+        # Paint properties.
+        lin("paint/stroke", body=stroke_body),
+        lin("paint/stroke-user", attrs='gradientUnits="userSpaceOnUse" x1="6" x2="58"',
+            body=stroke_body),
+        lin("paint/fill-opacity", body='<rect x="4" y="4" width="56" height="56" fill="url(#g)" '
+            'fill-opacity="0.5"/>'),
+        lin("paint/fill-opacity-odd", body='<rect x="4" y="4" width="56" height="56" '
+            'fill="url(#g)" fill-opacity="0.37"/>'),
+        lin("paint/circle", body='<circle cx="32" cy="32" r="26.5" fill="url(#g)"/>'),
+        lin("paint/path", attrs='x2="0" y2="1"', body=f'<path d="{area}" fill="url(#g)"/>'),
+        lin("paint/group", body='<g fill="url(#g)"><rect x="4" y="4" width="24" height="56"/>'
+            '<rect x="34" y="20" width="26" height="20"/></g>'),
+        lin("paint/both", body='<rect x="10" y="10" width="44" height="44" fill="url(#g)" '
+            'stroke="url(#g)" stroke-width="6" paint-order="stroke"/>'),
+        lin("paint/crisp", attrs='gradientTransform="rotate(20)"',
+            body='<rect x="4.5" y="4.5" width="55" height="55" fill="url(#g)" '
+            'shape-rendering="crispEdges"/>'),
+        # References: href inheritance, fallbacks and empty boxes.
+        lin("href/stops", "", attrs='href="#h" x2="0" y2="1"',
+            defs=f'<linearGradient id="h">{three}</linearGradient>'),
+        lin("href/attrs", two, attrs='href="#h"',
+            defs='<linearGradient id="h" x1="0.3" x2="0.6" spreadMethod="reflect" '
+            'gradientTransform="rotate(10)"/>'),
+        lin("href/chain", "", attrs='href="#h"',
+            defs=f'<linearGradient id="h" href="#i" x2="0.5"/><linearGradient id="i" '
+            f'spreadMethod="repeat">{three}</linearGradient>'),
+        lin("href/own-stops", two, attrs='href="#h"',
+            defs=f'<linearGradient id="h">{three}</linearGradient>'),
+        lin("href/xlink", "", attrs='xlink:href="#h"',
+            defs=f'<linearGradient id="h">{three}</linearGradient>'),
+        lin("href/cycle", two, attrs='href="#h" x2="0.5"',
+            defs='<linearGradient id="h" href="#g" spreadMethod="reflect"/>'),
+        rad("href/radial-from-linear", "", attrs='href="#h" r="0.4"',
+            defs=f'<linearGradient id="h" x1="0.9" spreadMethod="reflect">{three}</linearGradient>'),
+        case("ref/missing", '<rect x="4" y="4" width="56" height="56" fill="url(#nothing)"/>'),
+        case("ref/missing-fallback", '<rect x="4" y="4" width="56" height="56" '
+             f'fill="url(#nothing) {BLUE}"/>'),
+        case("ref/not-a-server", f'<defs><rect id="g" width="4" height="4"/></defs>'
+             f'<rect x="4" y="4" width="56" height="56" fill="url(#g) {BLUE}"/>'),
+        lin("ref/empty-box", body='<line x1="4" y1="32" x2="60" y2="32" stroke="url(#g)" '
+            'stroke-width="10"/>'),
+        lin("ref/empty-box-fallback", body='<line x1="4" y1="32" x2="60" y2="32" '
+            'stroke="url(#g) #dc2626" stroke-width="10"/>'),
+        lin("ref/empty-box-user", attrs='gradientUnits="userSpaceOnUse" x1="4" x2="60"',
+            body='<line x1="4" y1="32" x2="60" y2="32" stroke="url(#g)" stroke-width="10"/>'),
+        lin("ref/no-stops-fallback", "", body='<rect x="4" y="4" width="56" height="56" '
+            f'fill="url(#g) {BLUE}"/>'),
+        # radialGradient.
+        rad("rad/basic"),
+        rad("rad/three", three),
+        rad("rad/user", attrs='gradientUnits="userSpaceOnUse" cx="30.5" cy="33" r="25"'),
+        rad("rad/wide", body=wide),
+        rad("rad/focal", three, attrs='fx="0.3" fy="0.35"'),
+        rad("rad/focal-edge", three, attrs='fx="0.05" fy="0.5" r="0.45"'),
+        rad("rad/focal-outside", three, attrs='cx="0.6" fx="0.05" fy="0.5" r="0.3"'),
+        rad("rad/fr", three, attrs='fr="0.2"'),
+        rad("rad/fr-focal", three, attrs='fx="0.35" fy="0.4" fr="0.1" r="0.45"'),
+        rad("rad/fr-larger", three, attrs='fr="0.5" r="0.3"'),
+        rad("rad/zero-r", attrs='r="0"'),
+        rad("rad/reflect", three, attrs='r="0.2" spreadMethod="reflect"'),
+        rad("rad/repeat", three, attrs='r="0.15" fx="0.4" spreadMethod="repeat"'),
+        rad("rad/transform", attrs='gradientTransform="translate(0.5 0.5) scale(1 0.5) '
+            'rotate(30) translate(-0.5 -0.5)"'),
+        rad("rad/stroke", three, body=stroke_body),
+        rad("rad/circle", body='<circle cx="32" cy="32" r="26.5" fill="url(#g)"/>'),
+        rad("rad/href-focal", "", attrs='href="#h" cx="0.6"',
+            defs=f'<radialGradient id="h" fx="0.2" r="0.4">{three}</radialGradient>'),
+        rad("rad/opacity", '<stop offset="0" stop-color="#facc15"/>'
+            '<stop offset="1" stop-color="#2563eb" stop-opacity="0"/>'),
+        # pattern.
+        pat("pat/user"),
+        pat("pat/user-offset", attrs='x="5" y="3" width="16" height="16" patternUnits="userSpaceOnUse"'),
+        pat("pat/user-fraction", attrs='x="0.5" y="0.25" width="7.5" height="9.25" '
+            'patternUnits="userSpaceOnUse"'),
+        pat("pat/obb", attrs='width="0.25" height="0.25"'),
+        pat("pat/obb-fraction", attrs='x="0.1" width="0.3" height="0.35"', body=wide),
+        pat("pat/content-obb", f'<rect x="0" y="0" width="0.1" height="0.1" fill="{BLUE}"/>'
+            '<circle cx="0.15" cy="0.15" r="0.05" fill="#f97316"/>',
+            attrs='width="0.25" height="0.25" patternContentUnits="objectBoundingBox"', body=wide),
+        pat("pat/viewbox", attrs='width="16" height="16" patternUnits="userSpaceOnUse" '
+            'viewBox="0 0 10 10"', content=f'<rect x="0" y="0" width="5" height="5" fill="{BLUE}"/>'
+            '<circle cx="7.5" cy="7.5" r="2" fill="#f97316"/>'),
+        pat("pat/viewbox-slice", attrs='width="20" height="12" patternUnits="userSpaceOnUse" '
+            'viewBox="0 0 10 10" preserveAspectRatio="xMidYMin slice"',
+            content=f'<rect x="0" y="0" width="5" height="5" fill="{BLUE}"/>'
+            '<circle cx="7.5" cy="7.5" r="2" fill="#f97316"/>'),
+        pat("pat/viewbox-meet", attrs='width="20" height="12" patternUnits="userSpaceOnUse" '
+            'viewBox="0 0 10 10"', content=f'<rect x="0" y="0" width="5" height="5" fill="{BLUE}"/>'
+            '<circle cx="7.5" cy="7.5" r="2" fill="#f97316"/>'),
+        pat("pat/transform", attrs='width="16" height="16" patternUnits="userSpaceOnUse" '
+            'patternTransform="rotate(30)"'),
+        pat("pat/transform-scale", attrs='width="16" height="16" patternUnits="userSpaceOnUse" '
+            'patternTransform="translate(2.5 1) scale(1.5)"'),
+        pat("pat/overflow", f'<circle cx="8" cy="8" r="9" fill="{BLUE}"/>'),
+        pat("pat/overflow-fraction", f'<circle cx="4" cy="4" r="5" fill="{BLUE}"/>',
+            attrs='width="7.5" height="7.5" patternUnits="userSpaceOnUse"'),
+        pat("pat/stroke", body=stroke_body),
+        pat("pat/fill-opacity", body='<rect x="4" y="4" width="56" height="56" fill="url(#g)" '
+            'fill-opacity="0.5"/>'),
+        pat("pat/circle", body='<circle cx="32" cy="32" r="26.5" fill="url(#g)"/>'),
+        pat("pat/shape-transform", body='<rect x="12" y="12" width="40" height="40" '
+                                        'fill="url(#g)" transform="rotate(20 32 32)"/>'),
+        pat("pat/stroked-content", '<path d="M0,16L16,0" stroke="#dc2626" stroke-width="3"/>'),
+        pat("pat/gradient-content", '<rect x="0" y="0" width="12" height="12" fill="url(#h)"/>',
+            defs=f'<linearGradient id="h">{two}</linearGradient>'),
+        pat("pat/nested", '<rect x="0" y="0" width="16" height="16" fill="url(#h)"/>',
+            defs=f'<pattern id="h" width="4" height="4" patternUnits="userSpaceOnUse">'
+            f'<rect width="2" height="2" fill="{BLUE}"/></pattern>'),
+        pat("pat/href", "", attrs='href="#h" width="20" height="20" patternUnits="userSpaceOnUse"',
+            defs=f'<pattern id="h" width="10" height="10">{tile}</pattern>'),
+        pat("pat/href-own", f'<rect width="6" height="6" fill="#16a34a"/>', attrs='href="#h"',
+            defs=f'<pattern id="h" width="12" height="12" patternUnits="userSpaceOnUse">{tile}</pattern>'),
+        pat("pat/zero-width", attrs='width="0" height="16" patternUnits="userSpaceOnUse"'),
+        pat("pat/zero-width-fallback", attrs='width="0" height="16" patternUnits="userSpaceOnUse"',
+            body=f'<rect x="4" y="4" width="56" height="56" fill="url(#g) {BLUE}"/>'),
+        pat("pat/empty", ""),
+        pat("pat/self", f'<rect width="8" height="8" fill="url(#g) {BLUE}"/>'
+            '<circle cx="12" cy="12" r="3.5" fill="#f97316"/>'),
+        pat("pat/inherited-style", '<rect x="0" y="0" width="8" height="8"/>',
+            attrs='width="16" height="16" patternUnits="userSpaceOnUse" fill="#16a34a"',
+            body='<rect x="4" y="4" width="56" height="56" fill="url(#g)" stroke="#000"/>'),
+        pat("pat/checker", f'<rect width="5" height="5" fill="{INK}"/>'
+            f'<rect x="5" y="5" width="5" height="5" fill="{INK}"/>',
+            attrs='width="10" height="10" patternUnits="userSpaceOnUse"'),
+        # Chart-shaped compositions.
+        case("chart/area", '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">'
+             f'<stop offset="5%" stop-color="{BLUE}" stop-opacity="0.8"/>'
+             f'<stop offset="95%" stop-color="{BLUE}" stop-opacity="0"/></linearGradient></defs>'
+             f'<path d="{area}" fill="url(#g)" stroke="{BLUE}" stroke-width="2"/>'),
+        case("chart/bars", '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">'
+             '<stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#8b5cf6" '
+             'stop-opacity="0.3"/></linearGradient></defs>'
+             + "".join(f'<rect x="{x}" y="{y}" width="10" height="{60 - y}" fill="url(#g)"/>'
+                       for x, y in ((6, 30), (20, 12), (34, 40), (48, 22)))),
+        case("chart/radial", '<defs><radialGradient id="g" cx="0.5" cy="0.5" r="0.5">'
+             '<stop offset="0.6" stop-color="#f97316"/><stop offset="1" stop-color="#facc15"/>'
+             '</radialGradient></defs><path d="M32,32L32,4A28,28,0,0,1,58.6,40.7Z" fill="url(#g)"/>'
+             '<circle cx="32" cy="32" r="12" fill="#fff"/>'),
+        case("chart/hatch", f'<defs><pattern id="g" width="6" height="6" '
+             'patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+             f'<rect width="2" height="6" fill="{BLUE}"/></pattern></defs>'
+             f'<rect x="8" y="16" width="20" height="44" fill="url(#g)" stroke="{BLUE}"/>'
+             '<rect x="36" y="28" width="20" height="32" fill="url(#g)"/>'),
+    ])]
+
+
 def scoped(c: dict, index: int) -> dict:
     """Ids are document-wide and every case of a sheet shares one page, so
     each case's ids (and its references to them) get the case's own prefix."""
@@ -548,9 +776,10 @@ SCALE_2 = {
 
 def sheets(corpus: str = "v1") -> list[dict]:
     """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
-    v2: everything at 1x, the `SCALE_2` subset at 2x. v3: everything at both."""
-    if corpus == "v3":
-        everything = clip_cases()
+    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 and v4: everything at
+    both."""
+    if corpus in ("v3", "v4"):
+        everything = clip_cases() if corpus == "v3" else server_cases()
         return [
             {"scale": 1, "cases": everything},
             {"scale": 2, "cases": [dict(c) for c in everything]},
@@ -616,9 +845,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     lst = sub.add_parser("list")
-    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3"), default="v1")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4"), default="v1")
     cap = sub.add_parser("capture")
-    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3"), default="v1")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
