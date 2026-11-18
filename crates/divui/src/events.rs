@@ -300,16 +300,24 @@ impl Event {
         event
     }
 
-    /// The key of a `keydown` or `keyup` event, as the DOM's
+    /// The key of a `keydown`, `keypress` or `keyup` event, as the DOM's
     /// `KeyboardEvent.key`: named keys from the key code, so native and
     /// headless input agree; `Space` for the space bar; `Char` for a key that
     /// produces one character, in the case it was typed. `None` for other
     /// event types and for keys Div does not name.
+    ///
+    /// A `keypress` carries the character's code in [`Self::key_code`], as
+    /// the DOM's `charCode`, so its key comes from its text.
     pub fn key(&self) -> Option<crate::Key> {
-        if !matches!(self.event_type.as_str(), "keydown" | "keyup") {
-            return None;
+        match self.event_type.as_str() {
+            "keydown" | "keyup" => crate::Key::from_code_and_text(self.key_code, &self.key_text),
+            "keypress" => match self.key_text.as_str() {
+                "Enter" => Some(crate::Key::Enter),
+                "Delete" => Some(crate::Key::Delete),
+                text => crate::Key::from_code_and_text(0, text),
+            },
+            _ => None,
         }
-        crate::Key::from_code_and_text(self.key_code, &self.key_text)
     }
 
     /// Timestamp supplied by the native event source, or zero when unavailable.

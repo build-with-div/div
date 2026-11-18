@@ -337,6 +337,79 @@ pub struct TapCounter;                           // tap(down, down_time, up_time
   the harness's own window on Windows, XTEST on Linux), at scales 1 and
   1.25, each capture taken twice and required to match.
 
+### 7. Keyboard scrolling and `keypress` (amended 17 November 2026)
+
+Amended for I2 (sample-markdown MD-23, the last Tier 0 item), agreed
+through the parent session. Div had no `keypress` and no keyboard
+scrolling: arrows, Page Up, Page Down, Home, End and the space bar did
+nothing outside form controls.
+
+```rust
+// div-engine (engine-reviewed)
+pub enum ScrollGranularity { Line, Page, Document }
+impl Engine {
+    pub fn scroll_logical(&mut self, direction: ScrollButtonDirection,
+                          granularity: ScrollGranularity) -> Result<bool, EngineError>;
+    pub fn mouse_press_node(&self) -> Option<NodeHandle>;
+}
+// divui: no new API. `keypress` is a new event type; `Event::key` reports it.
+```
+
+- **`keypress`.** It follows a `keydown` that was neither cancelled nor
+  handled by a default action (focus moved, the caret moved, a control
+  changed, a scroller scrolled), as Chromium suppresses the character
+  event after such a keydown. It goes to the focused element, else the
+  root. A key that commits text without Ctrl or Meta, the space bar, and
+  Enter (also with Shift or Ctrl) have one; Escape and Backspace do not.
+  On Linux Delete has one (X11 sends it the character 127); on Windows it
+  does not. Its `key_code` is the character's code, as the DOM's
+  `charCode`.
+- **Its default action** commits the key's text, so cancelling `keypress`
+  now stops the text, as in Chromium. On a space that nothing consumed it
+  scrolls a page towards the block end, or the block start with Shift;
+  Ctrl, Alt and Meta stop it. Text editing, buttons, checkboxes, radios
+  and selects consume the space.
+- **Keydown scrolling.** After the existing key defaults, an unhandled
+  keydown scrolls as Chromium's `MapKeyCodeForScroll` maps it on Windows
+  and Linux: arrows a line (40 px) on their physical axis, Page Up and
+  Page Down a page, Home and End the whole range, in the block direction.
+  Shift, Meta and Alt never scroll; Ctrl scrolls only with Home and End.
+  Text controls and editable content keep arrows, Home and End for the
+  caret, but Page Up and Page Down scroll. A radio scrolls when it has no
+  other radio to move to.
+- **The chain** (`ScrollManager::LogicalScroll`): from the focused element,
+  else the node the latest press hit (kept when `mousedown` is cancelled;
+  its former parent when it is removed), else the root. Each scroller on
+  the way out scrolls if its overflow lets the user scroll on that axis;
+  the first that moves ends it. A page is 87.5% of the pixel-snapped
+  scroll snapport (the client area less `scroll-padding`), at least 1 px,
+  as the native scroll buttons page.
+- **Oracle.** `tests/fidelity/fixtures/keyboard-scroll-v1`: real key input
+  to pinned Chrome-for-Testing 147.0.7727.50 (Win32 key messages to the
+  foreground window on Windows, run once with the user's approval; XTEST
+  on X11 in WSL), at scales 1 and 1.25, each capture taken twice and
+  required to match. 19 scenarios on Linux, 17 on Windows (Windows has no
+  modifier scenarios: posted modifiers do not reach Chrome).
+- **Gaps** (named in the test, each still differing):
+  - `keyboard-focusable-scrollers` (engine and framework): a scroller with
+    no focusable descendant is keyboard focusable, and sequential
+    navigation starts at the clicked node. I2b, a separate PR.
+  - `overscroll-behavior` (engine): Div's style system has no
+    `overscroll-behavior`, so `contain` does not end the chain.
+  - `edit-caret-reveal` (framework): typing into a control scrolled out of
+    view does not reveal the caret.
+  - `device-scale-scroll-offset` (engine, RFC 0011): at 1.25 Chromium's
+    scrollbars are 19 device pixels and offsets land on device pixels.
+  - `keyboard-smooth-scroll` (engine): Chromium animates keyboard
+    scrolls; Div jumps. The oracle records settled offsets.
+  - `keyboard-scrollend` (framework): Chromium fires `scrollend` after
+    the keyup; Div has no `scrollend` event yet.
+  - `windows-modified-keys-unmeasured`: posted Win32 modifiers do not
+    reach Chrome, so Windows uses the modifier rules measured on Linux.
+  - Unmeasured and left as Chromium's source reads: snapping after a
+    keyboard scroll (not applied yet), Enter's `keypress` with Alt or
+    Meta (none), Delete's with modifiers (none).
+
 ## Affected tracks
 
 - **Components.** Primitives may move from `mouse*` to `pointer*` and use
@@ -344,9 +417,18 @@ pub struct TapCounter;                           // tap(down, down_time, up_time
   reads `event.pointer_id` sees 1 for the mouse instead of 0. Code that
   compares `event.mouse_button` with `MouseButton::Left` keeps working.
   Tests that click and then assert on async results need `wait_for`.
+- **Components (section 7).** A component that handles arrows, Page Up,
+  Page Down, Home, End or the space bar itself (menus, listboxes, sliders,
+  tabs) must call `prevent_default` on the `keydown` (or on the `keypress`
+  for the space bar), or the page also scrolls, as in a browser. Text
+  committed by a key now arrives after `keypress`, and cancelling
+  `keypress` stops it.
 - **Engine.** `resize_observation` after layout (section 3), the local
   point of a hit for `offset`, and implicit capture release in
   `interaction.rs`. Agreed through the parent before 0.11 starts.
+- **Engine (section 7).** `scroll_logical`, `ScrollGranularity` and the
+  press node (`mouse_press_node`), in one engine-reviewed commit;
+  `scroll_button`'s page step is shared, unchanged.
 - **FFI.** The C ABI is frozen for v0.2; its capture functions keep their
   `u32` ids, and the mouse id it sees becomes 1.
 - **Docs and templates.** The `default` template's test and the showcase

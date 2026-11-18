@@ -13,7 +13,8 @@ use div_engine::{
     AccessibilityAction, AccessibilityTreeUpdate, AnimationEvent, AnimationEventKind, AnimationId,
     AnimationState, ControlAdjustment, EditCommand, Engine, EngineOptions,
     EventPhase as EngineEventPhase, FocusOrigin, NodeHandle, PointerEventKind, RasterConfiguration,
-    ScrollAnimationId, TextDirection, TextUnit, ViewportMetrics,
+    ScrollAnimationId, ScrollButtonDirection, ScrollGranularity, TextDirection, TextUnit,
+    ViewportMetrics,
 };
 use div_style::ImageResourceId;
 use div_text::{
@@ -1142,8 +1143,7 @@ impl Document {
         key_text: Option<&str>,
         modifiers: Modifiers,
     ) -> Result<(), Error> {
-        self.dispatch_key_event_default(event_type, key_code, key_text, modifiers, false)
-            .map(|_| ())
+        self.dispatch_key_input_repeat(event_type, key_code, key_text, None, modifiers, false)
     }
 
     /// Dispatch `key` as the native adapter does: a `keydown` or `keyup`
@@ -1198,20 +1198,84 @@ impl Document {
         modifiers: Modifiers,
         repeat: bool,
     ) -> Result<(), Error> {
-        let allowed =
+        let outcome =
             self.dispatch_key_event_default(event_type, key_code, key_text, modifiers, repeat)?;
-        if allowed
-            && event_type == KeyEventType::Down
+        // A cancelled or handled keydown suppresses its keypress, as
+        // Chromium suppresses the character event that follows it.
+        if event_type != KeyEventType::Down || outcome != KeyDefault::Unhandled {
+            return Ok(());
+        }
+        let committed = text.filter(|text| {
+            !text.is_empty()
+                && text.chars().all(|character| !character.is_control())
+                && !modifiers.contains(Modifiers::CTRL)
+                && !modifiers.contains(Modifiers::META)
+        });
+        let key = key_text.unwrap_or_default();
+        let is_space = key_code == 32 || key == " ";
+        let Some(char_code) = keypress_char_code(key_code, key, committed, is_space, modifiers)
+        else {
+            return Ok(());
+        };
+        let target =
+            self.with_engine(|engine| engine.focused().unwrap_or_else(|| engine.root()))?;
+        let mut event = Event::keyboard("keypress", char_code, key_text, modifiers);
+        event.repeat = repeat;
+        self.dispatch_to(target, &event)?;
+        if event.default_prevented() {
+            return Ok(());
+        }
+        // keypress's default action inserts the character, and on a space
+        // that nothing consumed scrolls a page (`KeyboardEventManager::
+        // DefaultSpaceEventHandler`): Shift pages back; Ctrl, Alt and Meta
+        // do not scroll.
+        if let Some(text) = committed {
+            self.dispatch_text_input(text)?;
+        }
+        if is_space
             && !modifiers.contains(Modifiers::CTRL)
             && !modifiers.contains(Modifiers::META)
+            && !modifiers.contains(Modifiers::ALT)
+            && !self.space_keypress_consumed()?
         {
-            if let Some(text) = text.filter(|text| {
-                !text.is_empty() && text.chars().all(|character| !character.is_control())
-            }) {
-                self.dispatch_text_input(text)?;
-            }
+            let direction = if modifiers.contains(Modifiers::SHIFT) {
+                ScrollButtonDirection::BlockStart
+            } else {
+                ScrollButtonDirection::BlockEnd
+            };
+            self.with_engine_mut(|engine| {
+                engine.scroll_logical(direction, ScrollGranularity::Page)
+            })?;
         }
         Ok(())
+    }
+
+    /// Whether the focused element handles a space keypress itself: text
+    /// editing inserts it, and buttons, checkboxes, radios and selects
+    /// handle it as their activation key.
+    fn space_keypress_consumed(&self) -> Result<bool, Error> {
+        let Some(focused) = self.with_engine(Engine::focused)? else {
+            return Ok(false);
+        };
+        if self.is_editable_target(focused)? {
+            return Ok(true);
+        }
+        let role = self.with_engine(|engine| {
+            engine
+                .control_state(focused)
+                .ok()
+                .flatten()
+                .map(|state| state.role)
+        })?;
+        Ok(matches!(
+            role,
+            Some(
+                FormControlRole::Button
+                    | FormControlRole::Checkbox
+                    | FormControlRole::Radio
+                    | FormControlRole::Select
+            )
+        ))
     }
 
     fn dispatch_key_event_default(
@@ -1221,14 +1285,14 @@ impl Document {
         key_text: Option<&str>,
         modifiers: Modifiers,
         repeat: bool,
-    ) -> Result<bool, Error> {
+    ) -> Result<KeyDefault, Error> {
         // A committed character is text input, not an input notification.
         // The shared path emits beforeinput and then input only after an edit.
         if event_type == KeyEventType::Char {
             if let Some(text) = key_text.filter(|text| !text.is_empty()) {
                 self.dispatch_text_input(text)?;
             }
-            return Ok(true);
+            return Ok(KeyDefault::Unhandled);
         }
         let target =
             self.with_engine(|engine| engine.focused().unwrap_or_else(|| engine.root()))?;
@@ -1265,13 +1329,17 @@ impl Document {
                     self.dispatch_keyboard_click(target, modifiers)?;
                 }
             }
-            return Ok(!event.default_prevented());
+            return Ok(if event.default_prevented() {
+                KeyDefault::Cancelled
+            } else {
+                KeyDefault::Unhandled
+            });
         }
         if event.default_prevented() {
-            return Ok(false);
+            return Ok(KeyDefault::Cancelled);
         }
         if event_type != KeyEventType::Down {
-            return Ok(true);
+            return Ok(KeyDefault::Unhandled);
         }
         if (is_space || key_code == 13 || key.eq_ignore_ascii_case("enter"))
             && self.target_is_live(target)?
@@ -1290,7 +1358,7 @@ impl Document {
                 let next = self.with_engine(Engine::focused)?;
                 self.dispatch_focus_change(previous, next)?;
             }
-            return Ok(true);
+            return Ok(KeyDefault::Handled);
         }
         if key_code == 9 || key.eq_ignore_ascii_case("tab") {
             return self
@@ -1299,19 +1367,20 @@ impl Document {
                 } else {
                     1
                 })
-                .map(|_| true);
+                .map(|_| KeyDefault::Handled);
         }
         if modifiers.contains(Modifiers::CTRL) || modifiers.contains(Modifiers::META) {
+            let handled = |result: Result<(), Error>| result.map(|_| KeyDefault::Handled);
             match key.to_ascii_lowercase().as_str() {
-                "a" => return self.edit_focused(EditCommand::SelectAll).map(|_| true),
+                "a" => return handled(self.edit_focused(EditCommand::SelectAll)),
                 "z" if modifiers.contains(Modifiers::SHIFT) => {
-                    return self.edit_focused(EditCommand::Redo).map(|_| true)
+                    return handled(self.edit_focused(EditCommand::Redo))
                 }
-                "z" => return self.edit_focused(EditCommand::Undo).map(|_| true),
-                "y" => return self.edit_focused(EditCommand::Redo).map(|_| true),
-                "c" => return self.copy_selection(false).map(|_| true),
-                "x" => return self.copy_selection(true).map(|_| true),
-                "v" => return self.paste_clipboard().map(|_| true),
+                "z" => return handled(self.edit_focused(EditCommand::Undo)),
+                "y" => return handled(self.edit_focused(EditCommand::Redo)),
+                "c" => return handled(self.copy_selection(false)),
+                "x" => return handled(self.copy_selection(true)),
+                "v" => return handled(self.paste_clipboard()),
                 _ => {}
             }
         }
@@ -1351,19 +1420,29 @@ impl Document {
                         let forward = matches!(adjustment, ControlAdjustment::Next) ^ reversed;
                         engine.radio_keyboard_target(target, forward)
                     })??;
+                    // A radio with no other radio to move to leaves the key
+                    // to scrolling, as Chromium 147 does (keyboard-scroll-v1
+                    // `controls`).
                     if let Some(next) = next {
                         self.change_focus(Some(next), FocusOrigin::Keyboard)?;
                         self.dispatch_keyboard_click(next, modifiers)?;
+                        return Ok(KeyDefault::Handled);
                     }
                 }
-                return Ok(true);
             }
         }
         if matches!(role, Some(FormControlRole::Range | FormControlRole::Select)) {
             if let Some(adjustment) = adjustment {
-                return self.adjust_focused(adjustment).map(|_| true);
+                return self.adjust_focused(adjustment).map(|_| KeyDefault::Handled);
             }
         }
+        // Text controls and editable content keep their caret keys: arrows,
+        // Home and End move the caret and never scroll; Page Up and Page Down
+        // still scroll (keyboard-scroll-v1 `text_field` and `textarea`).
+        let text_control = matches!(
+            role,
+            Some(FormControlRole::TextInput | FormControlRole::TextArea)
+        ) || self.is_editable_target(target)?;
         let command = match (key_code, key.to_ascii_lowercase().as_str()) {
             (8, _) | (_, "backspace") => Some(EditCommand::Delete {
                 direction: TextDirection::Backward,
@@ -1411,8 +1490,13 @@ impl Document {
             }),
             _ => None,
         };
-        if let Some(command) = command {
-            return self.edit_focused(command).map(|_| true);
+        if text_control {
+            if let Some(command) = command {
+                return self.edit_focused(command).map(|_| KeyDefault::Handled);
+            }
+            if matches!(key_code, 38 | 40) || matches!(key, "ArrowUp" | "ArrowDown") {
+                return Ok(KeyDefault::Handled);
+            }
         }
         if key_code == 13 || key_code == 32 || key == "Enter" || key == " " {
             let role = self.with_engine(|engine| {
@@ -1456,7 +1540,7 @@ impl Document {
                 {
                     self.dispatch_text_input_with_type("\n", InputType::InsertLineBreak, None)?;
                 }
-                return Ok(true);
+                return Ok(KeyDefault::Unhandled);
             }
             if is_space
                 && matches!(
@@ -1482,8 +1566,14 @@ impl Document {
             } else if (key_code == 13 || key == "Enter") && role == Some(FormControlRole::Button) {
                 self.dispatch_keyboard_click(target, modifiers)?;
             }
+            return Ok(KeyDefault::Unhandled);
         }
-        Ok(true)
+        if let Some((direction, granularity)) = keyboard_scroll(key_code, key, modifiers) {
+            if self.with_engine_mut(|engine| engine.scroll_logical(direction, granularity))? {
+                return Ok(KeyDefault::Handled);
+            }
+        }
+        Ok(KeyDefault::Unhandled)
     }
 
     /// Dispatch a `wheel` event in CSS pixels at a viewport point, then
@@ -3521,4 +3611,80 @@ mod keyboard_activation_guards {
         space(&document, KeyEventType::Up);
         assert_eq!(clicks.get(), 1);
     }
+}
+
+/// What a keydown's default handling did, which decides its keypress.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KeyDefault {
+    /// A listener cancelled the event.
+    Cancelled,
+    /// A default action consumed the key: focus moved, the caret moved, a
+    /// control changed or a scroller scrolled.
+    Handled,
+    Unhandled,
+}
+
+/// The `charCode` of the keypress that follows an unhandled keydown, if
+/// any, as Chromium 147.0.7727.50 dispatches it from the platform's
+/// character event (keyboard-scroll-v1 `keypress_keys` and
+/// `modified_keypress`): a key that commits text without Ctrl or Meta, the
+/// space bar, and Enter even with Shift or Ctrl. Escape and Backspace have
+/// none. On Linux (X11) Delete has one, carrying the code 127. Enter with Alt
+/// or Meta, and Delete with modifiers, are unmeasured and have none.
+fn keypress_char_code(
+    key_code: i32,
+    key: &str,
+    committed: Option<&str>,
+    is_space: bool,
+    modifiers: Modifiers,
+) -> Option<i32> {
+    if key_code == 13 || key.eq_ignore_ascii_case("enter") {
+        return (!modifiers.contains(Modifiers::ALT) && !modifiers.contains(Modifiers::META))
+            .then_some(13);
+    }
+    if key_code == 46 || key.eq_ignore_ascii_case("delete") {
+        return (cfg!(target_os = "linux") && modifiers == Modifiers::NONE).then_some(127);
+    }
+    if modifiers.contains(Modifiers::CTRL) || modifiers.contains(Modifiers::META) {
+        return None;
+    }
+    if is_space {
+        return Some(32);
+    }
+    committed
+        .and_then(|text| text.chars().next())
+        .map(|character| character as i32)
+}
+
+/// The scroll a keydown's default action performs, as Chromium 147's
+/// `MapKeyCodeForScroll` (`keyboard_event_manager.cc`) on Windows and Linux:
+/// arrows scroll a line on their own physical axis, Page Up and Page Down a
+/// page and Home and End the whole document in the block direction. Shift
+/// and Meta never scroll, Alt does not scroll here (it is the system key),
+/// and Ctrl scrolls only with Home and End.
+fn keyboard_scroll(
+    key_code: i32,
+    key: &str,
+    modifiers: Modifiers,
+) -> Option<(ScrollButtonDirection, ScrollGranularity)> {
+    use ScrollButtonDirection as D;
+    use ScrollGranularity as G;
+    if modifiers.contains(Modifiers::SHIFT)
+        || modifiers.contains(Modifiers::META)
+        || modifiers.contains(Modifiers::ALT)
+    {
+        return None;
+    }
+    let scroll = match (key_code, key) {
+        (38, _) | (_, "ArrowUp") => (D::Up, G::Line),
+        (40, _) | (_, "ArrowDown") => (D::Down, G::Line),
+        (37, _) | (_, "ArrowLeft") => (D::Left, G::Line),
+        (39, _) | (_, "ArrowRight") => (D::Right, G::Line),
+        (33, _) | (_, "PageUp") => (D::BlockStart, G::Page),
+        (34, _) | (_, "PageDown") => (D::BlockEnd, G::Page),
+        (36, _) | (_, "Home") => (D::BlockStart, G::Document),
+        (35, _) | (_, "End") => (D::BlockEnd, G::Document),
+        _ => return None,
+    };
+    (!modifiers.contains(Modifiers::CTRL) || scroll.1 == G::Document).then_some(scroll)
 }
