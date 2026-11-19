@@ -101,10 +101,9 @@ impl FontRelativeLengthResolver {
         style: &ComputedStyle,
         collection: std::sync::Arc<FontCollection>,
     ) -> Self {
-        let mut description = FontDescription::from_computed_style(style);
-        // Font-relative references use Blink's effective font-cache size.
-        // Keep this metric query independent of the shaped glyph pipeline.
-        description.size = (description.size * 100.0).floor() / 100.0;
+        // The primary font is made at Chromium's font-cache size
+        // (`font_cache_size`), so its metrics are the ones Chromium reads.
+        let description = FontDescription::from_computed_style(style);
         let font = Font::new_in_collection(description, collection);
         let metrics = font.font_metrics().copied().unwrap_or_default();
         let mut units = Self::from_metrics(style.font_size, &style.line_height, &metrics);

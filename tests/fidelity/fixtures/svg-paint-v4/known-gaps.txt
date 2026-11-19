@@ -1,0 +1,32 @@
+# Paint corpus v4 (paint servers) gaps, one per line: [<os>] <scale>x <case> <differing pixels>
+# <largest channel difference>, each under a comment giving its cause and owner. A leading `linux` or
+# `windows` limits a line to that OS. crates/div-svg/tests/paint_corpus.rs fails on an unlisted
+# difference, on a listed one whose numbers change, and on a listed case that is now exact.
+
+# Rounding in Skia's raster pipeline, not isolated. Owner: fidelity lane, with the setup track for
+# the Skia build. div-svg hands Skia what Chromium's cc does (checked against paint_shader.cc,
+# gradient.cc and paint_record_pattern.cc): the same points, radii, stops, positions, local matrix,
+# tile mode, sRGB interpolation, dithering and an sRGB-tagged surface, on the same Skia milestone
+# (m147). The differences are only where a value sits on a rounding boundary: one channel level in
+# a few radial-gradient and scaled pattern-tile pixels, and the seam of a repeating gradient whose
+# parameter is exactly 1 (spread/repeat-diagonal; Chromium takes the last stop, Div the first). A
+# candidate is the raster pipeline's CPU variant (fused multiply-add in its HSW stages).
+1x href/radial-from-linear 1 1
+1x rad/basic 1 1
+1x rad/fr-larger 1 1
+1x rad/reflect 6 1
+1x rad/wide 1 1
+1x spread/repeat-diagonal 38 213
+2x href/attrs 1 1
+2x href/radial-from-linear 2 1
+2x pat/obb-fraction 1 1
+2x pat/transform 1 1
+2x rad/basic 1 1
+linux 2x rad/focal 2 1
+windows 2x rad/focal 1 1
+2x rad/fr-focal 2 1
+2x rad/fr-larger 1 1
+2x rad/reflect 1 1
+2x rad/repeat 2 1
+2x rad/three 1 1
+2x spread/repeat-diagonal 73 213

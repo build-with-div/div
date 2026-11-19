@@ -3,7 +3,8 @@
 //! corpus has three sets with their own fixtures and gap lists: `v1` (fills,
 //! strokes, transforms, viewports, Lucide icons), `v2` (dashes,
 //! `pathLength`, `paint-order`, `shape-rendering`, `vector-effect`, chart
-//! compositions) and `v3` (`clipPath`).
+//! compositions), `v3` (`clipPath`) and `v4` (paint servers: gradients and
+//! patterns).
 //!
 //! Chromium renders every case of a sheet in its own slot of one page, at
 //! scale 1 and, for a subset, at 2 (real zoom). This test paints
@@ -24,19 +25,22 @@ mod support;
 
 use div_svg::clip::{clip_content, ClipChild, ClipContent, ClipPath, ClipPathUnits, ClipReference};
 use div_svg::geometry::FillRule;
-use div_svg::length::Axis;
-use div_svg::paint::{
-    clip_viewport, paint_shape, to_sk_matrix, PaintOrder, ShapeRendering, SvgPaintStyle,
+use div_svg::length::{Axis, Length};
+use div_svg::paint::{clip_viewport, paint_shape, to_sk_matrix, ShapeRendering};
+use div_svg::paint_server::{
+    gradient_stops, parse_stop_offset, GradientAttributes, GradientKind, PaintServer,
+    PatternAttributes, SpreadMethod, Units,
 };
 use div_svg::transform::{parse_transform_list, Matrix};
-use div_svg::viewport::parse_view_box;
+use div_svg::viewport::{parse_view_box, PreserveAspectRatio};
 use div_svg::Rect;
 use serde_json::Value;
-use skia_safe::{Canvas, M44};
+use skia_safe::{Canvas, Color4f, Picture, PictureRecorder, Rect as SkRect, M44};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use support::pixels::{self, cascade, paint_style, view_box, Root};
-use support::{elements, length_context, shape, stroke_style_in, style_map, Element, Viewport};
+use std::sync::Arc;
+use support::pixels::{self, cascade, color, paint_style_with, view_box, Root, INK};
+use support::{elements, length_context, shape, style_map, Element, Viewport};
 
 #[cfg(target_os = "linux")]
 const ORACLE: (&str, &str) = ("linux", "chromium-linux");
@@ -48,6 +52,8 @@ const KNOWN_GAPS_V2: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v2/known-gaps.txt");
 const KNOWN_GAPS_V3: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v3/known-gaps.txt");
+const KNOWN_GAPS_V4: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt");
 fn fixtures(set: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../tests/fidelity/fixtures/{set}"))
 }
@@ -183,6 +189,192 @@ fn reference(root: &Node, id: &str, vp: &Viewport, chain: &mut Vec<String>) -> C
     })
 }
 
+/// Elements that never render where they are.
+fn is_resource(tag: &str) -> bool {
+    matches!(
+        tag,
+        "defs" | "clipPath" | "linearGradient" | "radialGradient" | "pattern" | "stop"
+    )
+}
+
+/// The `#id` an element's `href` (or `xlink:href`) names.
+fn href(element: &Element) -> Option<&str> {
+    element
+        .attrs
+        .get("href")
+        .or_else(|| element.attrs.get("xlink:href"))?
+        .strip_prefix('#')
+}
+
+/// A gradient element's own attributes and `stop` children.
+fn gradient_attributes(node: &Node) -> GradientAttributes {
+    let attrs = &node.element.attrs;
+    let kind = if node.element.tag == "linearGradient" {
+        GradientKind::Linear
+    } else {
+        GradientKind::Radial
+    };
+    let len = |name: &str| attrs.get(name).and_then(|v| Length::parse(v));
+    let stops: Vec<&Node> = node
+        .children
+        .iter()
+        .filter(|c| c.element.tag == "stop")
+        .collect();
+    // `color` is inherited from the gradient into its stops.
+    let inherited_color = attrs.get("color").map_or(INK, |s| s);
+    let stops = (!stops.is_empty()).then(|| {
+        gradient_stops(stops.iter().map(|stop| {
+            let element = &stop.element;
+            let style = style_map(element.attrs.get("style").map_or("", |s| s));
+            let get = |name: &str| style.get(name).or_else(|| element.attrs.get(name));
+            let current = get("color").map_or(inherited_color, |s| s);
+            let c =
+                get("stop-color").map_or(Color4f::new(0.0, 0.0, 0.0, 1.0), |v| color(v, current));
+            let opacity = get("stop-opacity").map_or(1.0, |v| v.parse::<f32>().unwrap());
+            let offset = element
+                .attrs
+                .get("offset")
+                .map_or(0.0, |v| parse_stop_offset(v));
+            (offset, Color4f::new(c.r, c.g, c.b, c.a * opacity))
+        }))
+    });
+    GradientAttributes {
+        units: attrs.get("gradientUnits").and_then(|v| Units::parse(v)),
+        transform: attrs
+            .get("gradientTransform")
+            .and_then(|t| parse_transform_list(t)),
+        spread: attrs
+            .get("spreadMethod")
+            .and_then(|v| SpreadMethod::parse(v)),
+        stops,
+        x1: len("x1"),
+        y1: len("y1"),
+        x2: len("x2"),
+        y2: len("y2"),
+        cx: len("cx"),
+        cy: len("cy"),
+        r: len("r"),
+        fx: len("fx"),
+        fy: len("fy"),
+        fr: len("fr"),
+        ..GradientAttributes::new(kind)
+    }
+}
+
+/// A pattern element's own attributes; its content is the element itself
+/// when it has children.
+fn pattern_attributes(node: &Node) -> PatternAttributes<&Node> {
+    let attrs = &node.element.attrs;
+    let len = |name: &str| attrs.get(name).and_then(|v| Length::parse(v));
+    PatternAttributes {
+        units: attrs.get("patternUnits").and_then(|v| Units::parse(v)),
+        content_units: attrs
+            .get("patternContentUnits")
+            .and_then(|v| Units::parse(v)),
+        transform: attrs
+            .get("patternTransform")
+            .and_then(|t| parse_transform_list(t)),
+        x: len("x"),
+        y: len("y"),
+        width: len("width"),
+        height: len("height"),
+        view_box: attrs.get("viewBox").and_then(|v| parse_view_box(v)),
+        preserve_aspect_ratio: attrs
+            .get("preserveAspectRatio")
+            .and_then(|v| PreserveAspectRatio::parse(v)),
+        content: (!node.children.is_empty()).then_some(node),
+    }
+}
+
+fn is_gradient(tag: &str) -> bool {
+    tag == "linearGradient" || tag == "radialGradient"
+}
+
+/// A gradient's attributes after `href` inheritance. `chain` holds the ids
+/// already followed; a reference back into it, or to an element that is
+/// not a gradient, is not followed.
+fn gradient_chain(root: &Node, node: &Node, chain: &mut Vec<String>) -> GradientAttributes {
+    let mut attrs = gradient_attributes(node);
+    if let Some(id) = href(&node.element) {
+        if !chain.iter().any(|seen| seen == id) {
+            if let Some(target) = find(root, id).filter(|t| is_gradient(&t.element.tag)) {
+                chain.push(id.to_owned());
+                attrs.inherit(&gradient_chain(root, target, chain));
+            }
+        }
+    }
+    attrs
+}
+
+/// A pattern's attributes after `href` inheritance, as [`gradient_chain`].
+fn pattern_chain<'a>(
+    root: &'a Node,
+    node: &'a Node,
+    chain: &mut Vec<String>,
+) -> PatternAttributes<&'a Node> {
+    let mut attrs = pattern_attributes(node);
+    if let Some(id) = href(&node.element) {
+        if !chain.iter().any(|seen| seen == id) {
+            if let Some(target) = find(root, id).filter(|t| t.element.tag == "pattern") {
+                chain.push(id.to_owned());
+                attrs.inherit(&pattern_chain(root, target, chain));
+            }
+        }
+    }
+    attrs
+}
+
+/// Resolves the `#id` of a `url()` paint, for an element in viewport `vp`.
+/// `servers` are the patterns whose content is being recorded: a reference
+/// back to one of them closes a cycle and resolves to nothing.
+fn resolve_server(
+    root: &Node,
+    id: &str,
+    vp: &Viewport,
+    servers: &[String],
+) -> Option<Arc<PaintServer>> {
+    if servers.iter().any(|seen| seen == id) {
+        return None;
+    }
+    let node = find(root, id)?;
+    let context = length_context(vp.width, vp.height);
+    let server = match node.element.tag.as_str() {
+        "linearGradient" | "radialGradient" => {
+            let attrs = gradient_chain(root, node, &mut vec![id.to_owned()]);
+            PaintServer::Gradient(attrs.resolve(&context))
+        }
+        "pattern" => {
+            let attrs = pattern_chain(root, node, &mut vec![id.to_owned()]);
+            let mut inner = servers.to_vec();
+            inner.push(id.to_owned());
+            PaintServer::Pattern(attrs.resolve(&context, |content: &&Node| {
+                record_content(root, content, vp, &inner)
+            }))
+        }
+        _ => return None,
+    };
+    Some(Arc::new(server))
+}
+
+/// A pattern's children painted in their own user space, inheriting from
+/// the pattern element that holds them.
+fn record_content(root: &Node, content: &Node, vp: &Viewport, servers: &[String]) -> Picture {
+    let mut recorder = PictureRecorder::new();
+    let canvas = recorder.begin_recording(SkRect::new(-1e5, -1e5, 1e5, 1e5), false);
+    let props = cascade(&content.element, &cascade(&root.element, &BTreeMap::new()));
+    paint_children(
+        canvas,
+        root,
+        content,
+        &Matrix::IDENTITY,
+        vp,
+        &props,
+        &Matrix::IDENTITY,
+        servers,
+    );
+    recorder.finish_recording_as_picture(None).unwrap()
+}
+
 /// The axis-aligned bounds of `rect` mapped by `m`.
 fn map_rect(m: &Matrix, rect: Rect) -> Rect {
     let corners = [
@@ -209,7 +401,7 @@ fn map_rect(m: &Matrix, rect: Rect) -> Rect {
 /// geometry, or the union of a group's rendered children.
 fn fill_box(node: &Node, vp: &Viewport) -> Option<Rect> {
     match node.element.tag.as_str() {
-        "defs" | "clipPath" => None,
+        tag if is_resource(tag) => None,
         "g" => node
             .children
             .iter()
@@ -278,16 +470,17 @@ fn paint_children(
     vp: &Viewport,
     props: &BTreeMap<String, String>,
     to_host: &Matrix,
+    servers: &[String],
 ) {
     for child in &node.children {
         let element = &child.element;
         let props = cascade(element, props);
         match element.tag.as_str() {
-            "defs" | "clipPath" => {}
+            tag if is_resource(tag) => {}
             "g" => {
                 let ctm = ctm.then_apply(&transform_of(element));
                 with_effects(canvas, root, child, &ctm, vp, |canvas| {
-                    paint_children(canvas, root, child, &ctm, vp, &props, to_host)
+                    paint_children(canvas, root, child, &ctm, vp, &props, to_host, servers)
                 });
             }
             "svg" => {
@@ -320,7 +513,9 @@ fn paint_children(
                     inner_vp.width = vb.width;
                     inner_vp.height = vb.height;
                 }
-                paint_children(canvas, root, child, &inner, &inner_vp, &props, to_host);
+                paint_children(
+                    canvas, root, child, &inner, &inner_vp, &props, to_host, servers,
+                );
                 canvas.restore();
             }
             _ => {
@@ -331,7 +526,7 @@ fn paint_children(
                     paint_shape(
                         canvas,
                         &shape(element, vp),
-                        &paint_style(&props, vp),
+                        &paint_style_with(&props, vp, &|id| resolve_server(root, id, vp, servers)),
                         Some(&to_host.then_apply(&ctm)),
                     );
                     canvas.restore();
@@ -354,6 +549,11 @@ fn paint_v2_matches_chromium_147() {
 #[test]
 fn paint_v3_matches_chromium_147() {
     check("svg-paint-v3", KNOWN_GAPS_V3);
+}
+
+#[test]
+fn paint_v4_matches_chromium_147() {
+    check("svg-paint-v4", KNOWN_GAPS_V4);
 }
 
 fn check(set: &str, known_gaps: &str) {
@@ -417,6 +617,7 @@ fn check(set: &str, known_gaps: &str) {
                     &root.viewport,
                     &props,
                     &root.to_host,
+                    &[],
                 );
             };
             let actual = pixels::render_tiled(frame, origin, &|at| {

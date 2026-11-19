@@ -9,11 +9,11 @@ use real_zoom::{Gap, RealZoomGaps};
 // `tools/qualification/probe_windows_text_oracle.py` on Linux and Windows
 // (build-with-div/div-fidelity-data `archive/docs/progress/evidence/`
 // `windows-text-oracle-v2.json` and `linux-text-oracle-v2.json`).
-// Div keeps them at every scale. Above scale 1, real-zoom Chromium lays the
-// units out in device pixels and differs where `FONT_UNITS_REAL_ZOOM_GAPS`
-// lists it: (scale, case, before or after, Chromium's width). The
-// application retains the unit; the callback changes only the font, without
-// computing or setting a pixel width.
+// Div keeps them at every scale, except `ex` (`ex_widths`). Above scale 1,
+// real-zoom Chromium lays the units out in device pixels and differs where
+// `FONT_UNITS_REAL_ZOOM_GAPS` lists it: (scale, case, before or after,
+// Chromium's width). The application retains the unit; the callback changes
+// only the font, without computing or setting a pixel width.
 #[cfg(windows)]
 const FONT_UNITS_REAL_ZOOM_GAPS: &[Gap] = &[
     (1.25, 0, "before", 46.0),
@@ -48,7 +48,6 @@ const FONT_UNITS_REAL_ZOOM_GAPS: &[Gap] = &[
 #[cfg(not(windows))]
 const FONT_UNITS_REAL_ZOOM_GAPS: &[Gap] = &[
     (1.25, 0, "before", 46.0),
-    (1.25, 1, "before", 37.4375),
     (1.25, 3, "before", 59.42499923706055),
     (1.25, 1, "after", 40.72500228881836),
     (1.25, 2, "after", 61.0625),
@@ -76,18 +75,42 @@ const FONT_UNITS_REAL_ZOOM_GAPS: &[Gap] = &[
     (3.0, 2, "after", 61.10416793823242),
 ];
 
+/// Div's `ex` widths, before and after the font change, at `scale`. Div
+/// makes a font at Chromium's size, the device size truncated to 1/100 px
+/// (T4), so the x-height, unlike the `ch` advance and the line heights, moves
+/// with the scale. At scale 1 these are Chromium's widths. Above it, they
+/// equal real-zoom Chromium's only where `FONT_UNITS_REAL_ZOOM_GAPS` lists
+/// no gap: on Linux, at 1.25 before and at 2 after.
+fn ex_widths(scale: f64) -> (f32, f32) {
+    if cfg!(windows) {
+        if scale == 1.0 {
+            (37.484375, 39.984375)
+        } else if scale == 1.5 {
+            (37.46875, 40.0)
+        } else {
+            (37.46875, 39.984375)
+        }
+    } else if scale == 1.0 {
+        (37.40625, 40.734375)
+    } else if scale == 1.25 {
+        (37.4375, 40.734375)
+    } else if scale == 1.5 {
+        (37.421875, 40.71875)
+    } else {
+        (37.421875, 40.734375)
+    }
+}
+
 #[test]
 fn retained_font_units_update_after_native_rust_callbacks() {
     let mut gaps = RealZoomGaps::new(FONT_UNITS_REAL_ZOOM_GAPS);
     for scale in [1.0, 1.25, 1.5, 2.0, 3.0] {
         for (case, (unit, line_height, before_width, after_width)) in [
             (LengthValue::Ch(2.5), LineHeight::Normal, 47.5, 50.0),
-            (
-                LengthValue::Ex(2.5),
-                LineHeight::Normal,
-                if cfg!(windows) { 37.484375 } else { 37.40625 },
-                if cfg!(windows) { 39.984375 } else { 40.734375 },
-            ),
+            {
+                let (before, after) = ex_widths(scale);
+                (LengthValue::Ex(2.5), LineHeight::Normal, before, after)
+            },
             (
                 LengthValue::Lh(2.5),
                 LineHeight::Number(1.2),

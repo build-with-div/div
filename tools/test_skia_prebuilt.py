@@ -74,5 +74,45 @@ class SkiaPrebuiltTest(unittest.TestCase):
             skia_prebuilt.verify_installed(changed, log)
 
 
+
+GN_ARGS = 'extra_cflags += [ "-msse3" ]'
+# vcvars writes VCToolsInstallDir with a trailing backslash.
+TOOLSET = r"C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.44.35207" + "\\"
+
+
+class PinMsvcToolsetTest(unittest.TestCase):
+    def test_no_pin_leaves_the_environment(self) -> None:
+        env = {"SKIA_GN_ARGS": GN_ARGS}
+        self.assertEqual(skia_prebuilt.pin_msvc_toolset(env), env)
+
+    def test_pinned_toolset_reaches_skia_and_the_inputs(self) -> None:
+        env = {"SKIA_GN_ARGS": GN_ARGS, "VCToolsInstallDir": TOOLSET, "VCToolsVersion": "14.44.35207"}
+        pinned = skia_prebuilt.pin_msvc_toolset(env)
+        self.assertEqual(pinned["SKIA_GN_ARGS"], GN_ARGS + ' win_toolchain_version="14.44.35207"')
+        self.assertNotEqual(
+            skia_prebuilt.inputs_id(dict(pinned, rust_skia_rev="0" * 40)),
+            skia_prebuilt.inputs_id(dict(env, rust_skia_rev="0" * 40)),
+        )
+
+    def test_windows_upper_case_names_pin_too(self) -> None:
+        env = {"SKIA_GN_ARGS": GN_ARGS, "VCTOOLSINSTALLDIR": TOOLSET, "VCTOOLSVERSION": "14.44.35207"}
+        self.assertTrue(
+            skia_prebuilt.pin_msvc_toolset(env)["SKIA_GN_ARGS"].endswith('win_toolchain_version="14.44.35207"')
+        )
+
+    def test_matching_gn_pin_is_kept(self) -> None:
+        gn_args = GN_ARGS + ' win_toolchain_version = "14.44.35207"'
+        env = {"SKIA_GN_ARGS": gn_args, "VCToolsInstallDir": TOOLSET}
+        self.assertEqual(skia_prebuilt.pin_msvc_toolset(env)["SKIA_GN_ARGS"], gn_args)
+
+    def test_disagreeing_pins_fail(self) -> None:
+        for env in (
+            {"SKIA_GN_ARGS": GN_ARGS, "VCToolsInstallDir": TOOLSET, "VCToolsVersion": "14.52.37025"},
+            {"SKIA_GN_ARGS": GN_ARGS + ' win_toolchain_version="14.52.37025"', "VCToolsInstallDir": TOOLSET},
+        ):
+            with self.subTest(env=env), self.assertRaises(SystemExit):
+                skia_prebuilt.pin_msvc_toolset(env)
+
+
 if __name__ == "__main__":
     unittest.main()

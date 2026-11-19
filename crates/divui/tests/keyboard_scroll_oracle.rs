@@ -44,22 +44,6 @@ const ORACLE: (&str, &str) = if cfg!(target_os = "windows") {
 /// Steps (scale, scenario, step indices) that differ from Chromium, with the
 /// gap's name and owner. A scale of `None` means both scales.
 const GAPS: &[(Option<&str>, &str, &[usize], &str)] = &[
-    // Chromium makes a scroller with no focusable descendant keyboard
-    // focusable (`inner`, `contain`, `hscroll`, `padded`), and starts
-    // sequential navigation at the clicked node. Div skips scrollers and
-    // starts at the document. I2b (RFC 0007 section 7).
-    (
-        None,
-        "focus_order",
-        &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        "keyboard-focusable-scrollers (engine and framework, I2b)",
-    ),
-    (
-        None,
-        "click_scroller",
-        &[1, 2],
-        "keyboard-focusable-scrollers (engine and framework, I2b)",
-    ),
     // `overscroll-behavior: contain` ends the scroll chain at `contain`;
     // Div's style system has no `overscroll-behavior`, so the keys go on to
     // the root.

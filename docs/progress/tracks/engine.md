@@ -197,3 +197,11 @@ on branch `components/c4-assets` and the shared findings note.
   values for all 344 probes. The census and CSS Grid coverage are
   unchanged at all four profiles.
   [Record](../stylesheet-pr3a-2026-11-17.md).
+- 17 November 2026: Div makes each font at its device size truncated to
+  1/100 px in f32, and its font cache shares a font between sizes with
+  one key, as pinned Chromium 147 does (T4, an engine filler for SVG text).
+  A Windows oracle of 4,514 cases agrees on every pair of sizes apart from
+  25 named `font-size-adjust` pairs. The census changed 5 Div images at
+  1.25x, all closer to Chromium, with exact counts unchanged; CSS Grid
+  coverage is unchanged at all four profiles.
+  [Record](../font-size-precision-t4-2026-11-17.md).
