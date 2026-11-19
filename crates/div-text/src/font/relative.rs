@@ -35,6 +35,22 @@ pub struct UsedLineHeightMetrics {
 /// vertical data. Numeric, percentage, and fixed values do not depend on the
 /// font tables.
 pub fn used_line_height(metrics: &FontMetrics, line_height: &LineHeight, font_size: f32) -> f32 {
+    let value = line_height_px(metrics, line_height, font_size);
+    // Chromium's line box holds the used line height in layout units: a
+    // number's product truncates toward zero, while a fixed length (which a
+    // percentage becomes at computed-value time) rounds to the nearest unit.
+    match *line_height {
+        LineHeight::Normal => value,
+        LineHeight::Number(_) => div_geometry::LayoutUnit::from_f32(value).to_f32(),
+        LineHeight::Length(_) | LineHeight::Percentage(_) => {
+            div_geometry::LayoutUnit::from_f32_round(value).to_f32()
+        }
+    }
+}
+
+/// The line height in CSS pixels before the line box snaps it to layout
+/// units; the `lh` unit resolves against this value.
+fn line_height_px(metrics: &FontMetrics, line_height: &LineHeight, font_size: f32) -> f32 {
     match *line_height {
         LineHeight::Normal => {
             let value = metrics.int_line_spacing();
@@ -139,7 +155,7 @@ impl FontRelativeLengthResolver {
                     let basis = div_geometry::LayoutUnit::from_f32(font_size).to_f32();
                     div_geometry::LayoutUnit::from_f32(basis * (number * 100.0) / 100.0).to_f32()
                 }
-                _ => used_line_height(metrics, line_height, font_size),
+                _ => line_height_px(metrics, line_height, font_size),
             },
         }
     }
@@ -213,6 +229,29 @@ mod tests {
             used_line_height(&metrics, &LineHeight::Length(22.0), 16.0),
             22.0
         );
+    }
+
+    #[test]
+    fn used_line_height_snaps_to_layout_units() {
+        // Chromium 147 (tests/fidelity/fixtures/calc-v1): 1.15 at 14px is a
+        // 16.09375px line (truncated); 4.62px and 2.3333px lines round to
+        // 4.625px and 2.328125px; `lh` keeps the unsnapped value.
+        let metrics = metrics();
+        assert_eq!(
+            used_line_height(&metrics, &LineHeight::Number(1.15), 14.0),
+            16.09375
+        );
+        assert_eq!(
+            used_line_height(&metrics, &LineHeight::Length(4.62), 14.0),
+            4.625
+        );
+        assert_eq!(
+            used_line_height(&metrics, &LineHeight::Length(7.0 / 3.0), 14.0),
+            2.328125
+        );
+        let units =
+            FontRelativeLengthResolver::from_metrics(14.0, &LineHeight::Length(4.62), &metrics);
+        assert_eq!(units.resolve(1.0, FontRelativeUnit::Lh), 4.62);
     }
 
     #[test]
