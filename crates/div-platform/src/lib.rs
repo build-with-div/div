@@ -25,6 +25,8 @@ mod click;
 pub use click::DoubleClickLimits;
 mod wheel;
 pub use wheel::{WheelDeltaMode, WheelDeltas, WheelSettings, WHEEL_PAGESCROLL};
+mod text_raster;
+pub use text_raster::system_raster_configuration;
 
 use div_geometry::ViewportMetrics;
 use std::path::PathBuf;

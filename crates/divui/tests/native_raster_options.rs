@@ -89,6 +89,45 @@ fn default_native_constructors_preserve_rendering_and_configuration() {
     );
 }
 
+/// RFC 0012: a windowed app that chooses no engine options gets the
+/// system's text raster configuration (Windows), or the default where the
+/// platform reports none. Choosing the default explicitly keeps it, and
+/// headless documents never read the system.
+#[test]
+fn an_app_without_engine_options_uses_the_system_raster_configuration() {
+    #[cfg(any(feature = "linux", feature = "windows"))]
+    let system = div_platform::system_raster_configuration();
+    #[cfg(not(any(feature = "linux", feature = "windows")))]
+    let system: Option<RasterConfiguration> = None;
+    if cfg!(all(feature = "windows", target_os = "windows")) {
+        assert!(system.is_some(), "Windows reports a configuration");
+    }
+    // `DIV_RENDER_PNG` would select the default; no test here sets it.
+    let app = App::builder()
+        .backend(BackendPreference::Software)
+        .build()
+        .unwrap();
+    assert_eq!(
+        app.document().raster_configuration().unwrap(),
+        system.unwrap_or_default()
+    );
+    let explicit = App::builder()
+        .engine_options(EngineOptions::default())
+        .backend(BackendPreference::Software)
+        .build()
+        .unwrap();
+    assert_eq!(
+        explicit.document().raster_configuration().unwrap(),
+        RasterConfiguration::default()
+    );
+    let headless =
+        HeadlessApp::new(ViewportMetrics::from_logical_size(32.0, 24.0, 1.0).unwrap()).unwrap();
+    assert_eq!(
+        headless.document().raster_configuration().unwrap(),
+        RasterConfiguration::default()
+    );
+}
+
 #[test]
 fn window_and_headless_apps_keep_explicit_native_raster_selection() {
     let selected = RasterConfiguration::deterministic_aliased(false);
