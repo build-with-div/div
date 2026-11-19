@@ -212,7 +212,10 @@ python tools\skia_prebuilt.py env | Out-String | Invoke-Expression
 cargo test --locked -p div-paint
 ```
 
-Archives live in `<main checkout>\out\skia-prebuilt\<rev>-<hash>\`. rust-skia's
+Archives live in `<shared out>\skia-prebuilt\<rev>-<hash>\`, where the
+shared `out` is `DIV_SHARED_OUT` if set, else `out` of the outermost main
+checkout: a clone kept under `E:\open-ui\out\` and its worktrees use
+`E:\open-ui\out`, as the census lock does. rust-skia's
 key names only the rust-skia commit, target and Skia features, so the
 directory also hashes `SKIA_GN_ARGS`, `SKIA_DEBUG`, the compiler variables and
 the `clang` version: a changed input finds no archive instead of a stale

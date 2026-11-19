@@ -46,6 +46,10 @@ import time
 from pathlib import Path, PureWindowsPath
 
 REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from tools.qualification.census_lock import shared_out  # noqa: E402
 WORKSPACE = REPO
 DEFAULT_CARGO_ARGS = ["check", "--locked", "--workspace", "--all-targets"]
 
@@ -79,15 +83,13 @@ def fail(message: str) -> None:
 
 
 def main_checkout_out() -> Path:
-    """Return ``out/`` of the main checkout, shared by every worktree."""
-    common = subprocess.run(
-        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-        cwd=REPO,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    return Path(common).parent / "out"
+    """Return the ``out/`` directory every checkout on this machine shares.
+
+    The census lock's rule (``census_lock.shared_out``): ``DIV_SHARED_OUT`` if
+    set, else ``out/`` of the outermost main checkout, so a clone kept under
+    another checkout's ``out/`` and its worktrees find the one archive store.
+    """
+    return shared_out(REPO)
 
 
 def rust_skia_rev(lock_text: str) -> str:
@@ -438,7 +440,7 @@ def main(argv: list[str] | None = None) -> None:
         "--cache-dir",
         type=Path,
         default=None,
-        help="archive root (default: <main checkout>/out/skia-prebuilt)",
+        help="archive root (default: <shared out>/skia-prebuilt; see main_checkout_out)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
     build = sub.add_parser("build", help="compile Skia once and archive it")
