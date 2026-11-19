@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use skia_safe::{
     shaper::{self, run_handler, RunHandler as SkRunHandler},
-    GlyphId, Point, Shaper, Vector,
+    Font as SkFont, GlyphId, Point, Shaper, Vector,
 };
 use unicode_script::{Script, UnicodeScript};
 use unicode_segmentation::UnicodeSegmentation;
@@ -128,8 +128,43 @@ struct CollectedRun {
     positions: Vec<Point>,
     offsets: Vec<Point>,
     clusters: Vec<u32>,
+    /// Per glyph, whether Blink's HarfBuzz advance is 1/65536 px below
+    /// SkShaper's (`advance_truncates_below_skshaper`).
+    truncated: Vec<bool>,
     utf8_range: std::ops::Range<usize>,
     advance: Vector,
+}
+
+/// One HarfBuzz position unit: HarfBuzz positions are 16.16 fixed point.
+const HARFBUZZ_POSITION_UNIT: f32 = 1.0 / 65536.0;
+
+/// Per glyph, whether Blink hands HarfBuzz an advance 1/65536 px smaller
+/// than SkShaper does.
+///
+/// Both read the advance from `SkFont::getWidths` (rounded to whole pixels
+/// for a font without subpixel positioning, which converts exactly) and convert it to 16.16 fixed
+/// point. Blink truncates (`SkiaScalarToHarfBuzzPosition`,
+/// `ClampTo<int>(value * 65536)`, in `skia_text_metrics.cc`); SkShaper rounds
+/// half up (`skhb_position`, `SkScalarRoundToInt(value * 65536)`). The scaling
+/// by 65536 is exact in f32, so they differ by one unit exactly when the
+/// scaled advance has a fraction of one half or more.
+fn advance_truncates_below_skshaper(font: &SkFont, glyphs: &[GlyphId]) -> Vec<bool> {
+    if glyphs.is_empty() {
+        return Vec::new();
+    }
+    // Whole-pixel advances convert to whole units either way.
+    if !font.is_subpixel() {
+        return vec![false; glyphs.len()];
+    }
+    let mut widths = vec![0.0f32; glyphs.len()];
+    font.get_widths(glyphs, &mut widths);
+    widths
+        .into_iter()
+        .map(|width| {
+            let fixed = f64::from(width * 65536.0);
+            fixed.trunc() != (fixed + 0.5).floor()
+        })
+        .collect()
 }
 
 impl ShapeCollector {
@@ -178,6 +213,11 @@ impl ShapeCollector {
                     // Last glyph: use the run's total advance minus position.
                     collected.advance.x - collected.positions[i].x + collected.positions[0].x
                 };
+                // HarfBuzz zeroes the advance of a mark after taking it from
+                // the font funcs, so a zero advance owes nothing to them.
+                if advance != 0.0 && collected.truncated.get(i).copied().unwrap_or(false) {
+                    advance -= HARFBUZZ_POSITION_UNIT;
+                }
                 if !collected.clusters.is_empty() {
                     let cluster_byte = collected.clusters[i] as usize;
                     if cluster_byte < byte_to_char.len()
@@ -467,6 +507,7 @@ impl SkRunHandler for ShapeCollector {
             positions: self.current_positions.clone(),
             offsets: self.current_offsets.clone(),
             clusters: self.current_clusters.clone(),
+            truncated: advance_truncates_below_skshaper(info.font, &self.current_glyphs),
             utf8_range: info.utf8_range.clone(),
             advance: info.advance,
         });
@@ -1644,6 +1685,47 @@ mod tests {
             for &g in &run.glyphs {
                 assert_ne!(g, 0, "Basic Latin should not produce .notdef glyphs");
             }
+        }
+    }
+
+    #[test]
+    fn glyph_advances_are_skia_widths_truncated_to_harfbuzz_units() {
+        // Blink hands HarfBuzz each Skia width truncated to 1/65536 px;
+        // SkShaper's own font funcs round it. A lone glyph has no kerning,
+        // so its advance is that width alone.
+        let shaper = TextShaper::new();
+        let mut truncated = 0;
+        for size in [11.37, 13.33, 15.3, 16.0, 17.71] {
+            let mut description = FontDescription::default();
+            description.size = size;
+            let font = Font::new(description);
+            for text in ["a", "e", "i", "l", "m", "n", "o", "s", "w", "0"] {
+                let shaped = shaper.shape(text, &font, TextDirection::Ltr);
+                let run = &shaped.runs[0];
+                assert_eq!(run.glyphs.len(), 1, "{text:?} at {size}");
+                let sk_font = run.font_data.shaping_font();
+                let mut widths = [0.0f32];
+                sk_font.get_widths(&run.glyphs, &mut widths);
+                let width = widths[0];
+                let expected = if sk_font.is_subpixel() {
+                    let fixed = f64::from(width * 65536.0);
+                    if fixed.trunc() != (fixed + 0.5).floor() {
+                        truncated += 1;
+                    }
+                    (fixed.trunc() / 65536.0) as f32
+                } else {
+                    width.round()
+                };
+                assert_eq!(
+                    run.advances[0], expected,
+                    "{text:?} at {size}: width {width}"
+                );
+            }
+        }
+        // Linux's FreeType widths sit on 1/64 px, where truncating and
+        // rounding agree; DirectWrite's do not.
+        if cfg!(windows) {
+            assert!(truncated > 0, "no width had a fraction to truncate");
         }
     }
 
