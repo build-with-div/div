@@ -149,10 +149,19 @@ Tests:
 
 Still unmeasured:
 - the horizontal axis (same code);
-- a scroller inside a scrolled or transformed ancestor (Blink snaps in the
-  transform's space; `wheel-transformed-scroller` remains);
+- a scroller inside a scrolled ancestor whose layout offset is fractional
+  (Div leaves scroll offsets out of the position, as Blink's paint offset
+  does);
+- a scroller inside a transformed ancestor (Blink snaps in the transform's
+  space; `wheel-transformed-scroller` remains);
+- negative positions, where Div's `floor(x + 0.5)` and Blink's
+  `LayoutUnit::Round` can differ at exactly −n.5;
 - the page step's snapped size (`wheel-page-unmeasured`);
 - Windows, whose 100px notch is below these heights.
+
+RFC 0011 does not apply: this snaps an input-path limit, as cc builds
+`container_bounds` in device space, and changes no fragment or paint
+position.
 
 Verification (this branch on main `f2c3ab89`; rebased unchanged onto `992d4d68`):
 
@@ -172,6 +181,12 @@ Verification (this branch on main `f2c3ab89`; rebased unchanged onto `992d4d68`)
 - No layout, paint or style code changed: only how far a wheel scroll may
   move. The census has no input, so it and coverage cannot move (decision
   D4).
+
+Engine review: the engine track approved a07b298 on 19 November 2026,
+with nothing blocking. It keeps the device-scale part outside RFC 0011, and
+will move this call site to stage 2's shared device-pixel snap helper. Its
+notes on negative positions and fractional scrolled ancestors are in the
+unmeasured list above.
 
 ### 18 November 2026: a removed pressed element hands `:active` to its parent
 
