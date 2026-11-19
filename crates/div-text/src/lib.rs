@@ -94,6 +94,13 @@ macro_rules! initialize_skia_at_load {
     };
 }
 
+// The unit tests draw with `skia_safe` directly (for example
+// `fontations_keeps_the_resolved_variable_font_instance`) while others
+// create Skia users on parallel threads, so this binary initializes Skia
+// when it loads, before any test runs.
+#[cfg(test)]
+initialize_skia_at_load!();
+
 pub use hyphenation::{
     find_soft_hyphens, is_soft_hyphen, last_soft_hyphen_before, strip_soft_hyphens, Hyphenation,
     HyphenationDictionaryHandle, HyphenationRegistry, HyphenationRegistryError, SOFT_HYPHEN,
