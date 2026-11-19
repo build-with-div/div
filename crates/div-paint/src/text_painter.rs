@@ -19,7 +19,7 @@
 //! 3. Not forcing monochrome rendering paths
 
 use skia_safe::{
-    Canvas, Color4f, ColorSpace, Paint, PaintStyle, Point, Rect, TextBlob, TextBlobBuilder,
+    Canvas, Color4f, ColorSpace, Matrix, Paint, PaintStyle, Point, Rect, TextBlob, TextBlobBuilder,
 };
 
 use div_geometry::{PhysicalSnap, RasterBackend, RasterSnapping, TextEdging};
@@ -146,8 +146,12 @@ pub(crate) fn paint_text_with_raster_policy_tracked(
                     0.0
                 }
         });
+    // The matrix the blob is drawn under. Linux web fonts take their mask
+    // and hinting from it, as Chromium's Fontations scaler does (T5, T6), and
+    // the clip test below maps the blob's bounds with it.
+    let device = canvas.local_to_device_as_3x3();
     if let Some(logical_blob) =
-        shape_result.to_text_blob_with_raster_policy(lcd_origin, raster_policy)
+        shape_result.to_text_blob_under(lcd_origin, raster_policy, 1.0, Some(&device))
     {
         // Cull against the glyphs' logical ink bounds before Skia applies its
         // LCD coverage filter.  Skia's filter taps extend one device pixel
@@ -155,7 +159,7 @@ pub(crate) fn paint_text_with_raster_policy_tracked(
         // clip edge, drawing it first and clipping the filtered mask can leak
         // a colored subpixel back into the visible area.  Blink rejects the
         // display item from its logical visual rect in this case.
-        if text_blob_is_outside_device_clip(canvas, &logical_blob, origin)
+        if text_blob_is_outside_device_clip(canvas, &device, &logical_blob, origin)
             || (style
                 .font_family
                 .families
@@ -182,10 +186,14 @@ pub(crate) fn paint_text_with_raster_policy_tracked(
         if style.raster_configuration.backend == RasterBackend::ChromiumLinux
             && (physical_scale - 1.0).abs() > f32::EPSILON
         {
-            if let Some(physical_blob) = shape_result.to_text_blob_with_raster_policy_at_scale(
+            // Drawn after `scale(1 / physical_scale)` below.
+            let mut physical_device = device;
+            physical_device.pre_scale((1.0 / physical_scale, 1.0 / physical_scale), None);
+            if let Some(physical_blob) = shape_result.to_text_blob_under(
                 lcd_origin,
                 raster_policy,
                 physical_scale,
+                Some(&physical_device),
             ) {
                 canvas.save();
                 canvas.translate(origin);
@@ -331,15 +339,17 @@ fn text_origin_is_past_device_clip_end(
 /// Whether a positioned text blob has no logical ink inside the exact device
 /// clip.  `Canvas::local_clip_bounds` is deliberately outset for antialiasing,
 /// so use the non-outset device clip after mapping the blob bounds instead.
+/// `device` is the canvas's local-to-device matrix.
 fn text_blob_is_outside_device_clip(
     canvas: &dyn crate::paint_record::PaintCanvas,
+    device: &Matrix,
     text_blob: &TextBlob,
     origin: (f32, f32),
 ) -> bool {
     let local_bounds = text_blob
         .bounds()
         .with_offset(Point::new(origin.0, origin.1));
-    let (device_bounds, _) = canvas.local_to_device_as_3x3().map_rect(Rect::from_ltrb(
+    let (device_bounds, _) = device.map_rect(Rect::from_ltrb(
         local_bounds.left,
         local_bounds.top,
         local_bounds.right,
