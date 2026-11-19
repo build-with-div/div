@@ -1,5 +1,49 @@
 # Setup track progress
 
+## windows-msvc MSVC toolset pin 18 November 2026
+
+Runner image `windows-2025-vs2026` 20261116.315.1 made VS 18's MSVC
+14.52.37025 the newest toolset. Its STL rejects the image's Clang 20
+(`yvals_core.h` STL1000, "expected Clang 22 or newer"), so windows-msvc
+failed in the native-consumer check (`examples/c/native/window.cc`) on that
+image and passed on 20261103.298.1, whichever runner a job got.
+
+- The windows-msvc job pins MSVC `14.44.35207`, the toolset of local VS 2022
+  Build Tools 17.14. The image still ships it
+  (`Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64`), and its STL
+  needs Clang 19 or newer.
+- `VCToolsVersion` pins cc-rs and rustc's linker lookup (find-msvc-tools).
+  `VCToolsInstallDir` pins clang and libclang.
+- Skia's GN build ignores both and takes the highest toolset under its
+  Visual Studio (`gn/BUILDCONFIG.gn`). So `tools/skia_prebuilt.py` passes
+  `VCToolsInstallDir`'s version as `win_toolchain_version`, which makes it
+  part of the archive inputs.
+- `tools/ci/msvc_toolset.py verify` checks four things: the toolset exists,
+  the pins agree, Skia gets the same version, and clang compiles against
+  exactly that STL. The STL's compiler check is never relaxed.
+- cli-template (windows-2025) compiles Skia from the generated app's own
+  `.cargo/config.toml`, outside `skia_prebuilt.py`, and its check strips the
+  job's Skia variables on purpose. There, `msvc_toolset.py skia-vc` makes
+  rust-skia's first fallback VC directory
+  (`C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC`) hold only a
+  junction to the pinned toolset. Skia's GN reads only
+  `Tools/MSVC/<version>/{include,lib,bin}` there.
+  `verify --skia app` checks that Skia resolves that toolset. The job also
+  enables `core.longpaths`, as windows-msvc does, for rust-skia's dependency
+  checkouts ("Filename too long" in spirv-cross and harfbuzz test data).
+- `VCINSTALLDIR` is not used: it would make find-msvc-tools take `link.exe`
+  from `PATH`, where Git bash puts GNU `link.exe` first. Skia would also
+  still take the highest toolset under that directory.
+- No other workflow job runs on Windows: `release.yml`, `hardening.yml`,
+  `components.yml` and `site.yml` run on Linux only.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Pin unit tests | `python -m unittest tools.test_skia_prebuilt tools.ci.test_msvc_toolset` | 11 passed on Windows and in WSL |
+| Toolset check, local | `msvc_toolset.py verify` with Build Tools 14.44.35207, clang 23.1.3 | passes; a mismatched `VCToolsVersion` or a missing toolset fails |
+| App-build check, local | `msvc_toolset.py verify --skia app`, the same toolset | passes with vcvars' `VCINSTALLDIR`; fails without it, where rust-skia resolves no VC directory and Skia would search for one itself |
+| On the runner image | windows-msvc on the pull request | the CI run of this change |
+
 ## alpha.1 definition 16 November 2026
 
 The user decided to update the alpha.1 definition ("yes let's update the

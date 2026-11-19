@@ -43,7 +43,7 @@ import subprocess
 import sys
 import tarfile
 import time
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 REPO = Path(__file__).resolve().parents[1]
 WORKSPACE = REPO
@@ -111,6 +111,46 @@ def compiler_identity() -> str:
         return result.stdout.splitlines()[0].strip() if result.stdout else compiler
     fail("clang-cl or clang must be on PATH (rust-skia compiles Skia with it)")
     raise AssertionError
+
+
+def env_value(env: dict[str, str], name: str) -> str:
+    """``env[name]``, ignoring case as Windows does: a copy of ``os.environ``
+    there holds every name in upper case."""
+    return next((value for key, value in env.items() if key.upper() == name.upper()), "")
+
+
+def pin_msvc_toolset(env: dict[str, str]) -> dict[str, str]:
+    """Compile Skia against the MSVC toolset ``VCToolsInstallDir`` names.
+
+    cc-rs, rustc's linker lookup (``VCToolsVersion``) and clang
+    (``VCToolsInstallDir``) use the toolset a Developer Command Prompt or CI
+    pins, but Skia's GN build ignores both and takes the highest version
+    under its Visual Studio's ``VC/Tools/MSVC`` (``gn/BUILDCONFIG.gn``). A
+    runner image that adds a toolset would then compile Skia against
+    different headers than everything it links with. This passes the pinned
+    version as GN's ``win_toolchain_version``; it is part of SKIA_GN_ARGS and
+    so of the archive inputs. A toolset Skia's Visual Studio lacks fails the
+    build rather than falling back.
+    """
+    install_dir = env_value(env, "VCToolsInstallDir").rstrip("\\/")
+    if not install_dir:
+        return env
+    version = PureWindowsPath(install_dir).name
+    tools_version = env_value(env, "VCToolsVersion")
+    if tools_version and tools_version != version:
+        fail(f"VCToolsVersion {tools_version} is not VCToolsInstallDir's {version}")
+    gn_args = env.get("SKIA_GN_ARGS", "")
+    pinned = re.search(r'\bwin_toolchain_version\s*=\s*"([^"]*)"', gn_args)
+    if pinned:
+        if pinned.group(1) != version:
+            fail(f"SKIA_GN_ARGS pins MSVC {pinned.group(1)}, VCToolsInstallDir {version}")
+        return env
+    return dict(env, SKIA_GN_ARGS=f'{gn_args} win_toolchain_version="{version}"'.strip())
+
+
+def build_env() -> dict[str, str]:
+    """This process's environment with the MSVC toolset pinned for Skia."""
+    return pin_msvc_toolset(dict(os.environ))
 
 
 def build_inputs(env: dict[str, str]) -> dict[str, str]:
@@ -210,13 +250,13 @@ def packed_files(skia_dir: Path) -> list[Path]:
 
 def cmd_build(args: argparse.Namespace) -> None:
     require_windows()
-    inputs = build_inputs(dict(os.environ))
+    inputs = build_inputs(build_env())
     root = args.cache_dir / inputs_id(inputs)
     cargo_args = args.cargo_args or DEFAULT_CARGO_ARGS
     if cargo_args and cargo_args[0] == "--":
         cargo_args = cargo_args[1:]
     root.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ)
+    env = build_env()
     env.pop("FORCE_SKIA_BINARIES_DOWNLOAD", None)
     env.pop("SKIA_BINARIES_URL", None)
     env["CARGO_TARGET_DIR"] = str(args.target_dir)
@@ -266,7 +306,7 @@ def write_archive(
 
 def cmd_env(args: argparse.Namespace) -> None:
     require_windows()
-    root = args.cache_dir / inputs_id(build_inputs(dict(os.environ)))
+    root = args.cache_dir / inputs_id(build_inputs(build_env()))
     archives = sorted(root.glob("*/skia-binaries-*.tar.gz"))
     if not archives:
         fail(f"no archive in {root}; run `python tools/skia_prebuilt.py build` first")
@@ -349,13 +389,13 @@ def verify_installed(skia_dir: Path, log: str) -> None:
 
 def cmd_cargo(args: argparse.Namespace) -> int:
     require_windows()
-    inputs = build_inputs(dict(os.environ))
+    inputs = build_inputs(build_env())
     root = args.cache_dir.resolve() / inputs_id(inputs)
     root.mkdir(parents=True, exist_ok=True)
     cargo_args = args.cargo_args[1:] if args.cargo_args[:1] == ["--"] else args.cargo_args
     if not cargo_args:
         fail("give the cargo arguments to run")
-    env = dict(os.environ)
+    env = build_env()
     env.pop("FORCE_SKIA_BUILD", None)
     env["FORCE_SKIA_BINARIES_DOWNLOAD"] = "1"
     env["SKIA_BINARIES_URL"] = archive_url(root)
@@ -389,7 +429,7 @@ def cmd_cargo(args: argparse.Namespace) -> int:
 
 def cmd_id(args: argparse.Namespace) -> None:
     require_windows()
-    print(inputs_id(build_inputs(dict(os.environ))))
+    print(inputs_id(build_inputs(build_env())))
 
 
 def main(argv: list[str] | None = None) -> None:

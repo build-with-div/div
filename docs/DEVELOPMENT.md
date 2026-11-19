@@ -216,7 +216,16 @@ Archives live in `<main checkout>\out\skia-prebuilt\<rev>-<hash>\`. rust-skia's
 key names only the rust-skia commit, target and Skia features, so the
 directory also hashes `SKIA_GN_ARGS`, `SKIA_DEBUG`, the compiler variables and
 the `clang` version: a changed input finds no archive instead of a stale
-one. Rerun `env` after changing any of them in a shell. With the forced
+one. Rerun `env` after changing any of them in a shell.
+
+When `VCToolsInstallDir` is set (vcvars sets it), the script compiles Skia
+against that MSVC toolset. Skia's GN build otherwise takes the highest
+toolset under its Visual Studio, whatever cc-rs, rustc and clang use. The
+version goes into `SKIA_GN_ARGS` as `win_toolchain_version`, so it is part of
+the archive inputs. CI's windows-msvc job pins `14.44.35207` this way, the
+toolset of VS 2022 Build Tools 17.14 that local builds use. Run
+`python tools\ci\msvc_toolset.py verify` to check that clang compiles against
+exactly the pinned toolset. With the forced
 download, a missing archive fails the build ("Downloading of binaries was
 forced but failed") rather than compiling a different Skia; then run
 `build` with the cargo arguments that failed, for example
