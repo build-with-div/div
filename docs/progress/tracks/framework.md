@@ -170,7 +170,8 @@ Verification (this branch on main `86b0f987`):
   `rule_cascade.rs`'s `removing_the_pressed_node_restyles_its_ancestors`
   expected the ancestors to lose `:active` at the removal. It is now
   `removing_the_pressed_node_keeps_its_ancestors_active_until_the_release`,
-  which asserts the measured behavior and the restyle at the release.
+  which asserts the measured behavior, that the reinserted node is no
+  longer `:active`, and the restyle at the release.
 - Linux (WSL): `cargo test --locked --no-fail-fast -p divui --features
   "linux testing"` passes 51 of 52 suites (385 tests). The failure,
   `native_rounded_clip`'s pixel comparison, fails the same way with this
@@ -178,7 +179,14 @@ Verification (this branch on main `86b0f987`):
 - `python tools/qualification/generate_renderer_contract.py --check` and
   `cargo fmt --all --check` pass.
 - No layout, paint or style code changed, only which element `:active`
-  matches (decision D4).
+  matches while a press is held. Neither the census (sheet-free, no input)
+  nor coverage can move (decision D4).
+
+Engine review: the engine track approved 77abf23 on 18 November 2026 with
+no blocking changes. Its suggestion, a `#pressed:active` rule in the
+`rule_cascade` test so the removal restyle stays covered, is in the
+follow-up engine commit. It takes `moved-node-press-state` as an engine
+filler.
 
 ### 18 November 2026: the native root's scrollbar gutters count once (#57 review notes)
 
