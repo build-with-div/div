@@ -388,7 +388,13 @@ pub struct Engine {
     pointer_capture: HashMap<u64, NodeHandle>,
     pointers: interaction::PointerStates,
     hover_paths: HashMap<u64, Vec<NodeHandle>>,
+    /// Each pressed pointer's press target, which a release activates.
+    /// Removing it drops the entry, so that release clicks nothing.
     active_pointers: HashMap<u64, NodeHandle>,
+    /// Each pressed pointer's `:active` element. A press sets it to the
+    /// press target; removing that element moves it to the removed
+    /// subtree's former parent (`clear_subtree_presentation_state`).
+    active_chains: HashMap<u64, NodeHandle>,
     /// Blink's `MouseEventManager::MousePressNode`: the node the latest
     /// press hit, where keyboard scrolling starts without focus.
     mouse_press_node: Option<NodeHandle>,
@@ -499,6 +505,7 @@ impl Engine {
             pointers: interaction::PointerStates::default(),
             hover_paths: HashMap::new(),
             active_pointers: HashMap::new(),
+            active_chains: HashMap::new(),
             mouse_press_node: None,
             focus_start: None,
             controls: HashMap::new(),
@@ -1300,6 +1307,23 @@ impl Engine {
             .retain(|_, pending| !handles.contains(pending));
         self.active_pointers
             .retain(|_, active| !handles.contains(active));
+        // A removed `:active` element hands the chain to the removed
+        // subtree's former parent, which pinned Chromium 147 matches after
+        // its next frame (`tests/fidelity/fixtures/active-chain-removal-v1`).
+        // The chain stays there when the element is inserted again.
+        let parent = self
+            .node_slots
+            .get(&former_parent)
+            .map(|index| self.handle_for_slot(*index));
+        self.active_chains.retain(|_, active| {
+            if handles.contains(active) {
+                match parent {
+                    Some(parent) => *active = parent,
+                    None => return false,
+                }
+            }
+            true
+        });
         for (pointer_id, path) in &self.hover_paths {
             if path.first().is_some_and(|target| handles.contains(target)) {
                 self.pointers.hover_target_removed.insert(*pointer_id);

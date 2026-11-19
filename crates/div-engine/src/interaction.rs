@@ -533,6 +533,7 @@ impl Engine {
                 // activation on release checks the disabled state.
                 if let Some(target) = target {
                     self.active_pointers.insert(pointer_id, target);
+                    self.active_chains.insert(pointer_id, target);
                     // Set before `pointerdown` and `mousedown`, so it holds
                     // even when they are cancelled.
                     self.mouse_press_node = Some(target);
@@ -542,12 +543,14 @@ impl Engine {
             }
             PointerEventKind::Up => {
                 update.pressed = self.active_pointers.remove(&pointer_id);
+                self.active_chains.remove(&pointer_id);
                 update
                     .pressed
                     .filter(|pressed| Some(*pressed) == target && !self.is_disabled(*pressed))
             }
             PointerEventKind::Cancel => {
                 self.active_pointers.remove(&pointer_id);
+                self.active_chains.remove(&pointer_id);
                 None
             }
             PointerEventKind::Move => None,
@@ -674,6 +677,7 @@ impl Engine {
         self.pointers.hover_target_removed.remove(&pointer_id);
         self.pointer_capture.remove(&pointer_id);
         self.active_pointers.remove(&pointer_id);
+        self.active_chains.remove(&pointer_id);
         self.hover_paths.remove(&pointer_id);
         self.note_selector_state_change();
     }
@@ -1650,10 +1654,11 @@ impl Engine {
     /// `:active` covers the pressed element and its inclusive ancestors, as
     /// Blink's `Document::UpdateActiveState` sets it on press. The chain is
     /// the pressed element's, so moving the pointer while pressed does not
-    /// change it.
+    /// change it. When the pressed element is removed, the chain starts at
+    /// the removed subtree's former parent.
     pub fn is_active(&self, handle: NodeHandle) -> Result<bool, EngineError> {
         self.resolve(handle)?;
-        for active in self.active_pointers.values() {
+        for active in self.active_chains.values() {
             if self.path_to_root(*active)?.contains(&handle) {
                 return Ok(true);
             }
@@ -2229,6 +2234,61 @@ mod tests {
                 .activation,
             Some(button)
         );
+    }
+
+    /// Removing the `:active` element hands the chain to the removed
+    /// subtree's former parent, inserting it again does not take the chain
+    /// back, and the release activates nothing (pinned Chromium 147,
+    /// `tests/fidelity/fixtures/active-chain-removal-v1`).
+    #[test]
+    fn a_removed_active_element_hands_the_chain_to_its_former_parent() {
+        let mut engine =
+            Engine::new(crate::ViewportMetrics::from_logical_size(100.0, 100.0, 1.0).unwrap())
+                .unwrap();
+        let parent = sized_control(&mut engine, ElementTag::Div);
+        let child = engine.create_element(ElementTag::Div).unwrap();
+        engine.append_child(parent, child).unwrap();
+        engine
+            .set_property(child, StyleProperty::Display, Display::Block.into())
+            .unwrap();
+        for property in [StyleProperty::Width, StyleProperty::Height] {
+            engine
+                .set_property(child, property, LengthValue::px(20.0).into())
+                .unwrap();
+        }
+        engine
+            .pointer_event(1, PointerEventKind::Down, 10.0, 10.0)
+            .unwrap();
+        assert!(engine.is_active(child).unwrap());
+
+        engine.detach(child).unwrap();
+        assert!(!engine.is_active(child).unwrap());
+        assert!(engine.is_active(parent).unwrap());
+        assert!(engine.is_active(engine.root()).unwrap());
+        engine.append_child(engine.root(), child).unwrap();
+        assert!(!engine.is_active(child).unwrap());
+        assert!(engine.is_active(parent).unwrap());
+
+        let release = engine
+            .pointer_event(1, PointerEventKind::Up, 10.0, 10.0)
+            .unwrap();
+        assert_eq!(release.pressed, None);
+        assert_eq!(release.activation, None);
+        assert!(!engine.is_active(parent).unwrap());
+
+        // Destroying an ancestor of the pressed element moves the chain to
+        // that ancestor's parent.
+        engine.append_or_move_child(parent, child).unwrap();
+        engine
+            .pointer_event(1, PointerEventKind::Down, 10.0, 10.0)
+            .unwrap();
+        assert!(engine.is_active(child).unwrap());
+        engine.remove(parent).unwrap();
+        assert!(engine.is_active(engine.root()).unwrap());
+        engine
+            .pointer_event(1, PointerEventKind::Up, 10.0, 10.0)
+            .unwrap();
+        assert!(!engine.is_active(engine.root()).unwrap());
     }
 
     #[test]

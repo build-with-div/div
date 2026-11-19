@@ -7,6 +7,12 @@ that match `:active`. The native test `openui/tests/active_chain.rs` builds
 the same tree through the public API and checks `Element::is_active`
 against the JSON this script writes.
 
+`--removal` records the scenarios that remove or hide the pressed element
+or one of its ancestors while the button is held, each on a fresh page.
+Every step waits two frames before it reads the state: right after a
+removal Blink's ancestors briefly match nothing, and its next frame gives
+the chain to the parent. The scenarios run twice and must agree.
+
 Windows only: it uses the pinned Windows Chrome-for-Testing.
 """
 
@@ -20,6 +26,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "tests/fidelity/fixtures/active-chain-v1/chromium-windows.json"
+REMOVAL_OUTPUT = ROOT / "tests/fidelity/fixtures/active-chain-removal-v1/chromium-windows.json"
 VIEWPORT = 200
 
 # Every element has an id so the page can report it. The geometry is
@@ -53,6 +60,68 @@ STEPS = [
     ("release disabled button", [("release", 130, 125)]),
 ]
 
+# (name, [step]) on a fresh page. A step is (press | move | release, x, y),
+# with the button held during a move after a press, or ("script", js),
+# which may set `detached` to the element it takes out.
+REMOVAL_SCENARIOS = [
+    ("remove the pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('inner'); detached.remove()"),
+        ("move", 60, 60),
+        ("release", 60, 60),
+    ]),
+    ("remove an ancestor of the pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('middle'); detached.remove()"),
+        ("release", 30, 30),
+    ]),
+    ("reinsert the removed pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('inner'); detached.remove()"),
+        ("script", "document.getElementById('sibling').append(detached)"),
+        ("release", 30, 30),
+    ]),
+    ("move the pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('inner');"
+                   " document.getElementById('sibling').append(detached)"),
+        ("release", 30, 30),
+    ]),
+    ("press again after the removal", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('inner'); detached.remove()"),
+        ("release", 30, 30),
+        ("press", 30, 30),
+        ("release", 30, 30),
+    ]),
+    ("remove the pressed button", [
+        ("move", 40, 125),
+        ("press", 40, 125),
+        ("script", "detached = document.getElementById('enabled'); detached.remove()"),
+        ("release", 40, 125),
+    ]),
+    ("hide the pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('inner'); detached.style.display = 'none'"),
+        ("release", 30, 30),
+    ]),
+    ("hide an ancestor of the pressed element", [
+        ("press", 30, 30),
+        ("script", "detached = document.getElementById('middle'); detached.style.display = 'none'"),
+        ("release", 30, 30),
+    ]),
+]
+
+FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
+
+# The removal pages log each pointer and mouse event's target.
+EVENT_LOG = (
+    "window.detached = null; window.events = [];"
+    "for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'])"
+    " document.addEventListener(type, e => events.push("
+    "  type + ' ' + (e.target.id || e.target.nodeName.toLowerCase())), true);"
+)
+
 ACTIVE = (
     "Array.from(document.querySelectorAll('[id]'))"
     ".filter(e => e.matches(':active')).map(e => e.id)"
@@ -71,13 +140,69 @@ def mouse(browser, event: str, x: int, y: int) -> None:
     browser.client.command("Input.dispatchMouseEvent", params)
 
 
+def removal_scenarios(browser, page: Path) -> list:
+    scenarios = []
+    for name, steps in REMOVAL_SCENARIOS:
+        browser.load(page)
+        browser.evaluate(EVENT_LOG)
+        browser.evaluate(FRAMES, await_promise=True)
+        results = []
+        pressed = False
+        for step in steps:
+            if step[0] == "script":
+                browser.evaluate(step[1])
+            elif step[0] == "move" and pressed:
+                browser.client.command("Input.dispatchMouseEvent", {
+                    "type": "mouseMoved", "x": step[1], "y": step[2],
+                    "button": "left", "buttons": 1,
+                })
+            else:
+                mouse(browser, *step)
+                pressed = step[0] == "press"
+            browser.evaluate(FRAMES, await_promise=True)
+            results.append({
+                "step": list(step),
+                "active": browser.evaluate(ACTIVE),
+                "detached_active": browser.evaluate(
+                    "detached ? detached.matches(':active') : null"),
+                "events": browser.evaluate("events.splice(0)"),
+            })
+        scenarios.append({"scenario": name, "steps": results})
+    return scenarios
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--chrome", type=Path)
-    parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--removal", action="store_true",
+                        help="record the removal scenarios instead")
     args = parser.parse_args()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import windows_chrome
+
+    if args.removal:
+        output = args.output or REMOVAL_OUTPUT
+        with tempfile.TemporaryDirectory(prefix="openui-active-oracle-") as directory:
+            page = Path(directory) / "active.html"
+            page.write_text(PAGE, encoding="utf-8")
+            with windows_chrome.WindowsChrome(
+                args.chrome or windows_chrome.DEFAULT_CHROME, VIEWPORT, VIEWPORT, 1.0
+            ) as browser:
+                first = removal_scenarios(browser, page)
+                second = removal_scenarios(browser, page)
+        if first != second:
+            raise SystemExit("the two removal captures differ")
+        result = {
+            "chromium": windows_chrome.CHROMIUM_VERSION,
+            "platform": "windows",
+            "viewport": [VIEWPORT, VIEWPORT, 1.0],
+            "scenarios": first,
+        }
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(result, indent=1) + "\n", encoding="utf-8", newline="\n")
+        print(json.dumps(first, indent=1))
+        return 0
 
     results = []
     with tempfile.TemporaryDirectory(prefix="openui-active-oracle-") as directory:
@@ -110,8 +235,9 @@ def main() -> int:
         "viewport": [VIEWPORT, VIEWPORT, 1.0],
         "steps": results,
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=1) + "\n", encoding="utf-8", newline="\n")
+    output = args.output or OUTPUT
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=1) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(results, indent=1))
     return 0
 
