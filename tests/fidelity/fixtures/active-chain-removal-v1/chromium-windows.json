@@ -1,0 +1,491 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "viewport": [
+  200,
+  200,
+  1.0
+ ],
+ "scenarios": [
+  {
+   "scenario": "remove the pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('inner'); detached.remove()"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "move",
+      60,
+      60
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      60,
+      60
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "remove an ancestor of the pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('middle'); detached.remove()"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup outer",
+      "mouseup outer"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "reinsert the removed pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('inner'); detached.remove()"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "script",
+      "document.getElementById('sibling').append(detached)"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "move the pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('inner'); document.getElementById('sibling').append(detached)"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "press again after the removal",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('inner'); detached.remove()"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle"
+     ]
+    },
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle"
+     ],
+     "detached_active": false,
+     "events": [
+      "pointerdown middle",
+      "mousedown middle"
+     ]
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle",
+      "click middle"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "remove the pressed button",
+   "steps": [
+    {
+     "step": [
+      "move",
+      40,
+      125
+     ],
+     "active": [],
+     "detached_active": null,
+     "events": []
+    },
+    {
+     "step": [
+      "press",
+      40,
+      125
+     ],
+     "active": [
+      "html",
+      "body",
+      "controls",
+      "enabled"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown enabled",
+      "mousedown enabled"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('enabled'); detached.remove()"
+     ],
+     "active": [
+      "html",
+      "body",
+      "controls"
+     ],
+     "detached_active": false,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      40,
+      125
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup controls",
+      "mouseup controls"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "hide the pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('inner'); detached.style.display = 'none'"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": true,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup middle",
+      "mouseup middle",
+      "click middle"
+     ]
+    }
+   ]
+  },
+  {
+   "scenario": "hide an ancestor of the pressed element",
+   "steps": [
+    {
+     "step": [
+      "press",
+      30,
+      30
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": null,
+     "events": [
+      "pointerdown inner",
+      "mousedown inner"
+     ]
+    },
+    {
+     "step": [
+      "script",
+      "detached = document.getElementById('middle'); detached.style.display = 'none'"
+     ],
+     "active": [
+      "html",
+      "body",
+      "outer",
+      "middle",
+      "inner"
+     ],
+     "detached_active": true,
+     "events": []
+    },
+    {
+     "step": [
+      "release",
+      30,
+      30
+     ],
+     "active": [],
+     "detached_active": false,
+     "events": [
+      "pointerup outer",
+      "mouseup outer",
+      "click outer"
+     ]
+    }
+   ]
+  }
+ ]
+}

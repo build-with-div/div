@@ -95,6 +95,99 @@ element identity) merges, because the samples' icons are written in `view!`.
 
 ## Log
 
+### 18 November 2026: a removed pressed element hands `:active` to its parent
+
+Problem (raised in the engine review of the pointer-state restyle): when
+the pressed element was removed while the button was held, Div dropped its
+press, so nothing matched `:active`. Chromium had not been measured.
+
+Oracle (new, `tests/fidelity/fixtures/active-chain-removal-v1`), captured
+by `capture_active_chain_oracle.py --removal` from pinned Windows
+Chrome-for-Testing 147.0.7727.50, through CDP mouse input as
+`active-chain-v1`. Eight scenarios on the `active-chain-v1` page, each on a
+fresh page: remove the pressed element, remove an ancestor of it, reinsert
+the removed element, move it, press again after the removal, remove a
+pressed button, and hide the pressed element or an ancestor with
+`display: none`. Each step records the `:active` ids, whether the taken-out
+element matches `:active`, and the pointer and mouse events' targets. The
+script captures the set twice, and the two must agree.
+
+Chromium, measured:
+
+- Removing the pressed element, or an ancestor of it, gives `:active` to
+  the removed subtree's former parent and its ancestors. Inserting the
+  element again does not take it back. The release fires `pointerup` and
+  `mouseup` at the element under the pointer and no `click`.
+- Moving the pressed element with `append` acts as a removal.
+- Hiding it, or an ancestor, with `display: none` changes nothing: the
+  chain stays, and the release clicks the element under the pointer.
+- Timing: right after a removal in a settled page, Blink's remaining
+  ancestors briefly match nothing. The chain reaches the parent at its next
+  frame. The oracle reads every step after two frames. Div answers
+  `:active` synchronously, so it shows the settled chain at once.
+
+Change:
+
+- **Engine** (its own commit, for engine review): `Engine` keeps each
+  pressed pointer's `:active` element (`active_chains`) apart from the
+  press target that a release activates (`active_pointers`). Removing or
+  detaching that element moves it to the removed subtree's former parent.
+  `active_pointers` still drops the removed target, so the release clicks
+  nothing, as before. `is_active` reads `active_chains`.
+- **Capture script** (`tools/qualification/capture_active_chain_oracle.py`,
+  engine-owned, in the engine commit): the `--removal` scenarios.
+
+Tests:
+
+- `removing_the_pressed_element_matches_chromium`
+  (`crates/divui/tests/active_chain.rs`) replays all eight scenarios through
+  the public API and compares every step's `:active` ids, the taken-out
+  element's `:active` and the event targets. Before the change, the
+  removal scenarios differ: nothing is `:active` after the removal.
+- `a_removed_active_element_hands_the_chain_to_its_former_parent`
+  (`div-engine`, `interaction.rs`): detach, reinsert, release, and the
+  removal of an ancestor.
+
+Gap: `moved-node-press-state` (engine). Moving a connected element with
+`append_or_move_child` or `insert_before` keeps its press, so the chain
+stays on the moved element and the release clicks. Chromium handles the
+move as a removal. The oracle test names the scenario and checks that it
+still differs. Moves also keep focus, capture and hover in Div, all
+unmeasured.
+
+Verification (this branch on main `86b0f987`):
+
+- Linux (WSL): `cargo test --locked -p divui --features "linux testing"
+  --test active_chain` passes 3 tests. With the engine change reverted,
+  `removing_the_pressed_element_matches_chromium` fails at the first
+  removal (no `:active` element where Chromium has `body`, `outer` and
+  `middle`), and so does the engine unit test.
+- Linux (WSL): `cargo test --locked -p div-engine --lib` passes 118 tests.
+- Linux (WSL): `cargo test --locked --no-fail-fast -p div-engine` passes 64
+  of 65 suites (530 tests). The failure is `source_layer_raster`'s 1.25x
+  pixel (163 against 160), which is this WSL target's Skia build without
+  CI's flags (see the 18 November gutter entry).
+  `rule_cascade.rs`'s `removing_the_pressed_node_restyles_its_ancestors`
+  expected the ancestors to lose `:active` at the removal. It is now
+  `removing_the_pressed_node_keeps_its_ancestors_active_until_the_release`,
+  which asserts the measured behavior, that the reinserted node is no
+  longer `:active`, and the restyle at the release.
+- Linux (WSL): `cargo test --locked --no-fail-fast -p divui --features
+  "linux testing"` passes 51 of 52 suites (385 tests). The failure,
+  `native_rounded_clip`'s pixel comparison, fails the same way with this
+  change set aside at main `86b0f987`, from the same local Skia build.
+- `python tools/qualification/generate_renderer_contract.py --check` and
+  `cargo fmt --all --check` pass.
+- No layout, paint or style code changed, only which element `:active`
+  matches while a press is held. Neither the census (sheet-free, no input)
+  nor coverage can move (decision D4).
+
+Engine review: the engine track approved 77abf23 on 18 November 2026 with
+no blocking changes. Its suggestion, a `#pressed:active` rule in the
+`rule_cascade` test so the removal restyle stays covered, is in the
+follow-up engine commit. It takes `moved-node-press-state` as an engine
+filler.
+
 ### 18 November 2026: the native root's scrollbar gutters count once (#57 review notes)
 
 Problem (non-blocking notes 1 and 2 of the engine review on #57):

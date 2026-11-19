@@ -143,3 +143,148 @@ fn a_pressed_disabled_button_is_active_but_not_clicked() {
     assert!(!disabled.is_active().unwrap());
     assert_eq!(clicks.get(), 0);
 }
+
+const REMOVAL_ORACLE: &str =
+    include_str!("../../../tests/fidelity/fixtures/active-chain-removal-v1/chromium-windows.json");
+
+/// Scenarios where Div still differs from the removal oracle. Moving a
+/// connected element keeps its press state in Div, where Chromium handles
+/// the move as a removal (gap `moved-node-press-state`).
+const REMOVAL_GAPS: &[&str] = &["move the pressed element"];
+
+/// The oracle's script steps, through the public API. `detached` is the
+/// element a step takes out.
+fn run_script(script: &str, elements: &[(&'static str, Element)], detached: &mut Option<Element>) {
+    let find = |id: &str| {
+        elements
+            .iter()
+            .find(|(name, _)| *name == id)
+            .unwrap()
+            .1
+            .clone()
+    };
+    for id in ["inner", "middle", "enabled"] {
+        let element = find(id);
+        if script == format!("detached = document.getElementById('{id}'); detached.remove()") {
+            element.detach().unwrap();
+            *detached = Some(element);
+            return;
+        }
+        if script
+            == format!(
+                "detached = document.getElementById('{id}'); detached.style.display = 'none'"
+            )
+        {
+            element.set_display(Display::None).unwrap();
+            *detached = Some(element);
+            return;
+        }
+    }
+    match script {
+        "document.getElementById('sibling').append(detached)" => {
+            find("sibling")
+                .append_child(detached.as_ref().unwrap())
+                .unwrap();
+        }
+        "detached = document.getElementById('inner'); document.getElementById('sibling').append(detached)" =>
+        {
+            let inner = find("inner");
+            find("sibling").append_child(&inner).unwrap();
+            *detached = Some(inner);
+        }
+        other => panic!("unknown script {other}"),
+    }
+}
+
+/// One scenario's steps as Div reports them: the `:active` ids, whether
+/// the detached element matches `:active`, and the events' targets.
+fn removal_scenario(steps: &[serde_json::Value]) -> Vec<serde_json::Value> {
+    let (document, elements) = page();
+    let log = std::rc::Rc::new(std::cell::RefCell::new(Vec::<String>::new()));
+    for event_type in ["pointerdown", "mousedown", "pointerup", "mouseup", "click"] {
+        let log = log.clone();
+        document
+            .body()
+            .on_capture(event_type, move |event| {
+                let target = event
+                    .target()
+                    .and_then(|target| target.get_attribute("id").unwrap())
+                    .unwrap_or_else(|| "body".to_owned());
+                log.borrow_mut().push(format!("{event_type} {target}"));
+            })
+            .unwrap();
+    }
+    let mut detached: Option<Element> = None;
+    let mut actual = Vec::new();
+    for step in steps {
+        let step = step["step"].as_array().unwrap();
+        let name = step[0].as_str().unwrap();
+        if name == "script" {
+            run_script(step[1].as_str().unwrap(), &elements, &mut detached);
+        } else {
+            let kind = match name {
+                "press" => PointerInputKind::Down,
+                "move" => PointerInputKind::Move,
+                "release" => PointerInputKind::Up,
+                other => panic!("unknown event {other}"),
+            };
+            let x = step[1].as_f64().unwrap() as f32;
+            let y = step[2].as_f64().unwrap() as f32;
+            document
+                .dispatch_pointer_input(PointerInput::mouse(kind, x, y))
+                .unwrap();
+        }
+        document.update_all().unwrap();
+        let mut active: Vec<&str> = elements
+            .iter()
+            .filter(|(_, element)| element.is_active().unwrap())
+            .map(|(id, _)| *id)
+            .collect();
+        active.sort_unstable();
+        actual.push(serde_json::json!({
+            "active": active,
+            "detached_active": detached.as_ref().map(|element| element.is_active().unwrap()),
+            "events": log.borrow_mut().drain(..).collect::<Vec<_>>(),
+        }));
+    }
+    actual
+}
+
+/// Removing the pressed element or an ancestor while the button is held
+/// hands `:active` to the removed subtree's former parent, and the release
+/// clicks nothing; hiding them changes neither. Pinned Chromium 147 through
+/// CDP mouse input, read after each step's next frame.
+#[test]
+fn removing_the_pressed_element_matches_chromium() {
+    let oracle: serde_json::Value = serde_json::from_str(REMOVAL_ORACLE).unwrap();
+    let scenarios = oracle["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 8);
+    for scenario in scenarios {
+        let name = scenario["scenario"].as_str().unwrap();
+        let steps = scenario["steps"].as_array().unwrap();
+        let expected: Vec<serde_json::Value> = steps
+            .iter()
+            .map(|step| {
+                let mut active: Vec<&str> = step["active"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|id| id.as_str().unwrap())
+                    .filter(|id| *id != "html")
+                    .collect();
+                active.sort_unstable();
+                serde_json::json!({
+                    "active": active,
+                    "detached_active": step["detached_active"],
+                    "events": step["events"],
+                })
+            })
+            .collect();
+        let actual = removal_scenario(steps);
+        if REMOVAL_GAPS.contains(&name) {
+            assert_ne!(actual, expected, "gap scenario {name} now matches");
+        } else {
+            assert_eq!(actual, expected, "scenario {name}");
+        }
+    }
+}
