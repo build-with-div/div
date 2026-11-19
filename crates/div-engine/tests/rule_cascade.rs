@@ -527,20 +527,29 @@ fn removing_the_focused_node_restyles_its_ancestors() {
 
 /// Removing the pressed node hands `:active` to its former parent, so its
 /// ancestors keep it until the release, as pinned Chromium 147 does
-/// (`tests/fidelity/fixtures/active-chain-removal-v1`).
+/// (`tests/fidelity/fixtures/active-chain-removal-v1`). The removed node
+/// itself loses it, and inserting it again does not give it back.
 #[test]
 fn removing_the_pressed_node_keeps_its_ancestors_active_until_the_release() {
-    let sheet =
-        StyleSheet::new(CascadeOrigin::Author).with_rule(rule("#grand:active", opacity(0.25)));
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule("#grand:active", opacity(0.25)))
+        .with_rule(rule("#pressed:active", opacity(0.5)));
     let (mut engine, grand, pressed) = grandparent_page(&sheet, ElementTag::Div);
+    engine.set_attribute(pressed, "id", "pressed").unwrap();
+    engine.update().unwrap();
     engine
         .pointer_event(MOUSE_POINTER_ID, PointerEventKind::Down, 10.0, 10.0)
         .unwrap();
     engine.update().unwrap();
     assert_eq!(opacity_of(&engine, grand), 0.25, "after pressing");
+    assert_eq!(opacity_of(&engine, pressed), 0.5, "the pressed node");
     engine.detach(pressed).unwrap();
     engine.update().unwrap();
     assert_eq!(opacity_of(&engine, grand), 0.25, "after removing it");
+    let root = engine.root();
+    engine.append_child(root, pressed).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, pressed), 1.0, "reinserted");
     engine
         .pointer_event(MOUSE_POINTER_ID, PointerEventKind::Up, 10.0, 10.0)
         .unwrap();
