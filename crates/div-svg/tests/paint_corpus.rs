@@ -28,6 +28,7 @@ div_text::initialize_skia_at_load!();
 use div_svg::clip::{clip_content, ClipChild, ClipContent, ClipPath, ClipPathUnits, ClipReference};
 use div_svg::geometry::FillRule;
 use div_svg::length::{Axis, Length};
+use div_svg::mask::{mask_content, Mask, MaskAttributes, MaskType};
 use div_svg::paint::{clip_viewport, paint_shape, to_sk_matrix, ShapeRendering};
 use div_svg::paint_server::{
     gradient_stops, parse_stop_offset, GradientAttributes, GradientKind, PaintServer,
@@ -38,6 +39,7 @@ use div_svg::viewport::{parse_view_box, PreserveAspectRatio};
 use div_svg::Rect;
 use serde_json::Value;
 use skia_safe::{Canvas, Color4f, Picture, PictureRecorder, Rect as SkRect, M44};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -56,6 +58,8 @@ const KNOWN_GAPS_V3: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v3/known-gaps.txt");
 const KNOWN_GAPS_V4: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt");
+const KNOWN_GAPS_V5: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-paint-v5/known-gaps.txt");
 fn fixtures(set: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../tests/fidelity/fixtures/{set}"))
 }
@@ -111,12 +115,113 @@ fn find<'a>(node: &'a Node, id: &str) -> Option<&'a Node> {
 /// The `#id` of an element's `clip-path: url(#id)`, from its `style`
 /// attribute or its presentation attribute.
 fn clip_reference(element: &Element) -> Option<String> {
+    url_reference(element, "clip-path")
+}
+
+/// The `#id` of an element's `<property>: url(#id)`.
+fn url_reference(element: &Element, property: &str) -> Option<String> {
     let style = style_map(element.attrs.get("style").map_or("", |s| s));
     let value = style
-        .get("clip-path")
-        .or_else(|| element.attrs.get("clip-path"))?;
+        .get(property)
+        .or_else(|| element.attrs.get(property))?;
     let id = value.trim().strip_prefix("url(#")?.strip_suffix(')')?;
     Some(id.to_owned())
+}
+
+thread_local! {
+    /// The masks being resolved, outermost first, to break reference
+    /// cycles at the closing reference.
+    static MASK_CHAIN: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+}
+
+/// What an element's `mask` reference does.
+enum MaskReference {
+    /// No `mask`, one that does not resolve to a `mask` element, or one
+    /// that closes a cycle: the element is painted unmasked
+    /// (`HasSingleInvalidSVGMaskLayer`; measured for the cycle:
+    /// `edge/self`).
+    None,
+    Mask(Mask<Picture>),
+}
+
+/// Resolves an element's `mask: url(#id)`, recording the mask's content.
+fn resolve_mask(
+    root: &Node,
+    element: &Element,
+    vp: &Viewport,
+    servers: &[String],
+) -> MaskReference {
+    let Some(id) = url_reference(element, "mask") else {
+        return MaskReference::None;
+    };
+    if MASK_CHAIN.with(|chain| chain.borrow().contains(&id)) {
+        return MaskReference::None;
+    }
+    let Some(node) = find(root, &id).filter(|n| n.element.tag == "mask") else {
+        return MaskReference::None;
+    };
+    let attrs = &node.element.attrs;
+    let style = style_map(attrs.get("style").map_or("", |s| s));
+    let get = |name: &str| style.get(name).or_else(|| attrs.get(name));
+    let attributes = MaskAttributes {
+        units: get("maskUnits").and_then(|v| Units::parse(v)),
+        content_units: get("maskContentUnits").and_then(|v| Units::parse(v)),
+        x: get("x").and_then(|v| Length::parse(v)),
+        y: get("y").and_then(|v| Length::parse(v)),
+        width: get("width").and_then(|v| Length::parse(v)),
+        height: get("height").and_then(|v| Length::parse(v)),
+        mask_type: get("mask-type").and_then(|v| MaskType::parse(v)),
+    };
+    MASK_CHAIN.with(|chain| chain.borrow_mut().push(id));
+    let content = record_content(root, node, vp, servers);
+    MASK_CHAIN.with(|chain| chain.borrow_mut().pop());
+    MaskReference::Mask(attributes.resolve(&length_context(vp.width, vp.height), content))
+}
+
+/// An element's visual rect in its own user space: its fill box, outset
+/// by half its stroke width when it is stroked, or its children's united.
+fn visual_rect(node: &Node, vp: &Viewport, props: &BTreeMap<String, String>) -> Option<Rect> {
+    let props = cascade(&node.element, props);
+    match node.element.tag.as_str() {
+        tag if is_resource(tag) => None,
+        "g" => node
+            .children
+            .iter()
+            .filter(|c| c.element.attrs.get("display").map(String::as_str) != Some("none"))
+            .filter_map(|c| {
+                visual_rect(c, vp, &props).map(|b| map_rect(&transform_of(&c.element), b))
+            })
+            .reduce(union),
+        _ => {
+            let bbox = shape(&node.element, vp).bbox;
+            let stroked = props.get("stroke").is_some_and(|s| s != "none");
+            let half = if stroked {
+                props
+                    .get("stroke-width")
+                    .map_or(1.0, |w| w.trim_end_matches("px").parse::<f32>().unwrap())
+                    / 2.0
+            } else {
+                0.0
+            };
+            Some(Rect::new(
+                bbox.x - half,
+                bbox.y - half,
+                bbox.width + 2.0 * half,
+                bbox.height + 2.0 * half,
+            ))
+        }
+    }
+}
+
+fn union(a: Rect, b: Rect) -> Rect {
+    let x = a.x.min(b.x);
+    let y = a.y.min(b.y);
+    Rect::new(
+        x,
+        y,
+        (a.x + a.width).max(b.x + b.width) - x,
+        (a.y + a.height).max(b.y + b.height) - y,
+    )
 }
 
 /// Resolves `#id` to a `clipPath`. `None` when it names nothing, names
@@ -195,7 +300,7 @@ fn reference(root: &Node, id: &str, vp: &Viewport, chain: &mut Vec<String>) -> C
 fn is_resource(tag: &str) -> bool {
     matches!(
         tag,
-        "defs" | "clipPath" | "linearGradient" | "radialGradient" | "pattern" | "stop"
+        "defs" | "clipPath" | "mask" | "linearGradient" | "radialGradient" | "pattern" | "stop"
     )
 }
 
@@ -409,30 +514,35 @@ fn fill_box(node: &Node, vp: &Viewport) -> Option<Rect> {
             .iter()
             .filter(|c| c.element.attrs.get("display").map(String::as_str) != Some("none"))
             .filter_map(|c| fill_box(c, vp).map(|b| map_rect(&transform_of(&c.element), b)))
-            .reduce(|a, b| {
-                let x = a.x.min(b.x);
-                let y = a.y.min(b.y);
-                Rect::new(
-                    x,
-                    y,
-                    (a.x + a.width).max(b.x + b.width) - x,
-                    (a.y + a.height).max(b.y + b.height) - y,
-                )
-            }),
+            .reduce(union),
         _ => Some(shape(&node.element, vp).bbox),
     }
 }
 
-/// Paints an element with its group opacity and `clip-path`. `ctm` maps
-/// its user space to the device.
+/// Paints an element with its group opacity, `mask` and `clip-path`.
+/// `ctm` maps its user space to the device; `props` are its parent's.
+#[allow(clippy::too_many_arguments)]
 fn with_effects(
     canvas: &Canvas,
     root: &Node,
     node: &Node,
     ctm: &Matrix,
     vp: &Viewport,
+    props: &BTreeMap<String, String>,
+    servers: &[String],
     paint: impl FnOnce(&Canvas),
 ) {
+    let paint = |canvas: &Canvas| match resolve_mask(root, &node.element, vp, servers) {
+        MaskReference::None => paint(canvas),
+        MaskReference::Mask(mask) => {
+            canvas.save();
+            canvas.set_matrix(&M44::from(to_sk_matrix(ctm)));
+            let reference_box = fill_box(node, vp).unwrap_or_default();
+            let visual = visual_rect(node, vp, props).unwrap_or_default();
+            mask_content(canvas, &mask, reference_box, visual, paint);
+            canvas.restore();
+        }
+    };
     let opacity = node
         .element
         .attrs
@@ -476,12 +586,16 @@ fn paint_children(
 ) {
     for child in &node.children {
         let element = &child.element;
+        if element.attrs.get("display").map(String::as_str) == Some("none") {
+            continue;
+        }
+        let parent = props;
         let props = cascade(element, props);
         match element.tag.as_str() {
             tag if is_resource(tag) => {}
             "g" => {
                 let ctm = ctm.then_apply(&transform_of(element));
-                with_effects(canvas, root, child, &ctm, vp, |canvas| {
+                with_effects(canvas, root, child, &ctm, vp, parent, servers, |canvas| {
                     paint_children(canvas, root, child, &ctm, vp, &props, to_host, servers)
                 });
             }
@@ -521,8 +635,11 @@ fn paint_children(
                 canvas.restore();
             }
             _ => {
+                if props.get("visibility").map(String::as_str) == Some("hidden") {
+                    continue;
+                }
                 let ctm = ctm.then_apply(&transform_of(element));
-                with_effects(canvas, root, child, &ctm, vp, |canvas| {
+                with_effects(canvas, root, child, &ctm, vp, parent, servers, |canvas| {
                     canvas.save();
                     canvas.set_matrix(&M44::from(to_sk_matrix(&ctm)));
                     paint_shape(
@@ -556,6 +673,11 @@ fn paint_v3_matches_chromium_147() {
 #[test]
 fn paint_v4_matches_chromium_147() {
     check("svg-paint-v4", KNOWN_GAPS_V4);
+}
+
+#[test]
+fn paint_v5_matches_chromium_147() {
+    check("svg-paint-v5", KNOWN_GAPS_V5);
 }
 
 fn check(set: &str, known_gaps: &str) {

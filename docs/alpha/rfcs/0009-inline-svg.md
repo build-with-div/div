@@ -624,7 +624,7 @@ stays green between them:
    | --- | --- |
    | V3a | `clipPath` in `div-svg`: path-based and mask-based clips, `clipPathUnits`, `clip-rule`, nested and cyclic references, checked by the paint corpus set `v3` |
    | V3b | gradients and patterns in `div-svg` (`paint_server`): linear and radial gradients, patterns, both unit systems, spread methods, `href` inheritance and fallbacks, checked by the paint corpus set `v4` |
-   | V3c | masks |
+   | V3c | masks in `div-svg` (`mask`): luminance and alpha masks, `maskUnits`, `maskContentUnits`, the mask region and unresolved references, checked by the paint corpus set `v5` |
    | V3d | markers, `use` and `symbol`, including `use` inside a `clipPath` |
 
    V3a stays inside `div-svg`. `clip-path: url()` on HTML elements, and

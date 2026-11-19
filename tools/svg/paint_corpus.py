@@ -15,12 +15,12 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-There are four sets, each with its own fixtures and gap list: `v1` (fills,
+There are five sets, each with its own fixtures and gap list: `v1` (fills,
 strokes, transforms, viewports and the Lucide icons), `v2` (dashes,
 `pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
-chart-shaped compositions), `v3` (`clipPath`) and `v4` (paint servers:
-gradients and patterns). Every case of `v3` and `v4` is taken at both
-scales.
+chart-shaped compositions), `v3` (`clipPath`), `v4` (paint servers:
+gradients and patterns) and `v5` (`mask`). Every case of `v3` to `v5` is
+taken at both scales.
 
     paint_corpus.py list [--set v2]
     paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
@@ -754,6 +754,169 @@ def server_cases() -> list[dict]:
     ])]
 
 
+def mask_cases() -> list[dict]:
+    """`mask` (set v5): most cases mask the same content as `clip_cases`, a
+    filled square crossed by a thick stroke, so the mask's coverage, its
+    region and its edges all show."""
+    content = (f'<rect x="0" y="0" width="64" height="64" fill="{BLUE}"/>'
+               '<path d="M0,64L64,0" stroke="#ef4444" stroke-width="6"/>')
+    star = "32,4 40,56 6,22 58,22 24,56"
+    white = 'fill="#fff"'
+
+    def masked(case_id: str, mask: str, *, attrs: str = "", defs: str = "",
+               target: str = 'mask="url(#m)"', body: str = content, **kw) -> dict:
+        return case(case_id, f'<defs><mask id="m"{" " + attrs if attrs else ""}>{mask}'
+                    f'</mask>{defs}</defs><g {target}>{body}</g>', **kw)
+
+    fade = ('<linearGradient id="g"><stop offset="0" stop-color="#fff"/>'
+            '<stop offset="1" stop-color="#000"/></linearGradient>')
+    chart_size = (100, 80)
+    area_d = ("M5,60C15,60,20,25,30,25C40,25,45,45,55,45C65,45,70,15,80,15C88,15,92,30,95,30"
+              "L95,80L5,80Z")
+    return [scoped(c, i) for i, c in enumerate([
+        # Luminance coverage (the initial mask-type).
+        masked("lum/white", f'<rect x="8" y="8" width="48" height="40" {white}/>'),
+        masked("lum/gray", '<rect x="8" y="8" width="48" height="48" fill="#808080"/>'),
+        masked("lum/black", '<rect x="8" y="8" width="48" height="48" fill="#000"/>'),
+        masked("lum/red", '<rect x="8" y="8" width="48" height="48" fill="#f00"/>'),
+        masked("lum/green", '<rect x="8" y="8" width="48" height="48" fill="#0f0"/>'),
+        masked("lum/blue", '<rect x="8" y="8" width="48" height="48" fill="#00f"/>'),
+        masked("lum/colors", '<rect x="0" y="0" width="22" height="64" fill="#f97316"/>'
+               '<rect x="22" y="0" width="21" height="64" fill="#22c55e"/>'
+               '<rect x="43" y="0" width="21" height="64" fill="#a855f7"/>'),
+        masked("lum/fill-opacity", f'<rect x="8" y="8" width="48" height="48" {white} '
+               'fill-opacity="0.5"/>'),
+        masked("lum/opacity", f'<rect x="8" y="8" width="48" height="48" {white} opacity="0.3"/>'),
+        masked("lum/circle", f'<circle cx="32" cy="32" r="22.3" {white}/>'),
+        masked("lum/star", f'<polygon points="{star}" {white}/>'),
+        masked("lum/stroke", '<circle cx="32" cy="32" r="18" fill="none" stroke="#fff" '
+               'stroke-width="8"/>'),
+        masked("lum/overlap", f'<rect x="4" y="4" width="40" height="40" fill="#808080"/>'
+               f'<circle cx="40" cy="40" r="20" {white} fill-opacity="0.6"/>'),
+        masked("lum/cutout", f'<rect x="0" y="0" width="64" height="64" {white}/>'
+               '<circle cx="48" cy="48" r="12" fill="#000"/>'),
+        # mask-type.
+        masked("type/alpha", '<rect x="8" y="8" width="48" height="48" fill="#000"/>',
+               attrs='mask-type="alpha"'),
+        masked("type/alpha-half", '<rect x="8" y="8" width="48" height="48" fill="#f00" '
+               'fill-opacity="0.5"/>', attrs='mask-type="alpha"'),
+        masked("type/alpha-style", '<rect x="8" y="8" width="48" height="48" fill="#000"/>',
+               attrs='style="mask-type: alpha"'),
+        masked("type/luminance", '<rect x="8" y="8" width="48" height="48" fill="#808080"/>',
+               attrs='mask-type="luminance"'),
+        # The mask region.
+        masked("region/default", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               body=f'<rect x="12" y="12" width="40" height="40" fill="{BLUE}" '
+                    'stroke="#ef4444" stroke-width="10"/>'),
+        masked("region/obb", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='x="0.1" y="0.2" width="0.7" height="0.5"'),
+        masked("region/obb-percent", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='x="15%" y="5%" width="60%" height="80%"'),
+        masked("region/user", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='maskUnits="userSpaceOnUse" x="8.5" y="10.25" width="40" height="30.5"'),
+        masked("region/user-percent", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='maskUnits="userSpaceOnUse" x="10%" y="20%" width="50%" height="50%"'),
+        masked("region/user-default", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='maskUnits="userSpaceOnUse"'),
+        masked("region/zero", f'<rect x="8" y="8" width="48" height="48" {white}/>',
+               attrs='width="0"'),
+        masked("region/negative", f'<rect x="8" y="8" width="48" height="48" {white}/>',
+               attrs='height="-1"'),
+        masked("region/rotated", f'<rect x="-20" y="-20" width="104" height="104" {white}/>',
+               attrs='x="0.2" y="0.2" width="0.6" height="0.6"',
+               target='mask="url(#m)" transform="rotate(20 32 32)"'),
+        # maskContentUnits.
+        masked("units/content-obb", f'<rect x="0.1" y="0.25" width="0.8" height="0.5" {white}/>',
+               attrs='maskContentUnits="objectBoundingBox"'),
+        masked("units/content-obb-circle", f'<circle cx="0.5" cy="0.5" r="0.4" {white}/>',
+               attrs='maskContentUnits="objectBoundingBox"',
+               body=f'<rect x="4" y="16" width="56" height="32" fill="{BLUE}"/>'),
+        masked("units/content-obb-transform", f'<rect x="0.2" y="0.2" width="0.6" height="0.6" '
+               f'{white} transform="rotate(10)"/>', attrs='maskContentUnits="objectBoundingBox"'),
+        masked("units/content-user-region-user",
+               f'<rect x="0" y="0" width="64" height="64" {white}/>',
+               attrs='maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" '
+                     'x="16" y="16" width="32" height="32"'),
+        # Gradients and patterns in the mask.
+        masked("grad/fade", '<rect x="0" y="0" width="64" height="64" fill="url(#g)"/>',
+               defs=fade),
+        masked("grad/fade-vertical", '<rect x="0" y="0" width="64" height="64" fill="url(#g)"/>',
+               defs='<linearGradient id="g" x2="0" y2="1"><stop offset="0.2" stop-color="#fff"/>'
+                    '<stop offset="1" stop-color="#000"/></linearGradient>'),
+        masked("grad/spot", '<rect x="0" y="0" width="64" height="64" fill="url(#g)"/>',
+               defs='<radialGradient id="g"><stop offset="0.3" stop-color="#fff"/>'
+                    '<stop offset="1" stop-color="#000"/></radialGradient>'),
+        masked("grad/alpha-stops", '<rect x="0" y="0" width="64" height="64" fill="url(#g)"/>',
+               attrs='mask-type="alpha"',
+               defs='<linearGradient id="g"><stop offset="0" stop-color="#000"/>'
+                    '<stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>'),
+        masked("grad/pattern", '<rect x="0" y="0" width="64" height="64" fill="url(#p)"/>',
+               defs=f'<pattern id="p" width="8" height="8" patternUnits="userSpaceOnUse">'
+                    f'<rect width="4" height="8" {white}/></pattern>'),
+        # Targets.
+        case("target/rect", f'<defs><mask id="m"><circle cx="32" cy="32" r="20" {white}/></mask>'
+             f'</defs><rect x="4" y="4" width="56" height="56" fill="{BLUE}" mask="url(#m)"/>'),
+        case("target/circle", '<defs><mask id="m"><rect x="0" y="0" width="64" height="32" '
+             f'{white}/></mask></defs><circle cx="32" cy="32" r="26" fill="{BLUE}" '
+             'mask="url(#m)"/>'),
+        case("target/stroked", f'<defs><mask id="m"><rect x="-10" y="-10" width="84" height="84" '
+             f'{white}/></mask></defs><rect x="14" y="14" width="36" height="36" fill="{BLUE}" '
+             'stroke="#ef4444" stroke-width="12" mask="url(#m)"/>'),
+        masked("target/transform", f'<rect x="8" y="8" width="40" height="30" {white}/>',
+               target='mask="url(#m)" transform="translate(5.5 3.25) scale(0.8)"'),
+        masked("target/offset", f'<circle cx="32" cy="32" r="20" {white}/>', offset=(0.5, 0.25)),
+        # With other effects.
+        masked("nest/mask-on-child", f'<rect x="0" y="0" width="64" height="64" {white} '
+               'mask="url(#n)"/>',
+               defs=f'<mask id="n"><circle cx="32" cy="32" r="22" {white}/></mask>'),
+        masked("nest/clip-on-child", f'<rect x="0" y="0" width="64" height="64" {white} '
+               'clip-path="url(#c)"/>',
+               defs='<clipPath id="c"><circle cx="32" cy="32" r="22"/></clipPath>'),
+        masked("nest/clip-and-mask", f'<rect x="0" y="0" width="40" height="64" {white}/>',
+               defs='<clipPath id="c"><circle cx="32" cy="32" r="24"/></clipPath>',
+               target='mask="url(#m)" clip-path="url(#c)"'),
+        masked("nest/opacity", '<rect x="8" y="8" width="48" height="48" fill="#808080"/>',
+               target='mask="url(#m)" opacity="0.5"'),
+        masked("nest/nested-groups", f'<rect x="0" y="0" width="40" height="64" {white}/>',
+               defs=f'<mask id="n"><rect x="0" y="24" width="64" height="40" {white}/></mask>',
+               body=f'<g mask="url(#n)">{content}</g>'),
+        # Edges.
+        masked("edge/missing", '', target='mask="url(#nothing)"'),
+        masked("edge/not-a-mask", '', defs='<rect id="r" width="10" height="10"/>',
+               target='mask="url(#r)"'),
+        masked("edge/empty", ''),
+        masked("edge/hidden-child", f'<rect x="8" y="8" width="48" height="48" {white} '
+               'visibility="hidden"/>'
+               f'<rect x="20" y="20" width="24" height="24" {white} display="none"/>'
+               f'<circle cx="32" cy="32" r="10" {white}/>'),
+        masked("edge/self", f'<rect x="8" y="8" width="48" height="48" {white} mask="url(#m)"/>'
+               f'<circle cx="32" cy="32" r="10" {white}/>'),
+        masked("edge/style", f'<rect x="8" y="8" width="40" height="30" {white}/>',
+               target='style="mask: url(#m)"'),
+        masked("edge/crisp", f'<circle cx="32" cy="32" r="20.5" {white} '
+               'shape-rendering="crispEdges"/>'),
+        masked("edge/hairline", '<path d="M4,10H60M4,20.5H60M4,31.25H60" stroke="#fff" '
+               'stroke-width="0.5"/>'),
+        case("edge/line-target", f'<defs><mask id="m"><rect x="-10" y="-10" width="84" '
+             f'height="84" {white}/></mask></defs><line x1="4" y1="32" x2="60" y2="32" '
+             f'stroke="{BLUE}" stroke-width="6" mask="url(#m)"/>'),
+        case("edge/line-target-user", '<defs><mask id="m" maskUnits="userSpaceOnUse">'
+             f'<rect x="-10" y="-10" width="84" height="84" {white}/></mask></defs>'
+             f'<line x1="4" y1="32" x2="60" y2="32" stroke="{BLUE}" stroke-width="6" '
+             'mask="url(#m)"/>'),
+        # Real-world shapes.
+        case("chart/fade-area", f'<defs><linearGradient id="g" x2="0" y2="1">'
+             '<stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>'
+             '</linearGradient><mask id="m"><rect x="0" y="0" width="100" height="80" '
+             f'fill="url(#g)"/></mask></defs><path d="{area_d}" fill="{BLUE}" mask="url(#m)"/>',
+             size=chart_size),
+        case("icon/badge", f'<defs><mask id="m"><rect width="64" height="64" {white}/>'
+             '<circle cx="50" cy="14" r="11" fill="#000"/></mask></defs>'
+             f'<circle cx="32" cy="32" r="28" fill="{BLUE}" mask="url(#m)"/>'
+             '<circle cx="50" cy="14" r="7" fill="#22c55e"/>'),
+    ])]
+
+
 def scoped(c: dict, index: int) -> dict:
     """Ids are document-wide and every case of a sheet shares one page, so
     each case's ids (and its references to them) get the case's own prefix."""
@@ -776,10 +939,10 @@ SCALE_2 = {
 
 def sheets(corpus: str = "v1") -> list[dict]:
     """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
-    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 and v4: everything at
+    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 to v5: everything at
     both."""
-    if corpus in ("v3", "v4"):
-        everything = clip_cases() if corpus == "v3" else server_cases()
+    if corpus in ("v3", "v4", "v5"):
+        everything = {"v3": clip_cases, "v4": server_cases, "v5": mask_cases}[corpus]()
         return [
             {"scale": 1, "cases": everything},
             {"scale": 2, "cases": [dict(c) for c in everything]},
@@ -845,9 +1008,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     lst = sub.add_parser("list")
-    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4"), default="v1")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5"), default="v1")
     cap = sub.add_parser("capture")
-    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4"), default="v1")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
