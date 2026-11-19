@@ -137,13 +137,19 @@ $env:FORCE_SKIA_BUILD = "1"
 $env:SKIA_NINJA_COMMAND = "ninja"
 $env:RUST_MIN_STACK = "4194304"
 $env:PYTHONUTF8 = "1"
-$env:SKIA_GN_ARGS = 'extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]'
+$env:SKIA_GN_ARGS = 'extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3", "/clang:-ffp-contract=off" ]'
 cargo build --workspace --locked
 cargo test --workspace --locked
 cargo build --locked --package div-ffi
 python tools\ffi\verify_abi.py --library <target>\debug\div_ffi.dll
 python tools\ci\check_platform_scoped_tests.py
 ```
+
+Windows adds `/clang:-ffp-contract=off` to Linux's `SKIA_GN_ARGS`, as Chromium
+compiles everything (`build/config/compiler/BUILD.gn` at 147.0.7727.50):
+rust-skia builds Skia with clang-cl, which otherwise fuses multiply-adds in
+Skia's AVX2 raster code, and Skia's own GN turns contraction off for clang on
+other platforms only. `crates/div-cli/src/skia.rs` holds both profiles.
 
 `PYTHONUTF8=1` is required: the generators read UTF-8 sources and Windows
 otherwise defaults to the ANSI code page. `pixel-compare` finds Python through
