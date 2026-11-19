@@ -220,3 +220,11 @@ on branch `components/c4-assets` and the shared findings note.
   are named as the T6 residue, and T7 (non-uniform scale) is named. The
   census and CSS Grid coverage are unchanged at all four profiles.
   [Record](../web-font-raster-t5-t6-2026-11-18.md).
+- 18 November 2026: Div hands each glyph the advance Blink gives
+  HarfBuzz, its Skia width truncated to 1/65536 px, where SkShaper rounds
+  it (T3, an engine filler for SVG text). The 7 Windows SVG text cases it
+  held are exact. A new Windows oracle of 160 long texts names T8, Blink's
+  fixed-point advance sums, in 100 cases that differ on `main` too, plus 1
+  case T3 loses on the same drift; RFC 0013 proposes the fix.
+  The census and CSS Grid coverage are unchanged at all four profiles.
+  [Record](../advance-truncation-t3-2026-11-18.md).
