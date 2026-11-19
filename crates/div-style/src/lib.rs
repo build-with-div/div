@@ -20,6 +20,7 @@ mod enums;
 mod font_types;
 mod inline_style;
 mod layout_systems;
+pub mod math;
 mod property;
 mod radius_axes;
 pub mod selector;

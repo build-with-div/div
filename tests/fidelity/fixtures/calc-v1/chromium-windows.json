@@ -1,0 +1,2631 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "font_family": "Arial",
+ "cases": [
+  {
+   "font_size": 12.0,
+   "line_height": "calc(1 / 0.75)",
+   "declared": "calc(1.33333)",
+   "computed": "16px",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.25 / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.5 / 1)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 18.0,
+   "line_height": "calc(1.75 / 1.125)",
+   "declared": "calc(1.55556)",
+   "computed": "28px",
+   "height": 28,
+   "lh": 28
+  },
+  {
+   "font_size": 20.0,
+   "line_height": "calc(1.75 / 1.25)",
+   "declared": "calc(1.4)",
+   "computed": "28px",
+   "height": 28,
+   "lh": 28
+  },
+  {
+   "font_size": 24.0,
+   "line_height": "calc(2 / 1.5)",
+   "declared": "calc(1.33333)",
+   "computed": "32px",
+   "height": 32,
+   "lh": 32
+  },
+  {
+   "font_size": 30.0,
+   "line_height": "calc(2.25 / 1.875)",
+   "declared": "calc(1.2)",
+   "computed": "36px",
+   "height": 36,
+   "lh": 36
+  },
+  {
+   "font_size": 36.0,
+   "line_height": "calc(2.5 / 2.25)",
+   "declared": "calc(1.11111)",
+   "computed": "40px",
+   "height": 40,
+   "lh": 40
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "1.4285714",
+   "declared": "1.42857",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "1.25",
+   "declared": "1.25",
+   "computed": "17.5px",
+   "height": 17.5,
+   "lh": 17.5
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "1.15",
+   "declared": "1.15",
+   "computed": "16.1px",
+   "height": 16.09375,
+   "lh": 16.09375
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "1.375",
+   "declared": "1.375",
+   "computed": "19.25px",
+   "height": 19.25,
+   "lh": 19.25
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "20px",
+   "declared": "20px",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "142.857%",
+   "declared": "142.857%",
+   "computed": "19.88px",
+   "height": 19.875,
+   "lh": 19.875
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "150%",
+   "declared": "150%",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "1.5em",
+   "declared": "1.5em",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1 + 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(3 * 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(0.5 * 3)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1 / 3)",
+   "declared": "calc(0.333333)",
+   "computed": "4.66667px",
+   "height": 4.65625,
+   "lh": 4.65625
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(10 / 7)",
+   "declared": "calc(1.42857)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.25 / 0.875 * 1)",
+   "declared": "calc(1.42857)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc((1 + 0.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2 - 0.5 - 0.25)",
+   "declared": "calc(1.25)",
+   "computed": "17.5px",
+   "height": 17.5,
+   "lh": 17.5
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1 - (0.5 - 0.25))",
+   "declared": "calc(0.75)",
+   "computed": "10.5px",
+   "height": 10.5,
+   "lh": 10.5
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(calc(1.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "CALC(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc( 1.5 )",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1e0 + 5e-1)",
+   "declared": "calc(1.5)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(-1)",
+   "declared": "calc(-1)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(0)",
+   "declared": "calc(0)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(20px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(10px + 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(10px * 1.5)",
+   "declared": "calc(15px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2 * 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(30px / 1.5)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1in / 3)",
+   "declared": "calc(32px)",
+   "computed": "32px",
+   "height": 32,
+   "lh": 32
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1pt + 1px)",
+   "declared": "calc(2.33333px)",
+   "computed": "2.33333px",
+   "height": 2.328125,
+   "lh": 2.328125
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(15pt)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em)",
+   "declared": "calc(1em)",
+   "computed": "14px",
+   "height": 14,
+   "lh": 14
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.25em)",
+   "declared": "calc(1.25em)",
+   "computed": "17.5px",
+   "height": 17.5,
+   "lh": 17.5
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em + 4px)",
+   "declared": "calc(1em + 4px)",
+   "computed": "18px",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(4px + 1em)",
+   "declared": "calc(1em + 4px)",
+   "computed": "18px",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em - 2px)",
+   "declared": "calc(1em - 2px)",
+   "computed": "12px",
+   "height": 12,
+   "lh": 12
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em + 0.5rem)",
+   "declared": "calc(1em + 0.5rem)",
+   "computed": "22px",
+   "height": 22,
+   "lh": 22
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2em / 3)",
+   "declared": "calc(0.666667em)",
+   "computed": "9.33333px",
+   "height": 9.328125,
+   "lh": 9.328125
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.25rem)",
+   "declared": "calc(1.25rem)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em + 2px + 1em)",
+   "declared": "calc(2em + 2px)",
+   "computed": "30px",
+   "height": 30,
+   "lh": 30
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2px + 1em - 1px)",
+   "declared": "calc(1em + 1px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc((1em + 2px) * 1.5)",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1.5 * (1em + 2px))",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px - (1em - 20px))",
+   "declared": "calc(-1em + 21px)",
+   "computed": "7px",
+   "height": 7,
+   "lh": 7
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(-5px)",
+   "declared": "calc(-5px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em - 30px)",
+   "declared": "calc(1em - 30px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(150%)",
+   "declared": "calc(150%)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(100% / 3)",
+   "declared": "calc(33.3333%)",
+   "computed": "4.62px",
+   "height": 4.625,
+   "lh": 4.609375
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(50% * 3)",
+   "declared": "calc(150%)",
+   "computed": "21px",
+   "height": 21,
+   "lh": 21
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(142.857%)",
+   "declared": "calc(142.857%)",
+   "computed": "19.88px",
+   "height": 19.875,
+   "lh": 19.875
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(100% + 49.5%)",
+   "declared": "calc(149.5%)",
+   "computed": "20.86px",
+   "height": 20.859375,
+   "lh": 20.859375
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(-10%)",
+   "declared": "calc(-10%)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(100% + 2px)",
+   "declared": "calc(100% + 2px)",
+   "computed": "16px",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2px + 100%)",
+   "declared": "calc(100% + 2px)",
+   "computed": "16px",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(50% + 0.5em)",
+   "declared": "calc(50% + 0.5em)",
+   "computed": "14px",
+   "height": 14,
+   "lh": 14
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(100% / 3 + 1px)",
+   "declared": "calc(33.3333% + 1px)",
+   "computed": "5.65625px",
+   "height": 5.65625,
+   "lh": 5.65625
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1em + 10%)",
+   "declared": "calc(10% + 1em)",
+   "computed": "15.3906px",
+   "height": 15.390625,
+   "lh": 15.390625
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(100% - 1px)",
+   "declared": "calc(100% - 1px)",
+   "computed": "13px",
+   "height": 13,
+   "lh": 13
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(110% - 3px + 0.25em)",
+   "declared": "calc(110% + 0.25em - 3px)",
+   "computed": "15.8906px",
+   "height": 15.890625,
+   "lh": 15.890625
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(10% - 40px)",
+   "declared": "calc(10% - 40px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1 + 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1% + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px * 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px / 2px)",
+   "declared": "calc(1px * (1 / 2px))",
+   "computed": "7px",
+   "height": 7,
+   "lh": 7
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(2 / 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px+2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px +2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px -2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px - 2px)",
+   "declared": "calc(-1px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc()",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px",
+   "declared": "calc(1px)",
+   "computed": "1px",
+   "height": 1,
+   "lh": 1
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px))",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1deg)",
+   "declared": "",
+   "computed": "normal",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px * (2))",
+   "declared": "calc(2px)",
+   "computed": "2px",
+   "height": 2,
+   "lh": 2
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1 / 0)",
+   "declared": "calc(infinity)",
+   "computed": "3.40282e+38px",
+   "height": 33554432,
+   "lh": 33554428
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc(1px / 0)",
+   "declared": "calc(infinity * 1px)",
+   "computed": "3.35544e+07px",
+   "height": 33554428,
+   "lh": 33554428
+  },
+  {
+   "font_size": 14.0,
+   "line_height": "calc((1px + 1em) / 0.5)",
+   "declared": "calc(2em + 2px)",
+   "computed": "30px",
+   "height": 30,
+   "lh": 30
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "1.4285714",
+   "declared": "1.42857",
+   "computed": "22.8571px",
+   "height": 22.84375,
+   "lh": 22.84375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "1.25",
+   "declared": "1.25",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "1.15",
+   "declared": "1.15",
+   "computed": "18.4px",
+   "height": 18.390625,
+   "lh": 18.390625
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "1.375",
+   "declared": "1.375",
+   "computed": "22px",
+   "height": 22,
+   "lh": 22
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "20px",
+   "declared": "20px",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "142.857%",
+   "declared": "142.857%",
+   "computed": "22.72px",
+   "height": 22.71875,
+   "lh": 22.71875
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "150%",
+   "declared": "150%",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "1.5em",
+   "declared": "1.5em",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1 + 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(3 * 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(0.5 * 3)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1 / 3)",
+   "declared": "calc(0.333333)",
+   "computed": "5.33333px",
+   "height": 5.328125,
+   "lh": 5.328125
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(10 / 7)",
+   "declared": "calc(1.42857)",
+   "computed": "22.8571px",
+   "height": 22.84375,
+   "lh": 22.84375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.25 / 0.875 * 1)",
+   "declared": "calc(1.42857)",
+   "computed": "22.8571px",
+   "height": 22.84375,
+   "lh": 22.84375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc((1 + 0.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "22.8571px",
+   "height": 22.84375,
+   "lh": 22.84375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2 - 0.5 - 0.25)",
+   "declared": "calc(1.25)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1 - (0.5 - 0.25))",
+   "declared": "calc(0.75)",
+   "computed": "12px",
+   "height": 12,
+   "lh": 12
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(calc(1.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "22.8571px",
+   "height": 22.84375,
+   "lh": 22.84375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "CALC(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc( 1.5 )",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1e0 + 5e-1)",
+   "declared": "calc(1.5)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(-1)",
+   "declared": "calc(-1)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(0)",
+   "declared": "calc(0)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(20px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(10px + 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(10px * 1.5)",
+   "declared": "calc(15px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2 * 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(30px / 1.5)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1in / 3)",
+   "declared": "calc(32px)",
+   "computed": "32px",
+   "height": 32,
+   "lh": 32
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1pt + 1px)",
+   "declared": "calc(2.33333px)",
+   "computed": "2.33333px",
+   "height": 2.328125,
+   "lh": 2.328125
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(15pt)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em)",
+   "declared": "calc(1em)",
+   "computed": "16px",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.25em)",
+   "declared": "calc(1.25em)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em + 4px)",
+   "declared": "calc(1em + 4px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(4px + 1em)",
+   "declared": "calc(1em + 4px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em - 2px)",
+   "declared": "calc(1em - 2px)",
+   "computed": "14px",
+   "height": 14,
+   "lh": 14
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em + 0.5rem)",
+   "declared": "calc(1em + 0.5rem)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2em / 3)",
+   "declared": "calc(0.666667em)",
+   "computed": "10.6667px",
+   "height": 10.671875,
+   "lh": 10.65625
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.25rem)",
+   "declared": "calc(1.25rem)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em + 2px + 1em)",
+   "declared": "calc(2em + 2px)",
+   "computed": "34px",
+   "height": 34,
+   "lh": 34
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2px + 1em - 1px)",
+   "declared": "calc(1em + 1px)",
+   "computed": "17px",
+   "height": 17,
+   "lh": 17
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc((1em + 2px) * 1.5)",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "27px",
+   "height": 27,
+   "lh": 27
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1.5 * (1em + 2px))",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "27px",
+   "height": 27,
+   "lh": 27
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px - (1em - 20px))",
+   "declared": "calc(-1em + 21px)",
+   "computed": "5px",
+   "height": 5,
+   "lh": 5
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(-5px)",
+   "declared": "calc(-5px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em - 30px)",
+   "declared": "calc(1em - 30px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(150%)",
+   "declared": "calc(150%)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(100% / 3)",
+   "declared": "calc(33.3333%)",
+   "computed": "5.28px",
+   "height": 5.28125,
+   "lh": 5.265625
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(50% * 3)",
+   "declared": "calc(150%)",
+   "computed": "24px",
+   "height": 24,
+   "lh": 24
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(142.857%)",
+   "declared": "calc(142.857%)",
+   "computed": "22.72px",
+   "height": 22.71875,
+   "lh": 22.71875
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(100% + 49.5%)",
+   "declared": "calc(149.5%)",
+   "computed": "23.84px",
+   "height": 23.84375,
+   "lh": 23.828125
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(-10%)",
+   "declared": "calc(-10%)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(100% + 2px)",
+   "declared": "calc(100% + 2px)",
+   "computed": "18px",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2px + 100%)",
+   "declared": "calc(100% + 2px)",
+   "computed": "18px",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(50% + 0.5em)",
+   "declared": "calc(50% + 0.5em)",
+   "computed": "16px",
+   "height": 16,
+   "lh": 16
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(100% / 3 + 1px)",
+   "declared": "calc(33.3333% + 1px)",
+   "computed": "6.32812px",
+   "height": 6.328125,
+   "lh": 6.328125
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1em + 10%)",
+   "declared": "calc(10% + 1em)",
+   "computed": "17.5938px",
+   "height": 17.59375,
+   "lh": 17.59375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(100% - 1px)",
+   "declared": "calc(100% - 1px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(110% - 3px + 0.25em)",
+   "declared": "calc(110% + 0.25em - 3px)",
+   "computed": "18.5938px",
+   "height": 18.59375,
+   "lh": 18.59375
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(10% - 40px)",
+   "declared": "calc(10% - 40px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1 + 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1% + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px * 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px / 2px)",
+   "declared": "calc(1px * (1 / 2px))",
+   "computed": "8px",
+   "height": 8,
+   "lh": 8
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(2 / 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px+2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px +2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px -2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px - 2px)",
+   "declared": "calc(-1px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc()",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px",
+   "declared": "calc(1px)",
+   "computed": "1px",
+   "height": 1,
+   "lh": 1
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px))",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1deg)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px * (2))",
+   "declared": "calc(2px)",
+   "computed": "2px",
+   "height": 2,
+   "lh": 2
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1 / 0)",
+   "declared": "calc(infinity)",
+   "computed": "3.40282e+38px",
+   "height": 33554432,
+   "lh": 33554428
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc(1px / 0)",
+   "declared": "calc(infinity * 1px)",
+   "computed": "3.35544e+07px",
+   "height": 33554428,
+   "lh": 33554428
+  },
+  {
+   "font_size": 16.0,
+   "line_height": "calc((1px + 1em) / 0.5)",
+   "declared": "calc(2em + 2px)",
+   "computed": "34px",
+   "height": 34,
+   "lh": 34
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "1.4285714",
+   "declared": "1.42857",
+   "computed": "19.2857px",
+   "height": 19.28125,
+   "lh": 19.28125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "1.25",
+   "declared": "1.25",
+   "computed": "16.875px",
+   "height": 16.875,
+   "lh": 16.875
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "1.15",
+   "declared": "1.15",
+   "computed": "15.525px",
+   "height": 15.515625,
+   "lh": 15.515625
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "1.375",
+   "declared": "1.375",
+   "computed": "18.5625px",
+   "height": 18.5625,
+   "lh": 18.5625
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "20px",
+   "declared": "20px",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "142.857%",
+   "declared": "142.857%",
+   "computed": "19.17px",
+   "height": 19.171875,
+   "lh": 19.15625
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "150%",
+   "declared": "150%",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "1.5em",
+   "declared": "1.5em",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1 + 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(3 * 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(0.5 * 3)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1 / 3)",
+   "declared": "calc(0.333333)",
+   "computed": "4.5px",
+   "height": 4.484375,
+   "lh": 4.484375
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(10 / 7)",
+   "declared": "calc(1.42857)",
+   "computed": "19.2857px",
+   "height": 19.28125,
+   "lh": 19.28125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1.25 / 0.875 * 1)",
+   "declared": "calc(1.42857)",
+   "computed": "19.2857px",
+   "height": 19.28125,
+   "lh": 19.28125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc((1 + 0.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "19.2857px",
+   "height": 19.28125,
+   "lh": 19.28125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2 - 0.5 - 0.25)",
+   "declared": "calc(1.25)",
+   "computed": "16.875px",
+   "height": 16.875,
+   "lh": 16.875
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1 - (0.5 - 0.25))",
+   "declared": "calc(0.75)",
+   "computed": "10.125px",
+   "height": 10.125,
+   "lh": 10.125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(calc(1.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "19.2857px",
+   "height": 19.28125,
+   "lh": 19.28125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "CALC(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc( 1.5 )",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1e0 + 5e-1)",
+   "declared": "calc(1.5)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(-1)",
+   "declared": "calc(-1)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(0)",
+   "declared": "calc(0)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(20px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(10px + 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(10px * 1.5)",
+   "declared": "calc(15px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2 * 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(30px / 1.5)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1in / 3)",
+   "declared": "calc(32px)",
+   "computed": "32px",
+   "height": 32,
+   "lh": 32
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1pt + 1px)",
+   "declared": "calc(2.33333px)",
+   "computed": "2.33333px",
+   "height": 2.328125,
+   "lh": 2.328125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(15pt)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em)",
+   "declared": "calc(1em)",
+   "computed": "13.5px",
+   "height": 13.5,
+   "lh": 13.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1.25em)",
+   "declared": "calc(1.25em)",
+   "computed": "16.875px",
+   "height": 16.875,
+   "lh": 16.875
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em + 4px)",
+   "declared": "calc(1em + 4px)",
+   "computed": "17.5px",
+   "height": 17.5,
+   "lh": 17.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(4px + 1em)",
+   "declared": "calc(1em + 4px)",
+   "computed": "17.5px",
+   "height": 17.5,
+   "lh": 17.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em - 2px)",
+   "declared": "calc(1em - 2px)",
+   "computed": "11.5px",
+   "height": 11.5,
+   "lh": 11.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em + 0.5rem)",
+   "declared": "calc(1em + 0.5rem)",
+   "computed": "21.5px",
+   "height": 21.5,
+   "lh": 21.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2em / 3)",
+   "declared": "calc(0.666667em)",
+   "computed": "9px",
+   "height": 9,
+   "lh": 9
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1.25rem)",
+   "declared": "calc(1.25rem)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em + 2px + 1em)",
+   "declared": "calc(2em + 2px)",
+   "computed": "29px",
+   "height": 29,
+   "lh": 29
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2px + 1em - 1px)",
+   "declared": "calc(1em + 1px)",
+   "computed": "14.5px",
+   "height": 14.5,
+   "lh": 14.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc((1em + 2px) * 1.5)",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "23.25px",
+   "height": 23.25,
+   "lh": 23.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1.5 * (1em + 2px))",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "23.25px",
+   "height": 23.25,
+   "lh": 23.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px - (1em - 20px))",
+   "declared": "calc(-1em + 21px)",
+   "computed": "7.5px",
+   "height": 7.5,
+   "lh": 7.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(-5px)",
+   "declared": "calc(-5px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em - 30px)",
+   "declared": "calc(1em - 30px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(150%)",
+   "declared": "calc(150%)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(100% / 3)",
+   "declared": "calc(33.3333%)",
+   "computed": "4.455px",
+   "height": 4.453125,
+   "lh": 4.453125
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(50% * 3)",
+   "declared": "calc(150%)",
+   "computed": "20.25px",
+   "height": 20.25,
+   "lh": 20.25
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(142.857%)",
+   "declared": "calc(142.857%)",
+   "computed": "19.17px",
+   "height": 19.171875,
+   "lh": 19.15625
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(100% + 49.5%)",
+   "declared": "calc(149.5%)",
+   "computed": "20.115px",
+   "height": 20.109375,
+   "lh": 20.109375
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(-10%)",
+   "declared": "calc(-10%)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(100% + 2px)",
+   "declared": "calc(100% + 2px)",
+   "computed": "15.5px",
+   "height": 15.5,
+   "lh": 15.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2px + 100%)",
+   "declared": "calc(100% + 2px)",
+   "computed": "15.5px",
+   "height": 15.5,
+   "lh": 15.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(50% + 0.5em)",
+   "declared": "calc(50% + 0.5em)",
+   "computed": "13.5px",
+   "height": 13.5,
+   "lh": 13.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(100% / 3 + 1px)",
+   "declared": "calc(33.3333% + 1px)",
+   "computed": "5.48438px",
+   "height": 5.484375,
+   "lh": 5.484375
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1em + 10%)",
+   "declared": "calc(10% + 1em)",
+   "computed": "14.8438px",
+   "height": 14.84375,
+   "lh": 14.84375
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(100% - 1px)",
+   "declared": "calc(100% - 1px)",
+   "computed": "12.5px",
+   "height": 12.5,
+   "lh": 12.5
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(110% - 3px + 0.25em)",
+   "declared": "calc(110% + 0.25em - 3px)",
+   "computed": "15.2188px",
+   "height": 15.21875,
+   "lh": 15.21875
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(10% - 40px)",
+   "declared": "calc(10% - 40px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1 + 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1% + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px * 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px / 2px)",
+   "declared": "calc(1px * (1 / 2px))",
+   "computed": "6.75px",
+   "height": 6.75,
+   "lh": 6.75
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(2 / 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px+2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px +2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px -2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px - 2px)",
+   "declared": "calc(-1px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc()",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px",
+   "declared": "calc(1px)",
+   "computed": "1px",
+   "height": 1,
+   "lh": 1
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px))",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1deg)",
+   "declared": "",
+   "computed": "normal",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px * (2))",
+   "declared": "calc(2px)",
+   "computed": "2px",
+   "height": 2,
+   "lh": 2
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1 / 0)",
+   "declared": "calc(infinity)",
+   "computed": "3.40282e+38px",
+   "height": 33554432,
+   "lh": 33554428
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc(1px / 0)",
+   "declared": "calc(infinity * 1px)",
+   "computed": "3.35544e+07px",
+   "height": 33554428,
+   "lh": 33554428
+  },
+  {
+   "font_size": 13.5,
+   "line_height": "calc((1px + 1em) / 0.5)",
+   "declared": "calc(2em + 2px)",
+   "computed": "29px",
+   "height": 29,
+   "lh": 29
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "1.4285714",
+   "declared": "1.42857",
+   "computed": "22.5px",
+   "height": 22.5,
+   "lh": 22.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "1.25",
+   "declared": "1.25",
+   "computed": "19.6875px",
+   "height": 19.6875,
+   "lh": 19.6875
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "1.15",
+   "declared": "1.15",
+   "computed": "18.1125px",
+   "height": 18.109375,
+   "lh": 18.109375
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "1.375",
+   "declared": "1.375",
+   "computed": "21.6562px",
+   "height": 21.65625,
+   "lh": 21.65625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "20px",
+   "declared": "20px",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "142.857%",
+   "declared": "142.857%",
+   "computed": "22.365px",
+   "height": 22.359375,
+   "lh": 22.359375
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "150%",
+   "declared": "150%",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "1.5em",
+   "declared": "1.5em",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1 + 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(3 * 0.5)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(0.5 * 3)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1 / 3)",
+   "declared": "calc(0.333333)",
+   "computed": "5.25px",
+   "height": 5.25,
+   "lh": 5.25
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(10 / 7)",
+   "declared": "calc(1.42857)",
+   "computed": "22.5px",
+   "height": 22.5,
+   "lh": 22.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1.25 / 0.875 * 1)",
+   "declared": "calc(1.42857)",
+   "computed": "22.5px",
+   "height": 22.5,
+   "lh": 22.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc((1 + 0.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "22.5px",
+   "height": 22.5,
+   "lh": 22.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2 - 0.5 - 0.25)",
+   "declared": "calc(1.25)",
+   "computed": "19.6875px",
+   "height": 19.6875,
+   "lh": 19.6875
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1 - (0.5 - 0.25))",
+   "declared": "calc(0.75)",
+   "computed": "11.8125px",
+   "height": 11.8125,
+   "lh": 11.8125
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(calc(1.25) / 0.875)",
+   "declared": "calc(1.42857)",
+   "computed": "22.5px",
+   "height": 22.5,
+   "lh": 22.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "CALC(1.5)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc( 1.5 )",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1e0 + 5e-1)",
+   "declared": "calc(1.5)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(-1)",
+   "declared": "calc(-1)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(0)",
+   "declared": "calc(0)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(20px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(10px + 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(10px * 1.5)",
+   "declared": "calc(15px)",
+   "computed": "15px",
+   "height": 15,
+   "lh": 15
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2 * 10px)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(30px / 1.5)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1in / 3)",
+   "declared": "calc(32px)",
+   "computed": "32px",
+   "height": 32,
+   "lh": 32
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1pt + 1px)",
+   "declared": "calc(2.33333px)",
+   "computed": "2.33333px",
+   "height": 2.328125,
+   "lh": 2.328125
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(15pt)",
+   "declared": "calc(20px)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em)",
+   "declared": "calc(1em)",
+   "computed": "15.75px",
+   "height": 15.75,
+   "lh": 15.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1.25em)",
+   "declared": "calc(1.25em)",
+   "computed": "19.6875px",
+   "height": 19.6875,
+   "lh": 19.6875
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em + 4px)",
+   "declared": "calc(1em + 4px)",
+   "computed": "19.75px",
+   "height": 19.75,
+   "lh": 19.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(4px + 1em)",
+   "declared": "calc(1em + 4px)",
+   "computed": "19.75px",
+   "height": 19.75,
+   "lh": 19.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em - 2px)",
+   "declared": "calc(1em - 2px)",
+   "computed": "13.75px",
+   "height": 13.75,
+   "lh": 13.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em + 0.5rem)",
+   "declared": "calc(1em + 0.5rem)",
+   "computed": "23.75px",
+   "height": 23.75,
+   "lh": 23.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2em / 3)",
+   "declared": "calc(0.666667em)",
+   "computed": "10.5px",
+   "height": 10.5,
+   "lh": 10.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1.25rem)",
+   "declared": "calc(1.25rem)",
+   "computed": "20px",
+   "height": 20,
+   "lh": 20
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em + 2px + 1em)",
+   "declared": "calc(2em + 2px)",
+   "computed": "33.5px",
+   "height": 33.5,
+   "lh": 33.5
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2px + 1em - 1px)",
+   "declared": "calc(1em + 1px)",
+   "computed": "16.75px",
+   "height": 16.75,
+   "lh": 16.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc((1em + 2px) * 1.5)",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "26.625px",
+   "height": 26.625,
+   "lh": 26.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1.5 * (1em + 2px))",
+   "declared": "calc(1.5em + 3px)",
+   "computed": "26.625px",
+   "height": 26.625,
+   "lh": 26.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px - (1em - 20px))",
+   "declared": "calc(-1em + 21px)",
+   "computed": "5.25px",
+   "height": 5.25,
+   "lh": 5.25
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(-5px)",
+   "declared": "calc(-5px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em - 30px)",
+   "declared": "calc(1em - 30px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(150%)",
+   "declared": "calc(150%)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(100% / 3)",
+   "declared": "calc(33.3333%)",
+   "computed": "5.1975px",
+   "height": 5.203125,
+   "lh": 5.1875
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(50% * 3)",
+   "declared": "calc(150%)",
+   "computed": "23.625px",
+   "height": 23.625,
+   "lh": 23.625
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(142.857%)",
+   "declared": "calc(142.857%)",
+   "computed": "22.365px",
+   "height": 22.359375,
+   "lh": 22.359375
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(100% + 49.5%)",
+   "declared": "calc(149.5%)",
+   "computed": "23.4675px",
+   "height": 23.46875,
+   "lh": 23.453125
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(-10%)",
+   "declared": "calc(-10%)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(100% + 2px)",
+   "declared": "calc(100% + 2px)",
+   "computed": "17.75px",
+   "height": 17.75,
+   "lh": 17.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2px + 100%)",
+   "declared": "calc(100% + 2px)",
+   "computed": "17.75px",
+   "height": 17.75,
+   "lh": 17.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(50% + 0.5em)",
+   "declared": "calc(50% + 0.5em)",
+   "computed": "15.75px",
+   "height": 15.75,
+   "lh": 15.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(100% / 3 + 1px)",
+   "declared": "calc(33.3333% + 1px)",
+   "computed": "6.23438px",
+   "height": 6.234375,
+   "lh": 6.234375
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1em + 10%)",
+   "declared": "calc(10% + 1em)",
+   "computed": "17.3125px",
+   "height": 17.3125,
+   "lh": 17.3125
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(100% - 1px)",
+   "declared": "calc(100% - 1px)",
+   "computed": "14.75px",
+   "height": 14.75,
+   "lh": 14.75
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(110% - 3px + 0.25em)",
+   "declared": "calc(110% + 0.25em - 3px)",
+   "computed": "18.25px",
+   "height": 18.25,
+   "lh": 18.25
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(10% - 40px)",
+   "declared": "calc(10% - 40px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1 + 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1% + 1)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px * 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px / 2px)",
+   "declared": "calc(1px * (1 / 2px))",
+   "computed": "7.875px",
+   "height": 7.875,
+   "lh": 7.875
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(2 / 1px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px+2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px +2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px -2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px - 2px)",
+   "declared": "calc(-1px)",
+   "computed": "0px",
+   "height": 0,
+   "lh": 0
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc()",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px",
+   "declared": "calc(1px)",
+   "computed": "1px",
+   "height": 1,
+   "lh": 1
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px))",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px 2px)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1deg)",
+   "declared": "",
+   "computed": "normal",
+   "height": 18,
+   "lh": 18
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px * (2))",
+   "declared": "calc(2px)",
+   "computed": "2px",
+   "height": 2,
+   "lh": 2
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1 / 0)",
+   "declared": "calc(infinity)",
+   "computed": "3.40282e+38px",
+   "height": 33554432,
+   "lh": 33554428
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc(1px / 0)",
+   "declared": "calc(infinity * 1px)",
+   "computed": "3.35544e+07px",
+   "height": 33554428,
+   "lh": 33554428
+  },
+  {
+   "font_size": 15.75,
+   "line_height": "calc((1px + 1em) / 0.5)",
+   "declared": "calc(2em + 2px)",
+   "computed": "33.5px",
+   "height": 33.5,
+   "lh": 33.5
+  }
+ ]
+}

@@ -2104,6 +2104,29 @@ impl Engine {
             StyleValue::Transform(value) => {
                 StyleValue::Transform(div_style::map_transform_lengths(value, &resolve))
             }
+            // A `calc()` line height computes to a number or a length once
+            // the font, the root font and the viewport are known.
+            StyleValue::Math(function) if property == StyleProperty::LineHeight => {
+                let metrics = metrics.unwrap_or(div_style::FontRelativeLengthMetrics {
+                    ch: font * 0.5,
+                    ex: font * 0.5,
+                    lh: font * 1.2,
+                });
+                let resolver = div_style::math::MathResolver {
+                    font_size: font,
+                    root_font_size: root_font,
+                    viewport,
+                    ch: metrics.ch,
+                    ex: metrics.ex,
+                    lh: metrics.lh,
+                };
+                match function.line_height(&resolver) {
+                    Some(line_height) => {
+                        StyleValue::Typography(div_style::TypographyValue::LineHeight(line_height))
+                    }
+                    None => value.clone(),
+                }
+            }
             _ => value.clone(),
         }
     }
