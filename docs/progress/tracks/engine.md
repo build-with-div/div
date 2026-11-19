@@ -205,3 +205,11 @@ on branch `components/c4-assets` and the shared findings note.
   1.25x, all closer to Chromium, with exact counts unchanged; CSS Grid
   coverage is unchanged at all four profiles.
   [Record](../font-size-precision-t4-2026-11-17.md).
+- 18 November 2026: a state or attribute change restyles only the
+  elements whose matching it can change, found from where adopted
+  selectors read each class, id, attribute and state, and marks only the
+  invalidation classes of the longhands that changed (0.1 PR 4). So a
+  hover color change restyles the hover path and repaints, without
+  layout. A gate test compares each step with a full re-cascade. The
+  census and CSS Grid coverage are unchanged at all four profiles.
+  [Record](../state-invalidation-pr4-2026-11-18.md).
