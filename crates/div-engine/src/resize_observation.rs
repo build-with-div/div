@@ -180,7 +180,9 @@ impl Engine {
         // as Div lays out the root's content. The root's scroll area's client
         // rect is that area. Chromium 147's sizes for `<html>` are in
         // `tests/fidelity/fixtures/resize-observer-root-v1`.
-        if node == self.document.root() && self.document.document_element().is_none() {
+        let native_root =
+            node == self.document.root() && self.document.document_element().is_none();
+        if native_root {
             if let Some(area) = first.scroll_area {
                 border_box = PhysicalSize::new(
                     border_box.width.min_of(area.client_rect.width()),
@@ -203,9 +205,15 @@ impl Engine {
             padding.bottom = padding.bottom.max_of(next_padding.bottom);
             padding.left = padding.left.max_of(next_padding.left);
         }
-        let gutters = first
-            .element_scrollbars
-            .map_or(BoxStrut::zero(), |bars| bars.insets);
+        // The native root's scrollbars, the viewport's, are already outside
+        // its clamped box: it has no gutters left to subtract.
+        let gutters = if native_root {
+            BoxStrut::zero()
+        } else {
+            first
+                .element_scrollbars
+                .map_or(BoxStrut::zero(), |bars| bars.insets)
+        };
         let content = PhysicalSize::new(
             (border_box.width - border.inline_sum() - gutters.inline_sum() - padding.inline_sum())
                 .clamp_negative_to_zero(),
@@ -247,7 +255,9 @@ mod tests {
     use crate::FontCollection;
     use div_dom::ElementTag;
     use div_geometry::ViewportMetrics;
+    use div_layout::ElementScrollbars;
     use div_style::{parse_literal, StyleProperty};
+    use std::sync::Arc;
 
     fn engine(scale: f64) -> Engine {
         Engine::new_with_font_collection(
@@ -460,6 +470,145 @@ mod tests {
             f64::from(engine.client_width(child).unwrap()),
             "the content box is where the root's content is laid out"
         );
+    }
+
+    #[test]
+    fn the_native_root_counts_its_scrollbar_gutters_once() {
+        // The clamp already leaves the viewport's scrollbars out of the
+        // root's box. Were the root fragment to carry element gutters too
+        // (for example from `scrollbar-gutter` on the root), they must not be
+        // subtracted a second time. Layout gives the native root none today,
+        // so the test gives the retained root fragment a 15px gutter on the
+        // right and bottom.
+        let mut engine = engine(1.0);
+        let root = engine.root();
+        style(
+            &mut engine,
+            root,
+            &[
+                (StyleProperty::Border, "1px solid black"),
+                (StyleProperty::Padding, "5px"),
+                (StyleProperty::Overflow, "scroll"),
+            ],
+        );
+        element(&mut engine, root, &[(StyleProperty::Height, "20px")]);
+        let measured = engine.resize_observation(root).unwrap();
+        let client_width = f64::from(engine.client_width(root).unwrap());
+        let client_height = f64::from(engine.client_height(root).unwrap());
+        assert!(client_width < 320.0, "the scrollbar takes inline space");
+
+        let node = engine.resolve(root).unwrap();
+        let fragment = Arc::make_mut(engine.latest_fragment.as_mut().unwrap());
+        let gutter = LayoutUnit::from_f64(15.0);
+        let mut given = 0;
+        give_gutters(fragment, node, gutter, &mut given);
+        assert!(given > 0, "the root has a retained box");
+        let observation = engine.retained_resize_observation(node);
+        assert_eq!(observation.border_box, size(client_width, client_height));
+        assert_eq!(
+            observation.content_box,
+            size(client_width - 12.0, client_height - 12.0),
+            "the scrollbars are subtracted once"
+        );
+        assert_eq!(observation.content_box, measured.content_box);
+    }
+
+    /// The browser-shaped twin of the native root's oracle cases: `<html>`
+    /// styled as the oracle styles it, with a `<body>` and the child, at 1x.
+    /// Overflow on `<html>` moves to the viewport, so its box sits inside the
+    /// viewport's scrollbars on the ordinary path, and its `auto` height is
+    /// its content's.
+    #[test]
+    fn a_browser_shaped_html_matches_chromium_at_1x() {
+        let oracle: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fidelity/fixtures/resize-observer-root-v1/chromium-windows.json"
+        ))
+        .unwrap();
+        let mut compared = 0;
+        for case in oracle["cases"].as_array().unwrap() {
+            if case["scale"].as_f64().unwrap() != 1.0 {
+                continue;
+            }
+            let name = case["case"].as_str().unwrap();
+            let mut engine = Engine::new_with_font_collection(
+                ViewportMetrics::from_logical_size(200.0, 100.0, 1.0).unwrap(),
+                FontCollection::deterministic_test(),
+            )
+            .unwrap();
+            let root = engine.root();
+            let html = engine.create_native_element(ElementTag::Html).unwrap();
+            engine.append_child(root, html).unwrap();
+            style(
+                &mut engine,
+                html,
+                &[
+                    (StyleProperty::Margin, "0px"),
+                    (StyleProperty::Border, "1px solid black"),
+                    (StyleProperty::Padding, "5px"),
+                    (StyleProperty::Overflow, case["overflow"].as_str().unwrap()),
+                ],
+            );
+            let body = engine.create_native_element(ElementTag::Body).unwrap();
+            engine.append_child(html, body).unwrap();
+            style(&mut engine, body, &[(StyleProperty::Margin, "0px")]);
+            let child_height = format!("{}px", case["child_height"].as_f64().unwrap());
+            element(
+                &mut engine,
+                body,
+                &[
+                    (StyleProperty::Width, "40px"),
+                    (StyleProperty::Height, &child_height),
+                ],
+            );
+            let observation = engine.resize_observation(html).unwrap();
+            let chromium = |key: &str| {
+                size(
+                    case[key]["inline"].as_f64().unwrap(),
+                    case[key]["block"].as_f64().unwrap(),
+                )
+            };
+            assert_eq!(observation.border_box, chromium("border_box"), "{name}");
+            assert_eq!(observation.content_box, chromium("content_box"), "{name}");
+            assert_eq!(
+                observation.device_pixel_content_box,
+                chromium("device_pixel_content_box"),
+                "{name}"
+            );
+            let rect: Vec<f32> = case["content_rect"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_f64().unwrap() as f32)
+                .collect();
+            let actual = observation.content_rect;
+            assert_eq!(
+                vec![actual.x, actual.y, actual.width, actual.height],
+                rect,
+                "{name}"
+            );
+            compared += 1;
+        }
+        assert_eq!(compared, 3, "the oracle's three 1x cases");
+    }
+
+    fn give_gutters(fragment: &mut Fragment, node: NodeId, gutter: LayoutUnit, given: &mut usize) {
+        if fragment.node_id == node && fragment.owns_element_box() {
+            fragment.element_scrollbars = Some(ElementScrollbars {
+                insets: BoxStrut {
+                    top: LayoutUnit::zero(),
+                    right: gutter,
+                    bottom: gutter,
+                    left: LayoutUnit::zero(),
+                },
+                horizontal: true,
+                vertical: true,
+                thickness: gutter,
+            });
+            *given += 1;
+        }
+        for child in &mut fragment.children {
+            give_gutters(child, node, gutter, given);
+        }
     }
 
     #[test]
