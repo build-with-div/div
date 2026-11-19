@@ -65,8 +65,25 @@ long-standing in both.
 | CSS Grid coverage (WSL) | coverage matrix, same head and base | 1,473 of 4,204 exact before and after, and 894 of 3,153 at the three real-zoom profiles; 0 statuses or images changed |
 
 The tests, census and coverage measured `b6dca584`. This PR's code
-differs from it only in `cargo fmt` line breaks. The evidence is in div-fidelity-data ``31eeae71``, pinned by this
-PR's `fidelity-data.lock`.
+differs from it only in `cargo fmt` line breaks. The evidence is in
+div-fidelity-data `31eeae71`, pinned by this PR's `fidelity-data.lock`.
+
+### After rebasing onto `main` `992d4d68`
+
+`main` gained, among others, the corpus tests' Skia initialization (#92),
+SVG masks (#97) and the Windows text raster preset (RFC 0012, #90 and
+#93). The rebased head, `b4685cf7`, was measured again:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| SVG text corpus, Linux (WSL, CI's Skia flags) | `cargo test --locked -p div-svg --test text_corpus -- --nocapture` | 264 of 290 captures exact, and every listed gap differs by exactly its listed count, as before the rebase; positions: 24,056 numbers, none differ |
+| Linux suites (WSL, CI's Skia flags) | `cargo test --locked --no-fail-fast -j 4 -p div-style -p div-text -p div-layout -p div-paint -p div-svg -p div-engine -p divui` | 9,455 passed, 0 failed |
+| Windows suites | The same seven crates | 9,449 passed, 0 failed. `div-svg` passes, so the Windows `svg-text-v1` and paint v1 to v5 gaps are unchanged |
+| Generators and ledgers | As above, and `fidelity_data.py verify --profile all` | All pass, except that SP20 was not checked locally: its inventory hashes Chromium's WPT tree and this machine's checkout is not the pinned one. This PR changes none of its inputs; CI checks it |
+
+The census and coverage were not run again. No census fixture draws a
+web font above 48 device px or under a rotated or skewed matrix, so the
+rebase does not change which census paths this PR reaches.
 
 ## Named gaps
 
