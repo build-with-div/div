@@ -15,6 +15,7 @@ use div_svg::viewport::{parse_view_box, view_box_transform, PreserveAspectRatio}
 use div_svg::{shapes, PathData};
 use std::collections::BTreeMap;
 
+#[derive(Clone)]
 pub struct Element {
     pub tag: String,
     pub attrs: BTreeMap<String, String>,

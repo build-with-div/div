@@ -8,7 +8,7 @@ Tools for the inline SVG work in RFC 0009
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
 | `text_corpus.py` | Black-box text oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium (`capture`), and screenshots of the same cases plus paint cases (`pixels`), at scale 1 and at real-zoom scale 2 |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in five sets (`--set v1` to `--set v5`) |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in six sets (`--set v1` to `--set v6`) |
 
 ## Geometry corpus
 
@@ -165,7 +165,7 @@ sheet would otherwise resolve to the first case's `clipPath`.
 | `union/` | 5 | two or three children, disjoint and overlapping, with mixed `clip-rule`s, transformed |
 | `nest/` | 5 | `clip-path` on the `clipPath`, on one child, on nested groups, a chain of three, and on a two-child `clipPath` |
 | `edge/` | 13 | `display: none` and `visibility: hidden` children, an empty `clipPath`, a missing reference, a reference to a non-`clipPath`, a self reference, a two-element cycle, `clip-path` in `style`, a fractional page offset, `crispEdges` on the child and on the target, `opacity` with a clip, hairline children |
-| `child/` | 2 | a `text` child and a `use` child: named gaps (T1, V3d) |
+| `child/` | 2 | a `text` child (a named gap, T1) and a `use` child |
 | `chart/` | 5 | Recharts' plot-area clip on a line, an area, bars, dots, and a draw-in clip |
 
 Set `v4` (`--set v4`, fixtures in `tests/fidelity/fixtures/svg-paint-v4/`)
@@ -201,8 +201,22 @@ mask the same content as `v3`. Ids are prefixed as in `v3`.
 | `edge/` | 10 | a missing reference, a reference to a non-`mask`, an empty mask, hidden and `display: none` children, a self reference, `mask` in `style`, `crispEdges` and hairline children, a line target (an empty bounding box) in both units |
 | `chart/`, `icon/` | 2 | an area faded by a gradient mask, an avatar with a badge cut-out |
 
+Set `v6` (`--set v6`, fixtures in `tests/fidelity/fixtures/svg-paint-v6/`)
+covers `use` and `symbol` (V3d, first part), with 61 cases, each at scale 1
+and at scale 2. Ids are prefixed as in `v3`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `use/` | 16 | a shape inheriting `fill` from the `use`; `x` and `y` (fractional, percentages) with and without a `transform`; the target's own `fill` winning; an inherited dashed stroke; `xlink:href`; two instances; a group; a nested `use`; `currentColor`; group `opacity`; a target after the `use` and one rendered in place; `fill` in `style`; a target `transform` |
+| `effects/` | 6 | `clip-path` in both units and `mask` on a translated `use`, `visibility` on the `use` and overridden by the target, a `display: none` target |
+| `symbol/` | 17 | a sized icon, no size (100%), percentage and fractional sizes, no `viewBox` (clipped to the viewport), `overflow="visible"`, the viewport clip, `meet`, `slice`, `none`, a `viewBox` origin, the symbol's own `width` and `height`, an empty `viewBox`, a `symbol` outside a `use`, a transformed instance, a scaled stroke, `clip-path` on the instance |
+| `svg/` | 2 | a referenced `svg` with its own size and position, and with the `use`'s size replacing it |
+| `clip/` | 10 | `use` in a `clipPath`: plain, with `x` and `y`, with transforms on the `use` and the target, `clip-rule` on the `use` and on the target, with a shape beside it, in `objectBoundingBox` units, of a `g` and of a `symbol`, under `crispEdges` |
+| `edge/` | 8 | a missing reference, no `href`, a reference to an ancestor, a two-group cycle, a cycle inside an instance, a reference to a gradient, `href` beside `xlink:href`, `width` and `height` on a shape's `use` |
+| `icon/`, `chart/` | 2 | an icon sprite at three sizes and colours, Recharts' legend icon |
+
 **Evidence** is one capture per OS and set in
-`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v5/`.
+`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v6/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
@@ -240,7 +254,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL (and again with --set v2 to --set v5 into svg-paint-v2/ to svg-paint-v5/)
+# Linux, in WSL (and again with --set v2 to --set v6 into svg-paint-v2/ to svg-paint-v6/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -255,10 +269,10 @@ All 147 `v1` captures (107 at scale 1, 40 at scale 2) and all 115 `v2`
 captures (85 at scale 1, 30 at scale 2) are exact on Windows (MSVC) and on
 Linux (WSL). Both `known-gaps.txt` files are empty.
 
-Of the 108 `v3` captures, 104 are exact on both OSes. The other four are
-named gaps in `svg-paint-v3/known-gaps.txt`: the `text` child (T1, and on
-Windows the LCD text edging owned by the fidelity lane) and the `use`
-child (V3d). The `clipPath` corpus settled these points; the clip itself is
+Of the 108 `v3` captures, 106 are exact on both OSes. The other two are
+the `text` child, a named gap in `svg-paint-v3/known-gaps.txt` (T1, and on
+Windows the LCD text edging owned by the fidelity lane). The `use` child
+is exact since V3d. The `clipPath` corpus settled these points; the clip itself is
 in `src/clip.rs`, and the test's harness resolves references and paints
 groups:
 
@@ -345,6 +359,45 @@ the mask's content. The mask corpus settled these points:
   (`ResourceBoundsForSVGChild`), is ported but changes no capture in this
   corpus.
 
+Of the 122 `v6` captures, 120 are exact on both OSes. The other two are
+`chart/legend`, a named gap in `svg-paint-v6/known-gaps.txt`: the arcs of
+Recharts' legend icon, whose radius is within a float ulp of half the
+chord, differ at the stroke's inner edge. The same path drawn directly,
+without `use`, differs the same way. The cause is unmeasured; a comparison
+of Skia's `arcTo` and stroker is pending.
+`src/use_element.rs` places an instance and gives a `symbol` or `svg` its
+viewport (`src/viewport.rs`); the test's harness builds the instance tree.
+`use` and `symbol` are clean-room (Blink's `use` element and its layout
+container are LGPL). The corpus settled these points:
+
+- An instance is a copy of the target that inherits from the `use`. Its
+  own properties, `transform`, `display` and `visibility` come with it
+  (`effects/visible-target`, `effects/display-none-target`).
+- `translate(x, y)` follows the `use`'s `transform` and is part of the
+  `use`'s own transform: a `clip-path` or `mask` on the `use` is in the
+  translated space (`effects/clip-user`, `effects/mask`).
+- A `symbol` or `svg` instance is a nested viewport. The `use`'s `width`
+  and `height` replace the target's where set, and both are initially
+  100%; the symbol's own size applies otherwise (`symbol/own-size`). It
+  clips to the viewport, not to the `viewBox` (`symbol/meet`), unless
+  `overflow` is visible. A zero-size `viewBox` disables it
+  (`symbol/viewbox-zero`), as Blink's BSD container painter states.
+- A `use` whose target is the `use` itself or one of its ancestors (a copy
+  counting as its original) renders nothing. Only that `use` is dropped:
+  the rest of the outer instance renders (`edge/mutual`,
+  `edge/cycle-deep`).
+- In a `clipPath`, a `use` of a shape contributes the shape under the
+  `use`'s placement, with `clip-rule` inherited from the `use`. A `use`
+  of a `g` or a `symbol` clips everything out (`clip/use-group`,
+  `clip/use-symbol`).
+- Group `opacity` is painted as cc plays it back
+  (`PaintChunksToCcLayer`, `PlaybackFoldingIterator`, both BSD): the layer
+  is bounded by its content's integer drawable bounds (unbounded, one
+  edge pixel of `use/opacity` differs by 4 levels), and a layer holding a
+  single drawing operation is folded into it (as a layer, every pixel of
+  `use/twice`'s faded rect is one level off). `div-paint` applies opacity
+  at the call site, and its `paint_record.rs` does the same folding.
+
 The corpus settled these points:
 
 - A square-cornered `rect` is drawn with `drawRect`, and a `circle` or
@@ -394,7 +447,7 @@ The corpus settled these points:
 - Markers (a later clean-room PR), text,
   element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
-- For clipping: `text` and `use` children of a `clipPath`, `clip-path:
+- For clipping: `text` children of a `clipPath`, `clip-path:
   url()` on HTML elements (engine item E4), basic shapes and geometry
   boxes in `clip-path`, and the reference resolution and group painting
   that the test harness models until the engine calls the painter.
@@ -407,6 +460,11 @@ The corpus settled these points:
   elements and CSS `mask-image` with images or several layers (engine
   work after E1), `mask-mode`, `foreignObject` zoom, and
   `color-interpolation` on the mask.
+- For `use` and `symbol`: markers (V3d's second part), `context-fill` and
+  `context-stroke`, references into other documents, `use` of `text`,
+  CSS selectors matching inside an instance, `symbol`'s own `x` and `y`,
+  and the opacity fold for a paint server's shader (the harness folds
+  colour paints only).
 
 ## Text corpus (V2a positions)
 

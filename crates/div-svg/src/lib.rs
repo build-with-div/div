@@ -27,6 +27,12 @@
 //! Masking for the rest, checked by the same test
 //! (`tests/fidelity/fixtures/svg-paint-v5`).
 //!
+//! [`use_element`] places the instance of a `use` and gives a `symbol` or
+//! an `svg` instance its viewport (V3d), written from SVG 2 and black-box
+//! observation and checked by the same test
+//! (`tests/fidelity/fixtures/svg-paint-v6`), which also records the rules
+//! for building the instance tree.
+//!
 //! [`text`] lays out `<text>` and `<tspan>`, answers the SVG text DOM
 //! queries (character positions, extents, rotations and the computed text
 //! length) and paints the glyphs. It ports Blink's BSD SVG text layout
@@ -53,6 +59,7 @@ pub mod path_data;
 pub mod shapes;
 pub mod text;
 pub mod transform;
+pub mod use_element;
 pub mod viewport;
 
 /// A point in user units. Chromium keeps SVG geometry in single precision.

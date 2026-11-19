@@ -15,12 +15,12 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-There are five sets, each with its own fixtures and gap list: `v1` (fills,
+There are six sets, each with its own fixtures and gap list: `v1` (fills,
 strokes, transforms, viewports and the Lucide icons), `v2` (dashes,
 `pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
 chart-shaped compositions), `v3` (`clipPath`), `v4` (paint servers:
-gradients and patterns) and `v5` (`mask`). Every case of `v3` to `v5` is
-taken at both scales.
+gradients and patterns), `v5` (`mask`) and `v6` (`use` and `symbol`).
+Every case of `v3` to `v6` is taken at both scales.
 
     paint_corpus.py list [--set v2]
     paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
@@ -917,6 +917,180 @@ def mask_cases() -> list[dict]:
     ])]
 
 
+def use_cases() -> list[dict]:
+    """`use` and `symbol` (set v6), and `use` inside a `clipPath`. Most cases
+    reuse a few small shapes so that placement, inheritance and the instance
+    viewport each show on their own."""
+    red = "#ef4444"
+    green = "#22c55e"
+    rect = '<rect id="r" x="4" y="6" width="30" height="20"/>'
+    plain_rect = '<rect x="4" y="6" width="30" height="20"/>'
+    star = '<polygon id="s" points="32,4 40,56 6,22 58,22 24,56"/>'
+    # A 24-unit icon drawn with strokes, as icon sprites are.
+    check = ('<symbol id="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+             'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+             '<path d="M20 6 9 17l-5-5"/><circle cx="12" cy="12" r="10"/></symbol>')
+    plus = ('<symbol id="p" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></symbol>')
+    tile = (f'<symbol id="t" viewBox="0 0 20 10"><rect width="20" height="10" fill="{green}"/>'
+            f'<circle cx="10" cy="5" r="7" fill="{red}"/></symbol>')
+    two = (f'<g id="g" transform="translate(2 3)"><rect width="24" height="24" fill="{red}"/>'
+           f'<circle cx="24" cy="24" r="12" fill="{green}"/></g>')
+
+    def used(case_id: str, defs: str, uses: str, **kw) -> dict:
+        return case(case_id, f'<defs>{defs}</defs>{uses}', **kw)
+
+    def clipped(case_id: str, clip: str, *, defs: str = rect, attrs: str = "") -> dict:
+        return case(case_id, f'<defs>{defs}<clipPath id="c"{" " + attrs if attrs else ""}>'
+                    f'{clip}</clipPath></defs><g clip-path="url(#c)">'
+                    f'<rect width="64" height="64" fill="{BLUE}"/>'
+                    f'<path d="M0,64L64,0" stroke="{red}" stroke-width="6"/></g>')
+
+    return [scoped(c, i) for i, c in enumerate([
+        # Placement and inheritance.
+        used("use/rect", rect, f'<use href="#r" fill="{BLUE}"/>'),
+        used("use/xy", rect, f'<use href="#r" x="10.5" y="20.25" fill="{BLUE}"/>'),
+        used("use/xy-percent", rect, f'<use href="#r" x="10%" y="25%" fill="{BLUE}"/>'),
+        used("use/transform-xy", rect, f'<use href="#r" x="12" y="4" fill="{BLUE}" '
+             'transform="rotate(20 32 32) scale(1.1)"/>'),
+        used("use/own-fill", f'<rect id="r" x="4" y="6" width="30" height="20" fill="{red}"/>',
+             f'<use href="#r" x="20" y="30" fill="{BLUE}"/>'),
+        used("use/stroke", rect, f'<use href="#r" x="12" y="18" fill="none" stroke="{BLUE}" '
+             'stroke-width="5" stroke-dasharray="6 3"/>'),
+        used("use/xlink", rect, f'<use xlink:href="#r" x="8" y="8" fill="{BLUE}"/>'),
+        used("use/twice", rect, f'<use href="#r" fill="{BLUE}"/>'
+             f'<use href="#r" x="24" y="32" fill="{red}" opacity="0.7"/>'),
+        used("use/group", two, '<use href="#g" x="6" y="4"/>'),
+        used("use/nested", f'{rect}<g id="n"><use href="#r" x="4" fill="{red}"/>'
+             '<circle cx="40" cy="40" r="10"/></g>', f'<use href="#n" y="6" fill="{BLUE}"/>'),
+        used("use/current-color", '<circle id="o" cx="32" cy="32" r="20" fill="currentColor"/>',
+             f'<use href="#o" color="{green}"/>'),
+        used("use/opacity", two, '<use href="#g" x="6" y="6" opacity="0.5"/>'),
+        case("use/before-target", f'<use href="#r" x="20" y="30" fill="{BLUE}"/>'
+             f'<rect id="r" x="4" y="6" width="30" height="20" fill="{red}"/>'),
+        case("use/in-place", f'<g fill="{red}"><rect id="r" x="4" y="6" width="30" height="20"/>'
+             f'</g><use href="#r" x="24" y="30" fill="{BLUE}"/>'),
+        used("use/style-fill", rect, f'<use href="#r" x="8" y="8" style="fill: {green}"/>'),
+        used("use/target-transform", f'<rect id="r" x="4" y="6" width="30" height="20" '
+             'transform="rotate(15)"/>', f'<use href="#r" x="16" y="16" fill="{BLUE}"/>'),
+        # Effects on a use.
+        used("effects/clip-obb", f'{star}<clipPath id="c" clipPathUnits="objectBoundingBox">'
+             '<rect width="0.6" height="0.7"/></clipPath>',
+             f'<use href="#s" x="4" y="2" fill="{BLUE}" clip-path="url(#c)"/>'),
+        used("effects/clip-user", f'{star}<clipPath id="c"><rect width="36" height="40"/>'
+             '</clipPath>', f'<use href="#s" x="10" y="8" fill="{BLUE}" clip-path="url(#c)"/>'),
+        used("effects/mask", f'{star}<mask id="m"><rect width="40" height="64" fill="#fff"/>'
+             '</mask>', f'<use href="#s" x="8" fill="{BLUE}" mask="url(#m)"/>'),
+        used("effects/hidden-use", rect, f'<use href="#r" x="8" y="8" fill="{BLUE}" '
+             'visibility="hidden"/>'),
+        used("effects/visible-target", f'<rect id="r" x="4" y="6" width="30" height="20" '
+             'visibility="visible"/>', f'<use href="#r" x="8" y="8" fill="{BLUE}" '
+             'visibility="hidden"/>'),
+        used("effects/display-none-target", f'<rect id="r" x="4" y="6" width="30" height="20" '
+             f'display="none"/><circle id="o" cx="40" cy="40" r="12"/>',
+             f'<use href="#r" fill="{BLUE}"/><use href="#o" fill="{green}"/>'),
+        # symbol.
+        used("symbol/basic", check, f'<use href="#i" x="8" y="8" width="48" height="48" '
+             f'color="{BLUE}"/>'),
+        used("symbol/no-size", check, f'<use href="#i" color="{BLUE}"/>'),
+        used("symbol/percent-size", check, f'<use href="#i" width="50%" height="75%" '
+             f'color="{BLUE}"/>'),
+        used("symbol/fractional", check, f'<use href="#i" x="3.5" y="5.25" width="37.5" '
+             f'height="37.5" color="{BLUE}"/>'),
+        used("symbol/no-viewbox", f'<symbol id="t">{plain_rect}'
+             f'<circle cx="30" cy="30" r="20" fill="{red}"/></symbol>',
+             f'<use href="#t" x="8" y="8" width="30" height="24" fill="{BLUE}"/>'),
+        used("symbol/overflow-visible", tile.replace('<symbol id="t"',
+             '<symbol id="t" overflow="visible"'),
+             '<use href="#t" x="12" y="20" width="40" height="20"/>'),
+        used("symbol/clipped", tile, '<use href="#t" x="12" y="20" width="40" height="20"/>'),
+        used("symbol/meet", tile, '<use href="#t" x="4" y="4" width="56" height="56"/>'),
+        used("symbol/slice", tile.replace('viewBox="0 0 20 10"',
+             'viewBox="0 0 20 10" preserveAspectRatio="xMinYMax slice"'),
+             '<use href="#t" x="4" y="4" width="40" height="56"/>'),
+        used("symbol/none", tile.replace('viewBox="0 0 20 10"',
+             'viewBox="0 0 20 10" preserveAspectRatio="none"'),
+             '<use href="#t" x="4" y="4" width="40" height="56"/>'),
+        used("symbol/viewbox-offset", f'<symbol id="t" viewBox="10 5 20 20">'
+             f'<rect width="40" height="40" fill="{green}"/><circle cx="20" cy="15" r="9" '
+             f'fill="{red}"/></symbol>', '<use href="#t" x="8" y="8" width="48" height="48"/>'),
+        used("symbol/own-size", f'<symbol id="t" width="30" height="20" viewBox="0 0 20 10">'
+             f'<rect width="20" height="10" fill="{green}"/><circle cx="10" cy="5" r="7" '
+             f'fill="{red}"/></symbol>', '<use href="#t" x="8" y="8"/>'),
+        used("symbol/viewbox-zero", f'<symbol id="t" viewBox="0 0 0 10">'
+             f'<rect width="20" height="10" fill="{green}"/></symbol>',
+             '<use href="#t" x="4" y="4" width="40" height="40"/>'),
+        case("symbol/direct", tile + '<rect x="8" y="8" width="20" height="20" '
+             f'fill="{BLUE}"/>'),
+        used("symbol/transform", check, f'<use href="#i" width="24" height="24" color="{BLUE}" '
+             'transform="translate(32 4) rotate(30) scale(1.5)"/>'),
+        used("symbol/stroke-scaled", plus, f'<use href="#p" x="2" y="2" width="60" height="60" '
+             f'color="{red}" stroke-width="1"/>'),
+        used("symbol/clip-obb", check + '<clipPath id="c" clipPathUnits="objectBoundingBox">'
+             '<rect width="0.5" height="1"/></clipPath>',
+             f'<use href="#i" x="8" y="8" width="48" height="48" color="{BLUE}" '
+             'clip-path="url(#c)"/>'),
+        # A referenced svg.
+        used("svg/own-size", f'<svg id="v" x="4" y="6" width="30" height="40">'
+             f'<rect width="50" height="50" fill="{green}"/><circle cx="15" cy="20" r="12" '
+             f'fill="{red}"/></svg>', '<use href="#v" x="10" y="4"/>'),
+        used("svg/override", f'<svg id="v" x="4" y="6" width="30" height="40" '
+             f'viewBox="0 0 30 40"><rect width="50" height="50" fill="{green}"/>'
+             f'<circle cx="15" cy="20" r="12" fill="{red}"/></svg>',
+             '<use href="#v" x="2" width="56" height="24"/>'),
+        # use inside a clipPath.
+        clipped("clip/use", '<use href="#r"/>'),
+        clipped("clip/use-xy", '<use href="#r" x="12.5" y="20.25"/>'),
+        clipped("clip/use-transform", '<use href="#r" x="10" y="10" transform="rotate(20 32 32)"/>',
+                defs='<rect id="r" x="4" y="6" width="30" height="20" transform="scale(1.4)"/>'),
+        clipped("clip/use-rule", '<use href="#s" clip-rule="evenodd"/>', defs=star),
+        clipped("clip/use-target-rule", '<use href="#s"/>',
+                defs=star.replace('/>', ' clip-rule="evenodd"/>')),
+        clipped("clip/use-and-shape", '<use href="#r" x="8" y="8"/><circle cx="44" cy="44" r="14"/>'),
+        clipped("clip/use-obb", '<use href="#r" transform="scale(0.02)"/>',
+                attrs='clipPathUnits="objectBoundingBox"'),
+        clipped("clip/use-group", '<use href="#g"/>', defs=two),
+        clipped("clip/use-symbol", '<use href="#t" width="40" height="40"/>', defs=tile),
+        clipped("clip/use-circle-crisp", '<use href="#o" shape-rendering="crispEdges"/>',
+                defs='<circle id="o" cx="32" cy="32" r="20.5"/>'),
+        # Edges.
+        case("edge/missing", f'<use href="#nothing" fill="{BLUE}"/><rect x="40" y="40" '
+             'width="16" height="16"/>'),
+        case("edge/no-href", f'<use x="8" y="8" fill="{BLUE}"/><rect x="40" y="40" '
+             'width="16" height="16"/>'),
+        case("edge/ancestor", f'<g id="a"><rect x="4" y="4" width="20" height="20" '
+             f'fill="{BLUE}"/><use href="#a" x="24" y="24"/></g>'),
+        used("edge/mutual", f'<g id="a"><rect width="20" height="20" fill="{red}"/>'
+             '<use href="#b" x="20"/></g><g id="b"><use href="#a" y="20"/></g>',
+             f'<use href="#a" x="8" y="8"/><rect x="40" y="40" width="16" height="16" '
+             f'fill="{BLUE}"/>'),
+        used("edge/cycle-deep", f'{rect}<g id="a"><use href="#r" fill="{red}"/>'
+             '<use href="#a" x="20"/></g>',
+             f'<use href="#a" x="8" y="20"/><use href="#r" x="24" y="0" fill="{BLUE}"/>'),
+        used("edge/to-gradient", '<linearGradient id="l"><stop offset="0" stop-color="red"/>'
+             '</linearGradient>', f'<use href="#l" fill="{BLUE}"/><rect x="40" y="40" '
+             'width="16" height="16"/>'),
+        used("edge/href-wins", f'{rect}<circle id="o" cx="32" cy="32" r="20"/>',
+             f'<use href="#r" xlink:href="#o" x="8" y="8" fill="{BLUE}"/>'),
+        used("edge/size-on-shape", rect, f'<use href="#r" x="8" y="8" width="10" height="10" '
+             f'fill="{BLUE}"/>'),
+        # Real-world shapes.
+        used("icon/sprite", check + plus, f'<use href="#i" x="4" y="4" width="24" height="24" '
+             f'color="{BLUE}"/><use href="#p" x="36" y="4" width="24" height="24" '
+             f'color="{red}"/><use href="#i" x="4" y="36" width="16" height="16" '
+             f'color="{green}"/><use href="#p" x="36" y="36" width="20" height="20" '
+             f'color="{INK}" stroke-width="3"/>'),
+        case("chart/legend", f'<defs><symbol id="d" viewBox="0 0 32 32"><path d="M0,16h10.67'
+             f'A5.33,5.33,0,1,1,21.33,16H32M21.33,16A5.33,5.33,0,1,1,10.67,16" '
+             f'stroke-width="4" fill="#fff" stroke="inherit"/></symbol></defs>'
+             f'<use href="#d" x="4" y="8" width="14" height="14" stroke="{BLUE}"/>'
+             f'<rect x="22" y="12" width="36" height="6" fill="{GRID}"/>'
+             f'<use href="#d" x="4" y="36" width="14" height="14" stroke="{red}"/>'
+             f'<rect x="22" y="40" width="28" height="6" fill="{GRID}"/>',
+             size=(64, 64)),
+    ])]
+
+
 def scoped(c: dict, index: int) -> dict:
     """Ids are document-wide and every case of a sheet shares one page, so
     each case's ids (and its references to them) get the case's own prefix."""
@@ -939,10 +1113,11 @@ SCALE_2 = {
 
 def sheets(corpus: str = "v1") -> list[dict]:
     """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
-    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 to v5: everything at
+    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 to v6: everything at
     both."""
-    if corpus in ("v3", "v4", "v5"):
-        everything = {"v3": clip_cases, "v4": server_cases, "v5": mask_cases}[corpus]()
+    if corpus in ("v3", "v4", "v5", "v6"):
+        everything = {"v3": clip_cases, "v4": server_cases, "v5": mask_cases,
+                      "v6": use_cases}[corpus]()
         return [
             {"scale": 1, "cases": everything},
             {"scale": 2, "cases": [dict(c) for c in everything]},
@@ -1008,9 +1183,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     lst = sub.add_parser("list")
-    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5"), default="v1")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6"), default="v1")
     cap = sub.add_parser("capture")
-    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5"), default="v1")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
