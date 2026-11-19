@@ -46,19 +46,9 @@ linux 2x xf/viewbox-none 1526 255
 
 # Windows: 0 of 290 captures exact.
 
-# T3, engine (div-text): these positions differ already (svg-text-v1/known-gaps.txt); the
-# Windows text raster below applies as well.
-windows 1x list/dx-em 350 56
-windows 1x spacing/letter-em 662 16
-windows 1x tspan/fill-only 560 16
-windows 1x tspan/font-size 658 16
-windows 1x tspan/font-weight 574 16
-windows 2x run/geist-size-12.5 731 16
-windows 2x spacing/letter-em 1444 16
-
 # Windows text raster, fidelity lane (font edging and DirectWrite glyph masks): Chromium and Div
 # both paint these web-font glyphs with LCD masks. In the cases inspected (run/geist-16-400 and
-# others) the ink, bounds and placement match; 275 of these 283 differ by at most 16 per
+# others) the ink, bounds and placement match; 282 of these 290 differ by at most 16 per
 # channel, a tone difference. Grayscale masks (glyphs above 48 px) differ by up to 9, and stroked
 # glyphs at 1x by up to 67; the same strokes are exact on Linux.
 windows 1x anchor/end 278 16
@@ -101,6 +91,7 @@ windows 1x chart/x-axis 206 9
 windows 1x chart/y-axis 98 5
 windows 1x list/commas 203 16
 windows 1x list/dx 328 16
+windows 1x list/dx-em 341 16
 windows 1x list/dx-fraction 275 16
 windows 1x list/dy 328 16
 windows 1x list/dy-em 172 8
@@ -162,12 +153,16 @@ windows 1x run/weight-700 692 16
 windows 1x run/x-fraction 319 16
 windows 1x spacing/letter-1px 674 16
 windows 1x spacing/letter-anchor-middle 708 16
+windows 1x spacing/letter-em 662 16
 windows 1x spacing/letter-half 679 16
 windows 1x spacing/letter-negative 677 16
 windows 1x spacing/word-4px 674 16
 windows 1x spacing/word-em 674 16
 windows 1x tspan/dx-list 340 16
 windows 1x tspan/empty 273 16
+windows 1x tspan/fill-only 560 16
+windows 1x tspan/font-size 658 16
+windows 1x tspan/font-weight 574 16
 windows 1x tspan/inherit-list 358 16
 windows 1x tspan/inter-mixed 613 16
 windows 1x tspan/kern-plain 415 16
@@ -279,6 +274,7 @@ windows 2x run/geist-16-400 1460 16
 windows 2x run/geist-16-600 1428 16
 windows 2x run/geist-size-10 578 16
 windows 2x run/geist-size-11 661 16
+windows 2x run/geist-size-12.5 731 16
 windows 2x run/geist-size-13 747 16
 windows 2x run/geist-size-15.3 885 16
 windows 2x run/geist-size-18 1054 16
@@ -302,6 +298,7 @@ windows 2x run/weight-700 1416 16
 windows 2x run/x-fraction 709 16
 windows 2x spacing/letter-1px 1460 16
 windows 2x spacing/letter-anchor-middle 1449 16
+windows 2x spacing/letter-em 1444 16
 windows 2x spacing/letter-half 1460 16
 windows 2x spacing/letter-negative 1460 16
 windows 2x spacing/word-4px 1460 16

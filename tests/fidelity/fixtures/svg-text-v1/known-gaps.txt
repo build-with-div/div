@@ -3,15 +3,3 @@
 # unlisted difference, on a listed one whose count changes, and on a listed case that is now
 # exact. Every gap below is owned by the engine lane (div-text); div-svg does not work around it.
 
-# T3, engine (div-text shaping/shaper.rs): Blink converts Skia glyph advances to HarfBuzz
-# positions by truncating to 1/65536 px (SkScalarToHarfBuzzPosition); div-text's shaper rounds.
-# Windows only: FreeType advances on Linux already sit on 1/64 px, where both agree. Measured on
-# Windows 17 November 2026: an experiment truncating the advances (T3) and the size (T4) made all
-# 24,056 numbers exact.
-windows 1x list/dx-em 3
-windows 1x spacing/letter-em 5
-windows 1x tspan/fill-only 3
-windows 1x tspan/font-size 3
-windows 1x tspan/font-weight 3
-windows 2x run/geist-size-12.5 3
-windows 2x spacing/letter-em 3
