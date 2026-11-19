@@ -236,3 +236,10 @@ on branch `components/c4-assets` and the shared findings note.
   layout. A gate test compares each step with a full re-cascade. The
   census and CSS Grid coverage are unchanged at all four profiles.
   [Record](../state-invalidation-pr4-2026-11-18.md).
+- 18 November 2026: `line-height` accepts `calc()` over numbers,
+  lengths and percentages, computed as Chromium 147 does, through a
+  shared math-function value ported from Blink (0.2 PR 1). The line box
+  now holds the used line height in layout units. A new Chromium oracle
+  of 328 cases matches except 11 named gaps. The census and CSS Grid
+  coverage are unchanged at all four profiles.
+  [Record](../calc-line-height-2026-11-18.md).
