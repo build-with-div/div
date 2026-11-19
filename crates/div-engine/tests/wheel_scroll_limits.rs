@@ -158,3 +158,46 @@ fn lines_and_pages_resolve_against_the_scroller() {
     // 0.875 x 305 = 266.875.
     assert_eq!(engine.scroll_offset(tall).unwrap(), (0.0, 267.0));
 }
+
+/// The limit is the client box pixel-snapped in device pixels at its place
+/// in the layout (`container_bounds`), as the real-input oracle
+/// `tests/fidelity/fixtures/wheel-limit-v1/chromium-linux-x11.json`
+/// measured: one 120px notch moves a 100.4px-high client box at 160.3px by
+/// 101px at 1x, and one at 226.6px by 126 device px (100.8 CSS px) at
+/// 1.25x. Div keeps an element's offset in whole CSS pixels, so that is
+/// 101 too; the unsnapped 100.4 would round to 100 in both.
+#[test]
+fn the_limit_is_the_client_box_snapped_to_device_pixels() {
+    for (scale, spacer, expected) in [
+        (1.0, 160.3, 101.0),
+        (1.25, 226.6, 101.0),
+        (1.0, 160.6, 100.0),
+    ] {
+        let mut engine =
+            Engine::new(ViewportMetrics::from_logical_size(480.0, 344.0, scale).unwrap()).unwrap();
+        let root = engine.root();
+        block(&mut engine, root, 480.0, spacer);
+        let port = block(&mut engine, root, 300.0, 100.4);
+        set(
+            &mut engine,
+            port,
+            StyleProperty::OverflowX,
+            Overflow::Hidden,
+        );
+        set(
+            &mut engine,
+            port,
+            StyleProperty::OverflowY,
+            Overflow::Scroll,
+        );
+        let content = block(&mut engine, port, 280.0, 4000.0);
+        engine
+            .scroll_wheel_from_target(content, 0.0, 120.0)
+            .unwrap();
+        assert_eq!(
+            engine.scroll_offset(port).unwrap().1,
+            expected,
+            "scale {scale}, top {spacer}"
+        );
+    }
+}

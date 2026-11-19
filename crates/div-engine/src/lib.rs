@@ -2599,6 +2599,13 @@ impl Engine {
     /// - `LimitDeltaToScrollerSize` (`kLimitScrollDeltaToScrollerSize`,
     ///   enabled by default): a pixel or line scroll moves at most the
     ///   scroller's client size on each axis. Pages are not limited.
+    ///
+    /// Both read the scroll node's `container_bounds`, a whole number of
+    /// device pixels: the client rect pixel-snapped at its position in the
+    /// layout, with scroll offsets left out, at the device scale. A client
+    /// box from 160.3 to 260.7 CSS px is 101 px at 1x, and one from 226.6 to
+    /// 327 is 126 device px, so 100.8 CSS px, at 1.25x (pinned Chromium 147,
+    /// `tests/fidelity/fixtures/wheel-limit-v1`).
     pub fn scroll_wheel_by(
         &mut self,
         handle: NodeHandle,
@@ -2611,14 +2618,29 @@ impl Engine {
         }
         let node = self.resolve(handle)?;
         self.update()?;
-        let Some(area) = self.layout_scroll_area(node) else {
+        let Some((origin, area)) = self.latest_fragment.as_ref().and_then(|root| {
+            scroll_box_with_origin(root, node, div_geometry::PhysicalOffset::zero())
+        }) else {
             return Ok(false);
         };
         let user_x = area.overflow_x.is_scrollable();
         let user_y = area.overflow_y.is_scrollable();
+        let scale = self.viewport.device_scale_factor();
+        // `PixelSnappedIntRect`: whole device pixels from the rounded start
+        // to the rounded end.
+        let snapped = |start: f64, size: f64| {
+            let round = |value: f64| (value * scale + 0.5).floor();
+            (round(start + size) - round(start)) / scale
+        };
         let client = (
-            area.client_rect.size.width.to_f64(),
-            area.client_rect.size.height.to_f64(),
+            snapped(
+                (origin.left + area.client_rect.x()).to_f64(),
+                area.client_rect.width().to_f64(),
+            ),
+            snapped(
+                (origin.top + area.client_rect.y()).to_f64(),
+                area.client_rect.height().to_f64(),
+            ),
         );
         let viewport = self.viewport.logical_size();
         let resolve = |delta: f64, client: f64, viewport: f64| match granularity {
@@ -3466,6 +3488,26 @@ fn rounded_rect_contains(x: f32, y: f32, width: f32, height: f32, radii: [(f32, 
 
 #[cfg(test)]
 mod semantic_insertion_tests;
+
+/// The fragment that owns `node`'s retained scroll box, as
+/// [`Fragment::find_scroll_box`] finds it, with its offset from the root
+/// fragment: layout offsets only, so no scroll offset moves it.
+fn scroll_box_with_origin(
+    fragment: &Fragment,
+    node: NodeId,
+    parent: div_geometry::PhysicalOffset,
+) -> Option<(div_geometry::PhysicalOffset, div_layout::ScrollArea)> {
+    let origin = parent + fragment.offset;
+    if fragment.node_id == node && fragment.owns_scroll_box() {
+        if let Some(area) = fragment.scroll_area {
+            return Some((origin, area));
+        }
+    }
+    fragment
+        .children
+        .iter()
+        .find_map(|child| scroll_box_with_origin(child, node, origin))
+}
 
 #[cfg(test)]
 mod tests {
