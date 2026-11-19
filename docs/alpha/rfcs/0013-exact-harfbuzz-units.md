@@ -1,6 +1,6 @@
 # RFC 0013: Exact HarfBuzz units (a port of Blink's HarfBuzzShaper)
 
-Status: draft for the user's approval, 18 November 2026. Owner: the
+Status: Approved by the user on 18 November 2026. Owner: the
 engine track (`div-text`). Consumers: every track that lays out or paints
 text (framework, components, the SVG and canvas lanes, the fidelity lane
 and the samples). Gap name: T8.
@@ -129,9 +129,11 @@ not closer to Chromium is a named gap with its cause, as in T3's loss.
 ## Migration
 
 1. This RFC merges after the user's approval.
-2. One PR in `div-text`: the HarfBuzz face and font, the fixed-point run,
+2. The implementation follows T3, state invalidation and calc(), ahead of
+   the RFC 0011 stage 1 filler.
+3. One PR in `div-text`: the HarfBuzz face and font, the fixed-point run,
    the shaper switch, and removal of T3's correction. The advance oracle's
    ledger must empty, or each remaining line gets a named cause. The SVG
    text corpus, census and coverage run as for any engine PR.
-3. `main` stays green throughout: the switch is one PR, with no flag and no
+4. `main` stays green throughout: the switch is one PR, with no flag and no
    parallel shaper.
