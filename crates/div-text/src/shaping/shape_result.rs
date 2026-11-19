@@ -8,8 +8,8 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use skia_safe::{
-    font::Edging, utils::CustomTypefaceBuilder, FontHinting, FontMetrics, PathBuilder, Point,
-    TextBlob, TextBlobBuilder,
+    font::Edging, utils::CustomTypefaceBuilder, FontHinting, FontMetrics, Matrix, PathBuilder,
+    Point, TextBlob, TextBlobBuilder,
 };
 use skrifa::{
     instance::Size,
@@ -69,12 +69,14 @@ impl RasterFont<'_> {
 
 /// A run's effective raster policy and the font its strike is built from,
 /// shared by every blob builder so that a run rasterizes the same way
-/// whoever positions its glyphs. `device_scale` is finite and positive.
-fn run_raster(
-    run: &ShapeResultRun,
+/// whoever positions its glyphs. `device_scale` is finite and positive;
+/// `device_matrix` is the matrix the blob is drawn under, if known.
+fn run_raster<'a>(
+    run: &'a ShapeResultRun,
     raster_policy: TextRasterPolicy,
     device_scale: f32,
-) -> (TextRasterPolicy, RasterFont<'_>) {
+    device_matrix: Option<&Matrix>,
+) -> (TextRasterPolicy, RasterFont<'a>) {
     let source_font = run.font_data.sk_font();
     // Author text follows the resolved face's raster parameters. A
     // registered alias and a fallback run must not inherit another
@@ -128,7 +130,7 @@ fn run_raster(
     // scaler behind `source_font`; only Linux Chromium substitutes
     // Fontations outlines.
     let compatible_font = if web_font {
-        super::web_font_outlines::web_font(compatible_source_font, &run.glyphs)
+        super::web_font_outlines::web_font(compatible_source_font, &run.glyphs, device_matrix)
     } else {
         (raster_policy != TextRasterPolicy::Skia
             && crate::font::GlyphRasterizer::platform()
@@ -659,6 +661,24 @@ impl ShapeResult {
         raster_policy: TextRasterPolicy,
         device_scale: f32,
     ) -> Option<TextBlob> {
+        self.to_text_blob_under(device_origin_x, raster_policy, device_scale, None)
+    }
+
+    /// [`Self::to_text_blob_with_raster_policy_at_scale`] for a blob drawn
+    /// under `device_matrix`: the matrix from the blob's units (physical
+    /// pixels when `device_scale` is not 1) to device pixels, of which only
+    /// the scale and skew count. `None` stands for the identity.
+    ///
+    /// Linux web fonts take their mask and hinting from it as Chromium's
+    /// Fontations scaler does: grayscale above Skia's LCD size limit, and
+    /// unhinted outlines unless the glyphs are axis-aligned.
+    pub fn to_text_blob_under(
+        &self,
+        device_origin_x: Option<f32>,
+        raster_policy: TextRasterPolicy,
+        device_scale: f32,
+        device_matrix: Option<&Matrix>,
+    ) -> Option<TextBlob> {
         if self.runs.is_empty() || self.num_glyphs() == 0 {
             return None;
         }
@@ -676,7 +696,8 @@ impl ShapeResult {
             if run.num_glyphs == 0 {
                 continue;
             }
-            let (raster_policy, raster_font) = run_raster(run, raster_policy, device_scale);
+            let (raster_policy, raster_font) =
+                run_raster(run, raster_policy, device_scale, device_matrix);
             let font_size = run.font_data.sk_font().size();
             let (glyphs_out, positions_out) =
                 builder.alloc_run_pos(raster_font.font(), run.num_glyphs, None);
@@ -720,6 +741,27 @@ impl ShapeResult {
         device_scale: f32,
         device_origin_x: Option<f32>,
     ) -> Option<TextBlob> {
+        self.to_positioned_text_blob_under(
+            characters,
+            placements,
+            raster_policy,
+            device_scale,
+            device_origin_x,
+            None,
+        )
+    }
+
+    /// [`Self::to_positioned_text_blob`] for a blob drawn under
+    /// `device_matrix`, as [`Self::to_text_blob_under`] takes it.
+    pub fn to_positioned_text_blob_under(
+        &self,
+        characters: Range<usize>,
+        placements: &[(f32, f32)],
+        raster_policy: TextRasterPolicy,
+        device_scale: f32,
+        device_origin_x: Option<f32>,
+        device_matrix: Option<&Matrix>,
+    ) -> Option<TextBlob> {
         let start = characters.start;
         let end = characters.end.min(self.num_characters);
         if start >= end {
@@ -757,7 +799,8 @@ impl ShapeResult {
         let mut builder = TextBlobBuilder::new();
         let mut placements = placements.iter();
         for (run, glyphs) in pieces {
-            let (raster_policy, raster_font) = run_raster(run, raster_policy, device_scale);
+            let (raster_policy, raster_font) =
+                run_raster(run, raster_policy, device_scale, device_matrix);
             let font_size = run.font_data.sk_font().size();
             let (glyphs_out, positions_out) =
                 builder.alloc_run_pos(raster_font.font(), glyphs.len(), None);
