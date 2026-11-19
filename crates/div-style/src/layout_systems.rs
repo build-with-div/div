@@ -56,7 +56,7 @@ pub enum EmptyCells {
 }
 
 /// One minimum or maximum component in a Grid track sizing function.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -77,7 +77,7 @@ impl GridTrackBreadth {
 }
 
 /// A Grid track size, preserving `minmax()` instead of prematurely resolving it.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -108,7 +108,7 @@ pub enum GridRepetition {
 }
 
 /// One component of an explicit Grid track list.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -122,7 +122,7 @@ pub enum GridTrackComponent {
     },
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -183,7 +183,7 @@ pub struct GridAutoFlow {
 }
 
 /// Rectangular `grid-template-areas` token matrix. A `None` cell is `.`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -282,7 +282,7 @@ pub enum ContentVisibility {
     Hidden,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -456,7 +456,7 @@ pub enum ObjectFit {
     ScaleDown,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -507,7 +507,7 @@ impl Default for Transform2D {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
