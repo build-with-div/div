@@ -133,9 +133,8 @@ Two gaps remain, named in the test (11 cases):
 | CSS Grid coverage | The same runs | 1,473 of 4,204 exact (1x run) and 894 of 3,153 (real zoom), before and after. 0 changed |
 
 `main` gained no engine change between `c65b1245` and this PR's base
-`f7f89890`, and pins the same data, so the earlier base runs stand. No
-census or coverage image moves: their line heights either are whole
-layout units already or differ by less than a device pixel. The evidence
+`f7f89890`, and pins the same data, so the earlier base runs stand. The
+snapped line heights moved no census or coverage image. The evidence
 is div-fidelity-data `4c0031a3`
 (`docs/progress/evidence/calc-line-height-div-census-v1.json`, and
 `-census-zoom-v1.json`, `-coverage-v1.json` and `-coverage-zoom-v1.json`
