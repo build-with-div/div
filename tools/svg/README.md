@@ -269,13 +269,17 @@ groups:
 - `opacity` on a clipped group wraps the clip: the clipped content is
   drawn into the opacity layer.
 
-Of the 206 `v4` captures, 188 are exact on both OSes. The other 18 differ
-by one channel level in a few pixels of radial gradients and scaled
-pattern tiles, and along the seam of `spread/repeat-diagonal`; they are
-listed in `svg-paint-v4/known-gaps.txt` as rounding in Skia's raster
-pipeline, owned by the fidelity lane with the setup track.
-`div_svg::paint_server` hands Skia what cc does for each case, so the
-remaining difference sits below Div's code. The paint-server corpus
+Of the 206 `v4` captures, 203 are exact on Windows and 204 on Linux. The
+others differ by one channel level in one or two pixels of a radial
+gradient with a focal point or a repeat, at scale 2; they are listed in
+`svg-paint-v4/known-gaps.txt` as rounding in Skia's raster pipeline, owned
+by the fidelity lane with the setup track. `div_svg::paint_server` hands
+Skia what cc does for each case, so the remaining difference sits below
+Div's code. The test binaries initialize Skia at load
+(`div_text::initialize_skia_at_load!`, as Chromium calls
+`SkGraphics::Init`), so the raster pipeline runs the same CPU stages as
+Chromium's; without it, 15 more captures differ on Windows and 16 on
+Linux, among them the seam of `spread/repeat-diagonal`. The paint-server corpus
 settled these points; the servers are in `src/paint_server.rs`, and the
 test's harness resolves references and records pattern content:
 

@@ -11,6 +11,8 @@
 
 mod support;
 
+div_text::initialize_skia_at_load!();
+
 use div_svg::geometry::{
     contains_in_fill, contains_in_stroke, point_at_length, total_length, FillRule,
 };

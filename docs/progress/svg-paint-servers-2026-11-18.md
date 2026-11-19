@@ -71,10 +71,12 @@ Linux was run with `CARGO_INCREMENTAL=0` and `-j 4`.
 
 ## Named gaps
 
-`tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt` lists 18 captures
-on each OS. They are the same on both, except that `rad/focal` at scale 2
-differs in 2 pixels on Linux and 1 on Windows. All differ only where a value sits on a rounding
-boundary:
+*Update, follow-up PR:* the test binaries now initialize Skia at load
+(below), and three gaps remain on Windows and two on Linux. As first
+measured, `tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt` listed 18
+captures on each OS. They were the same on both, except that `rad/focal`
+at scale 2 differed in 2 pixels on Linux and 1 on Windows. All differed
+only where a value sits on a rounding boundary:
 
 - one channel level in 1 to 6 pixels of radial gradients
   (`rad/*`, `href/radial-from-linear`) and of scaled pattern tiles
@@ -86,9 +88,24 @@ boundary:
 `div-svg` hands Skia what cc does for these cases (the same points,
 radii, stops, positions, local matrix, tile mode, interpolation,
 dithering and surface colour space), and both build Skia m147. The
-difference is below Div's code. A candidate is the raster pipeline's CPU
-variant (fused multiply-add in its HSW stages). Owner: the fidelity lane,
-with the setup track for the Skia build.
+difference is below Div's code. Owner: the fidelity lane, with the setup
+track for the Skia build.
+
+### Skia initialization (follow-up)
+
+The fidelity lane found the cause: `div-svg`'s corpus test binaries never
+called `SkGraphics::Init`, so Skia's raster pipeline ran its baseline SSE
+stages instead of the AVX2 and FMA ones Chromium selects at start-up. The
+three corpus tests now call `div_text::initialize_skia_at_load!()`, the
+macro `div-paint`'s tests use. Re-measured with
+`cargo test --locked --package div-svg` on both OSes:
+
+- v4: 203 of 206 exact on Windows, 204 on Linux. 15 gaps on Windows and
+  16 on Linux became exact, `spread/repeat-diagonal`'s seam among them.
+- Still open, one level each at scale 2: `rad/focal` (1 pixel on Windows,
+  2 on Linux), `rad/fr-focal` (1 pixel, both OSes) and, on Windows only,
+  `rad/repeat` (2 pixels).
+- v1 to v3, geometry and text are unchanged on both OSes.
 
 ## What the corpus taught
 
