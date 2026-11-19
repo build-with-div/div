@@ -95,6 +95,84 @@ element identity) merges, because the samples' icons are written in `view!`.
 
 ## Log
 
+### 19 November 2026: the wheel limit snaps to device pixels (gap `wheel-limit-unsnapped-client`)
+
+Problem (gap `wheel-limit-unsnapped-client`, from the engine review on
+#63): cc limits a wheel scroll to the scroll node's `container_bounds`, a
+whole-pixel size, while Div limited it to the unsnapped client size. A
+scroller with a fractional client box scrolled a different distance.
+
+Oracle (new, `tests/fidelity/fixtures/wheel-limit-v1/chromium-linux-x11.json`),
+captured by `capture_wheel_oracle.py --limit` from pinned Chrome-for-Testing
+147.0.7727.50:
+- Input: real X11 input through XTEST in WSL, with `--ozone-platform=x11`,
+  at 1x and 1.25x with `--force-device-scale-factor` (RFC 0010). Each scale
+  is captured twice and the two must match.
+- Page: a 300px-wide `overflow-y: scroll` scroller under the pointer, at six
+  fractional tops and heights around 100px. One 120px notch scrolls each
+  from 0.
+
+Chromium, measured: the limit is the client box pixel-snapped in device
+pixels at its position, `round(bottom × scale) − round(top × scale)`, then
+divided by the scale. All 12 cases fit this rule:
+- At 1x, a box from 160.3 with height 100.4 moves 101, and one from 160.6
+  moves 100.
+- At 1.25x, a box from 226.6 with height 100.4 moves 126 device px, which
+  is 100.8 CSS px.
+
+cc's source agrees: `LimitDeltaToScrollerSize` and
+`ResolveScrollGranularityToPixels` both read `scroll_node.container_bounds`
+(`cc/input/input_handler.cc`, BSD, read from the local checkout with its
+header checked first).
+
+Change (**engine**, its own commit, for engine review):
+`Engine::scroll_wheel_by` limits pixel and line scrolls, and sizes a page
+step, by the client rect snapped that way. The position is the scroll box's
+offset from the root fragment, summed from layout offsets only, as
+`rebuild_hit_test` sums the paint offset; scroll offsets don't move it. A
+new helper, `scroll_box_with_origin`, finds the scroll box as
+`find_scroll_box` does, along with that offset. The capture script's
+`--limit` mode is in the same commit.
+
+Tests:
+- `the_scroll_limit_is_the_device_pixel_snapped_client_box`
+  (`crates/divui/tests/wheel_events.rs`) replays all 12 cases through the
+  Linux wheel settings and `dispatch_wheel_event_with_mode`. Nine compare
+  exactly. In the other three, at 1.25x, Chromium's offset is 100.8, and
+  they stay gap `device-scale-scroll-offset`: Div rounds an element's offset
+  to the whole CSS pixel, 101. The test checks that they still differ.
+- `the_limit_is_the_client_box_snapped_to_device_pixels`
+  (`crates/div-engine/tests/wheel_scroll_limits.rs`): three cases at 1x
+  and 1.25x through the engine.
+- Before the change, both fail at the first case (100 where Chromium has
+  101).
+
+Still unmeasured:
+- the horizontal axis (same code);
+- a scroller inside a scrolled or transformed ancestor (Blink snaps in the
+  transform's space; `wheel-transformed-scroller` remains);
+- the page step's snapped size (`wheel-page-unmeasured`);
+- Windows, whose 100px notch is below these heights.
+
+Verification (this branch on main `f2c3ab89`; rebased unchanged onto `992d4d68`):
+
+- Linux (WSL): `cargo test --locked -p divui --features "linux testing"
+  --test wheel_events` passes 3 tests, and `cargo test --locked -p
+  div-engine --test wheel_scroll_limits` passes 4. With the engine change
+  reverted, the two new tests fail (100 where Chromium has 101) and the
+  others pass.
+- Linux (WSL): `cargo test --locked --no-fail-fast -p div-engine` passes 64
+  of 65 suites (531 tests). `cargo test --locked --no-fail-fast -p divui
+  --features "linux testing"` passes 51 of 52 (386 tests). The two failures,
+  `source_layer_raster` and `native_rounded_clip`, are pixel comparisons
+  that fail the same way at main in this WSL target, which is built
+  without CI's Skia flags.
+- `python tools/qualification/generate_renderer_contract.py --check` and
+  `cargo fmt --all --check` pass.
+- No layout, paint or style code changed: only how far a wheel scroll may
+  move. The census has no input, so it and coverage cannot move (decision
+  D4).
+
 ### 18 November 2026: a removed pressed element hands `:active` to its parent
 
 Problem (raised in the engine review of the pointer-state restyle): when
