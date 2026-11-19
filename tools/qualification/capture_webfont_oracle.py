@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture pinned Chromium 147 frames of web-font text on Linux.
+"""Capture pinned Chromium 147 frames of web-font text on Linux or Windows.
 
 The lines are tests/fidelity/fixtures/webfont-fontations-v1/lines.txt: each
 names an OFL font file under tests/fidelity/components/assets/fonts, its
@@ -10,12 +10,20 @@ Fontations (skrifa) web-font path. The frames are captured at device scales
 real-font Fontconfig profile, and written as chromium-linux-<scale>.png
 next to the spec, with manifest.json recording each file's SHA-256.
 
+With --platform windows, the pinned Windows Chrome-for-Testing build captures
+the same page at scales 1 and 2 (real zoom) through windows_chrome.py, which
+refuses unless the system matches RFC 0012's oracle pin (ClearType on, RGB
+order, no per-display ClearType tuning). The frames are
+chromium-windows-<scale>.png, recorded in manifest-windows.json.
+
 The native test crates/divui/tests/native_webfont_fontations.rs builds the
 same page through the public API and compares every row exactly.
 
     python3 tools/qualification/capture_webfont_oracle.py \
         --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome
     python3 tools/qualification/capture_webfont_oracle.py --chrome ... --check
+    python tools/qualification/capture_webfont_oracle.py --platform windows \
+        --chrome out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe
 """
 
 from __future__ import annotations
@@ -39,6 +47,8 @@ WIDTH = 400
 ROW = 24
 LEFT = 4
 SCALES = ["1", "1.25", "1.5", "2"]
+# RFC 0012 pins Windows at 1x and 2x.
+WINDOWS_SCALES = ["1", "2"]
 
 
 def lines() -> list[dict]:
@@ -95,6 +105,15 @@ def capture(page: Path, chrome: Path, height: int, scale: str, output: Path) -> 
         raise SystemExit(f"Chromium capture failed at scale {scale}")
 
 
+def capture_windows(page: Path, chrome: Path, height: int, scale: str, output: Path) -> None:
+    import windows_chrome
+
+    # Checks the pinned binary and the RFC 0012 text raster pin first.
+    with windows_chrome.WindowsChrome(chrome, WIDTH, height, float(scale)) as browser:
+        browser.load(page)
+        output.write_bytes(browser.screenshot())
+
+
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -102,11 +121,17 @@ def sha256(path: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--chrome", type=Path, required=True)
+    parser.add_argument("--platform", choices=["linux", "windows"], default="linux")
     parser.add_argument("--check", action="store_true", help="fail unless a recapture matches")
     args = parser.parse_args()
-    version = chromium_version(args.chrome)
-    if version != EXPECTED_CHROMIUM:
-        raise SystemExit(f"expected Chromium {EXPECTED_CHROMIUM}, found {version!r}")
+    windows = args.platform == "windows"
+    # windows_chrome.py checks the Windows binary's hash and reported version.
+    if not windows:
+        version = chromium_version(args.chrome)
+        if version != EXPECTED_CHROMIUM:
+            raise SystemExit(f"expected Chromium {EXPECTED_CHROMIUM}, found {version!r}")
+    scales = WINDOWS_SCALES if windows else SCALES
+    manifest_path = EVIDENCE / ("manifest-windows.json" if windows else "manifest.json")
     items = lines()
     height = len(items) * ROW
     with tempfile.TemporaryDirectory(prefix="div-webfont-oracle-") as directory:
@@ -114,32 +139,40 @@ def main() -> int:
         page = directory / "lines.html"
         page.write_text(document(items), encoding="utf-8")
         files = {}
-        for scale in SCALES:
-            name = f"chromium-linux-{scale}.png"
-            capture(page, args.chrome, height, scale, directory / name)
+        for scale in scales:
+            name = f"chromium-{args.platform}-{scale}.png"
+            (capture_windows if windows else capture)(
+                page, args.chrome, height, scale, directory / name
+            )
             files[name] = sha256(directory / name)
-        manifest = {
-            "chromium": EXPECTED_CHROMIUM,
-            "platform": "linux",
-            "fontconfig": "real-font profile (tools/accountability/run_all_pixel_comparisons.py)",
+        manifest = {"chromium": EXPECTED_CHROMIUM, "platform": args.platform}
+        if windows:
+            manifest["text_raster"] = (
+                "ClearType on, RGB order, no per-display ClearType tuning (RFC 0012)"
+            )
+        else:
+            manifest["fontconfig"] = (
+                "real-font profile (tools/accountability/run_all_pixel_comparisons.py)"
+            )
+        manifest |= {
             "viewport": [WIDTH, height],
             "row": ROW,
             "left": LEFT,
-            "scales": SCALES,
+            "scales": scales,
             "fonts": {
                 item["font"]: sha256(FONTS / item["font"]) for item in items
             },
             "files": files,
         }
         if args.check:
-            committed = json.loads((EVIDENCE / "manifest.json").read_text(encoding="utf-8"))
+            committed = json.loads(manifest_path.read_text(encoding="utf-8"))
             if committed != manifest:
                 raise SystemExit("recapture differs from the committed fixtures")
             print(f"recapture matches the committed fixtures ({len(files)} frames)")
             return 0
         for name in files:
             shutil.copyfile(directory / name, EVIDENCE / name)
-    (EVIDENCE / "manifest.json").write_text(
+    manifest_path.write_text(
         json.dumps(manifest, indent=1) + "\n", encoding="utf-8", newline="\n"
     )
     print(f"wrote {len(files)} frames of {len(items)} lines to {EVIDENCE}")

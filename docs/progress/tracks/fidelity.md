@@ -14,6 +14,44 @@ Each named gap is pinned by a test that fails if its count changes.
 | `rounded-border-raster-1.25x`: the outer curve of a solid rounded border ring at 1.25x differs from Chromium's by up to 7, and the clipped content next to it follows | fidelity (border raster) | `native_rounded_clip.rs`, page `rrect` | 23 pixels at 1.25x, all in the bottom-left corner | 17 November 2026 |
 | `gradient-dither-fractional-scale`: Chromium's dithered gradient blends to 129 on a rounded clip's curve where Div blends to 128 | fidelity (gradient raster) | `native_rounded_clip.rs`, page `gradient-clip` | 36 pixels at 1.25x | 17 November 2026 |
 
+## 19 November 2026: the Windows web-font fixture (RFC 0012)
+
+- **What:** step 3 of RFC 0012's migration.
+  - `tools/qualification/capture_webfont_oracle.py --platform windows`
+    captures `webfont-fontations-v1` with the pinned Windows
+    Chrome-for-Testing 147.0.7727.50 at 1x and real-zoom 2x, through
+    `windows_chrome.py`. That refuses to capture unless the system matches
+    the oracle pin: ClearType on, RGB order, no per-display ClearType tuning.
+  - The frames are `chromium-windows-1.png` and `chromium-windows-2.png`,
+    with `manifest-windows.json`. The Linux files are unchanged.
+  - `crates/divui/tests/native_webfont_fontations.rs` now also runs on
+    Windows, building the page with
+    `RasterConfiguration::chromium_windows_lcd()` and pinning each row that
+    is not exact.
+  - No Div code changes.
+- **Frames:** a second capture with `--check` reproduces both. They are
+  byte-identical to the frames behind RFC 0012's measurement.
+- **Result (Windows, main `992d4d6`, CI's Windows Skia flags):**
+  - 1x: all 6 rows exact. This is the gap RFC 0012 closes for apps once
+    the framework's Windows default lands; it was 11,750 pixels with
+    `RasterConfiguration::default()`.
+  - 2x: no row exact; 3,969, 4,751, 4,622, 5,742, 4,542 and 5,735 pixels.
+- **Cause at 2x:** in all 6 rows the glyph raster is identical and the row
+  is offset by one whole device pixel. Div's ink is 1 device px higher for
+  Geist Mono and Geist 650, and lower for Inter at both sizes. A one-pixel
+  shift leaves 0 differing pixels in every row. This is the same line-box
+  offset as on Linux. Owner: engine (device-pixel layout, RFC 0011), not
+  rasterization.
+  - Unlike Linux, Inter 13px on Windows is exact after the shift.
+- **Verification:**
+  - `python tools/qualification/capture_webfont_oracle.py --platform
+    windows --chrome out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe
+    --check` (Windows): the recapture matches.
+  - `cargo test --locked -p divui --features divui/testing --test
+    native_webfont_fontations` (Windows, MSVC, CI Skia flags): passes with
+    the 6 listed 2x gaps.
+  - The same test on Linux (WSL, CI Skia flags) passes with its 14 gaps, unchanged.
+
 ## 17 November 2026: content and backgrounds under rounded clips
 
 - **Problem:** eight census rows at 1x differ from Chromium on the

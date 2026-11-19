@@ -1,0 +1,24 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "windows",
+ "text_raster": "ClearType on, RGB order, no per-display ClearType tuning (RFC 0012)",
+ "viewport": [
+  400,
+  144
+ ],
+ "row": 24,
+ "left": 4,
+ "scales": [
+  "1",
+  "2"
+ ],
+ "fonts": {
+  "geist/GeistMono-Variable.woff2": "5d93ee62680bbec1abc5405c2658311f9396f6f9a821ef8551ec463887e600d4",
+  "inter/InterVariable.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+  "geist/Geist-Variable.woff2": "3626eba547294501c8a4d662c7d9ea3b49734409a4c5a1ccf12fa86429b1687e"
+ },
+ "files": {
+  "chromium-windows-1.png": "87841cba306c2383ecd7afa5abf8c09673e5b34127ab293f805f8c93de5fb41a",
+  "chromium-windows-2.png": "75087ca066b948ae2f91fe715ff3909c8b4c2f2a1905718a956da93108991772"
+ }
+}
