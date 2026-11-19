@@ -95,6 +95,103 @@ element identity) merges, because the samples' icons are written in `view!`.
 
 ## Log
 
+### 19 November 2026: Chromium's text raster as the Windows default (RFC 0012)
+
+Problem ([RFC 0012](../../alpha/rfcs/0012-windows-text-raster.md)): Chromium
+147 on Windows draws text with ClearType LCD antialiasing, sRGB gamma and
+contrast 1.0, but a Div app on Windows drew grayscale text
+(`RasterConfiguration::default()`). Also, `App::run_document` built later
+windows with `EngineOptions::default()` instead of the app's choice.
+
+Change (framework; the engine preset `chromium_windows_lcd()` merged in
+#93):
+
+- **`div-platform`**: `system_raster_configuration() ->
+  Option<RasterConfiguration>` (new `text_raster.rs`).
+  - It reads what Chromium reads, from `font_render_params_win.cc` and
+    `font_util_win.cc` (BSD, 147.0.7727.50, each header checked first):
+    - `SPI_GETFONTSMOOTHING` and `SPI_GETFONTSMOOTHINGTYPE`;
+    - the primary display's `PixelStructure` under
+      `HKCU\SOFTWARE\Microsoft\Avalon.Graphics\<display>`, else
+      `SPI_GETFONTSMOOTHINGORIENTATION`;
+    - DirectWrite's gamma and enhanced contrast, clamped to Skia's
+      ranges, only when that key exists.
+  - It reads once per process (`OnceLock`) and returns `None` off Windows.
+  - ClearType with RGB order and no key is exactly the preset.
+  - Smoothing off gives aliased text, and standard smoothing or no order
+    gives grayscale; both use sRGB gamma and contrast 1.0. BGR keeps LCD with
+    BGR geometry. A tuning key takes DirectWrite's values. These paths are
+    unmeasured, as the RFC says.
+  - The `windows` feature now takes the `windows` crate with
+    `Win32_Graphics_DirectWrite`, and `windows-sys` gains
+    `Win32_Graphics_Gdi`. `Cargo.lock` is unchanged.
+- **`divui`**: `AppBuilder` and `AppSpec` keep the app's engine options as
+  `Option<EngineOptions>`. The public API is unchanged.
+  - With no explicit choice, a windowed document uses the system
+    configuration, else the default (`windowed_engine_options`).
+  - An explicit `engine_options(...)` always wins,
+    `EngineOptions::default()` included.
+  - `DIV_RENDER_PNG` renders keep the default, as do `HeadlessApp`,
+    `Document::new`/`with_options` and `divui::testing`.
+  - `App` remembers the explicit choice. `run_document` now gives it to
+    windows opened later; before, they got `EngineOptions::default()`.
+  - `App::from_document` takes the document's raster configuration as the
+    app's choice.
+
+Tests:
+
+- `div-platform` (`text_raster.rs`, 6 tests): ClearType RGB with no key is
+  the preset; BGR; grayscale; aliased; the clamped tuning values; `None`
+  off Windows.
+- `divui` unit test `windowed_engine_options_follow_rfc_0012`: explicit
+  wins, the system without one, the default for `DIV_RENDER_PNG` and with
+  no system value.
+- `native_raster_options.rs`, new
+  `an_app_without_engine_options_uses_the_system_raster_configuration`:
+  `App::builder().build()` takes the system configuration, which Windows
+  must report. An explicit default stays default, and `HeadlessApp` stays
+  default. Before the change it fails on Windows, where the app got the
+  default.
+
+Verification (this branch on main `992d4d68`):
+
+- Windows (MSVC, this machine: ClearType on, RGB, no per-display key):
+  - `system_raster_configuration()` returns exactly
+    `RasterConfiguration::chromium_windows_lcd()`.
+  - `cargo test --locked -p div-platform --features windows --lib
+    text_raster` passes 6 tests.
+  - `cargo test --locked -p divui --features "windows testing" --test
+    native_raster_options` passes 5. With the `divui` change reverted, the
+    new test fails: the app got `RasterConfiguration::default()` where the
+    system reports the preset.
+  - The CI `windows-msvc` test set, run without its `dialog` and `menu`
+    features (their tests drive real native dialogs and menus), first
+    failed one test: `render_png_hook_matches_the_headless_first_frame`.
+    That test builds a windowed app with no options and calls the render
+    hook without `DIV_RENDER_PNG`, so on Windows it now gets LCD text. It
+    now chooses the default explicitly.
+  - Rebased on main 2c25496a, the same set (`div-platform`, `divui`,
+    `div-ffi`, `div-macros`, `div-components`, `div-cli`) runs 65 suites:
+    654 tests pass, none fail, 13 are ignored.
+  - Rebased on main 848551a6, which adds the fidelity lane's Windows
+    web-font fixture (#100, step 3 of RFC 0012's migration):
+    `native_webfont_fontations` (1 test) and `native_raster_options` (5)
+    pass. That fixture's page selects `chromium_windows_lcd` explicitly and
+    is exact at 1x; an app that sets no options now gets the same
+    configuration on this machine.
+- Linux (WSL): `cargo test --locked --no-fail-fast -p divui --features
+  "linux testing"` passes 51 of 52 suites (387 tests), and `-p div-platform
+  --features linux` passes 16. The one failure, `native_rounded_clip`'s
+  pixel comparison, comes from this WSL target's Skia build without CI's
+  flags and fails the same way at main.
+- `python tools/qualification/generate_renderer_contract.py --check` and
+  `cargo fmt --all --check` pass.
+- D4: no engine code changed, and the census and coverage use headless
+  documents with explicit options, so they cannot move.
+- Windowed examples (hello, counter, todo and others) now draw LCD text on
+  Windows, as intended. Their only pixel check, `check_cli_template.py`,
+  renders through `DIV_RENDER_PNG` and keeps the default.
+
 ### 19 November 2026: the wheel limit snaps to device pixels (gap `wheel-limit-unsnapped-client`)
 
 Problem (gap `wheel-limit-unsnapped-client`, from the engine review on

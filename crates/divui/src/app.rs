@@ -58,7 +58,9 @@ impl Default for WindowOptions {
 #[derive(Debug, Clone, Default)]
 pub struct AppBuilder {
     options: WindowOptions,
-    engine_options: EngineOptions,
+    /// The app's explicit choice; `None` means the windowed default
+    /// ([`windowed_engine_options`]).
+    engine_options: Option<EngineOptions>,
 }
 
 /// Cloneable shutdown request for the application's owning UI thread.
@@ -88,8 +90,12 @@ impl AppBuilder {
     }
 
     /// Select immutable engine options independently of window presentation.
+    ///
+    /// Without this call, a Windows app's documents use the system's text
+    /// raster configuration (RFC 0012); with it, `options` always win,
+    /// `EngineOptions::default()` included.
     pub fn engine_options(mut self, options: EngineOptions) -> Self {
-        self.engine_options = options;
+        self.engine_options = Some(options);
         self
     }
 
@@ -100,8 +106,12 @@ impl AppBuilder {
             1.0,
         )?;
         Ok(App {
-            document: Document::with_options(viewport, self.engine_options)?,
+            document: Document::with_options(
+                viewport,
+                windowed_engine_options(self.engine_options),
+            )?,
             options: self.options,
+            engine_options: self.engine_options,
             root_scope: None,
             exit_requested: AppExitHandle::default(),
             #[cfg(any(
@@ -131,6 +141,9 @@ impl AppBuilder {
 pub struct App {
     document: Document,
     options: WindowOptions,
+    /// The engine options the app chose explicitly, which windows it opens
+    /// later get too.
+    engine_options: Option<EngineOptions>,
     root_scope: Option<ScopeId>,
     exit_requested: AppExitHandle,
     #[cfg(any(
@@ -220,9 +233,15 @@ impl App {
     /// Present an existing retained document, preserving its nodes and listeners.
     pub fn from_document(document: Document, options: WindowOptions) -> Result<Self, Error> {
         ViewportMetrics::from_logical_size(options.size.width, options.size.height, 1.0)?;
+        // The document's options are the app's choice: windows it opens
+        // later get the same raster configuration.
+        let engine_options = Some(EngineOptions {
+            raster_configuration: document.raster_configuration()?,
+        });
         Ok(Self {
             document,
             options,
+            engine_options,
             root_scope: None,
             exit_requested: AppExitHandle::default(),
             #[cfg(any(
@@ -310,7 +329,7 @@ impl App {
             let defaults = crate::app_spec::Defaults {
                 title: self.options.title.clone(),
                 backend: self.options.backend,
-                engine_options: EngineOptions::default(),
+                engine_options: self.engine_options,
                 #[cfg(feature = "menu")]
                 menu: None,
             };
@@ -663,6 +682,43 @@ impl Default for RenderOptions {
     }
 }
 
+/// The engine options for a windowed document (RFC 0012): the app's
+/// explicit choice, else the system's text raster configuration where the
+/// platform reports one (Windows), else the default. A `DIV_RENDER_PNG`
+/// first-frame render keeps the default, so its image does not depend on
+/// the machine.
+pub(crate) fn windowed_engine_options(explicit: Option<EngineOptions>) -> EngineOptions {
+    resolve_engine_options(
+        explicit,
+        std::env::var_os(RENDER_PNG_ENV).is_some(),
+        system_raster_configuration(),
+    )
+}
+
+fn resolve_engine_options(
+    explicit: Option<EngineOptions>,
+    rendering_png: bool,
+    system: Option<div_engine::RasterConfiguration>,
+) -> EngineOptions {
+    explicit.unwrap_or_else(|| match system {
+        Some(raster_configuration) if !rendering_png => EngineOptions {
+            raster_configuration,
+        },
+        _ => EngineOptions::default(),
+    })
+}
+
+fn system_raster_configuration() -> Option<div_engine::RasterConfiguration> {
+    #[cfg(any(feature = "linux", feature = "windows"))]
+    {
+        div_platform::system_raster_configuration()
+    }
+    #[cfg(not(any(feature = "linux", feature = "windows")))]
+    {
+        None
+    }
+}
+
 pub struct HeadlessApp {
     app: App,
 }
@@ -683,6 +739,7 @@ impl HeadlessApp {
                 },
                 root_scope: None,
                 exit_requested: AppExitHandle::default(),
+                engine_options: Some(options),
                 #[cfg(any(
                     all(feature = "linux", target_os = "linux"),
                     all(feature = "windows", target_os = "windows")
@@ -785,6 +842,31 @@ mod tests {
     use super::*;
     use crate::{create_signal, view, For, Modifiers, MouseButton, MouseEventType, Show};
 
+    /// RFC 0012: an explicit choice always wins, the default included; with
+    /// none, windows use the system configuration, except a
+    /// `DIV_RENDER_PNG` render.
+    #[test]
+    fn windowed_engine_options_follow_rfc_0012() {
+        let system = div_engine::RasterConfiguration::chromium_windows_lcd();
+        let explicit = EngineOptions::default();
+        assert_eq!(
+            resolve_engine_options(Some(explicit), false, Some(system)),
+            explicit
+        );
+        assert_eq!(
+            resolve_engine_options(None, false, Some(system)).raster_configuration,
+            system
+        );
+        assert_eq!(
+            resolve_engine_options(None, true, Some(system)),
+            EngineOptions::default()
+        );
+        assert_eq!(
+            resolve_engine_options(None, false, None),
+            EngineOptions::default()
+        );
+    }
+
     #[test]
     fn invalid_builder_size_is_fallible() {
         assert!(App::builder()
@@ -821,8 +903,13 @@ mod tests {
                 </div>
             }
         };
+        // With `DIV_RENDER_PNG` set, `build()` chooses the default options
+        // (`windowed_engine_options_follow_rfc_0012`). This test calls the
+        // hook directly, without the variable, so it chooses them itself:
+        // otherwise a Windows app would take the system's LCD text.
         let mut app = App::builder()
             .size(LogicalSize::new(64.0, 48.0))
+            .engine_options(EngineOptions::default())
             .build()
             .unwrap();
         app.mount(red_box).unwrap();
