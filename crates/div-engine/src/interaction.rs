@@ -761,10 +761,7 @@ impl Engine {
         if previous != Some(handle) {
             if let Some(previous) = previous {
                 if let Ok(node) = self.resolve(previous) {
-                    self.document
-                        .node_mut(node)
-                        .attributes
-                        .remove("data-divui-focused");
+                    self.write_engine_attribute(node, "data-divui-focused", None);
                 }
             }
             self.focused = Some(handle);
@@ -783,7 +780,7 @@ impl Engine {
                 FocusOrigin::Script => {}
             }
             if let Ok(node) = self.resolve(handle) {
-                self.document.set_attribute(node, "data-divui-focused", "");
+                self.write_engine_attribute(node, "data-divui-focused", Some(""));
             }
             self.dirty.paint = true;
             self.mark_dirty(div_style::InvalidationClass::Accessibility);
@@ -992,7 +989,7 @@ impl Engine {
         control.clear_composition();
         control.history.clear();
         control.future.clear();
-        self.document.set_attribute(node, "value", value);
+        self.write_engine_attribute(node, "value", Some(&value));
         self.sync_selection_attributes(handle);
         self.mark_dirty(div_style::InvalidationClass::Intrinsic);
         Ok(())
@@ -1107,7 +1104,7 @@ impl Engine {
             control.value.clone()
         };
         let node = self.resolve(handle)?;
-        self.document.set_attribute(node, "value", value);
+        self.write_engine_attribute(node, "value", Some(&value));
         self.sync_selection_attributes(handle);
         self.mark_dirty(div_style::InvalidationClass::Intrinsic);
         Ok(())
@@ -1157,7 +1154,7 @@ impl Engine {
         };
         if changed {
             let node = self.resolve(handle)?;
-            self.document.set_attribute(node, "value", value);
+            self.write_engine_attribute(node, "value", Some(&value));
             self.mark_dirty(div_style::InvalidationClass::Intrinsic);
         } else {
             self.mark_dirty(div_style::InvalidationClass::Paint);
@@ -1183,7 +1180,7 @@ impl Engine {
             control.value.clone()
         };
         let node = self.resolve(handle)?;
-        self.document.set_attribute(node, "value", value);
+        self.write_engine_attribute(node, "value", Some(&value));
         self.sync_selection_attributes(handle);
         self.mark_dirty(div_style::InvalidationClass::Intrinsic);
         Ok(())
@@ -1234,7 +1231,7 @@ impl Engine {
         control.cancel_composition();
         let changed = before != control.value;
         let value = control.value.clone();
-        self.document.set_attribute(node, "value", value);
+        self.write_engine_attribute(node, "value", Some(&value));
         self.sync_selection_attributes(handle);
         self.mark_dirty(if changed {
             div_style::InvalidationClass::Intrinsic
@@ -2021,11 +2018,7 @@ impl Engine {
 
     pub(crate) fn sync_bool_attribute(&mut self, handle: NodeHandle, name: &str, value: bool) {
         if let Ok(node) = self.resolve(handle) {
-            if value {
-                self.document.set_attribute(node, name, "");
-            } else {
-                self.document.node_mut(node).attributes.remove(name);
-            }
+            self.write_engine_attribute(node, name, value.then_some(""));
         }
     }
 
@@ -2043,25 +2036,18 @@ impl Engine {
         let Ok(node) = self.resolve(handle) else {
             return;
         };
-        self.document
-            .set_attribute(node, "data-divui-selection-anchor", anchor.to_string());
-        self.document
-            .set_attribute(node, "data-divui-selection-focus", focus.to_string());
-        if let Some((start, end)) = composition {
-            self.document
-                .set_attribute(node, "data-divui-composition-start", start.to_string());
-            self.document
-                .set_attribute(node, "data-divui-composition-end", end.to_string());
-        } else {
-            self.document
-                .node_mut(node)
-                .attributes
-                .remove("data-divui-composition-start");
-            self.document
-                .node_mut(node)
-                .attributes
-                .remove("data-divui-composition-end");
-        }
+        self.write_engine_attribute(
+            node,
+            "data-divui-selection-anchor",
+            Some(&anchor.to_string()),
+        );
+        self.write_engine_attribute(node, "data-divui-selection-focus", Some(&focus.to_string()));
+        let (start, end) = match composition {
+            Some((start, end)) => (Some(start.to_string()), Some(end.to_string())),
+            None => (None, None),
+        };
+        self.write_engine_attribute(node, "data-divui-composition-start", start.as_deref());
+        self.write_engine_attribute(node, "data-divui-composition-end", end.as_deref());
     }
 }
 

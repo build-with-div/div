@@ -26,22 +26,39 @@
 //! reverses the layer order. Animations apply above normal declarations and
 //! below `!important` ones.
 //!
-//! Invalidation is conservative. Changing an attribute restyles the
-//! element's subtree, or its parent's when a rule depends on siblings, or the
-//! document when a rule uses `:has()`. Inserting or removing children
-//! restyles the parent's subtree. Interaction and form state restyle the
-//! whole document at the next `update()`, as Blink recalculates style
-//! lazily. Nothing here runs until a sheet is adopted.
+//! Invalidation follows Blink's rule invalidation data
+//! (`core/css/invalidation/`) at its coarsest. An [`InvalidationIndex`]
+//! records, for each class, id, attribute name and state pseudo-class the
+//! adopted selectors read, where it occurs: in a subject compound, in a
+//! compound an ancestor matches, in a compound a preceding sibling (or one
+//! of its ancestors) matches, or inside `:has()`. A change to one element
+//! looks its features up and restyles, in that order of reach, the element
+//! (and its subtree only if its own style changed), its subtree, its
+//! parent's subtree or the document. A feature no selector reads restyles
+//! nothing.
+//!
+//! Attribute changes made through the public API restyle at once. State
+//! changes (interaction and form state) and the attributes the engine
+//! writes itself restyle at the next `update()`, as Blink recalculates style
+//! lazily: each element's state bits are compared with the bits its style
+//! was last resolved with, so only elements whose state changed are
+//! candidates. A restyle compares each element's old and new computed style
+//! and marks only the invalidation classes of the properties that changed,
+//! so a hover color change repaints without layout. Inserting or removing
+//! children restyles the parent's subtree, or the document when a rule uses
+//! `:has()`. Nothing here runs until a sheet is adopted.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
 
 use div_dom::NodeId;
-use div_style::selector::{PseudoClass, Selector, SimpleSelector, Specificity};
+use div_style::selector::{
+    Combinator, Compound, PseudoClass, Selector, SimpleSelector, Specificity,
+};
 use div_style::stylesheet::{CascadeOrigin, StyleSheet};
 use div_style::{
-    AuthoredStyleDeclarations, CanonicalStyleFields, DroppedDeclaration, InvalidationClass, Style,
-    StyleProperty, StyleValue,
+    AuthoredStyleDeclarations, CanonicalStyleFields, ComputedStyle, DroppedDeclaration,
+    InvalidationClass, Style, StyleProperty, StyleValue,
 };
 
 use crate::selector_match::{is_html_space, local_name, SelectorMatchError};
@@ -119,8 +136,253 @@ pub(crate) struct RuleFlags {
     /// Some selector depends on siblings: a sibling combinator or a
     /// structural pseudo-class.
     pub(crate) sibling_dependent: bool,
-    /// Some selector reads interaction or form state.
-    pub(crate) state_dependent: bool,
+}
+
+/// The state pseudo-classes, each one bit of an element's selector state.
+const STATE_PSEUDO_CLASSES: [PseudoClass; 13] = [
+    PseudoClass::Hover,
+    PseudoClass::Active,
+    PseudoClass::Focus,
+    PseudoClass::FocusVisible,
+    PseudoClass::FocusWithin,
+    PseudoClass::Disabled,
+    PseudoClass::Enabled,
+    PseudoClass::Checked,
+    PseudoClass::Indeterminate,
+    PseudoClass::PlaceholderShown,
+    PseudoClass::ReadOnly,
+    PseudoClass::ReadWrite,
+    PseudoClass::Required,
+];
+
+fn state_bit(pseudo: &PseudoClass) -> Option<usize> {
+    STATE_PSEUDO_CLASSES
+        .iter()
+        .position(|state| state == pseudo)
+}
+
+/// Where a feature occurs in a selector, as Blink's rule invalidation data
+/// tells a subject feature from a descendant, sibling or `:has()` one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Position {
+    /// The subject compound: the element itself matches it.
+    Subject,
+    /// A compound an ancestor matches.
+    Ancestor,
+    /// A compound a preceding sibling, or an ancestor of one, matches.
+    Sibling,
+    /// Inside `:has()`: an ancestor or a preceding sibling anchors it.
+    Relational,
+}
+
+impl Position {
+    /// The position of the compound left of `combinator`.
+    fn left_of(self, combinator: Combinator) -> Self {
+        match (self, combinator) {
+            (Self::Relational, _) => Self::Relational,
+            (_, Combinator::NextSibling | Combinator::SubsequentSibling) | (Self::Sibling, _) => {
+                Self::Sibling
+            }
+            _ => Self::Ancestor,
+        }
+    }
+
+    fn bit(self) -> u8 {
+        1 << self as u8
+    }
+}
+
+/// The positions a feature occurs at.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Positions(u8);
+
+impl Positions {
+    fn insert(&mut self, position: Position) {
+        self.0 |= position.bit();
+    }
+
+    fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    fn contains(self, position: Position) -> bool {
+        self.0 & position.bit() != 0
+    }
+
+    /// What a change to a feature at these positions restyles.
+    fn scope(self) -> Option<RestyleScope> {
+        if self.contains(Position::Relational) {
+            Some(RestyleScope::Document)
+        } else if self.contains(Position::Sibling) {
+            Some(RestyleScope::Parent)
+        } else if self.contains(Position::Ancestor) {
+            Some(RestyleScope::Subtree)
+        } else if self.contains(Position::Subject) {
+            Some(RestyleScope::Element)
+        } else {
+            None
+        }
+    }
+}
+
+/// What a change to one element restyles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RestyleScope {
+    /// The element, and its subtree only if the element's style changes.
+    Element,
+    /// The element and its descendants.
+    Subtree,
+    /// The element's parent and the parent's descendants, which hold the
+    /// element's later siblings.
+    Parent,
+    /// The document: a `:has()` anchor can be any ancestor or preceding
+    /// sibling.
+    Document,
+}
+
+/// Each class, id, attribute name and state pseudo-class the adopted
+/// selectors read, with the positions it occurs at. Built when a sheet is
+/// adopted or removed, from the same selectors the matcher reads.
+#[derive(Default)]
+pub(crate) struct InvalidationIndex {
+    classes: HashMap<String, Positions>,
+    ids: HashMap<String, Positions>,
+    /// Attribute names, lowercased as `set_attribute` stores them.
+    attributes: HashMap<String, Positions>,
+    states: [Positions; STATE_PSEUDO_CLASSES.len()],
+}
+
+/// The properties no other property's fields are a strict subset of. A
+/// shorthand (`border-top`, say) is left out: its longhands account for
+/// every change it would, with their own invalidation classes.
+fn longhand_properties() -> &'static [StyleProperty] {
+    static LONGHANDS: std::sync::OnceLock<Vec<StyleProperty>> = std::sync::OnceLock::new();
+    LONGHANDS.get_or_init(|| {
+        let all: Vec<(StyleProperty, CanonicalStyleFields)> = (1u16..)
+            .map_while(StyleProperty::from_u16)
+            .map(|property| (property, CanonicalStyleFields::for_property(property)))
+            .collect();
+        all.iter()
+            .filter(|(_, fields)| {
+                !all.iter().any(|(_, other)| {
+                    !other.is_empty() && *other != *fields && fields.union(*other) == *fields
+                })
+            })
+            .map(|(property, _)| *property)
+            .collect()
+    })
+}
+
+fn class_tokens(value: Option<&str>) -> Vec<&str> {
+    value
+        .unwrap_or_default()
+        .split(is_html_space)
+        .filter(|token| !token.is_empty())
+        .collect()
+}
+
+impl InvalidationIndex {
+    fn add_selector(&mut self, selector: &Selector, subject: Position) {
+        self.add_compound(&selector.subject, subject);
+        let mut position = subject;
+        for (combinator, compound) in &selector.ancestors {
+            position = position.left_of(*combinator);
+            self.add_compound(compound, position);
+        }
+    }
+
+    fn add_compound(&mut self, compound: &Compound, position: Position) {
+        for simple in &compound.simple {
+            match simple {
+                SimpleSelector::Id(id) => self.ids.entry(id.clone()).or_default().insert(position),
+                SimpleSelector::Class(class) => self
+                    .classes
+                    .entry(class.clone())
+                    .or_default()
+                    .insert(position),
+                SimpleSelector::Attribute(attribute) => self
+                    .attributes
+                    .entry(attribute.name.to_ascii_lowercase())
+                    .or_default()
+                    .insert(position),
+                SimpleSelector::PseudoClass(pseudo) => match pseudo {
+                    PseudoClass::Is(list) | PseudoClass::Where(list) | PseudoClass::Not(list) => {
+                        for selector in list {
+                            self.add_selector(selector, position);
+                        }
+                    }
+                    // Whether an element matches the `of` list moves its
+                    // later siblings' indices.
+                    PseudoClass::NthChild { of, .. } => {
+                        for selector in of.iter().flatten() {
+                            self.add_selector(
+                                selector,
+                                position.left_of(Combinator::SubsequentSibling),
+                            );
+                        }
+                    }
+                    PseudoClass::Has(list) => {
+                        for relative in list {
+                            self.add_selector(&relative.selector, Position::Relational);
+                        }
+                    }
+                    other => {
+                        if let Some(bit) = state_bit(other) {
+                            self.states[bit].insert(position);
+                        }
+                    }
+                },
+                SimpleSelector::Universal | SimpleSelector::Tag(_) => {}
+            }
+        }
+    }
+
+    /// The state bits some selector reads.
+    fn state_mask(&self) -> u16 {
+        self.states
+            .iter()
+            .enumerate()
+            .filter(|(_, positions)| **positions != Positions::default())
+            .fold(0, |mask, (bit, _)| mask | 1 << bit)
+    }
+
+    fn state_positions(&self, changed: u16) -> Positions {
+        self.states
+            .iter()
+            .enumerate()
+            .filter(|(bit, _)| changed & 1 << bit != 0)
+            .fold(Positions::default(), |all, (_, positions)| {
+                all.union(*positions)
+            })
+    }
+
+    /// The positions of the features an attribute change touches: the
+    /// attribute itself, and for `class` and `id` each token added or
+    /// removed.
+    fn attribute_positions(&self, name: &str, old: Option<&str>, new: Option<&str>) -> Positions {
+        let mut positions = self.attributes.get(name).copied().unwrap_or_default();
+        let lookup =
+            |map: &HashMap<String, Positions>, key: &str| map.get(key).copied().unwrap_or_default();
+        match name {
+            "class" => {
+                let (old, new) = (class_tokens(old), class_tokens(new));
+                for token in old
+                    .iter()
+                    .filter(|token| !new.contains(token))
+                    .chain(new.iter().filter(|token| !old.contains(token)))
+                {
+                    positions = positions.union(lookup(&self.classes, token));
+                }
+            }
+            "id" if old != new => {
+                for id in [old, new].into_iter().flatten() {
+                    positions = positions.union(lookup(&self.ids, id));
+                }
+            }
+            _ => {}
+        }
+        positions
+    }
 }
 
 /// The adopted sheets and their derived buckets.
@@ -137,12 +399,26 @@ pub(crate) struct RuleSet {
     by_tag: HashMap<String, Vec<RuleRef>>,
     universal: Vec<RuleRef>,
     pub(crate) flags: RuleFlags,
+    index: InvalidationIndex,
+    /// The state bits some selector reads.
+    state_mask: u16,
+    /// Per slot, the state bits the element's style was last resolved with.
+    state_cache: HashMap<u32, u16>,
+    /// Restyles queued for the next `update()`.
+    pending: Vec<(NodeId, RestyleScope)>,
+    /// The slots selector restyles resolved, while a test records them.
+    restyle_log: Option<Vec<u32>>,
 }
 
 /// Where a change can alter which rules match.
-pub(crate) enum SelectorChange {
-    /// An element's own id, class or other attribute.
-    Element(NodeId),
+pub(crate) enum SelectorChange<'a> {
+    /// An attribute of an element, with its old and new values.
+    Attribute {
+        node: NodeId,
+        name: &'a str,
+        old: Option<&'a str>,
+        new: Option<&'a str>,
+    },
     /// The children of a node.
     Children(NodeId),
 }
@@ -183,7 +459,6 @@ fn unsupported_pseudo_class(selector: &Selector) -> Option<&'static str> {
 }
 
 fn add_flags(selector: &Selector, flags: &mut RuleFlags) {
-    use div_style::selector::Combinator;
     if selector.ancestors.iter().any(|(combinator, _)| {
         matches!(
             combinator,
@@ -219,8 +494,7 @@ fn add_flags(selector: &Selector, flags: &mut RuleFlags) {
             PseudoClass::FirstChild | PseudoClass::LastChild | PseudoClass::OnlyChild => {
                 flags.sibling_dependent = true;
             }
-            PseudoClass::Empty | PseudoClass::Root => {}
-            _ => flags.state_dependent = true,
+            _ => {}
         }
     }
 }
@@ -319,10 +593,14 @@ impl RuleSet {
         self.by_tag.clear();
         self.universal.clear();
         self.flags = RuleFlags::default();
+        self.index = InvalidationIndex::default();
+        self.state_cache.clear();
+        self.pending.clear();
         for (sheet_index, sheet) in self.sheets.iter().enumerate() {
             for (rule_index, rule) in sheet.rules.iter().enumerate() {
                 for (selector_index, (selector, _)) in rule.selectors.iter().enumerate() {
                     add_flags(selector, &mut self.flags);
+                    self.index.add_selector(selector, Position::Subject);
                     let reference = RuleRef {
                         sheet: sheet_index as u32,
                         rule: rule_index as u32,
@@ -338,6 +616,7 @@ impl RuleSet {
                 }
             }
         }
+        self.state_mask = self.index.state_mask();
     }
 
     /// Normal layered rules rank below unlayered ones, in layer order;
@@ -556,8 +835,8 @@ impl Engine {
         Ok(())
     }
 
-    /// Restyle what a change to ids, classes, attributes or children can
-    /// affect. Nothing happens without adopted sheets.
+    /// Restyle what a change to an attribute or to children can affect.
+    /// Nothing happens without adopted sheets.
     pub(crate) fn restyle_for_selectors(
         &mut self,
         change: SelectorChange,
@@ -565,45 +844,295 @@ impl Engine {
         if self.rule_set.is_empty() {
             return Ok(());
         }
-        let flags = self.rule_set.flags;
-        let root = if flags.relational {
-            self.document.root()
-        } else {
-            match change {
-                SelectorChange::Element(node) => {
-                    let parent = self.document.node(node).parent;
-                    if flags.sibling_dependent && !parent.is_none() {
-                        parent
-                    } else {
-                        node
-                    }
+        match change {
+            SelectorChange::Attribute {
+                node,
+                name,
+                old,
+                new,
+            } => match self
+                .rule_set
+                .index
+                .attribute_positions(name, old, new)
+                .scope()
+            {
+                Some(scope) => self.restyle_scoped(vec![(node, scope)]),
+                None => Ok(()),
+            },
+            SelectorChange::Children(node) => {
+                let flags = self.rule_set.flags;
+                let root = if flags.relational {
+                    self.document.root()
+                } else {
+                    node
+                };
+                if root == self.document.root() {
+                    return self.restyle_document_for_rules();
                 }
-                SelectorChange::Children(node) => node,
+                self.publish_native_cascade(root)?;
+                self.dirty.hit_test = true;
+                self.mark_dirty(InvalidationClass::Subtree);
+                Ok(())
             }
-        };
-        if root == self.document.root() {
-            return self.restyle_document_for_rules();
         }
-        self.publish_native_cascade(root)?;
-        self.dirty.hit_test = true;
-        self.mark_dirty(InvalidationClass::Subtree);
-        Ok(())
     }
 
-    /// Interaction or form state changed. Rules that read it restyle the
-    /// document at the next `update()`.
-    pub(crate) fn note_selector_state_change(&mut self) {
-        if !self.rule_set.is_empty() && self.rule_set.flags.state_dependent {
+    /// Write an attribute the engine keeps itself: a control's `value`, the
+    /// `open` and `selected` it mirrors, and its `data-divui-` markers.
+    /// `None` removes it. Rules that read the attribute restyle at the next
+    /// `update()`.
+    pub(crate) fn write_engine_attribute(&mut self, node: NodeId, name: &str, value: Option<&str>) {
+        let old = match value {
+            Some(value) => {
+                let old = self.document.attribute(node, name).map(str::to_owned);
+                if old.as_deref() == Some(value) {
+                    return;
+                }
+                self.document.set_attribute(node, name, value);
+                old
+            }
+            None => match self.document.node_mut(node).attributes.remove(name) {
+                Some(old) => Some(old),
+                None => return,
+            },
+        };
+        if self.rule_set.is_empty() {
+            return;
+        }
+        let scope = self
+            .rule_set
+            .index
+            .attribute_positions(name, old.as_deref(), value)
+            .scope();
+        if let Some(scope) = scope {
+            self.rule_set.pending.push((node, scope));
             self.selector_restyle_pending = true;
             self.dirty.paint = true;
         }
     }
 
+    /// Interaction or form state changed. Elements whose state bits changed
+    /// restyle at the next `update()`.
+    pub(crate) fn note_selector_state_change(&mut self) {
+        if self.rule_set.state_mask != 0 {
+            self.selector_restyle_pending = true;
+            self.dirty.paint = true;
+        }
+    }
+
+    /// The element's state bits that some adopted selector reads.
+    pub(crate) fn selector_state_bits(&self, handle: NodeHandle) -> u16 {
+        let mask = self.rule_set.state_mask;
+        let mut bits = 0;
+        for (bit, pseudo) in STATE_PSEUDO_CLASSES.iter().enumerate() {
+            if mask & 1 << bit != 0 && self.matches_state_pseudo_class(handle, pseudo) {
+                bits |= 1 << bit;
+            }
+        }
+        bits
+    }
+
+    /// Record the state bits a slot's style is being resolved with.
+    pub(crate) fn note_resolved_selector_state(&mut self, index: u32) {
+        if self.rule_set.state_mask != 0 {
+            let bits = self.selector_state_bits(self.handle_for_slot(index));
+            self.rule_set.state_cache.insert(index, bits);
+        }
+        if let Some(log) = &mut self.rule_set.restyle_log {
+            log.push(index);
+        }
+    }
+
     pub(crate) fn apply_pending_selector_restyle(&mut self) -> Result<(), EngineError> {
-        if self.selector_restyle_pending {
-            self.restyle_document_for_rules()?;
+        if !self.selector_restyle_pending {
+            return Ok(());
+        }
+        let mut candidates = std::mem::take(&mut self.rule_set.pending);
+        let mut current = Vec::new();
+        let mask = self.rule_set.state_mask;
+        if mask != 0 {
+            let mut stack = vec![self.document.root()];
+            while let Some(node) = stack.pop() {
+                if let Some(index) = self.node_slots.get(&node).copied() {
+                    let bits = self.selector_state_bits(self.handle_for_slot(index));
+                    let changed = match self.rule_set.state_cache.get(&index) {
+                        Some(old) => old ^ bits,
+                        // Not resolved since the sheets changed.
+                        None => mask,
+                    };
+                    if changed != 0 {
+                        let positions = self.rule_set.index.state_positions(changed);
+                        if let Some(scope) = positions.scope() {
+                            candidates.push((node, scope));
+                        }
+                    }
+                    current.push((index, bits));
+                }
+                stack.extend(self.document.children(node));
+            }
+        }
+        self.restyle_scoped(candidates)?;
+        for (index, bits) in current {
+            self.rule_set.state_cache.insert(index, bits);
+        }
+        self.selector_restyle_pending = false;
+        Ok(())
+    }
+
+    /// Restyle each candidate element to its scope. An element-scoped
+    /// candidate is resolved alone first and takes its subtree along only if
+    /// its own style changed. The invalidation classes marked are those of
+    /// the properties whose computed values changed.
+    fn restyle_scoped(
+        &mut self,
+        candidates: Vec<(NodeId, RestyleScope)>,
+    ) -> Result<(), EngineError> {
+        if candidates.is_empty() {
+            return Ok(());
+        }
+        let document_root = self.document.root();
+        let mut roots: Vec<NodeId> = Vec::new();
+        let mut elements: Vec<NodeId> = Vec::new();
+        for (node, scope) in candidates {
+            match scope {
+                RestyleScope::Document => {
+                    roots = vec![document_root];
+                    elements.clear();
+                    break;
+                }
+                RestyleScope::Parent => {
+                    let parent = self.document.node(node).parent;
+                    roots.push(if parent.is_none() { node } else { parent });
+                }
+                RestyleScope::Subtree => roots.push(node),
+                RestyleScope::Element => elements.push(node),
+            }
+        }
+        for node in elements {
+            if self.within_any(node, &roots) {
+                continue;
+            }
+            let Some(update) = self.prepare_native_cascade_element(node)? else {
+                continue;
+            };
+            let animated_base_changed = self.slots[update.index as usize]
+                .animation_base_style
+                .as_ref()
+                .is_some_and(|base| *base != update.base);
+            if update.style != update.old_style || animated_base_changed {
+                roots.push(node);
+            } else {
+                self.note_resolved_selector_state(update.index);
+            }
+        }
+        let roots: Vec<NodeId> = roots
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(position, root)| {
+                !roots[..*position].contains(root) && !self.strictly_within_any(*root, &roots)
+            })
+            .map(|(_, root)| root)
+            .collect();
+        if roots.is_empty() {
+            return Ok(());
+        }
+        let updates = self.prepare_native_cascade_roots(&roots)?;
+        let mut classes = Vec::new();
+        for update in &updates {
+            for class in self.style_change_classes(&update.old_style, &update.style) {
+                if !classes.contains(&class) {
+                    classes.push(class);
+                }
+            }
+        }
+        self.publish_prepared_native_cascade(updates);
+        if !classes.is_empty() {
+            self.dirty.hit_test = true;
+        }
+        for class in classes {
+            self.mark_dirty(class);
         }
         Ok(())
+    }
+
+    /// Whether `node` is one of `roots` or a descendant of one.
+    fn within_any(&self, node: NodeId, roots: &[NodeId]) -> bool {
+        roots.contains(&node) || self.strictly_within_any(node, roots)
+    }
+
+    /// Whether `node` is a descendant of one of `roots`.
+    fn strictly_within_any(&self, node: NodeId, roots: &[NodeId]) -> bool {
+        let mut current = self.document.node(node).parent;
+        while !current.is_none() {
+            if roots.contains(&current) {
+                return true;
+            }
+            current = self.document.node(current).parent;
+        }
+        false
+    }
+
+    /// The invalidation classes of the properties whose computed values
+    /// differ, none when the styles are equal. To find a difference the
+    /// properties do not account for (a pseudo-element style, say), the
+    /// changed properties' new values are written into copies of both
+    /// styles, which must then be equal; otherwise the change is `Subtree`.
+    fn style_change_classes(
+        &self,
+        old: &ComputedStyle,
+        new: &ComputedStyle,
+    ) -> Vec<InvalidationClass> {
+        if old == new {
+            return Vec::new();
+        }
+        let viewport = (
+            self.viewport.logical_width() as f32,
+            self.viewport.logical_height() as f32,
+        );
+        let mut classes = Vec::new();
+        let (mut from_old, mut from_new) = (old.clone(), new.clone());
+        for &property in longhand_properties() {
+            let value = div_style::value_from_computed(new, property);
+            if div_style::value_from_computed(old, property) == value {
+                continue;
+            }
+            let class = property.metadata().invalidation;
+            if !classes.contains(&class) {
+                classes.push(class);
+            }
+            for style in [&mut from_old, &mut from_new] {
+                if div_style::apply_to_computed(style, property, &value, viewport).is_err() {
+                    return vec![InvalidationClass::Subtree];
+                }
+            }
+        }
+        from_old.resolve_current_color_dependencies();
+        from_new.resolve_current_color_dependencies();
+        if from_old != from_new || classes.is_empty() {
+            return vec![InvalidationClass::Subtree];
+        }
+        classes
+    }
+
+    /// Start recording the elements selector restyles resolve, for restyle
+    /// scope tests. [`Engine::take_selector_restyles`] returns them.
+    #[doc(hidden)]
+    pub fn record_selector_restyles(&mut self) {
+        self.rule_set.restyle_log = Some(Vec::new());
+    }
+
+    /// The elements selector restyles resolved since recording started or
+    /// since the last call, in the order they were resolved.
+    #[doc(hidden)]
+    pub fn take_selector_restyles(&mut self) -> Vec<NodeHandle> {
+        let log = match &mut self.rule_set.restyle_log {
+            Some(log) => std::mem::take(log),
+            None => Vec::new(),
+        };
+        log.into_iter()
+            .map(|index| self.handle_for_slot(index))
+            .collect()
     }
 
     fn matched_rules(&self, handle: NodeHandle) -> Result<Vec<Matched>, EngineError> {

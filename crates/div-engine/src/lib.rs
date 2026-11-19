@@ -1276,10 +1276,7 @@ impl Engine {
         {
             if let Some(focused) = self.focused {
                 if let Ok(node) = self.resolve(focused) {
-                    self.document
-                        .node_mut(node)
-                        .attributes
-                        .remove("data-divui-focused");
+                    self.write_engine_attribute(node, "data-divui-focused", None);
                 }
             }
             self.focused = None;
@@ -1448,9 +1445,8 @@ impl Engine {
         if self.document.node(node).attributes.get(&name) == Some(&value) {
             return Ok(());
         }
-        let previous_id = (name == "id")
-            .then(|| self.document.attribute(node, "id").map(str::to_owned))
-            .flatten();
+        let previous = self.document.attribute(node, &name).map(str::to_owned);
+        let previous_id = (name == "id").then(|| previous.clone()).flatten();
         self.document
             .set_attribute(node, name.clone(), value.clone());
         if name == "id" {
@@ -1468,7 +1464,12 @@ impl Engine {
         }
         self.sync_control_attribute(handle, &name, &value);
         let table_span = self.sync_table_span_attribute(node, &name, Some(&value));
-        self.restyle_for_selectors(SelectorChange::Element(node))?;
+        self.restyle_for_selectors(SelectorChange::Attribute {
+            node,
+            name: &name,
+            old: previous.as_deref(),
+            new: Some(&value),
+        })?;
         self.note_selector_state_change();
         self.mark_dirty(
             if name == "open" && self.document.node(node).tag == ElementTag::Details {
@@ -1517,7 +1518,12 @@ impl Engine {
             }
             self.remove_control_attribute(handle, &name.to_ascii_lowercase());
             let table_span = self.sync_table_span_attribute(node, &name.to_ascii_lowercase(), None);
-            self.restyle_for_selectors(SelectorChange::Element(node))?;
+            self.restyle_for_selectors(SelectorChange::Attribute {
+                node,
+                name: &name.to_ascii_lowercase(),
+                old: previous.as_deref(),
+                new: None,
+            })?;
             self.note_selector_state_change();
             self.mark_dirty(
                 if name.eq_ignore_ascii_case("open")
@@ -2670,10 +2676,7 @@ impl Engine {
             self.focused = None;
             self.note_selector_state_change();
             if let Ok(node) = self.resolve(handle) {
-                self.document
-                    .node_mut(node)
-                    .attributes
-                    .remove("data-divui-focused");
+                self.write_engine_attribute(node, "data-divui-focused", None);
             }
             self.dirty.paint = true;
             self.mark_dirty(InvalidationClass::Accessibility);
