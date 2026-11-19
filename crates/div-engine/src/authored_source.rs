@@ -9,10 +9,10 @@ use std::collections::{HashMap, HashSet};
 
 pub(crate) struct CascadeUpdate {
     node: NodeId,
-    index: u32,
-    old_style: ComputedStyle,
-    base: ComputedStyle,
-    style: ComputedStyle,
+    pub(crate) index: u32,
+    pub(crate) old_style: ComputedStyle,
+    pub(crate) base: ComputedStyle,
+    pub(crate) style: ComputedStyle,
 }
 
 #[derive(Clone)]
@@ -64,6 +64,23 @@ impl Engine {
     pub(crate) fn prepare_native_cascade_roots(
         &self,
         roots: &[NodeId],
+    ) -> Result<Vec<CascadeUpdate>, EngineError> {
+        self.prepare_native_cascade_nodes(roots, true)
+    }
+
+    /// Resolve one element against its parent's published style, without
+    /// its descendants. `None` for a node without a slot.
+    pub(crate) fn prepare_native_cascade_element(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<CascadeUpdate>, EngineError> {
+        Ok(self.prepare_native_cascade_nodes(&[node], false)?.pop())
+    }
+
+    fn prepare_native_cascade_nodes(
+        &self,
+        roots: &[NodeId],
+        descend: bool,
     ) -> Result<Vec<CascadeUpdate>, EngineError> {
         let initial = ComputedStyle::initial();
         let viewport = (
@@ -185,6 +202,9 @@ impl Engine {
                     style,
                 });
             }
+            if !descend {
+                continue;
+            }
             let children: Vec<_> = self.document.children(node).collect();
             let owned_buttons = self.owned_buttons(node);
             pending
@@ -201,6 +221,7 @@ impl Engine {
 
     pub(crate) fn publish_prepared_native_cascade(&mut self, updates: Vec<CascadeUpdate>) {
         for update in updates {
+            self.note_resolved_selector_state(update.index);
             self.invalidate_transform_containing_block_change(
                 update.node,
                 update.old_style.has_transform_containing_block(),

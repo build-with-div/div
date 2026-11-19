@@ -57,6 +57,17 @@ impl Engine {
         Ok(false)
     }
 
+    /// Whether `element` matches a state pseudo-class; false for anything
+    /// that is not a selector element.
+    pub(crate) fn matches_state_pseudo_class(
+        &self,
+        element: NodeHandle,
+        pseudo: &PseudoClass,
+    ) -> bool {
+        matches!(self.is_selector_element(element), Ok(true))
+            && matches!(self.match_pseudo(element, pseudo), Ok(true))
+    }
+
     fn is_selector_element(&self, handle: NodeHandle) -> Result<bool, EngineError> {
         Ok(self.is_authored_element(handle)? && self.element_tag(handle)? != ElementTag::Viewport)
     }
