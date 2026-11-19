@@ -10,6 +10,7 @@ temporary profile is removed.
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass
 import hashlib
 import importlib.util
 import json
@@ -19,6 +20,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from typing import Callable
 import urllib.request
 
 
@@ -42,12 +44,171 @@ def _harness():
     return module
 
 
+# The Windows text settings Chromium 147 reads for its text raster
+# (ui/gfx/font_render_params_win.cc and ui/gfx/font_util_win.cc).
+SPI_GETFONTSMOOTHING = 0x004A
+SPI_GETFONTSMOOTHINGTYPE = 0x200A
+SPI_GETFONTSMOOTHINGORIENTATION = 0x2012
+FE_FONTSMOOTHINGSTANDARD = 0x0001
+FE_FONTSMOOTHINGCLEARTYPE = 0x0002
+FE_FONTSMOOTHINGORIENTATIONBGR = 0x0000
+FE_FONTSMOOTHINGORIENTATIONRGB = 0x0001
+TEXT_SETTINGS_KEY = r"SOFTWARE\Microsoft\Avalon.Graphics"
+_DISPLAY_DEVICE_PRIMARY_DEVICE = 0x00000004
+
+
+@dataclass(frozen=True)
+class TextRasterSettings:
+    """The system settings behind Windows Chromium's text raster.
+
+    A field is ``None`` when Windows did not return it.
+    """
+
+    font_smoothing: bool | None
+    smoothing_type: int | None
+    orientation: int | None
+    # The primary display's name as Chromium keys it ("DISPLAY1"), or None.
+    primary_display: str | None
+    # Whether the primary display has its own key under TEXT_SETTINGS_KEY.
+    per_display_key: bool
+
+
+def _system_parameter(action: int) -> int | None:
+    import ctypes
+    from ctypes import wintypes
+
+    value = wintypes.UINT(0)
+    if not ctypes.windll.user32.SystemParametersInfoW(action, 0, ctypes.byref(value), 0):
+        return None
+    return value.value
+
+
+def _primary_display() -> str | None:
+    """The primary display device's base name, found the way Chromium finds it."""
+    import ctypes
+    from ctypes import wintypes
+
+    class DisplayDevice(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD),
+            ("DeviceName", wintypes.WCHAR * 32),
+            ("DeviceString", wintypes.WCHAR * 128),
+            ("StateFlags", wintypes.DWORD),
+            ("DeviceID", wintypes.WCHAR * 128),
+            ("DeviceKey", wintypes.WCHAR * 128),
+        ]
+
+    device = DisplayDevice()
+    device.cb = ctypes.sizeof(DisplayDevice)
+    index = 0
+    while ctypes.windll.user32.EnumDisplayDevicesW(None, index, ctypes.byref(device), 0):
+        if device.StateFlags & _DISPLAY_DEVICE_PRIMARY_DEVICE:
+            return display_base_name(device.DeviceName)
+        index += 1
+    return None
+
+
+def display_base_name(device_name: str) -> str:
+    """The device name's last path component, as base::FilePath::BaseName gives it."""
+    return device_name.replace("/", "\\").rstrip("\\").rsplit("\\", 1)[-1]
+
+
+def _current_user_key_exists(path: str) -> bool:
+    import winreg
+
+    try:
+        winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CURRENT_USER, path))
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def read_text_raster_settings(
+    system_parameter: Callable[[int], int | None] | None = None,
+    primary_display: Callable[[], str | None] | None = None,
+    key_exists: Callable[[str], bool] | None = None,
+) -> TextRasterSettings:
+    """Read the text settings Windows Chromium reads. Tests inject the readers."""
+    if None in (system_parameter, primary_display, key_exists) and os.name != "nt":
+        raise SystemExit("the Windows text raster settings can only be read on Windows")
+    system_parameter = system_parameter or _system_parameter
+    primary_display = primary_display or _primary_display
+    key_exists = key_exists or _current_user_key_exists
+    smoothing = system_parameter(SPI_GETFONTSMOOTHING)
+    display = primary_display()
+    return TextRasterSettings(
+        font_smoothing=None if smoothing is None else bool(smoothing),
+        smoothing_type=system_parameter(SPI_GETFONTSMOOTHINGTYPE),
+        orientation=system_parameter(SPI_GETFONTSMOOTHINGORIENTATION),
+        primary_display=display,
+        per_display_key=display is not None and key_exists(f"{TEXT_SETTINGS_KEY}\\{display}"),
+    )
+
+
+def text_raster_pin_failures(settings: TextRasterSettings) -> list[str]:
+    """Why these settings differ from the oracle pin; empty when they match.
+
+    Windows Chromium oracles are captured with ClearType on, RGB order and no
+    per-display ClearType tuning (RFC 0012). Chromium then uses its build's
+    sRGB gamma and contrast 1.0, which
+    `RasterConfiguration::chromium_windows_lcd` reproduces.
+    """
+    failures = []
+    if settings.font_smoothing is None:
+        failures.append("font smoothing (SPI_GETFONTSMOOTHING) could not be read")
+    elif not settings.font_smoothing:
+        failures.append("font smoothing (SPI_GETFONTSMOOTHING) is off")
+    elif settings.smoothing_type is None:
+        failures.append("the font smoothing type (SPI_GETFONTSMOOTHINGTYPE) could not be read")
+    elif settings.smoothing_type != FE_FONTSMOOTHINGCLEARTYPE:
+        kind = (
+            "standard"
+            if settings.smoothing_type == FE_FONTSMOOTHINGSTANDARD
+            else str(settings.smoothing_type)
+        )
+        failures.append(
+            f"the font smoothing type (SPI_GETFONTSMOOTHINGTYPE) is {kind}, not ClearType"
+        )
+    if settings.orientation is None:
+        failures.append(
+            "the ClearType subpixel order (SPI_GETFONTSMOOTHINGORIENTATION) could not be read"
+        )
+    elif settings.orientation != FE_FONTSMOOTHINGORIENTATIONRGB:
+        order = (
+            "BGR"
+            if settings.orientation == FE_FONTSMOOTHINGORIENTATIONBGR
+            else str(settings.orientation)
+        )
+        failures.append(
+            f"the ClearType subpixel order (SPI_GETFONTSMOOTHINGORIENTATION) is {order}, not RGB"
+        )
+    if settings.per_display_key:
+        failures.append(
+            f"HKCU\\{TEXT_SETTINGS_KEY}\\{settings.primary_display} exists (ClearType "
+            "tuning), so Chromium would take DirectWrite's gamma, contrast and "
+            "PixelStructure, which no oracle has measured"
+        )
+    return failures
+
+
+def check_text_raster_pin(settings: TextRasterSettings | None = None) -> None:
+    """Refuse to capture unless the system matches the oracle's text raster pin."""
+    failures = text_raster_pin_failures(settings or read_text_raster_settings())
+    if failures:
+        raise SystemExit(
+            "Windows Chromium oracles need ClearType on, RGB order and no per-display "
+            "ClearType tuning (RFC 0012):\n" + "\n".join(f"- {failure}" for failure in failures)
+        )
+
+
 def verify_chrome(chrome: Path) -> Path:
+    """Check the pinned browser binary and the system's text raster pin."""
     chrome = chrome.resolve()
     if sha256(chrome.read_bytes()) != CHROME_SHA256:
         raise SystemExit(f"{chrome} is not the pinned Windows Chrome-for-Testing build")
     if not (chrome.parent / f"{CHROMIUM_VERSION}.manifest").is_file():
         raise SystemExit(f"{chrome} lacks the {CHROMIUM_VERSION} manifest")
+    check_text_raster_pin()
     return chrome
 
 
