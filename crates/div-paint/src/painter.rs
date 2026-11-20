@@ -18160,25 +18160,87 @@ fn border_image_axis_tiles(
                 .map(|index| (start + index as f32 * size, size))
                 .collect()
         }
+        // `CalculateSpaceNeeded`: no piece when not even one tile fits.
         BorderImageRepeat::Space => {
             let count = (extent / natural).floor() as usize;
-            if count < 1 {
-                vec![(start + (extent - natural) * 0.5, natural)]
-            } else {
-                let gap = (extent - count as f32 * natural) / (count + 1) as f32;
-                (0..count)
-                    .map(|index| (start + gap + index as f32 * (natural + gap), natural))
-                    .collect()
-            }
+            let gap = (extent - count as f32 * natural) / (count + 1) as f32;
+            (0..count)
+                .map(|index| (start + gap + index as f32 * (natural + gap), natural))
+                .collect()
         }
+        // `ComputeTileParameters`: one tile centered in the area, repeated
+        // to both sides (phase `(dst - src) / 2`).
         BorderImageRepeat::Repeat => {
-            let count = (extent / natural).ceil().max(1.0) as usize;
-            let first = start + (extent - count as f32 * natural) * 0.5;
+            let phase = (extent - natural) * 0.5;
+            let first = start + phase - (phase / natural).ceil() * natural;
+            let count = ((end - first) / natural).ceil().max(1.0) as usize;
             (0..count)
                 .map(|index| (first + index as f32 * natural, natural))
                 .collect()
         }
     }
+}
+
+/// The size of one tile of a nine-piece image piece: the piece's source size
+/// times NinePieceImageGrid's `tile_scale`, with a stretched axis filling the
+/// destination. An edge scales both axes by its width-to-slice ratio
+/// (`SetDrawInfoEdge`), which is its stretched axis's ratio. The middle piece
+/// passes its own scale (`middle_scale`, from `SetDrawInfoMiddle`).
+fn border_image_tile_size(
+    source: Rect,
+    destination: Rect,
+    repeat_x: BorderImageRepeat,
+    repeat_y: BorderImageRepeat,
+    middle_scale: Option<(f32, f32)>,
+) -> (f32, f32) {
+    let x_stretch = repeat_x == BorderImageRepeat::Stretch;
+    let y_stretch = repeat_y == BorderImageRepeat::Stretch;
+    if let Some((scale_x, scale_y)) = middle_scale {
+        return (
+            if x_stretch {
+                destination.width()
+            } else {
+                source.width() * scale_x
+            },
+            if y_stretch {
+                destination.height()
+            } else {
+                source.height() * scale_y
+            },
+        );
+    }
+    match (x_stretch, y_stretch) {
+        (true, true) => (destination.width(), destination.height()),
+        (false, true) => {
+            let scale = destination.height() / source.height();
+            (source.width() * scale, destination.height())
+        }
+        (true, false) => {
+            let scale = destination.width() / source.width();
+            (destination.width(), source.height() * scale)
+        }
+        (false, false) => (source.width(), source.height()),
+    }
+}
+
+/// `NinePieceImageGrid::SetDrawInfoMiddle`'s tile scale in source units: the
+/// middle piece's width scales as the top edge does (else the bottom edge),
+/// its height as the left edge (else the right). An edge counts when its slice
+/// and width are both positive (`Edge::IsDrawable`), and scales by width over
+/// slice. Without such an edge the scale is the effective zoom. Blink applies
+/// that zoom to the image size `StyleImage::ImageSize` already zoomed for a
+/// generated or SVG image, so such a middle piece tiles at its CSS size times
+/// the zoom; a raster image's size is its pixels, so it tiles at its own size.
+/// `slices` are in source units and `widths` in CSS px, both top, right,
+/// bottom, left.
+fn border_image_middle_scale(slices: [f32; 4], widths: [f32; 4], zoom: f32) -> (f32, f32) {
+    let edge_scale = |side: usize| {
+        (slices[side] > 0.0 && widths[side] > 0.0).then(|| widths[side] / slices[side])
+    };
+    (
+        edge_scale(0).or_else(|| edge_scale(2)).unwrap_or(zoom),
+        edge_scale(3).or_else(|| edge_scale(1)).unwrap_or(zoom),
+    )
 }
 
 fn draw_border_image_patch(
@@ -18190,6 +18252,7 @@ fn draw_border_image_patch(
     destination: Rect,
     repeat_x: BorderImageRepeat,
     repeat_y: BorderImageRepeat,
+    middle_scale: Option<(f32, f32)>,
     opacity_multiplier: f32,
 ) {
     if source.width() <= 0.0
@@ -18199,20 +18262,8 @@ fn draw_border_image_patch(
     {
         return;
     }
-    let x_stretch = repeat_x == BorderImageRepeat::Stretch;
-    let y_stretch = repeat_y == BorderImageRepeat::Stretch;
-    let (natural_width, natural_height) = match (x_stretch, y_stretch) {
-        (true, true) => (destination.width(), destination.height()),
-        (false, true) => {
-            let scale = destination.height() / source.height();
-            (source.width() * scale, destination.height())
-        }
-        (true, false) => {
-            let scale = destination.width() / source.width();
-            (destination.width(), source.height() * scale)
-        }
-        (false, false) => (source.width(), source.height()),
-    };
+    let (natural_width, natural_height) =
+        border_image_tile_size(source, destination, repeat_x, repeat_y, middle_scale);
     let xs = border_image_axis_tiles(repeat_x, destination.left, destination.right, natural_width);
     let ys = border_image_axis_tiles(
         repeat_y,
@@ -18422,6 +18473,7 @@ fn draw_border_generated_image_patch(
     destination: Rect,
     repeat_x: BorderImageRepeat,
     repeat_y: BorderImageRepeat,
+    middle_scale: Option<(f32, f32)>,
     opacity_multiplier: f32,
 ) {
     if source.width() <= 0.0
@@ -18431,20 +18483,8 @@ fn draw_border_generated_image_patch(
     {
         return;
     }
-    let x_stretch = repeat_x == BorderImageRepeat::Stretch;
-    let y_stretch = repeat_y == BorderImageRepeat::Stretch;
-    let (natural_width, natural_height) = match (x_stretch, y_stretch) {
-        (true, true) => (destination.width(), destination.height()),
-        (false, true) => {
-            let scale = destination.height() / source.height();
-            (source.width() * scale, destination.height())
-        }
-        (true, false) => {
-            let scale = destination.width() / source.width();
-            (destination.width(), source.height() * scale)
-        }
-        (false, false) => (source.width(), source.height()),
-    };
+    let (natural_width, natural_height) =
+        border_image_tile_size(source, destination, repeat_x, repeat_y, middle_scale);
     let xs = border_image_axis_tiles(repeat_x, destination.left, destination.right, natural_width);
     let ys = border_image_axis_tiles(
         repeat_y,
@@ -18604,6 +18644,7 @@ fn draw_border_svg_patch(
     destination: Rect,
     repeat_x: BorderImageRepeat,
     repeat_y: BorderImageRepeat,
+    middle_scale: Option<(f32, f32)>,
     opacity_multiplier: f32,
     device_scale: f32,
 ) {
@@ -18614,20 +18655,8 @@ fn draw_border_svg_patch(
     {
         return;
     }
-    let x_stretch = repeat_x == BorderImageRepeat::Stretch;
-    let y_stretch = repeat_y == BorderImageRepeat::Stretch;
-    let (natural_width, natural_height) = match (x_stretch, y_stretch) {
-        (true, true) => (destination.width(), destination.height()),
-        (false, true) => {
-            let scale = destination.height() / source.height();
-            (source.width() * scale, destination.height())
-        }
-        (true, false) => {
-            let scale = destination.width() / source.width();
-            (destination.width(), source.height() * scale)
-        }
-        (false, false) => (source.width(), source.height()),
-    };
+    let (natural_width, natural_height) =
+        border_image_tile_size(source, destination, repeat_x, repeat_y, middle_scale);
     let xs = border_image_axis_tiles(repeat_x, destination.left, destination.right, natural_width);
     let ys = border_image_axis_tiles(
         repeat_y,
@@ -18860,6 +18889,16 @@ fn paint_border_image(
         outer.bottom,
     ];
 
+    let middle_scale = border_image_middle_scale(
+        source_slices.map(|slice| slice / source_scale),
+        widths,
+        if svg_resource.is_some() || generated_source {
+            style.device_scale_factor.max(f64::EPSILON) as f32
+        } else {
+            1.0
+        },
+    );
+
     // NinePieceImagePainter paints in NinePiece order: the left column, the
     // right column, then the top, bottom and middle pieces.
     const PIECES: [(usize, usize); 9] = [
@@ -18890,6 +18929,7 @@ fn paint_border_image(
             } else {
                 BorderImageRepeat::Stretch
             };
+            let middle_scale = (row == 1 && column == 1).then_some(middle_scale);
             if let Some(id) = svg_resource {
                 draw_border_svg_patch(
                     canvas,
@@ -18901,6 +18941,7 @@ fn paint_border_image(
                     destination,
                     repeat_x,
                     repeat_y,
+                    middle_scale,
                     opacity_multiplier,
                     style.device_scale_factor.max(f64::EPSILON) as f32,
                 );
@@ -18921,6 +18962,7 @@ fn paint_border_image(
                     destination,
                     repeat_x,
                     repeat_y,
+                    middle_scale,
                     opacity_multiplier,
                 );
             } else {
@@ -18933,6 +18975,7 @@ fn paint_border_image(
                     destination,
                     repeat_x,
                     repeat_y,
+                    middle_scale,
                     opacity_multiplier,
                 );
             }
@@ -29747,9 +29790,25 @@ mod tests {
             border_image_axis_tiles(BorderImageRepeat::Stretch, 0.0, 100.0, 30.0),
             vec![(0.0, 100.0)]
         );
+        // Blink centers one tile, not the row: 35..65, then 30 px steps.
         assert_eq!(
             border_image_axis_tiles(BorderImageRepeat::Repeat, 0.0, 100.0, 30.0),
-            vec![(-10.0, 30.0), (20.0, 30.0), (50.0, 30.0), (80.0, 30.0)]
+            vec![
+                (-25.0, 30.0),
+                (5.0, 30.0),
+                (35.0, 30.0),
+                (65.0, 30.0),
+                (95.0, 30.0)
+            ]
+        );
+        assert_eq!(
+            border_image_axis_tiles(BorderImageRepeat::Repeat, 0.0, 90.0, 30.0),
+            vec![(0.0, 30.0), (30.0, 30.0), (60.0, 30.0)]
+        );
+        // A tile larger than the area: one, centered.
+        assert_eq!(
+            border_image_axis_tiles(BorderImageRepeat::Repeat, 0.0, 20.0, 30.0),
+            vec![(-5.0, 30.0)]
         );
         assert_eq!(
             border_image_axis_tiles(BorderImageRepeat::Round, 0.0, 100.0, 30.0),
@@ -29762,6 +29821,49 @@ mod tests {
         assert_eq!(
             border_image_axis_tiles(BorderImageRepeat::Space, 0.0, 100.0, 30.0),
             vec![(2.5, 30.0), (35.0, 30.0), (67.5, 30.0)]
+        );
+        // `CalculateSpaceNeeded` gives no spacing, so Blink skips the piece.
+        assert!(border_image_axis_tiles(BorderImageRepeat::Space, 0.0, 20.0, 30.0).is_empty());
+    }
+
+    #[test]
+    fn border_image_middle_scales_as_blink_nine_piece_image_grid() {
+        // No drawable edge: the zoom (generated and SVG images, whose size
+        // Blink has already zoomed) or 1 (raster images).
+        assert_eq!(
+            border_image_middle_scale([0.0; 4], [0.0; 4], 2.0),
+            (2.0, 2.0)
+        );
+        // Width as the top edge, height as the left edge.
+        assert_eq!(
+            border_image_middle_scale([10.0, 5.0, 20.0, 4.0], [20.0, 10.0, 10.0, 12.0], 1.0),
+            (2.0, 3.0)
+        );
+        // A zero slice or width is not drawable: the bottom and right edges.
+        assert_eq!(
+            border_image_middle_scale([0.0, 5.0, 20.0, 4.0], [20.0, 10.0, 10.0, 0.0], 1.0),
+            (0.5, 2.0)
+        );
+        // border-image-repeat-005 at 2x: a 100 px SVG with zero slices and
+        // widths, `space round`, in a 275 x 100 area. Chromium 147 draws one
+        // 200 x 100 tile, centered.
+        let source = Rect::from_xywh(0.0, 0.0, 100.0, 100.0);
+        let destination = Rect::from_xywh(0.0, 0.0, 275.0, 100.0);
+        let tile = border_image_tile_size(
+            source,
+            destination,
+            BorderImageRepeat::Space,
+            BorderImageRepeat::Round,
+            Some(border_image_middle_scale([0.0; 4], [0.0; 4], 2.0)),
+        );
+        assert_eq!(tile, (200.0, 200.0));
+        assert_eq!(
+            border_image_axis_tiles(BorderImageRepeat::Space, 0.0, 275.0, tile.0),
+            vec![(37.5, 200.0)]
+        );
+        assert_eq!(
+            border_image_axis_tiles(BorderImageRepeat::Round, 0.0, 100.0, tile.1),
+            vec![(0.0, 100.0)]
         );
     }
 

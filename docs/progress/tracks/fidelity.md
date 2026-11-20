@@ -14,6 +14,80 @@ Each named gap is pinned by a test that fails if its count changes.
 | `rounded-border-raster-1.25x`: the outer curve of a solid rounded border ring at 1.25x differs from Chromium's by up to 7, and the clipped content next to it follows | fidelity (border raster) | `native_rounded_clip.rs`, page `rrect` | 23 pixels at 1.25x, all in the bottom-left corner | 17 November 2026 |
 | `gradient-dither-fractional-scale`: Chromium's dithered gradient blends to 129 on a rounded clip's curve where Div blends to 128 | fidelity (gradient raster) | `native_rounded_clip.rs`, page `gradient-clip` | 36 pixels at 1.25x | 17 November 2026 |
 
+## 19 November 2026: border-image tiling as Blink's NinePieceImageGrid
+
+- **Problem:** at 1.25x, 1.5x and 2x, `css-backgrounds/border-image-repeat-005`
+  differed from Chromium by 8,684, 22,650 and 20,000 pixels.
+  - The test: a 100 px SVG, `border-image: url(svg) 0 fill / 0px space round`,
+    in a 275 x 100 box.
+  - At 2x Chromium draws one 400 x 200 tile, centered; Div drew two
+    200 x 200 tiles 50 px apart, as the test's reference expects. Chromium
+    147 fails its own reftest at a device scale.
+- **Blink** (147.0.7727.50, `nine_piece_image_grid.cc`,
+  `nine_piece_image_painter.cc`):
+  - `SetDrawInfoMiddle` scales the middle piece's width as the top edge (else
+    the bottom edge) and its height as the left edge (else the right). An edge
+    counts when its slice and width are positive (`Edge::IsDrawable`) and scales
+    by width over slice. Without one the scale is `EffectiveZoom()`.
+  - The painter already sizes a generated or SVG image at that zoom
+    (`StyleImage::ImageSize`), so its middle tile is zoomed twice. Its FIXME
+    says border-image is broken with full page zooming. A raster image's size is
+    its pixels, so its middle tile is not.
+  - `ComputeTileParameters`: `space` with no whole tile has no spacing, and the
+    piece is skipped (`CalculateSpaceNeeded`). `repeat` centers one tile (phase
+    `(dst - src) / 2`), not the row of tiles.
+- **Change** (`crates/div-paint/src/painter.rs`):
+  - `border_image_middle_scale` and `border_image_tile_size` give the middle
+    piece Blink's scale, with the zoom for generated and SVG sources and 1 for
+    raster ones.
+  - `border_image_axis_tiles` skips a `space` piece with no whole tile and
+    centers one `repeat` tile.
+  - Div used scale 1 for the middle (or the middle's own stretch ratio on the
+    other axis), drew one centered tile for `space`, and centered the row for
+    `repeat` (different when the count is even).
+- **Census and coverage** (WSL, 16 jobs, under the census lock), base main
+  `98cffc2` against the change at `fa0f034`:
+  - census: 16,296 → 16,297 exact, 7,432 → 7,431 different, 0 errors on both;
+  - coverage: 1,473 exact, 2,575 different, 156 errors on both, and no Div
+    image changed.
+
+  Three Div images changed, all `border-image-repeat-005`: 2x 20,000 → 0,
+  1.25x 8,684 → 1,306 and 1.5x 22,650 → 300. No other page changed.
+- **Remaining:** `border-image-repeat-005` at 1.25x and 1.5x. Chromium pixel
+  snaps the border image area in device pixels (`ToPixelSnappedRect`); at 1.5x
+  its tile spans device 124–348 crisp, Div's 123.75–348.75 with blended edges.
+  Owner: engine (RFC 0011 stage 2).
+- **Verification:** `cargo test --locked -p div-paint --lib` (WSL, CI Skia
+  flags): 280 passed, including
+  `border_image_middle_scales_as_blink_nine_piece_image_grid` and the updated
+  `border_image_axis_tiling_covers_stretch_repeat_round_and_space`. The census
+  pair as above, compared per page.
+
+### RFC 0011 stage 2 gaps measured with it
+
+Measured on the engine lane's real-zoom census at `fadf26f` (Chromium 147
+real zoom). Not claimed by the fidelity lane.
+
+- **Double border stripes** (`background-attachment-local/attachment-local-clipping-color-6-ref`
+  and `-image-6-ref`, exact at 1x since #82): 8,438 and 25,841 pixels at
+  1.25x, 5,058 and 21,850 at 1.5x, 8,027 and 8,033 at 2x, all on the stripes
+  of a `10px double` border on a 50%-radius box.
+  - Blink divides a double border into stripes in whole device pixels: outer
+    `(w + 1) / 3`, inner from `(2w + 1) / 3`. At 2x (w = 20) that is 7, 6, 7.
+  - Div's rounded double border (`line_width = (bt / 3.0).round()` in
+    `painter.rs`) divides in CSS px and scales: 6, 8, 6 at 2x and 4.5, 6, 4.5
+    at 1.5x (Chromium 5, 5, 5). At 1.25x Chromium also paints the 12.5 px
+    border 12 px wide.
+- **Collapsed borders in fragmented tables**
+  (`css-break/table/table-collapsed-borders-paint-*`, 8 pages; exact at 1x):
+  770–1,260 pixels at 2x, 4,500–8,555 at 1.25x and 1.5x.
+  - At 2x the edges are crisp and one device pixel apart (Div 272 and 662,
+    Chromium 271 and 661): the tables sit in columns at half CSS pixels
+    (column width 92.5).
+  - `collapsed_table_painter.rs` snaps in CSS px before the device scale
+    (`snap_size`, `SnappedRect`); Chromium snaps `LayoutUnit`s that are device
+    pixels under zoom for DSF.
+
 ## 17 November 2026: content and backgrounds under rounded clips
 
 - **Problem:** eight census rows at 1x differ from Chromium on the
