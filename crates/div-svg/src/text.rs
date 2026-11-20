@@ -37,8 +37,8 @@
 //!
 //! Shaping, fonts, metrics and glyph blobs come from `div-text`: each
 //! fragment's glyphs are a positioned blob over its part of the shaped run
-//! (`ShapeResult::to_positioned_text_blob`), rasterized with the raster
-//! configuration HTML text uses.
+//! (`ShapeResult::to_positioned_text_blob_under`, given the matrix the glyphs
+//! are drawn under), rasterized with the raster configuration HTML text uses.
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -554,12 +554,23 @@ pub fn paint(canvas: &Canvas, layout: &TextLayout, style: &dyn Fn(usize) -> SvgP
         }
         // `PhysicalRect::FastAndLossyFromRectF` truncates to layout units.
         let left = from_layout(to_layout_trunc(fragment.rect.x));
-        let Some(blob) = fragment.shape.to_positioned_text_blob(
+        // The matrix the glyphs are drawn under, below: web fonts take
+        // their mask and hinting from it, as Chromium's Fontations scaler
+        // does.
+        let mut device = canvas.local_to_device_as_3x3();
+        if sf != 1.0 {
+            device.pre_scale((1.0 / sf, 1.0 / sf), None);
+        }
+        if fragment.angle != 0.0 {
+            device.pre_concat(&to_sk_matrix(&fragment.rotation()));
+        }
+        let Some(blob) = fragment.shape.to_positioned_text_blob_under(
             fragment.shape_characters.clone(),
             &placements,
             policy,
             1.0,
             lcd.then_some(left),
+            Some(&device),
         ) else {
             continue;
         };

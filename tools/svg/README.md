@@ -566,21 +566,19 @@ tiles stepping by 254, an RGB-stripe LCD surface with gamma 1.2 and
 contrast 0.2, the `chromium_linux_lcd` raster configuration), and compares
 each slot byte for byte.
 
-On Linux, 244 of 290 captures are exact, including every 1x stroke,
-opacity, dash and `paint-order` case. The other 46 are named gaps in
-`pixel-gaps.txt`, all owned by `div-text` in the engine lane:
+On Linux, 264 of 290 captures are exact, including every 1x stroke,
+opacity, dash and `paint-order` case. Since T5 and T6, a web-font run takes
+its mask and hinting from the size and the matrix it is drawn under, as
+Chromium's Fontations scaler does: grayscale above 48 device px, and
+unhinted glyphs unless the matrix is axis-aligned. The other 26 are named
+gaps in `pixel-gaps.txt`, all owned by `div-text` in the engine lane:
 
-- **T5, LCD size limit (18).** Skia masks glyphs above 48 device px in
-  grayscale, as Chromium's are. Div draws a Linux web font through a
-  unit-size font, so Skia keeps the LCD mask. Grayscale edging above
-  48 px made all 18 exact in an experiment.
-- **T6, hinting under rotation and skew (24).** Div's web-font outlines are
-  hinted whatever the transform; Chromium leaves glyphs unhinted when the
-  device matrix is not a scale. Unhinted outlines made synthetic italic
-  exact and left the rotated cases a few edge pixels off.
-- **Non-uniform scale (4).** `xf/scale-nonuniform` and `xf/viewbox-none`
+- **T6 residue, rotated and skewed glyphs (22).** Unhinted, these cases
+  dropped to a few edge pixels (`list/rotate` at 1x: 483 to 66), but are
+  not exact. The cause is not measured yet.
+- **T7, non-uniform scale (4).** `xf/scale-nonuniform` and `xf/viewbox-none`
   have exact positions since T4, but their glyphs still differ. The cause
-  is not measured yet.
+  is not measured yet; the engine lane measures it after T5 and T6.
 
 On Windows, no capture is exact yet. Both sides paint LCD glyphs, and 275
 of the 283 cases without a position gap differ only in tone, by at most 16

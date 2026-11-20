@@ -212,3 +212,11 @@ on branch `components/c4-assets` and the shared findings note.
   part). No default changes, so the census and CSS Grid coverage cannot
   change.
   [Record](../windows-lcd-preset-rfc0012-2026-11-18.md).
+- 18 November 2026: Div's web-font glyphs take their mask and hinting
+  from the size and matrix they are drawn under, as Skia's Fontations
+  scaler does: grayscale above 48 device px (T5), and unhinted unless
+  the matrix is axis-aligned (T6). On Linux, 264 of 290 SVG text
+  captures are exact (was 244); the 22 rotated and skewed captures left
+  are named as the T6 residue, and T7 (non-uniform scale) is named. The
+  census and CSS Grid coverage are unchanged at all four profiles.
+  [Record](../web-font-raster-t5-t6-2026-11-18.md).

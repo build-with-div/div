@@ -30,7 +30,8 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use skia_safe::{
-    font::Edging, utils::CustomTypefaceBuilder, Font, FontHinting, FontMetrics, Path, Typeface,
+    font::Edging, utils::CustomTypefaceBuilder, Font, FontHinting, FontMetrics, Matrix, Path,
+    Typeface,
 };
 use skrifa::{
     instance::{Location, LocationRef, Size},
@@ -47,6 +48,77 @@ use super::shape_result::SkiaPathPen;
 pub(crate) const ENTRY_CAPACITY: usize = 32;
 /// Most glyph paths one typeface keeps before it restarts.
 pub(crate) const GLYPH_CAPACITY: usize = 4096;
+
+/// Skia's `SK_MAX_SIZE_FOR_LCDTEXT`: above this device size, a glyph's LCD
+/// mask becomes grayscale.
+const MAX_LCD_TEXT_SIZE: f32 = 48.0;
+
+/// Skia's `sk_relax`: a matrix entry rounded to 1/1024, so tiny changes in
+/// the matrix give the same glyphs.
+fn relax(value: f32) -> f32 {
+    (value * 1024.0 + 0.5).floor() / 1024.0
+}
+
+/// How Skia's scaler sees a run drawn under `device`, the linear part of the
+/// matrix from the run's physical-size glyphs to device pixels (`None` for
+/// the identity), as `SkScalerContext::MakeRecAndEffects` records it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct DeviceRaster {
+    /// The relaxed 2x2 (`fPost2x2`): scale x, skew x, skew y, scale y.
+    post: [f32; 4],
+    /// Whether the matrix has scale or skew bits (`checkPost2x2`).
+    check_post: bool,
+}
+
+impl DeviceRaster {
+    pub(crate) fn new(device: Option<&Matrix>) -> Self {
+        let Some(device) = device else {
+            return Self {
+                post: [1.0, 0.0, 0.0, 1.0],
+                check_post: false,
+            };
+        };
+        let (scale_x, skew_x, skew_y, scale_y) = (
+            device.scale_x(),
+            device.skew_x(),
+            device.skew_y(),
+            device.scale_y(),
+        );
+        let scaled = scale_x != 1.0 || scale_y != 1.0;
+        let affine = skew_x != 0.0 || skew_y != 0.0;
+        Self {
+            post: [
+                if scaled { relax(scale_x) } else { 1.0 },
+                if affine { relax(skew_x) } else { 0.0 },
+                if affine { relax(skew_y) } else { 0.0 },
+                if scaled { relax(scale_y) } else { 1.0 },
+            ],
+            check_post: scaled || affine,
+        }
+    }
+
+    /// `too_big_for_lcd`: whether Skia masks a glyph of `size` in grayscale
+    /// instead of LCD.
+    pub(crate) fn too_big_for_lcd(self, size: f32) -> bool {
+        if self.check_post {
+            let [scale_x, skew_x, skew_y, scale_y] = self.post;
+            let mut area = scale_x * scale_y - skew_y * skew_x;
+            area *= size * size;
+            area > MAX_LCD_TEXT_SIZE * MAX_LCD_TEXT_SIZE
+        } else {
+            size > MAX_LCD_TEXT_SIZE
+        }
+    }
+
+    /// `isAxisAligned` in `SkTypeface_fontations.cpp`, for a font with
+    /// `skew_x` (synthetic oblique): the Fontations scaler hints only
+    /// axis-aligned glyphs.
+    pub(crate) fn is_axis_aligned(self, skew_x: f32) -> bool {
+        let [scale_x, post_skew_x, post_skew_y, scale_y] = self.post;
+        skew_x == 0.0
+            && ((post_skew_x == 0.0 && post_skew_y == 0.0) || (scale_x == 0.0 && scale_y == 0.0))
+    }
+}
 
 /// The smooth target `make_hinting_instance` selects.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -144,19 +216,28 @@ fn cache() -> &'static Mutex<OutlineCache> {
     CACHE.get_or_init(Mutex::default)
 }
 
-fn key(source_font: &Font) -> Option<OutlineKey> {
+/// The key of `source_font` drawn under `device`. Like the Fontations
+/// scaler's record, it holds the mask Skia keeps (`lcd` is false above the
+/// LCD size limit) and the hinting after `onFilterRec` (none unless the
+/// glyphs are axis-aligned).
+fn key(source_font: &Font, device: DeviceRaster) -> Option<OutlineKey> {
     let typeface = source_font.typeface();
     let coordinates = typeface
         .variation_design_position()?
         .iter()
         .map(|coordinate| (*coordinate.axis, coordinate.value.to_bits()))
         .collect();
+    let size = source_font.size();
     Some(OutlineKey {
         typeface: typeface.unique_id().into(),
         coordinates,
-        size_bits: source_font.size().to_bits(),
-        hinting: source_font.hinting(),
-        lcd: source_font.edging() == Edging::SubpixelAntiAlias,
+        size_bits: size.to_bits(),
+        hinting: if device.is_axis_aligned(source_font.skew_x()) {
+            source_font.hinting()
+        } else {
+            FontHinting::None
+        },
+        lcd: source_font.edging() == Edging::SubpixelAntiAlias && !device.too_big_for_lcd(size),
         force_autohint: source_font.is_force_auto_hinting(),
     })
 }
@@ -273,29 +354,49 @@ impl OutlineEntry {
     }
 }
 
-/// A font whose typeface draws `glyphs` of `source_font` with the outlines
-/// and hinting Linux Chromium uses for a web font, at `source_font`'s size
-/// (the physical text size). The font is unit-sized; positions are physical.
+/// A font whose typeface draws `glyphs` of `source_font` with the outlines,
+/// hinting and mask Linux Chromium uses for a web font, at `source_font`'s
+/// size (the physical text size), drawn under `device` (see
+/// [`DeviceRaster::new`]). The font is unit-sized; positions are physical.
+/// Skia sees only the unit size, so the mask and the hinting the Fontations
+/// scaler derives from the size and the transform are chosen here:
+/// grayscale above the LCD size limit (T5), and unhinted outlines unless the
+/// glyphs are axis-aligned (T6).
 /// `None` keeps the resolved font, for example for a glyph without an outline.
-pub(crate) fn web_font(source_font: &Font, glyphs: &[u16]) -> Option<Font> {
+pub(crate) fn web_font(
+    source_font: &Font,
+    glyphs: &[u16],
+    device: Option<&Matrix>,
+) -> Option<Font> {
+    let key = key(source_font, DeviceRaster::new(device))?;
+    let lcd = key.lcd;
     let typeface = cache()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .typeface(source_font, glyphs)?;
+        .typeface(source_font, key, glyphs)?;
     let mut font = source_font.with_size(1.0)?;
     font.set_typeface(typeface);
     font.set_hinting(FontHinting::None);
     font.set_subpixel(source_font.is_subpixel());
     font.set_linear_metrics(source_font.is_linear_metrics());
-    font.set_edging(source_font.edging());
+    // The Fontations scaler drops `kGenA8FromLCD` (`onFilterRec`), so a mask
+    // above the limit is plain grayscale coverage.
+    font.set_edging(match source_font.edging() {
+        Edging::SubpixelAntiAlias if !lcd => Edging::AntiAlias,
+        edging => edging,
+    });
     Some(font)
 }
 
 impl OutlineCache {
     /// The typeface drawing `glyphs` of `source_font`, from the entry for
-    /// its key, which becomes the most recently used.
-    fn typeface(&mut self, source_font: &Font, glyphs: &[u16]) -> Option<Typeface> {
-        let key = key(source_font)?;
+    /// `key`, which becomes the most recently used.
+    fn typeface(
+        &mut self,
+        source_font: &Font,
+        key: OutlineKey,
+        glyphs: &[u16],
+    ) -> Option<Typeface> {
         let index = match self.entries.iter().position(|entry| entry.key == key) {
             Some(index) => index,
             None => {
@@ -418,18 +519,106 @@ mod tests {
         font
     }
 
+    fn identity() -> DeviceRaster {
+        DeviceRaster::new(None)
+    }
+
+    fn typeface(cache: &mut OutlineCache, font: &Font, glyphs: &[u16]) -> Option<Typeface> {
+        cache.typeface(font, key(font, identity())?, glyphs)
+    }
+
+    #[test]
+    fn lcd_masks_stop_at_skias_size_limit() {
+        // Without a scale or skew, Skia compares the size itself.
+        assert!(!identity().too_big_for_lcd(48.0));
+        assert!(identity().too_big_for_lcd(48.001));
+        // Under one, it compares the area the matrix gives the glyph.
+        let half = DeviceRaster::new(Some(&Matrix::scale((0.5, 0.5))));
+        assert!(!half.too_big_for_lcd(96.0));
+        assert!(half.too_big_for_lcd(96.01));
+        let stretched = DeviceRaster::new(Some(&Matrix::scale((2.0, 0.5))));
+        assert!(!stretched.too_big_for_lcd(48.0));
+        assert!(stretched.too_big_for_lcd(48.01));
+        // A rotation keeps the area.
+        let rotated = DeviceRaster::new(Some(&Matrix::rotate_deg(30.0)));
+        assert!(!rotated.too_big_for_lcd(47.9));
+        assert!(rotated.too_big_for_lcd(48.1));
+        // A translation is the identity.
+        let moved = DeviceRaster::new(Some(&Matrix::translate((3.5, 7.25))));
+        assert_eq!(moved, identity());
+    }
+
+    #[test]
+    fn only_axis_aligned_glyphs_are_hinted() {
+        assert!(identity().is_axis_aligned(0.0));
+        // Synthetic oblique skews the font itself.
+        assert!(!identity().is_axis_aligned(-0.25));
+        assert!(DeviceRaster::new(Some(&Matrix::scale((2.0, 0.5)))).is_axis_aligned(0.0));
+        assert!(!DeviceRaster::new(Some(&Matrix::rotate_deg(30.0))).is_axis_aligned(0.0));
+        assert!(!DeviceRaster::new(Some(&Matrix::skew((0.3, 0.0)))).is_axis_aligned(0.0));
+        // A quarter turn swaps the axes and stays aligned; Skia relaxes the
+        // matrix's rounding error (cos 90 is not exactly 0 in f32).
+        assert!(DeviceRaster::new(Some(&Matrix::rotate_deg(90.0))).is_axis_aligned(0.0));
+        assert!(DeviceRaster::new(Some(&Matrix::rotate_deg(-90.0))).is_axis_aligned(0.0));
+        // Below 1/2048 an entry relaxes to 0.
+        let tiny = Matrix::new_all(1.0, 0.0004, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+        assert!(DeviceRaster::new(Some(&tiny)).is_axis_aligned(0.0));
+    }
+
+    #[test]
+    fn the_key_holds_the_mask_and_hinting_skia_keeps() {
+        let typeface = dejavu_typeface();
+        let lcd = key(&font(&typeface, 48.0), identity()).unwrap();
+        assert!(lcd.lcd);
+        assert_eq!(lcd.hinting, FontHinting::Slight);
+        let large = key(&font(&typeface, 48.5), identity()).unwrap();
+        assert!(!large.lcd);
+        assert_eq!(large.hinting, FontHinting::Slight);
+        let rotated = key(
+            &font(&typeface, 16.0),
+            DeviceRaster::new(Some(&Matrix::rotate_deg(30.0))),
+        )
+        .unwrap();
+        assert!(rotated.lcd);
+        assert_eq!(rotated.hinting, FontHinting::None);
+        let mut oblique = font(&typeface, 16.0);
+        oblique.set_skew_x(-0.25);
+        assert_eq!(
+            key(&oblique, identity()).unwrap().hinting,
+            FontHinting::None
+        );
+    }
+
+    #[test]
+    fn web_fonts_above_the_lcd_limit_draw_grayscale() {
+        let typeface = dejavu_typeface();
+        let small = web_font(&font(&typeface, 48.0), &[36], None).unwrap();
+        assert_eq!(small.edging(), Edging::SubpixelAntiAlias);
+        let large = web_font(&font(&typeface, 48.5), &[36], None).unwrap();
+        assert_eq!(large.edging(), Edging::AntiAlias);
+        let shrunk = Matrix::scale((0.5, 0.5));
+        let small_on_device = web_font(&font(&typeface, 96.0), &[36], Some(&shrunk)).unwrap();
+        assert_eq!(small_on_device.edging(), Edging::SubpixelAntiAlias);
+        let mut gray = font(&typeface, 16.0);
+        gray.set_edging(Edging::AntiAlias);
+        assert_eq!(
+            web_font(&gray, &[36], None).unwrap().edging(),
+            Edging::AntiAlias
+        );
+    }
+
     #[test]
     fn the_cache_evicts_the_least_recently_used_typeface() {
         let mut cache = OutlineCache::default();
         let first = dejavu(10.0);
-        cache.typeface(&first, &[36]).unwrap();
+        typeface(&mut cache, &first, &[36]).unwrap();
         for index in 1..ENTRY_CAPACITY {
-            cache.typeface(&dejavu(10.0 + index as f32), &[36]).unwrap();
+            typeface(&mut cache, &dejavu(10.0 + index as f32), &[36]).unwrap();
         }
         assert_eq!(cache.entries.len(), ENTRY_CAPACITY);
         // Using the first entry again protects it; the second is evicted.
-        cache.typeface(&first, &[37]).unwrap();
-        cache.typeface(&dejavu(100.0), &[36]).unwrap();
+        typeface(&mut cache, &first, &[37]).unwrap();
+        typeface(&mut cache, &dejavu(100.0), &[36]).unwrap();
         let sizes: Vec<f32> = cache.contents().iter().map(|(key, _)| key.size()).collect();
         assert_eq!(sizes.len(), ENTRY_CAPACITY);
         assert!(sizes.contains(&10.0));
@@ -441,41 +630,44 @@ mod tests {
     fn a_typeface_grows_by_union_and_restarts_past_its_glyph_capacity() {
         let mut cache = OutlineCache::default();
         let font = dejavu(13.0);
-        let first = cache.typeface(&font, &[36, 37]).unwrap();
+        let first = typeface(&mut cache, &font, &[36, 37]).unwrap();
         // The same glyphs reuse the typeface, keeping Skia's glyph cache.
-        let again = cache.typeface(&font, &[37]).unwrap();
+        let again = typeface(&mut cache, &font, &[37]).unwrap();
         assert_eq!(first.unique_id(), again.unique_id());
         // A new glyph rebuilds it once with the union.
-        let grown = cache.typeface(&font, &[38]).unwrap();
+        let grown = typeface(&mut cache, &font, &[38]).unwrap();
         assert_ne!(first.unique_id(), grown.unique_id());
         assert_eq!(cache.contents()[0].1, 3);
         let glyphs: Vec<u16> = (1..=GLYPH_CAPACITY as u16).collect();
-        cache.typeface(&font, &glyphs).unwrap();
+        typeface(&mut cache, &font, &glyphs).unwrap();
         assert_eq!(cache.contents()[0].1, GLYPH_CAPACITY);
-        cache.typeface(&font, &[36]).unwrap();
+        typeface(&mut cache, &font, &[36]).unwrap();
         assert_eq!(cache.contents()[0].1, GLYPH_CAPACITY);
         let beyond = GLYPH_CAPACITY as u16 + 1;
-        cache.typeface(&font, &[beyond, beyond + 1]).unwrap();
+        typeface(&mut cache, &font, &[beyond, beyond + 1]).unwrap();
         assert_eq!(cache.contents()[0].1, 2);
     }
 
     #[test]
     fn the_key_separates_size_hinting_mask_and_instance() {
         let typeface = dejavu_typeface();
-        let base = key(&font(&typeface, 13.0)).unwrap();
-        assert_eq!(base, key(&font(&typeface, 13.0)).unwrap());
-        assert_ne!(base, key(&font(&typeface, 13.5)).unwrap());
+        let base = key(&font(&typeface, 13.0), identity()).unwrap();
+        assert_eq!(base, key(&font(&typeface, 13.0), identity()).unwrap());
+        assert_ne!(base, key(&font(&typeface, 13.5), identity()).unwrap());
         let mut hinting = font(&typeface, 13.0);
         hinting.set_hinting(FontHinting::Normal);
-        assert_ne!(base, key(&hinting).unwrap());
+        assert_ne!(base, key(&hinting, identity()).unwrap());
         let mut gray = font(&typeface, 13.0);
         gray.set_edging(Edging::AntiAlias);
-        assert_ne!(base, key(&gray).unwrap());
+        assert_ne!(base, key(&gray, identity()).unwrap());
         let mut forced = font(&typeface, 13.0);
         forced.set_force_auto_hinting(true);
-        assert_ne!(base, key(&forced).unwrap());
+        assert_ne!(base, key(&forced, identity()).unwrap());
         // Each typeface, and so each variable instance, is its own key.
-        assert_ne!(base, key(&font(&dejavu_typeface(), 13.0)).unwrap());
+        assert_ne!(
+            base,
+            key(&font(&dejavu_typeface(), 13.0), identity()).unwrap()
+        );
     }
 
     mod routing {

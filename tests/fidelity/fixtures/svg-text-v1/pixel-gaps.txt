@@ -4,66 +4,41 @@
 # numbers change, and on a listed case that is now exact. Every gap below is owned outside the
 # SVG lane; div-svg does not work around it.
 
-# Linux: 244 of 290 captures exact.
+# Linux: 264 of 290 captures exact.
 
-# T5, LCD size limit, engine (div-text shaping/web_font_outlines.rs): Skia masks glyphs larger than
-# 48 device px (SK_MAX_SIZE_FOR_LCDTEXT) in grayscale, and Chromium's are (no coloured pixel).
-# Div draws a Linux web font through a unit-size font whose typeface holds outlines at the
-# physical size, so Skia sees size 1 and keeps the LCD mask. Measured 17 November 2026: giving
-# the web-font run grayscale edging above 48 px made all 18 captures exact. HTML text in a web
-# font above 48 device px takes the same path.
-linux 1x paint/large 1092 152
-linux 2x chart/center-label 1015 130
-linux 2x paint/crisp 2903 146
-linux 2x paint/current-color 2953 127
-linux 2x paint/fill-opacity 2720 61
-linux 2x paint/large 2302 132
-linux 2x paint/non-scaling 5723 148
-linux 2x paint/order-stroke 5610 136
-linux 2x paint/stroke 5963 130
-linux 2x paint/stroke-dash 4719 119
-linux 2x paint/stroke-only 5890 122
-linux 2x paint/stroke-opacity 9662 73
-linux 2x paint/stroke-scaled 6563 126
-linux 2x paint/stroke-wide 3639 109
-linux 2x paint/tspan-stroke 3915 156
-linux 2x run/geist-size-36 2903 146
-linux 2x xf/scale-2 2375 149
-linux 2x xf/viewbox-2 2375 149
+# T6 residue, rotated and skewed glyphs, engine (div-text shaping/web_font_outlines.rs): since
+# T6, Div leaves web-font glyphs unhinted unless the device matrix is axis-aligned, as Chromium's
+# Fontations scaler does, which made run/italic exact and cut every case below (list/rotate 1x:
+# 483 to 66 pixels). The glyphs still differ at some edges. Cause: unmeasured; the engine lane
+# measures it after T5 and T6.
+linux 1x anchor/end-rotate 84 56
+linux 1x chart/rotated-ticks 259 40
+linux 1x list/rotate 66 48
+linux 1x list/rotate-negative 14 16
+linux 1x list/rotate-single 144 64
+linux 1x paint/rotate-stroke 410 67
+linux 1x tspan/rotate-inherit 95 56
+linux 1x tspan/rotate-own 59 40
+linux 1x xf/rotate-30 24 24
+linux 1x xf/rotate-tick 104 40
+linux 1x xf/skew 137 72
+linux 2x anchor/end-rotate 301 80
+linux 2x chart/rotated-ticks 508 72
+linux 2x list/rotate 140 16
+linux 2x list/rotate-negative 45 16
+linux 2x list/rotate-single 423 56
+linux 2x paint/rotate-stroke 997 81
+linux 2x tspan/rotate-inherit 235 64
+linux 2x tspan/rotate-own 230 64
+linux 2x xf/rotate-30 57 16
+linux 2x xf/rotate-tick 215 64
+linux 2x xf/skew 208 64
 
-# T6, hinting under rotation and skew, engine (div-text shaping/web_font_outlines.rs): the
-# web-font outlines are hinted at the physical size whatever the transform. Chromium's Fontations scaler
-# leaves glyphs unhinted when the device matrix is not a scale (a `rotate` glyph, a rotated or
-# skewed CTM, synthetic italic). Measured 17 November 2026: unhinted outlines made run/italic
-# exact and cut the rotated cases to a few edge pixels (list/rotate 1x: 483 to 66), with the
-# axis-aligned glyph of list/rotate-negative then wrong; the rest is for the engine lane to find.
-linux 1x anchor/end-rotate 459 192
-linux 1x chart/rotated-ticks 1149 152
-linux 1x list/rotate 483 224
-linux 1x list/rotate-negative 251 208
-linux 1x list/rotate-single 464 184
-linux 1x paint/rotate-stroke 1169 200
-linux 1x run/italic 816 199
-linux 1x tspan/rotate-inherit 469 216
-linux 1x tspan/rotate-own 443 208
-linux 1x xf/rotate-30 314 152
-linux 1x xf/rotate-tick 420 152
-linux 1x xf/skew 392 152
-linux 2x anchor/end-rotate 874 216
-linux 2x chart/rotated-ticks 2012 128
-linux 2x list/rotate 1031 216
-linux 2x list/rotate-negative 533 216
-linux 2x list/rotate-single 986 184
-linux 2x paint/rotate-stroke 3372 228
-linux 2x run/italic 1607 215
-linux 2x tspan/rotate-inherit 949 216
-linux 2x tspan/rotate-own 908 216
-linux 2x xf/rotate-30 707 208
-linux 2x xf/rotate-tick 823 168
-linux 2x xf/skew 886 200
-
-# Engine (div-text), after T4: the positions are exact, but the glyphs under a non-uniform
-# scale still differ. The cause is not measured yet; the engine lane measures it with T5 and T6.
+# T7, glyphs under a non-uniform scale, engine (div-text shaping/web_font_outlines.rs): after T4
+# the positions are exact, but the glyphs still differ. Cause: unmeasured. T6's rule leaves these
+# unchanged: a non-uniform scale is axis-aligned, so the glyphs stay hinted. A lead for the
+# measurement: the Fontations scaler hints at the matrix's vertical scale and maps the outline
+# by the rest (computeMatrices, kVertical).
 linux 1x xf/scale-nonuniform 578 144
 linux 1x xf/viewbox-none 578 144
 linux 2x xf/scale-nonuniform 1526 255
