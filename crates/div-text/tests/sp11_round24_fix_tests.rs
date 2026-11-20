@@ -67,6 +67,7 @@ fn make_shape_result_with_clusters(
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![1; num_glyphs],
+            advance_units: ShapeResultRun::units_from_px(&advances),
             advances,
             offsets: vec![(0.0, 0.0); num_glyphs],
             clusters,

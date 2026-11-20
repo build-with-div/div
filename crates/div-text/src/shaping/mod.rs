@@ -8,6 +8,7 @@
 //! - `TextShaper` shapes each run using HarfBuzz (via Skia's `SkShaper`).
 //! - `ShapeResult` holds the output: glyph IDs, positions, and metadata.
 
+mod harfbuzz;
 mod segmenter;
 mod shape_result;
 mod shaper;

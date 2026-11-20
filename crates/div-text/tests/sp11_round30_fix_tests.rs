@@ -28,6 +28,7 @@ fn r30_proportional_single_char_not_empty() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![1, 2, 3],
+        advance_units: ShapeResultRun::units_from_px(&vec![5.0, 5.0, 5.0]),
         advances: vec![5.0, 5.0, 5.0],
         offsets: vec![(0.0, 0.0); 3],
         clusters: vec![], // empty clusters → proportional fallback
@@ -57,6 +58,7 @@ fn r30_proportional_middle_char_not_empty() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![1, 2, 3],
+        advance_units: ShapeResultRun::units_from_px(&vec![5.0, 5.0, 5.0]),
         advances: vec![5.0, 5.0, 5.0],
         offsets: vec![(0.0, 0.0); 3],
         clusters: vec![],
@@ -84,6 +86,7 @@ fn r30_proportional_full_range_covers_all_glyphs() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![1, 2, 3],
+        advance_units: ShapeResultRun::units_from_px(&vec![5.0, 5.0, 5.0]),
         advances: vec![5.0, 5.0, 5.0],
         offsets: vec![(0.0, 0.0); 3],
         clusters: vec![],
@@ -106,6 +109,7 @@ fn r30_proportional_clamped_to_num_glyphs() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![1, 2],
+        advance_units: ShapeResultRun::units_from_px(&vec![5.0, 5.0]),
         advances: vec![5.0, 5.0],
         offsets: vec![(0.0, 0.0); 2],
         clusters: vec![],

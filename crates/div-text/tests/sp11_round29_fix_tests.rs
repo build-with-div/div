@@ -107,6 +107,7 @@ fn r29_cluster_span_covers_non_base_characters() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![42, 43], // non-zero = real glyphs
+        advance_units: ShapeResultRun::units_from_px(&vec![10.0, 10.0]),
         advances: vec![10.0, 10.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 2],
@@ -171,6 +172,7 @@ fn r29_cluster_span_notdef_detected_for_all_chars_in_cluster() {
     let run = ShapeResultRun {
         font_data: Arc::clone(&fd),
         glyphs: vec![0, 55], // glyph 0 is .notdef, glyph 1 is real
+        advance_units: ShapeResultRun::units_from_px(&vec![0.0, 12.0]),
         advances: vec![0.0, 12.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 3], // glyph 0 spans [0..3), glyph 1 spans [3..5)

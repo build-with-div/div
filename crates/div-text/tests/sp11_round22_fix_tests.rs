@@ -51,6 +51,7 @@ fn make_shape_result(
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![1; num_glyphs],
+            advance_units: ShapeResultRun::units_from_px(&advances),
             advances,
             offsets: vec![(0.0, 0.0); num_glyphs],
             clusters,
@@ -173,6 +174,7 @@ fn glyph_range_includes_ligature_spanning_clip_start() {
     let run = ShapeResultRun {
         font_data,
         glyphs: vec![100, 200],
+        advance_units: ShapeResultRun::units_from_px(&vec![20.0, 10.0]),
         advances: vec![20.0, 10.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 2], // glyph 0 → char 0, glyph 1 → char 2
@@ -198,6 +200,7 @@ fn glyph_range_excludes_ligature_not_overlapping() {
     let run = ShapeResultRun {
         font_data,
         glyphs: vec![100, 200],
+        advance_units: ShapeResultRun::units_from_px(&vec![20.0, 20.0]),
         advances: vec![20.0, 20.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 2],
@@ -220,6 +223,7 @@ fn sub_range_preserves_ligature_glyph_at_boundary() {
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![100, 200],
+            advance_units: ShapeResultRun::units_from_px(&vec![20.0, 10.0]),
             advances: vec![20.0, 10.0],
             offsets: vec![(0.0, 0.0), (0.0, 0.0)],
             clusters: vec![0, 2],
@@ -275,6 +279,7 @@ fn char_advance_from_runs_uses_cluster_geometry() {
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![100, 200],
+            advance_units: ShapeResultRun::units_from_px(&vec![20.0, 10.0]),
             advances: vec![20.0, 10.0],
             offsets: vec![(0.0, 0.0), (0.0, 0.0)],
             clusters: vec![0, 2],
@@ -335,6 +340,7 @@ fn char_advance_ligature_not_uniform() {
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![100, 200],
+            advance_units: ShapeResultRun::units_from_px(&vec![30.0, 10.0]),
             advances: vec![30.0, 10.0],
             offsets: vec![(0.0, 0.0), (0.0, 0.0)],
             clusters: vec![0, 1], // Each glyph covers 1 char out of 2

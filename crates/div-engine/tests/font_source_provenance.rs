@@ -183,6 +183,7 @@ fn actual_character_fallback_and_cached_instances_preserve_each_source() {
     let run = |data: Arc<FontPlatformData>| ShapeResultRun {
         font_data: data,
         glyphs: vec![],
+        advance_units: ShapeResultRun::units_from_px(&vec![]),
         advances: vec![],
         offsets: vec![],
         clusters: vec![],
