@@ -15,12 +15,12 @@ emulated, and at any other scale Chromium runs at real zoom
 - `<prefix>.json`: the cases, their slots, and the sheet for each scale;
 - `<prefix>-<scale>x.png`: Chromium's screenshot of each sheet.
 
-There are six sets, each with its own fixtures and gap list: `v1` (fills,
+There are seven sets, each with its own fixtures and gap list: `v1` (fills,
 strokes, transforms, viewports and the Lucide icons), `v2` (dashes,
 `pathLength`, `paint-order`, `shape-rendering`, `vector-effect` and
 chart-shaped compositions), `v3` (`clipPath`), `v4` (paint servers:
-gradients and patterns), `v5` (`mask`) and `v6` (`use` and `symbol`).
-Every case of `v3` to `v6` is taken at both scales.
+gradients and patterns), `v5` (`mask`), `v6` (`use` and `symbol`) and
+`v7` (markers). Every case of `v3` to `v7` is taken at both scales.
 
     paint_corpus.py list [--set v2]
     paint_corpus.py capture --set v2 --chrome PATH --output-prefix \\
@@ -1091,11 +1091,247 @@ def use_cases() -> list[dict]:
     ])]
 
 
+def marker_cases() -> list[dict]:
+    """Markers (set v7): where they go and which way they point on each kind
+    of segment, how the marker viewport maps and clips, which properties
+    they take, and the arrowheads and data dots charts and diagrams draw."""
+    red = "#ef4444"
+    green = "#22c55e"
+    # An arrow whose tip is its reference point, so position and direction
+    # both show; a dot; and a notched square that is not symmetric about
+    # either axis, so a mirror or a quarter turn shows too.
+    arrow = (f'<marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" '
+             f'markerHeight="4" orient="auto"><path d="M0,0L10,5L0,10z" fill="{BLUE}"/></marker>')
+    dot = (f'<marker id="d" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3" '
+           f'markerHeight="3"><circle cx="5" cy="5" r="4" fill="{red}"/></marker>')
+    flag = (f'<marker id="f" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="5" '
+            f'markerHeight="5" orient="auto"><path d="M0,0H10V4H5V10H0z" fill="{green}"/>'
+            '</marker>')
+    all_three = 'marker-start="url(#f)" marker-mid="url(#d)" marker-end="url(#a)"'
+    every = 'marker-start="url(#a)" marker-mid="url(#a)" marker-end="url(#a)"'
+    line = f'fill="none" stroke="{INK}" stroke-width="2"'
+
+    def marked(case_id: str, defs: str, body: str, **kw) -> dict:
+        return case(case_id, f'<defs>{defs}</defs>{body}', **kw)
+
+    def three(case_id: str, shape: str, **kw) -> dict:
+        return marked(case_id, arrow + dot + flag, shape, **kw)
+
+    def arrows(case_id: str, shape: str, **kw) -> dict:
+        return marked(case_id, arrow, shape, **kw)
+
+    def custom(case_id: str, attrs: str, content: str, shape: str = "", **kw) -> dict:
+        shape = shape or f'<path d="M12,32H52" {line} marker-end="url(#m)"/>'
+        return marked(case_id, f'<marker id="m" {attrs}>{content}</marker>', shape, **kw)
+
+    square = (f'<rect width="10" height="10" fill="{BLUE}"/>'
+              f'<rect width="5" height="5" fill="{red}"/>')
+    big = (f'<rect x="-4" y="-4" width="18" height="18" fill="{green}"/>'
+           f'<rect width="10" height="10" fill="{BLUE}"/>')
+    blocker = f'<rect x="40" y="44" width="12" height="12" fill="{BLUE}"/>'
+    plain = f'<path d="M12,32H52" {line} marker-end="url(#m)"/>'
+    diagonal = f'<path d="M12,48L52,16" {line} marker-end="url(#m)"/>'
+    zig = '<polyline points="8,52 22,14 38,44 56,10"'
+
+    return [scoped(c, i) for i, c in enumerate([
+        # Positions and directions on each kind of segment.
+        three("pos/line", f'<line x1="10" y1="50" x2="50" y2="14" {line} {all_three}/>'),
+        three("pos/polyline", f'{zig} {line} {all_three}/>'),
+        three("pos/polygon", f'<polygon points="12,12 52,16 40,52 14,44" {line} {all_three}/>'),
+        three("pos/path-lines", f'<path d="M8,12L56,12L8,52L56,52" {line} {all_three}/>'),
+        three("pos/relative", f'<path d="m8,52 h20 v-30 l16,-10 H56 V52" {line} {all_three}/>'),
+        three("pos/subpaths", f'<path d="M8,14L40,14M14,40L56,30L56,54" {line} {all_three}/>'),
+        three("pos/closed", f'<path d="M14,14L50,14L50,50Z" {line} {all_three}/>'),
+        three("pos/closed-explicit", f'<path d="M14,14L50,14L50,50L14,14Z" {line} {all_three}/>'),
+        three("pos/closed-then-line", f'<path d="M10,10L40,10L40,40ZL54,54" {line} {all_three}/>'),
+        three("pos/closed-subpaths", f'<path d="M8,8H28V28ZM36,36H56V56Z" {line} {all_three}/>'),
+        three("pos/cubic", f'<path d="M8,52C8,8 56,56 56,12" {line} {all_three}/>'),
+        three("pos/cubic-coincident", f'<path d="M8,52C8,52 40,8 56,12C56,12 56,40 30,56" '
+              f'{line} {all_three}/>'),
+        three("pos/cubic-degenerate", f'<path d="M10,50C10,50 10,50 50,14" {line} {all_three}/>'),
+        three("pos/quad", f'<path d="M8,52Q32,-8 56,52" {line} {all_three}/>'),
+        three("pos/smooth", f'<path d="M6,32C14,6 22,6 30,32S46,58 58,32" {line} {all_three}/>'),
+        three("pos/smooth-quad", f'<path d="M6,40Q16,10 26,40T46,40T58,20" {line} {all_three}/>'),
+        three("pos/arc", f'<path d="M10,40A22,22 0 0 1 54,40" {line} {all_three}/>'),
+        three("pos/arc-large", f'<path d="M20,20A16,12 30 1 0 44,44" {line} {all_three}/>'),
+        three("pos/arc-chain", f'<path d="M8,32A12,12 0 0 1 32,32A12,12 0 0 0 56,32" '
+              f'{line} {all_three}/>'),
+        three("pos/arc-degenerate", f'<path d="M10,50A0,10 0 0 1 50,14" {line} {all_three}/>'),
+        three("pos/zero-length", f'<path d="M12,32L12,32L52,32L52,32" {line} {all_three}/>'),
+        three("pos/zero-length-only", f'<path d="M32,32L32,32" {line} {all_three} '
+              'stroke-linecap="round"/>'),
+        three("pos/moveto-only", f'<path d="M32,32" {line} {all_three}/>{blocker}'),
+        three("pos/reversal", f'<path d="M10,32L54,32L20,32" {line} {all_three}/>'),
+        three("pos/sharp", f'<path d="M8,10L56,30L8,34L56,54" {line} {all_three}/>'),
+        three("pos/error", f'<path d="M8,52L30,12L56,52L" {line} {all_three}/>'),
+        # Directions at mid vertices, after zero-length segments and at moves,
+        # with an arrow at every vertex.
+        arrows("dir/polyline", f'{zig} {line} {every}/>'),
+        arrows("dir/subpaths", f'<path d="M8,14L40,14M14,40L56,30L56,54" {line} {every}/>'),
+        arrows("dir/closed", f'<polygon points="12,12 52,16 40,52 14,44" {line} {every}/>'),
+        arrows("dir/curves", f'<path d="M6,50C6,20 20,10 24,30Q30,56 40,30A10,14 20 0 1 58,20" '
+               f'{line} {every}/>'),
+        arrows("dir/reversal", f'<path d="M10,20L54,20L20,20M10,44L54,44L54,44L20,44" '
+               f'{line} {every}/>'),
+        arrows("dir/zero-diagonal", f'<path d="M12,52L12,52L52,12L52,12" {line} {every}/>'),
+        arrows("dir/zero-mid", f'<path d="M8,52L32,20L32,20L56,52" {line} {every}/>'),
+        arrows("dir/zero-close", f'<path d="M14,14L50,14L50,50L14,14Z" {line} {every}/>'),
+        arrows("dir/zero-curve", f'<path d="M10,50C10,50 10,50 10,50L50,14Q50,14 50,14" '
+               f'{line} {every}/>'),
+        arrows("dir/moves", f'<path d="M20,20M40,44L56,20" {line} {every}/>'),
+        arrows("dir/move-pair", f'<path d="M20,12M44,52" {line} {every}/>'),
+        arrows("dir/trailing-move", f'<path d="M10,50L30,20M50,40" {line} {every}/>'),
+        arrows("dir/lone-move", f'<path d="M40,12" {line} {every}/>'),
+        arrows("dir/close-move", f'<path d="M14,14L50,14L50,50ZM30,56L56,40" {line} {every}/>'),
+        # Orientation.
+        custom("orient/angle", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" orient="30"', square),
+        custom("orient/units", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" orient="0.3rad"', square,
+               f'<path d="M12,20H52" {line} marker-end="url(#m)"/>'
+               f'<path d="M12,44H52" {line} marker-end="url(#n)"/>'
+               f'<marker id="n" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               f'markerHeight="6" orient="-0.125turn">{square}</marker>'),
+        custom("orient/auto-start-reverse", 'viewBox="0 0 10 10" refX="10" refY="5" '
+               'markerWidth="5" markerHeight="5" orient="auto-start-reverse"',
+               f'<path d="M0,0L10,5L0,10z" fill="{BLUE}"/>',
+               f'<path d="M12,48L32,16L52,48" {line} marker-start="url(#m)" '
+               'marker-end="url(#m)"/>'),
+        custom("orient/invalid", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" orient="sideways"', square, diagonal),
+        # Size, units and the viewport.
+        custom("units/stroke-width", 'markerWidth="4" markerHeight="4" refX="2" refY="2"',
+               square, f'<path d="M12,20H52" {line} marker-end="url(#m)"/>'
+               f'<path d="M12,46H40" fill="none" stroke="{INK}" stroke-width="3.5" '
+               'marker-end="url(#m)"/>'),
+        custom("units/user-space", 'markerUnits="userSpaceOnUse" markerWidth="12" '
+               'markerHeight="12" refX="5" refY="5"', square,
+               f'<path d="M12,32H52" fill="none" stroke="{INK}" stroke-width="5" '
+               'marker-end="url(#m)"/>'),
+        custom("units/stroke-none", 'markerWidth="4" markerHeight="4"', square,
+               '<path d="M12,32H44" fill="none" stroke="none" stroke-width="3" '
+               'marker-end="url(#m)"/>'),
+        custom("units/stroke-percent", 'markerWidth="4" markerHeight="4"', square,
+               f'<path d="M12,32H44" fill="none" stroke="{INK}" stroke-width="5%" '
+               'marker-end="url(#m)"/>'),
+        custom("size/default", 'refX="0" refY="0"', square,
+               f'<path d="M12,32H44" fill="none" stroke="{INK}" stroke-width="4" '
+               'marker-end="url(#m)"/>'),
+        custom("size/viewbox-meet", 'viewBox="0 0 10 10" markerWidth="8" markerHeight="4" '
+               'overflow="visible"', big),
+        custom("size/viewbox-slice", 'viewBox="0 0 10 10" markerWidth="8" markerHeight="4" '
+               'preserveAspectRatio="xMaxYMax slice"', big),
+        custom("size/viewbox-none", 'viewBox="0 0 10 10" markerWidth="8" markerHeight="4" '
+               'preserveAspectRatio="none"', big),
+        custom("size/viewbox-offset", 'viewBox="-5 -5 10 10" markerWidth="6" markerHeight="6"',
+               big),
+        custom("size/zero", 'viewBox="0 0 10 10" markerWidth="0" markerHeight="6"', square,
+               plain + blocker),
+        custom("size/negative", 'viewBox="0 0 10 10" markerWidth="-4" markerHeight="6"', square,
+               plain + blocker),
+        custom("size/empty-viewbox", 'viewBox="0 0 0 10" markerWidth="6" markerHeight="6"',
+               square, plain + blocker),
+        custom("ref/xy", 'viewBox="0 0 10 10" refX="2.5" refY="7.5" markerWidth="6" '
+               'markerHeight="6" orient="auto"', square, diagonal),
+        custom("ref/keywords", 'viewBox="0 0 10 10" refX="center" refY="bottom" '
+               'markerWidth="6" markerHeight="6"', square),
+        custom("ref/percent", 'viewBox="0 0 10 10" refX="50%" refY="25%" '
+               'markerWidth="6" markerHeight="6"', square),
+        custom("clip/hidden", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" orient="auto"', big, diagonal),
+        custom("clip/visible", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" orient="auto" overflow="visible"', big, diagonal),
+        custom("clip/auto", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" style="overflow:auto"', big),
+        custom("clip/meet", 'viewBox="0 0 10 10" markerWidth="8" markerHeight="4" '
+               'preserveAspectRatio="xMidYMid meet"', big),
+        # Properties.
+        custom("prop/inherit", f'markerWidth="6" markerHeight="6" fill="{green}"',
+               '<rect width="3" height="3"/><rect x="3" y="3" width="3" height="3" '
+               'fill="inherit"/>',
+               f'<g fill="{red}" stroke="{red}"><path d="M12,32H44" stroke-width="2" '
+               'marker-end="url(#m)"/></g>'),
+        three("prop/css-shorthand", f'{zig} {line} style="marker:url(#d)"/>'),
+        three("prop/attr-shorthand", f'{zig} {line} marker="url(#d)"/>'),
+        three("prop/inherited", f'<g {all_three}>{zig} {line}/>'
+              f'<path d="M8,58H30L56,58" {line} marker-mid="none"/></g>'),
+        three("prop/other-shapes", f'<rect x="8" y="8" width="20" height="16" {line} '
+              f'{all_three}/><circle cx="44" cy="20" r="10" {line} {all_three}/>'
+              f'<ellipse cx="20" cy="46" rx="12" ry="8" {line} {all_three}/>'),
+        three("prop/missing", f'<path d="M8,32H56" {line} marker-start="url(#nope)" '
+              'marker-end="url(#a)"/>'),
+        marked("prop/not-a-marker", f'<rect id="r" width="10" height="10" fill="{red}"/>{arrow}',
+               f'<path d="M8,32H56" {line} marker-start="url(#r)" marker-end="url(#a)"/>'),
+        custom("prop/context-paint", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" '
+               'markerHeight="5"', '<rect width="10" height="10" fill="context-stroke" '
+               'stroke="context-fill" stroke-width="3"/>',
+               f'<path d="M12,20H52" fill="{red}" stroke="{BLUE}" stroke-width="2" '
+               f'marker-end="url(#m)"/><path d="M12,46H52" fill="{green}" stroke="{INK}" '
+               'stroke-width="2" marker-end="url(#m)"/>'),
+        three("prop/opacity", f'{zig} {line} {all_three} opacity="0.5"/>'),
+        custom("prop/content-opacity", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" '
+               'markerHeight="8"', f'<g opacity="0.5"><rect width="7" height="7" fill="{BLUE}"/>'
+               f'<rect x="3" y="3" width="7" height="7" fill="{red}"/></g>'),
+        three("prop/paint-order", f'{zig} fill="none" stroke="{INK}" stroke-width="5" '
+              f'{all_three} paint-order="markers"/>'),
+        three("prop/shape-transform", f'{zig} {line} {all_three} '
+              'transform="rotate(15 32 32) scale(0.9 1.1)"/>'),
+        custom("prop/marker-transform", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" transform="rotate(45)"', square),
+        custom("prop/display-none", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+               'markerHeight="6" style="display:none"', square),
+        three("prop/visibility", f'<path d="M8,20H56" {line} {all_three} visibility="hidden"/>'
+              f'<g visibility="hidden"><path d="M8,44H56" {line} {all_three} '
+              'visibility="visible"/></g>'),
+        three("prop/clip-path", '<clipPath id="c"><rect width="40" height="64"/></clipPath>'
+              f'{zig} {line} {all_three} clip-path="url(#c)"/>'),
+        custom("prop/content-clip", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" '
+               'markerHeight="8"', '<clipPath id="c"><circle cx="5" cy="5" r="4"/></clipPath>'
+               f'<rect width="10" height="10" fill="{BLUE}" clip-path="url(#c)"/>'),
+        custom("prop/content-use", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" '
+               'markerHeight="8"', '<use href="#q" x="2" y="2"/>',
+               f'<defs><rect id="q" width="6" height="6" fill="{green}"/></defs>{plain}'),
+        marked("prop/in-use", arrow + dot + flag + '<symbol id="s" viewBox="0 0 64 64">'
+               f'{zig} {line} {all_three}/></symbol>',
+               '<use href="#s" x="4" y="4" width="56" height="56"/>'),
+        custom("prop/nested", 'viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" '
+               'markerHeight="8"', f'<path d="M1,5H9" stroke="{BLUE}" stroke-width="1" '
+               'marker-end="url(#m)" marker-start="url(#n)"/>',
+               '<marker id="n" markerWidth="4" markerHeight="4" refX="2" refY="2">'
+               f'<circle cx="2" cy="2" r="2" fill="{red}"/></marker>{plain}'),
+        # Real-world markers.
+        marked("chart/axis-arrows", '<marker id="x" viewBox="0 -5 10 10" refX="8" '
+               'markerWidth="6" markerHeight="6" orient="auto"><path d="M0,-5L10,0L0,5" '
+               f'fill="{INK}"/></marker>',
+               f'<path d="M8,56H58" fill="none" stroke="{INK}" stroke-width="1.5" '
+               f'marker-end="url(#x)"/><path d="M8,56V4" fill="none" stroke="{INK}" '
+               'stroke-width="1.5" marker-end="url(#x)"/>'),
+        marked("chart/data-dots", '<marker id="p" viewBox="0 0 10 10" refX="5" refY="5" '
+               'markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="#fff" '
+               f'stroke="{BLUE}" stroke-width="2"/></marker>',
+               '<polyline points="6,50 16,38 26,42 36,20 46,26 58,10" fill="none" '
+               f'stroke="{BLUE}" stroke-width="1.5" marker-start="url(#p)" '
+               'marker-mid="url(#p)" marker-end="url(#p)"/>'),
+        marked("diagram/edges", '<marker id="e" viewBox="0 0 12 12" refX="11" refY="6" '
+               'markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto">'
+               f'<path d="M0,0L12,6L0,12L3,6z" fill="{INK}"/></marker>'
+               '<marker id="o" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" '
+               'markerWidth="7" markerHeight="7"><circle cx="5" cy="5" r="4" fill="#fff" '
+               f'stroke="{INK}"/></marker>',
+               f'<rect x="4" y="4" width="20" height="12" rx="2" fill="{GRID}"/>'
+               f'<rect x="40" y="46" width="20" height="12" rx="2" fill="{GRID}"/>'
+               f'<path d="M14,16C14,36 50,26 50,46" fill="none" stroke="{INK}" '
+               'stroke-width="1.25" marker-start="url(#o)" marker-end="url(#e)"/>'
+               f'<path d="M24,10H56V40" fill="none" stroke="{INK}" stroke-width="1.25" '
+               'stroke-dasharray="3 2" marker-end="url(#e)"/>'),
+    ])]
+
+
 def scoped(c: dict, index: int) -> dict:
     """Ids are document-wide and every case of a sheet shares one page, so
     each case's ids (and its references to them) get the case's own prefix."""
     prefix = f"k{index}-"
-    svg = (c["svg"].replace('id="', f'id="{prefix}').replace("url(#", f"url(#{prefix}")
+    svg = (re.sub(r'(?<=\s)id="', f'id="{prefix}', c["svg"]).replace("url(#", f"url(#{prefix}")
            .replace('href="#', f'href="#{prefix}'))
     return {**c, "svg": svg}
 
@@ -1113,11 +1349,11 @@ SCALE_2 = {
 
 def sheets(corpus: str = "v1") -> list[dict]:
     """The cases of each sheet. v1: everything at 1x, the Lucide icons at 2x.
-    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 to v6: everything at
+    v2: everything at 1x, the `SCALE_2` subset at 2x. v3 to v7: everything at
     both."""
-    if corpus in ("v3", "v4", "v5", "v6"):
+    if corpus in ("v3", "v4", "v5", "v6", "v7"):
         everything = {"v3": clip_cases, "v4": server_cases, "v5": mask_cases,
-                      "v6": use_cases}[corpus]()
+                      "v6": use_cases, "v7": marker_cases}[corpus]()
         return [
             {"scale": 1, "cases": everything},
             {"scale": 2, "cases": [dict(c) for c in everything]},
@@ -1183,9 +1419,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     lst = sub.add_parser("list")
-    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6"), default="v1")
+    lst.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6", "v7"), default="v1")
     cap = sub.add_parser("capture")
-    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6"), default="v1")
+    cap.add_argument("--set", dest="corpus", choices=("v1", "v2", "v3", "v4", "v5", "v6", "v7"), default="v1")
     cap.add_argument("--chrome", type=Path, required=True)
     cap.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()

@@ -221,8 +221,9 @@ pub fn dash_scale_factor(shape: &Shape) -> f32 {
     }
 }
 
-/// `SVGShapePainter::PaintShape` for the layers in `paint-order` (markers
-/// come with a later stage). The canvas carries the shape's transform.
+/// `SVGShapePainter::PaintShape` for the layers in `paint-order`. The
+/// canvas carries the shape's transform. The markers layer calls `markers`,
+/// which paints the shape's markers (`crate::marker`) on the same canvas.
 ///
 /// `non_scaling_transform` is the transform from the shape's user space to
 /// the host space of `vector-effect: non-scaling-stroke`, which layout
@@ -239,6 +240,7 @@ pub fn paint_shape(
     shape: &Shape,
     style: &SvgPaintStyle,
     non_scaling_transform: Option<&Matrix>,
+    markers: &mut dyn FnMut(&Canvas),
 ) {
     // SVG 2 and 1.1: shapes with a zero width or radius, and empty paths,
     // do not render.
@@ -290,7 +292,7 @@ pub fn paint_shape(
                     None => stroke_shape(canvas, shape, &flags),
                 }
             }
-            PaintLayer::Markers => {}
+            PaintLayer::Markers => markers(canvas),
         }
     }
 }

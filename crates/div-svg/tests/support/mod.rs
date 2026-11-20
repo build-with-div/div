@@ -186,7 +186,8 @@ pub fn stroke_style(style: &BTreeMap<String, String>) -> StrokeStyle {
 pub fn stroke_style_in(style: &BTreeMap<String, String>, context: &LengthContext) -> StrokeStyle {
     let mut out = StrokeStyle::default();
     if let Some(w) = style.get("stroke-width") {
-        out.width = w.trim_end_matches("px").parse().unwrap();
+        // A percentage is of the normalized diagonal.
+        out.width = Length::parse(w).unwrap().resolve(Axis::Other, context);
     }
     out.cap = match style.get("stroke-linecap").map(String::as_str) {
         Some("round") => LineCap::Round,

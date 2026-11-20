@@ -33,6 +33,12 @@
 //! (`tests/fidelity/fixtures/svg-paint-v6`), which also records the rules
 //! for building the instance tree.
 //!
+//! [`marker`] places markers (V3d): the vertices of a path and their
+//! directions, and the marker transform and viewport. Blink's marker
+//! painting is BSD and is followed by the caller; the rest is written from
+//! SVG 2 and black-box observation, checked by the same test
+//! (`tests/fidelity/fixtures/svg-paint-v7`).
+//!
 //! [`text`] lays out `<text>` and `<tspan>`, answers the SVG text DOM
 //! queries (character positions, extents, rotations and the computed text
 //! length) and paints the glyphs. It ports Blink's BSD SVG text layout
@@ -51,6 +57,7 @@ mod arc;
 pub mod clip;
 pub mod geometry;
 pub mod length;
+pub mod marker;
 pub mod mask;
 mod number;
 pub mod paint;

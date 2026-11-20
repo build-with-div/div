@@ -8,7 +8,7 @@ Tools for the inline SVG work in RFC 0009
 | `licence_audit.py` | Classifies Chromium source files by licence header only (BSD, LGPL, GPL, other). Prints the class and the first copyright line; never prints or stores code |
 | `geometry_corpus.py` | Black-box geometry oracle: queries pinned Chromium through web APIs only, for the parts RFC 0009 writes clean-room |
 | `text_corpus.py` | Black-box text oracle for `div_svg::text`: the SVG text DOM APIs in pinned Chromium (`capture`), and screenshots of the same cases plus paint cases (`pixels`), at scale 1 and at real-zoom scale 2 |
-| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in six sets (`--set v1` to `--set v6`) |
+| `paint_corpus.py` | Pixel oracle for `div_svg::paint`: screenshots of pinned Chromium painting each case in its own slot, at scale 1 and at real-zoom scale 2, in seven sets (`--set v1` to `--set v7`) |
 
 ## Geometry corpus
 
@@ -215,8 +215,26 @@ and at scale 2. Ids are prefixed as in `v3`.
 | `edge/` | 8 | a missing reference, no `href`, a reference to an ancestor, a two-group cycle, a cycle inside an instance, a reference to a gradient, `href` beside `xlink:href`, `width` and `height` on a shape's `use` |
 | `icon/`, `chart/` | 2 | an icon sprite at three sizes and colours, Recharts' legend icon |
 
+Set `v7` (`--set v7`, fixtures in `tests/fidelity/fixtures/svg-paint-v7/`)
+covers markers (V3d, second part), with 86 cases, each at scale 1 and at
+scale 2. Most cases share three markers: an arrow whose tip is its
+reference point, a dot, and a notched flag that shows a mirror or a
+quarter turn. Ids are prefixed as in `v3`.
+
+| Group | Cases | What it pins down |
+| --- | --- | --- |
+| `pos/` | 26 | start, mid and end markers on `line`, `polyline`, `polygon` and paths: relative commands, subpaths, closed subpaths (with an explicit closing line, a line after the close, two closed subpaths), cubics (with coincident and fully degenerate control points), quadratics, smooth curves, arcs (large, chained, zero radius), zero-length segments, a lone move, a reversal, sharp turns and a path error |
+| `dir/` | 14 | an arrow at every vertex, so mid directions show: a polyline, subpaths, a polygon, mixed curves, reversals, zero-length segments (diagonal, mid-path, closing, curves), moves (two, a pair, a trailing one, a lone one) and a move after a close |
+| `orient/` | 4 | a fixed angle, angles in `rad` and `turn`, `auto-start-reverse`, an invalid value |
+| `units/` | 4 | `strokeWidth` at two widths, `userSpaceOnUse`, a shape without a stroke, a percentage stroke width |
+| `size/` | 8 | the initial size, `viewBox` with `meet`, `slice` and `none`, a `viewBox` origin, zero and negative sizes, an empty `viewBox` |
+| `ref/` | 3 | `refX` and `refY` in the `viewBox`, the SVG 2 keywords, percentages |
+| `clip/` | 4 | the viewport clip of a rotated marker, `overflow` `visible` and `auto`, a `meet` viewport wider than the `viewBox` |
+| `prop/` | 20 | inheritance from the marker, the `marker` shorthand in `style` and as an attribute, inherited marker properties, other basic shapes, missing and non-marker references, `context-fill` and `context-stroke`, group `opacity` on the shape and in the marker, `paint-order`, a transformed shape, `transform` on the marker, `display: none` on the marker, `visibility`, `clip-path` on the shape and in the marker, `use` in the marker, markers in a `use` instance, a marker that marks itself |
+| `chart/`, `diagram/` | 3 | axis arrowheads, data dots on a series, a diagram's edges with arrowheads and circles |
+
 **Evidence** is one capture per OS and set in
-`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v6/`.
+`tests/fidelity/fixtures/svg-paint-v1/` to `svg-paint-v7/`.
 Each capture has a JSON file of cases and slots, plus one PNG per scale:
 
 - `chromium-linux*`, from Linux CfT 147.0.7727.50 in WSL;
@@ -254,7 +272,7 @@ surface the size of the case, 37 of the 147 captures differed.
 To recapture:
 
 ```sh
-# Linux, in WSL (and again with --set v2 to --set v6 into svg-paint-v2/ to svg-paint-v6/)
+# Linux, in WSL (and again with --set v2 to --set v7 into svg-paint-v2/ to svg-paint-v7/)
 python3 tools/svg/paint_corpus.py capture   --chrome ~/openui-oracle/chrome/linux-147.0.7727.50/chrome-linux64/chrome   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-linux
 # Windows
 python tools/svg/paint_corpus.py capture   --chrome <main checkout>/out/chrome-win/win-147.0.7727.50/chrome-win64/chrome.exe   --output-prefix tests/fidelity/fixtures/svg-paint-v1/chromium-windows
@@ -398,6 +416,55 @@ container are LGPL). The corpus settled these points:
   `use/twice`'s faded rect is one level off). `div-paint` applies opacity
   at the call site, and its `paint_record.rs` does the same folding.
 
+Of the 172 `v7` captures, 167 are exact on both OSes. The other five are
+a named gap in `svg-paint-v7/known-gaps.txt`: at scale 2, a few edge
+pixels of an arrowhead differ by up to 8 levels, depending on where the
+slot sits on the sheet (the same arrow is exact in another column). It is
+in the single-precision rounding of the marker transform; the exact
+pipeline is unmeasured. `src/marker.rs` places the markers; the test's
+harness resolves the references and paints the content. Blink's marker
+painting (`SVGShapePainter::PaintMarker`) is BSD and is followed; its
+marker resource, marker element and marker position code are LGPL and
+were not opened, so positions, directions and the marker transform are
+clean-room. The corpus settled these points:
+
+- Markers apply to `path`, `line`, `polyline` and `polygon` only
+  (`prop/other-shapes`). There is a vertex at every move and at the end
+  of every segment, a closing segment included. The first vertex takes
+  `marker-start`, the last `marker-end`, and the others `marker-mid`; a
+  lone move takes only `marker-end` (`pos/moveto-only`).
+- Directions differ from SVG 2 in three ways. A zero-length segment
+  points along the x axis instead of borrowing its neighbour's direction
+  (`dir/zero-diagonal`, `dir/zero-close`). A move has a direction, from
+  the current point (the origin, for the first) to its point: a vertex at
+  a move points along the segment leaving it, or along the move when none
+  does (`dir/moves`, `dir/move-pair`, `dir/lone-move`). A full reversal
+  turns by -90°, the turn being taken in [-180°, 180°) (`dir/reversal`).
+  Curve directions skip coincident control points, and arcs use the
+  tangent of the centre parameterization.
+- The marker transform is translate to the vertex, rotate, scale by the
+  stroke width (for `strokeWidth` units, even without a stroke), then
+  translate by minus the reference point mapped through the `viewBox`
+  transform. It is concatenated onto the canvas in single precision, as
+  Chromium's canvas does: composed in double precision instead, 6 more
+  captures differ.
+- The viewport clip is not anti-aliased (anti-aliased, 92 of the 172
+  captures differ) and applies unless `overflow` is `visible` or `auto`.
+- The content inherits from the marker and its ancestors, not from the
+  shape (`prop/inherit`). `context-fill` and `context-stroke` take the
+  shape's paints. The `marker` shorthand is a property only: as an
+  attribute it does nothing (`prop/attr-shorthand`). A marker's
+  `transform` is ignored, `display: none` on the marker does not stop it,
+  and a hidden shape draws no markers (`prop/visibility`).
+- `refX` and `refY` are lengths: the SVG 2 keywords are not supported and
+  leave 0 (`ref/keywords`), and a percentage resolves against the shape's
+  viewport, not the `viewBox` (`ref/percent`).
+- A marker that refers to itself, directly or through its content, is
+  not painted again (`prop/nested`).
+- A shape's markers are inside its effects: `opacity` fades them as one
+  layer with the shape (it no longer folds into a single draw), and the
+  layer's bounds include the markers' viewports (`prop/opacity`).
+
 The corpus settled these points:
 
 - A square-cornered `rect` is drawn with `drawRect`, and a `circle` or
@@ -444,8 +511,7 @@ The corpus settled these points:
   yet; that needs E1 to E3 and F1, then the `div-paint` call sites.
 - The untiled path (layers of 512 px or less) for SVG content: the
   corpus pages are tiled.
-- Markers (a later clean-room PR), text,
-  element and group `opacity` (applied by `div-paint` at the call site),
+- Text, element and group `opacity` (applied by `div-paint` at the call site),
   and scales other than 1 and 2.
 - For clipping: `text` children of a `clipPath`, `clip-path:
   url()` on HTML elements (engine item E4), basic shapes and geometry
@@ -460,11 +526,14 @@ The corpus settled these points:
   elements and CSS `mask-image` with images or several layers (engine
   work after E1), `mask-mode`, `foreignObject` zoom, and
   `color-interpolation` on the mask.
-- For `use` and `symbol`: markers (V3d's second part), `context-fill` and
-  `context-stroke`, references into other documents, `use` of `text`,
+- For `use` and `symbol`: `context-fill` and `context-stroke`, references into other documents, `use` of `text`,
   CSS selectors matching inside an instance, `symbol`'s own `x` and `y`,
   and the opacity fold for a paint server's shader (the harness folds
   colour paints only).
+- For markers: the scale-2 rounding gap above, `context-fill` and
+  `context-stroke` that resolve to a paint server, marker scaling under
+  `vector-effect: non-scaling-stroke`, markers on shapes inside a
+  `clipPath`, and markers referenced across documents.
 
 ## Text corpus (V2a positions)
 

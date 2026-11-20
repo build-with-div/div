@@ -22,7 +22,7 @@ use std::sync::Arc;
 /// The page's `color`, which `currentColor` resolves to.
 pub const INK: &str = "#09090b";
 /// The inherited paint properties the corpora set.
-pub const PROPERTIES: [&str; 15] = [
+pub const PROPERTIES: [&str; 18] = [
     "color",
     "fill",
     "fill-opacity",
@@ -38,6 +38,9 @@ pub const PROPERTIES: [&str; 15] = [
     "paint-order",
     "shape-rendering",
     "visibility",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
 ];
 
 /// Inherited properties: presentation attributes, then the `style`
@@ -55,9 +58,18 @@ pub fn cascade(element: &Element, parent: &BTreeMap<String, String>) -> BTreeMap
     let style = style_map(element.attrs.get("style").map_or("", |s| s));
     // `inherit` keeps the parent's value.
     for (name, value) in attributes.chain(style) {
-        if value != "inherit" {
-            out.insert(name, value);
+        if value == "inherit" {
+            continue;
         }
+        // The `marker` shorthand, which is a property only: it has no
+        // presentation attribute (measured: `prop/attr-shorthand`).
+        if name == "marker" {
+            for longhand in ["marker-start", "marker-mid", "marker-end"] {
+                out.insert(longhand.to_owned(), value.clone());
+            }
+            continue;
+        }
+        out.insert(name, value);
     }
     out
 }
