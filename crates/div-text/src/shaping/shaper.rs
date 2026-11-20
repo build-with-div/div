@@ -365,8 +365,8 @@ impl ShapeCollector {
     /// A character position is safe to break before if reshaping the text
     /// from that point onward would produce the same glyphs.
     ///
-    /// Since SkShaper doesn't expose HarfBuzz's `HB_GLYPH_FLAG_UNSAFE_TO_BREAK`,
-    /// we use a conservative, script-aware heuristic:
+    /// Div does not read HarfBuzz's `HB_GLYPH_FLAG_UNSAFE_TO_BREAK` yet, so it
+    /// uses a conservative, script-aware heuristic:
     /// - Always safe: start of text, whitespace, positions adjacent to whitespace.
     /// - Simple scripts (Latin, CJK, etc.): safe at cluster boundaries.
     /// - Complex scripts (Arabic, Indic, Thai, etc.): cluster boundaries are
@@ -1507,9 +1507,9 @@ mod tests {
 
     #[test]
     fn glyph_advances_are_skia_widths_truncated_to_harfbuzz_units() {
-        // Blink hands HarfBuzz each Skia width truncated to 1/65536 px;
-        // SkShaper's own font funcs round it. A lone glyph has no kerning,
-        // so its advance is that width alone.
+        // Blink hands HarfBuzz each Skia width truncated to 1/65536 px, and
+        // so do Div's font funcs. A lone glyph has no kerning, so its
+        // advance is that width alone.
         let shaper = TextShaper::new();
         let mut truncated = 0;
         for size in [11.37, 13.33, 15.3, 16.0, 17.71] {

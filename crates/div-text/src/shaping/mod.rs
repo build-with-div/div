@@ -1,11 +1,11 @@
-//! Text shaping — HarfBuzz-based glyph shaping via Skia's SkShaper.
+//! Text shaping — glyph shaping with HarfBuzz, called directly (RFC 0013).
 //!
 //! Mirrors Blink's shaping subsystem (`platform/fonts/shaping/`).
 //! Takes text + font and produces positioned glyphs for rendering.
 //!
 //! Architecture:
 //! - `RunSegmenter` splits text into uniform runs by Unicode script.
-//! - `TextShaper` shapes each run using HarfBuzz (via Skia's `SkShaper`).
+//! - `TextShaper` shapes each run with HarfBuzz (`harfbuzz.rs`).
 //! - `ShapeResult` holds the output: glyph IDs, positions, and metadata.
 
 mod harfbuzz;

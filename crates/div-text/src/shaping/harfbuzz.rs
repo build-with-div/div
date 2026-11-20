@@ -572,12 +572,14 @@ struct ParentFont(*mut HbFont);
 // makes its own sub-font.
 unsafe impl Send for ParentFont {}
 
+/// The parent fonts by typeface ID, least recently used first in `order`.
 struct ParentFonts {
     fonts: HashMap<u32, ParentFont>,
     order: VecDeque<u32>,
 }
 
-/// Skia keeps 100 typeface fonts (`SKHB`'s LRU); so does Div.
+/// Skia keeps the 100 most recently used typeface fonts
+/// (`SkShaper_harfbuzz.cpp`'s `SkLRUCache`); so does Div.
 const PARENT_FONT_CACHE: usize = 100;
 
 /// A sub-font of the typeface's cached parent with Blink's funcs over
@@ -595,7 +597,12 @@ fn create_font(font: &SkFont, specified_size: f32) -> *mut HbFont {
     let mut parents = parents
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if !parents.fonts.contains_key(&id) {
+    if parents.fonts.contains_key(&id) {
+        if let Some(position) = parents.order.iter().position(|&used| used == id) {
+            parents.order.remove(position);
+        }
+        parents.order.push_back(id);
+    } else {
         if parents.order.len() >= PARENT_FONT_CACHE {
             if let Some(oldest) = parents.order.pop_front() {
                 if let Some(ParentFont(old)) = parents.fonts.remove(&oldest) {
