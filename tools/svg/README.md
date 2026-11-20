@@ -12,7 +12,7 @@ Tools for the inline SVG work in RFC 0009
 
 ## Geometry corpus
 
-`geometry_corpus.py list` prints the 125 cases. `capture` loads them in
+`geometry_corpus.py list` prints the 126 cases. `capture` loads them in
 one page in headless Chromium over CDP (the shared client in
 `tools/accountability/run_all_pixel_comparisons.py`). Each case's outer
 `<svg>` sits in its own absolutely positioned 256-px slot, so no result
@@ -31,7 +31,7 @@ Exceptions are recorded as data.
 
 | Group | Cases | What it pins down |
 | --- | --- | --- |
-| `path/` | 31 | every command, absolute and relative; implicit repeats; smooth commands with and without a previous control point; number syntax (no separators, exponents, leading dots); error handling (bad command, truncated, no initial move, trailing comma, empty); zero-length subpaths |
+| `path/` | 32 | every command, absolute and relative; implicit repeats; smooth commands with and without a previous control point; number syntax (no separators, exponents, leading dots, fractions); error handling (bad command, truncated, no initial move, trailing comma, empty); zero-length subpaths |
 | `arc/` | 24 | the four flag pairs; seven x-axis rotations including -60 and 400; radii too small, zero or negative; equal endpoints; packed flags; near-full, half and quarter turns; tiny spans; relative chains; pie and donut shapes as Recharts draws them |
 | `rect/`, `circle/`, `ellipse/`, `line/`, `poly*/` | 24 | `rx`/`ry` rules (one given, clamped, negative, `auto`), zero and negative sizes, percentages and absolute units, odd `points` counts, separators, a self-intersecting star |
 | `stroke/` | 14 | caps, joins (including `arcs` and `miter-clip`), miter limits, dashes and `evenodd`, through `isPointInStroke` and `isPointInFill` |
@@ -65,11 +65,11 @@ python tools/svg/geometry_corpus.py capture \
 ### What `div-svg` matches
 
 `cargo test --locked --package div-svg` compares every value exactly. On
-Windows (MSVC) and on Linux (WSL), 76 of 125 cases match in every field. In the other 49, 80
+Windows (MSVC) and on Linux (WSL), 76 of 126 cases match in every field. In the other 50, 81
 fields differ, and each is listed with its cause in
 `tests/fidelity/fixtures/svg-geometry-v1/known-gaps.txt`. The other fields
 of those cases are still checked exactly. Every bounding box and every
-fill and stroke hit grid matches in all 125 cases.
+fill and stroke hit grid matches in all 126 cases.
 
 The corpus settled these choices, all as black-box observations of
 Chromium:
@@ -85,7 +85,11 @@ Chromium:
   That is the correctly rounded result on every OS, which is what
   Chromium returns in both captures.
 - Numbers in attributes are accumulated in single precision, digit by
-  digit, not correctly rounded: `1.9e2` reads as 190.00001525878906.
+  digit, not correctly rounded: `1.9e2` reads as 190.00001525878906. The
+  fraction digits are summed on their own and then added to the integer
+  part: `path/fractions` reads `1.354` as 1.3540000915527344, where adding
+  each digit to the value gives 1.3539998531341553 and correct rounding
+  1.3539999723434448 (`1.771` and `1.834` likewise).
 - An `rx`, `ry` or other length attribute that is present but does not
   parse (`rx="auto"`) is used as 0. An absent `rx` is `auto` and takes
   `ry`. This is presentation-attribute parsing, so it belongs to the
@@ -377,12 +381,15 @@ the mask's content. The mask corpus settled these points:
   (`ResourceBoundsForSVGChild`), is ported but changes no capture in this
   corpus.
 
-Of the 122 `v6` captures, 120 are exact on both OSes. The other two are
-`chart/legend`, a named gap in `svg-paint-v6/known-gaps.txt`: the arcs of
-Recharts' legend icon, whose radius is within a float ulp of half the
-chord, differ at the stroke's inner edge. The same path drawn directly,
-without `use`, differs the same way. The cause is unmeasured; a comparison
-of Skia's `arcTo` and stroker is pending.
+All 122 `v6` captures are exact on both OSes. `chart/legend`, Recharts'
+legend icon, was a named gap until the number accumulation order above was
+measured. Its two half-circle arcs have radius `5.33`, within a float ulp
+of half the chord, and there the arc's centre depends on the last bit of
+the radius. From the float nearest 5.33, Skia's SVG `arcTo` puts the
+centre 0.0026 px off the chord; from one ulp higher, which is what adding
+each fraction digit to the value read, it puts it on the chord. The
+stroke's inner edge then differed at 49 pixels at scale 1 and 46 at
+scale 2.
 `src/use_element.rs` places an instance and gives a `symbol` or `svg` its
 viewport (`src/viewport.rs`); the test's harness builds the instance tree.
 `use` and `symbol` are clean-room (Blink's `use` element and its layout

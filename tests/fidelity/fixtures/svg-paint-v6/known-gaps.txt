@@ -2,11 +2,3 @@
 # <largest channel difference>, each under a comment giving its cause and owner. A leading `linux` or
 # `windows` limits a line to that OS. crates/div-svg/tests/paint_corpus.rs fails on an unlisted
 # difference, on a listed one whose numbers change, and on a listed case that is now exact.
-
-# Recharts' legend icon path: two half-circle arcs whose radius (5.33) is within a float ulp of half
-# the chord. The stroke differs at its inner edge where the arcs meet. The same path drawn directly,
-# without `use` or `symbol`, differs the same way (throwaway captures, not committed). Cause
-# unmeasured; a comparison of Skia's arcTo and stroker between Chromium 147's Skia and rust-skia's is
-# pending. Owner: SVG lane (path geometry).
-1x chart/legend 49 43
-2x chart/legend 46 43

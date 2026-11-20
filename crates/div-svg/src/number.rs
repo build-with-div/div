@@ -13,8 +13,16 @@ fn is_ws(byte: u8) -> bool {
 /// The value of a number token, accumulated in single precision as
 /// Chromium's attribute parser does, which is not the correctly rounded
 /// value: the corpus's `path/exponents` reads `1.9e2` as 190.00001525878906.
-/// Each fraction digit adds `digit × scale`, the scale shrinking by `0.1`
-/// per digit, and the exponent then multiplies by `10^exponent`.
+/// The integer digits accumulate as `value × 10 + digit`. The fraction
+/// digits accumulate on their own, each adding `digit × scale` with the
+/// scale shrinking by `0.1` per digit, and the fraction is then added to
+/// the integer part. The exponent then multiplies by `10^exponent`.
+///
+/// The order matters. `path/fractions` reads `1.354` as 1.3540000915527344,
+/// where adding each fraction digit to the value gives 1.3539998531341553
+/// and correct rounding 1.3539999723434448. The same order reads `5.33` as
+/// the float nearest 5.33, not one ulp above, which centres the arcs of
+/// the paint corpus's `chart/legend` exactly.
 fn accumulate(token: &[u8]) -> f32 {
     let mut bytes = token.iter().copied().peekable();
     let negative = match bytes.peek() {
@@ -34,10 +42,13 @@ fn accumulate(token: &[u8]) -> f32 {
     }
     if bytes.next_if_eq(&b'.').is_some() {
         let mut scale = 1.0f32;
+        let mut fraction = 0.0f32;
+        // Added to the integer part only once it is complete.
         while let Some(digit) = bytes.next_if(u8::is_ascii_digit) {
             scale *= 0.1;
-            value += f32::from(digit - b'0') * scale;
+            fraction += f32::from(digit - b'0') * scale;
         }
+        value += fraction;
     }
     if bytes.next().is_some() {
         let mut exponent_negative = false;
@@ -207,6 +218,18 @@ mod tests {
         assert_eq!(numbers("190.5.5"), [190.5, 0.5]);
         assert_eq!(numbers("-1e1 1E2"), [-10.0, 100.0]);
         assert_eq!(numbers("1e+1,.75"), [10.0, 0.75]);
+    }
+
+    #[test]
+    fn accumulates_the_fraction_on_its_own() {
+        // Chromium 147's readings (geometry corpus `path/fractions`).
+        assert_eq!(
+            numbers("1.354 1.771 1.834"),
+            [1.354_000_1, 1.770_999_9, 1.834_000_1]
+        );
+        assert_eq!(f64::from(numbers("1.354")[0]), 1.3540000915527344);
+        assert_eq!(numbers("5.33"), [5.33]);
+        assert_eq!(numbers("1.9e2"), [190.000_02]);
     }
 
     #[test]
