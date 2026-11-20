@@ -3,8 +3,8 @@
 //! corpus has three sets with their own fixtures and gap lists: `v1` (fills,
 //! strokes, transforms, viewports, Lucide icons), `v2` (dashes,
 //! `pathLength`, `paint-order`, `shape-rendering`, `vector-effect`, chart
-//! compositions), `v3` (`clipPath`) and `v4` (paint servers: gradients and
-//! patterns).
+//! compositions), `v3` (`clipPath`), `v4` (paint servers: gradients and
+//! patterns), `v5` (`mask`) and `v6` (`use` and `symbol`).
 //!
 //! Chromium renders every case of a sheet in its own slot of one page, at
 //! scale 1 and, for a subset, at 2 (real zoom). This test paints
@@ -27,7 +27,7 @@ div_text::initialize_skia_at_load!();
 
 use div_svg::clip::{clip_content, ClipChild, ClipContent, ClipPath, ClipPathUnits, ClipReference};
 use div_svg::geometry::FillRule;
-use div_svg::length::{Axis, Length};
+use div_svg::length::Length;
 use div_svg::mask::{mask_content, Mask, MaskAttributes, MaskType};
 use div_svg::paint::{clip_viewport, paint_shape, to_sk_matrix, ShapeRendering};
 use div_svg::paint_server::{
@@ -35,7 +35,10 @@ use div_svg::paint_server::{
     PatternAttributes, SpreadMethod, Units,
 };
 use div_svg::transform::{parse_transform_list, Matrix};
-use div_svg::viewport::{parse_view_box, PreserveAspectRatio};
+use div_svg::use_element::UseAttributes;
+use div_svg::viewport::{
+    is_empty_view_box, parse_view_box, NestedViewport, PreserveAspectRatio, ViewportAttributes,
+};
 use div_svg::Rect;
 use serde_json::Value;
 use skia_safe::{Canvas, Color4f, Picture, PictureRecorder, Rect as SkRect, M44};
@@ -43,7 +46,7 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use support::pixels::{self, cascade, color, paint_style_with, view_box, Root, INK};
+use support::pixels::{self, cascade, color, paint_style_with, Root, INK};
 use support::{elements, length_context, shape, style_map, Element, Viewport};
 
 #[cfg(target_os = "linux")]
@@ -60,13 +63,48 @@ const KNOWN_GAPS_V4: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt");
 const KNOWN_GAPS_V5: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v5/known-gaps.txt");
+const KNOWN_GAPS_V6: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-paint-v6/known-gaps.txt");
 fn fixtures(set: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../tests/fidelity/fixtures/{set}"))
 }
 
+#[derive(Clone)]
 struct Node {
     element: Element,
     children: Vec<Node>,
+}
+
+/// `node` with every `use` given its instance as its only child
+/// (`div_svg::use_element`): a copy of the target, without ids, inside which
+/// each `use` is instantiated in turn. `ancestors` are the ids of `node`'s
+/// ancestors, each copy counting as its original; a `use` whose target is
+/// among them, or is the `use` itself, gets no instance.
+fn instantiate(root: &Node, node: &Node, ancestors: &mut Vec<String>, copy: bool) -> Node {
+    let id = node.element.attrs.get("id").cloned();
+    if let Some(id) = &id {
+        ancestors.push(id.clone());
+    }
+    let mut element = node.element.clone();
+    if copy {
+        element.attrs.remove("id");
+    }
+    let children = if element.tag == "use" {
+        href(&node.element)
+            .filter(|target| !ancestors.iter().any(|a| a == target))
+            .and_then(|target| find(root, target))
+            .map(|target| vec![instantiate(root, target, ancestors, true)])
+            .unwrap_or_default()
+    } else {
+        node.children
+            .iter()
+            .map(|child| instantiate(root, child, ancestors, copy))
+            .collect()
+    };
+    if id.is_some() {
+        ancestors.pop();
+    }
+    Node { element, children }
 }
 
 /// The element tree of a case's generated markup.
@@ -181,19 +219,74 @@ fn resolve_mask(
 /// An element's visual rect in its own user space: its fill box, outset
 /// by half its stroke width when it is stroked, or its children's united.
 fn visual_rect(node: &Node, vp: &Viewport, props: &BTreeMap<String, String>) -> Option<Rect> {
+    bounds(node, vp, props, Bounds::Visual)
+}
+
+/// An element's fill box (`getBBox`) in its own user space: a shape's
+/// geometry, or the union of a container's rendered children.
+fn fill_box(node: &Node, vp: &Viewport) -> Option<Rect> {
+    bounds(node, vp, &BTreeMap::new(), Bounds::Fill)
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Bounds {
+    /// `getBBox`.
+    Fill,
+    /// The visual rect: strokes outset by half their width.
+    Visual,
+    /// What cc bounds an opacity layer with (`PaintChunksToCcLayer`'s
+    /// `UpdateEffectBounds`): the union of the drawn shapes' visual rects,
+    /// each enclosed in integers in its own user space.
+    Drawable,
+}
+
+/// An element's bounds of the given kind in its own user space.
+fn bounds(
+    node: &Node,
+    vp: &Viewport,
+    props: &BTreeMap<String, String>,
+    kind: Bounds,
+) -> Option<Rect> {
     let props = cascade(&node.element, props);
-    match node.element.tag.as_str() {
-        tag if is_resource(tag) => None,
-        "g" => node
-            .children
+    // The children's, each in this element's user space, then mapped.
+    let children = |node: &Node, vp: &Viewport, props: &BTreeMap<String, String>| {
+        node.children
             .iter()
             .filter(|c| c.element.attrs.get("display").map(String::as_str) != Some("none"))
             .filter_map(|c| {
-                visual_rect(c, vp, &props).map(|b| map_rect(&transform_of(&c.element), b))
+                bounds(c, vp, props, kind).map(|b| map_rect(&local_transform(c, vp), b))
             })
-            .reduce(union),
+            .reduce(union)
+    };
+    let viewport = |node: &Node, viewport: NestedViewport, props: &BTreeMap<String, String>| {
+        let (width, height) = viewport.content_size();
+        let inner = Viewport {
+            ctm: Matrix::IDENTITY,
+            width,
+            height,
+        };
+        children(node, &inner, props).map(|b| map_rect(&viewport.content_transform(), b))
+    };
+    match node.element.tag.as_str() {
+        tag if is_resource(tag) => None,
+        "use" => match node.children.first() {
+            Some(instance) if is_viewport(&instance.element.tag) => viewport(
+                instance,
+                nested_viewport(instance, Some(&node.element), vp)?,
+                &cascade(&instance.element, &props),
+            ),
+            _ => children(node, vp, &props),
+        },
+        "g" => children(node, vp, &props),
+        "svg" => viewport(node, nested_viewport(node, None, vp)?, &props),
         _ => {
             let bbox = shape(&node.element, vp).bbox;
+            if kind == Bounds::Fill {
+                return Some(bbox);
+            }
+            if kind == Bounds::Drawable && draws(&props) == 0 {
+                return None;
+            }
             let stroked = props.get("stroke").is_some_and(|s| s != "none");
             let half = if stroked {
                 props
@@ -203,14 +296,83 @@ fn visual_rect(node: &Node, vp: &Viewport, props: &BTreeMap<String, String>) -> 
             } else {
                 0.0
             };
-            Some(Rect::new(
+            let rect = Rect::new(
                 bbox.x - half,
                 bbox.y - half,
                 bbox.width + 2.0 * half,
                 bbox.height + 2.0 * half,
+            );
+            if kind != Bounds::Drawable {
+                return Some(rect);
+            }
+            let (x, y) = (rect.x.floor(), rect.y.floor());
+            Some(Rect::new(
+                x,
+                y,
+                (rect.x + rect.width).ceil() - x,
+                (rect.y + rect.height).ceil() - y,
             ))
         }
     }
+}
+
+/// How many drawing operations a shape with properties `props` records: a
+/// fill and a stroke, each when it paints.
+fn draws(props: &BTreeMap<String, String>) -> usize {
+    if props.get("visibility").map(String::as_str) == Some("hidden") {
+        return 0;
+    }
+    let fill = props.get("fill").is_none_or(|f| f != "none");
+    let stroke = props.get("stroke").is_some_and(|s| s != "none")
+        && props
+            .get("stroke-width")
+            .is_none_or(|w| w.trim_end_matches("px").parse::<f32>().unwrap() > 0.0);
+    usize::from(fill) + usize::from(stroke)
+}
+
+/// The drawing operations an element under an opacity effect records in the
+/// effect's own transform space, or `None` when it records anything else
+/// (a transform, a viewport, a nested effect, a paint server's shader).
+fn single_space_draws(node: &Node, props: &BTreeMap<String, String>) -> Option<usize> {
+    let props = cascade(&node.element, props);
+    match node.element.tag.as_str() {
+        tag if is_resource(tag) => Some(0),
+        "g" | "use" => node
+            .children
+            .iter()
+            .filter(|c| c.element.attrs.get("display").map(String::as_str) != Some("none"))
+            .map(|c| {
+                let attrs = &c.element.attrs;
+                let plain = !attrs.contains_key("transform")
+                    && !(c.element.tag == "use"
+                        && (attrs.contains_key("x") || attrs.contains_key("y")))
+                    && ["opacity", "clip-path", "mask"]
+                        .iter()
+                        .all(|name| url_or_value(&c.element, name).is_none());
+                if plain {
+                    single_space_draws(c, &props)
+                } else {
+                    None
+                }
+            })
+            .sum(),
+        tag if is_shape(tag) => {
+            let server = |name: &str| props.get(name).is_some_and(|v| v.starts_with("url("));
+            (!server("fill") && !server("stroke")).then(|| draws(&props))
+        }
+        _ => None,
+    }
+}
+
+/// A property's value from `style` or its presentation attribute.
+fn url_or_value<'a>(element: &'a Element, name: &str) -> Option<String> {
+    let style = style_map(element.attrs.get("style").map_or("", |s| s));
+    style.get(name).or_else(|| element.attrs.get(name)).cloned()
+}
+
+thread_local! {
+    /// The alpha of an opacity effect folded into the one draw under it.
+    static FOLDED_ALPHA: std::cell::Cell<Option<f32>> = const { std::cell::Cell::new(None) };
 }
 
 fn union(a: Rect, b: Rect) -> Rect {
@@ -240,10 +402,32 @@ fn resolve_clip(root: &Node, id: &str, vp: &Viewport, chain: &mut Vec<String>) -
     let clip_path = clip_reference(&node.element).map(|r| reference(root, &r, vp, chain));
     let mut children = Vec::new();
     for child in &node.children {
-        let element = &child.element;
-        // Inherited properties: the child's own, else the clipPath's.
-        let inherited = |name: &str| element.attrs.get(name).or_else(|| own.get(name));
-        if element.attrs.get("display").map(String::as_str) == Some("none")
+        // A `use` contributes its target's geometry when the target is a
+        // shape, and nothing otherwise.
+        let (element, transform, used) = if child.element.tag == "use" {
+            match child.children.first() {
+                Some(instance) if is_shape(&instance.element.tag) => (
+                    &instance.element,
+                    local_transform(child, vp).then_apply(&transform_of(&instance.element)),
+                    Some(&child.element),
+                ),
+                _ => continue,
+            }
+        } else {
+            (&child.element, transform_of(&child.element), None)
+        };
+        // Inherited properties: the child's own, else the `use`'s, else
+        // the clipPath's.
+        let inherited = |name: &str| {
+            element
+                .attrs
+                .get(name)
+                .or_else(|| used.and_then(|u| u.attrs.get(name)))
+                .or_else(|| own.get(name))
+        };
+        let display_none = |e: &Element| e.attrs.get("display").map(String::as_str) == Some("none");
+        if display_none(element)
+            || used.is_some_and(display_none)
             || inherited("visibility").map(String::as_str) == Some("hidden")
         {
             continue;
@@ -270,10 +454,10 @@ fn resolve_clip(root: &Node, id: &str, vp: &Viewport, chain: &mut Vec<String>) -
                 }
             }
         };
-        let clip_path = clip_reference(element).map(|r| reference(root, &r, vp, chain));
+        let clip_path = clip_reference(&child.element).map(|r| reference(root, &r, vp, chain));
         children.push(ClipChild {
             content,
-            transform: transform_of(element),
+            transform,
             clip_path,
         });
     }
@@ -300,8 +484,81 @@ fn reference(root: &Node, id: &str, vp: &Viewport, chain: &mut Vec<String>) -> C
 fn is_resource(tag: &str) -> bool {
     matches!(
         tag,
-        "defs" | "clipPath" | "mask" | "linearGradient" | "radialGradient" | "pattern" | "stop"
+        "defs"
+            | "clipPath"
+            | "mask"
+            | "linearGradient"
+            | "radialGradient"
+            | "pattern"
+            | "stop"
+            | "symbol"
     )
+}
+
+fn is_shape(tag: &str) -> bool {
+    matches!(
+        tag,
+        "rect" | "circle" | "ellipse" | "line" | "polyline" | "polygon" | "path"
+    )
+}
+
+/// An `svg`, or a `symbol` instance: a nested viewport.
+fn is_viewport(tag: &str) -> bool {
+    tag == "svg" || tag == "symbol"
+}
+
+fn use_attributes(element: &Element) -> UseAttributes {
+    let len = |name: &str| element.attrs.get(name).and_then(|v| Length::parse(v));
+    UseAttributes {
+        x: len("x"),
+        y: len("y"),
+        width: len("width"),
+        height: len("height"),
+    }
+}
+
+fn viewport_attributes(element: &Element) -> ViewportAttributes {
+    let attrs = &element.attrs;
+    let len = |name: &str| attrs.get(name).and_then(|v| Length::parse(v));
+    let view_box = attrs.get("viewBox");
+    ViewportAttributes {
+        x: len("x"),
+        y: len("y"),
+        width: len("width"),
+        height: len("height"),
+        view_box: view_box.and_then(|v| parse_view_box(v)),
+        empty_view_box: view_box.is_some_and(|v| is_empty_view_box(v)),
+        preserve_aspect_ratio: attrs
+            .get("preserveAspectRatio")
+            .and_then(|v| PreserveAspectRatio::parse(v))
+            .unwrap_or_default(),
+    }
+}
+
+/// The viewport of a nested `svg`, or of the instance of `use_element`;
+/// `None` when it is disabled.
+fn nested_viewport(
+    node: &Node,
+    use_element: Option<&Element>,
+    vp: &Viewport,
+) -> Option<NestedViewport> {
+    let context = length_context(vp.width, vp.height);
+    let attributes = viewport_attributes(&node.element);
+    match use_element {
+        Some(element) => use_attributes(element).instance_viewport(&attributes, &context),
+        None => attributes.resolve(&context),
+    }
+}
+
+/// The transform from an element's user space to its parent's: its
+/// `transform`, and for a `use` then its translation.
+fn local_transform(node: &Node, vp: &Viewport) -> Matrix {
+    let transform = transform_of(&node.element);
+    if node.element.tag != "use" {
+        return transform;
+    }
+    let context = length_context(vp.width, vp.height);
+    transform.then_apply(&use_attributes(&node.element).translation(&context))
 }
 
 /// The `#id` an element's `href` (or `xlink:href`) names.
@@ -504,21 +761,6 @@ fn map_rect(m: &Matrix, rect: Rect) -> Rect {
     Rect::new(min_x, min_y, max_x - min_x, max_y - min_y)
 }
 
-/// An element's fill box (`getBBox`) in its own user space: a shape's
-/// geometry, or the union of a group's rendered children.
-fn fill_box(node: &Node, vp: &Viewport) -> Option<Rect> {
-    match node.element.tag.as_str() {
-        tag if is_resource(tag) => None,
-        "g" => node
-            .children
-            .iter()
-            .filter(|c| c.element.attrs.get("display").map(String::as_str) != Some("none"))
-            .filter_map(|c| fill_box(c, vp).map(|b| map_rect(&transform_of(&c.element), b)))
-            .reduce(union),
-        _ => Some(shape(&node.element, vp).bbox),
-    }
-}
-
 /// Paints an element with its group opacity, `mask` and `clip-path`.
 /// `ctm` maps its user space to the device; `props` are its parent's.
 #[allow(clippy::too_many_arguments)]
@@ -532,7 +774,9 @@ fn with_effects(
     servers: &[String],
     paint: impl FnOnce(&Canvas),
 ) {
-    let paint = |canvas: &Canvas| match resolve_mask(root, &node.element, vp, servers) {
+    let mask = resolve_mask(root, &node.element, vp, servers);
+    let masked = matches!(mask, MaskReference::Mask(_));
+    let paint = |canvas: &Canvas| match mask {
         MaskReference::None => paint(canvas),
         MaskReference::Mask(mask) => {
             canvas.save();
@@ -551,14 +795,28 @@ fn with_effects(
     let clip =
         clip_reference(&node.element).and_then(|id| resolve_clip(root, &id, vp, &mut Vec::new()));
     // The group opacity is a layer inside the clip: Chromium clips the
-    // opacity effect's output (measured: `edge/opacity`).
+    // opacity effect's output (measured: `edge/opacity`). As cc plays it
+    // back, the layer is bounded by the drawable bounds of its content, and
+    // a layer holding a single drawing operation is folded into it, the
+    // operation's float alpha multiplied (`PlaybackFoldingIterator`; Div's
+    // renderer does the same in `div-paint`'s `paint_record.rs`). The fold
+    // is modelled for colour paints, by the fill or stroke opacity.
     let paint = |canvas: &Canvas| {
-        if opacity < 1.0 {
-            canvas.save_layer_alpha_f(None, opacity);
+        if opacity >= 1.0 {
+            paint(canvas);
+        } else if !masked && single_space_draws(node, props) == Some(1) {
+            FOLDED_ALPHA.with(|alpha| alpha.set(Some(opacity)));
+            paint(canvas);
+            FOLDED_ALPHA.with(|alpha| alpha.set(None));
+        } else {
+            canvas.save();
+            canvas.set_matrix(&M44::from(to_sk_matrix(ctm)));
+            let bounds = bounds(node, vp, props, Bounds::Drawable)
+                .map(|r| SkRect::from_xywh(r.x, r.y, r.width, r.height));
+            canvas.save_layer_alpha_f(bounds, opacity);
             paint(canvas);
             canvas.restore();
-        } else {
-            paint(canvas);
+            canvas.restore();
         }
     };
     match clip {
@@ -599,40 +857,43 @@ fn paint_children(
                     paint_children(canvas, root, child, &ctm, vp, &props, to_host, servers)
                 });
             }
-            "svg" => {
-                // A nested `svg` clips to its viewport (overflow is hidden),
-                // then establishes its own user space.
-                let ctx = length_context(vp.width, vp.height);
-                let len = |name: &str, axis: Axis, default: f32| {
-                    element
-                        .attrs
-                        .get(name)
-                        .and_then(|v| div_svg::length::Length::parse(v))
-                        .map_or(default, |l| l.resolve(axis, &ctx))
-                };
-                let x = len("x", Axis::Horizontal, 0.0);
-                let y = len("y", Axis::Vertical, 0.0);
-                let width = len("width", Axis::Horizontal, vp.width);
-                let height = len("height", Axis::Vertical, vp.height);
-                canvas.save();
-                canvas.set_matrix(&M44::from(to_sk_matrix(ctm)));
-                clip_viewport(canvas, Rect::new(x, y, width, height), true);
-                let mut inner = ctm.then_apply(&Matrix::translate(f64::from(x), f64::from(y)));
-                let mut inner_vp = Viewport {
-                    ctm: Matrix::IDENTITY,
-                    width,
-                    height,
-                };
-                if let Some(vbt) = view_box(element, width, height) {
-                    inner = inner.then_apply(&vbt);
-                    let vb = parse_view_box(&element.attrs["viewBox"]).unwrap();
-                    inner_vp.width = vb.width;
-                    inner_vp.height = vb.height;
-                }
-                paint_children(
-                    canvas, root, child, &inner, &inner_vp, &props, to_host, servers,
+            "use" => {
+                let ctm = ctm.then_apply(&local_transform(child, vp));
+                with_effects(
+                    canvas,
+                    root,
+                    child,
+                    &ctm,
+                    vp,
+                    parent,
+                    servers,
+                    |canvas| match child.children.first() {
+                        Some(instance) if is_viewport(&instance.element.tag) => {
+                            if instance.element.attrs.get("display").map(String::as_str)
+                                == Some("none")
+                            {
+                                return;
+                            }
+                            if let Some(viewport) = nested_viewport(instance, Some(element), vp) {
+                                let props = cascade(&instance.element, &props);
+                                paint_viewport(
+                                    canvas, root, instance, &ctm, &viewport, &props, to_host,
+                                    servers,
+                                );
+                            }
+                        }
+                        _ => {
+                            paint_children(canvas, root, child, &ctm, vp, &props, to_host, servers)
+                        }
+                    },
                 );
-                canvas.restore();
+            }
+            "svg" => {
+                if let Some(viewport) = nested_viewport(child, None, vp) {
+                    paint_viewport(
+                        canvas, root, child, ctm, &viewport, &props, to_host, servers,
+                    );
+                }
             }
             _ => {
                 if props.get("visibility").map(String::as_str) == Some("hidden") {
@@ -640,12 +901,19 @@ fn paint_children(
                 }
                 let ctm = ctm.then_apply(&transform_of(element));
                 with_effects(canvas, root, child, &ctm, vp, parent, servers, |canvas| {
+                    let folded = FOLDED_ALPHA.with(|alpha| alpha.take());
                     canvas.save();
                     canvas.set_matrix(&M44::from(to_sk_matrix(&ctm)));
+                    let mut style =
+                        paint_style_with(&props, vp, &|id| resolve_server(root, id, vp, servers));
+                    if let Some(alpha) = folded {
+                        style.fill_opacity *= alpha;
+                        style.stroke_opacity *= alpha;
+                    }
                     paint_shape(
                         canvas,
                         &shape(element, vp),
-                        &paint_style_with(&props, vp, &|id| resolve_server(root, id, vp, servers)),
+                        &style,
                         Some(&to_host.then_apply(&ctm)),
                     );
                     canvas.restore();
@@ -653,6 +921,38 @@ fn paint_children(
             }
         }
     }
+}
+
+/// Paints a nested viewport's children: clipped to the viewport unless
+/// `overflow` is visible, in the user space the viewport establishes.
+#[allow(clippy::too_many_arguments)]
+fn paint_viewport(
+    canvas: &Canvas,
+    root: &Node,
+    node: &Node,
+    ctm: &Matrix,
+    viewport: &NestedViewport,
+    props: &BTreeMap<String, String>,
+    to_host: &Matrix,
+    servers: &[String],
+) {
+    canvas.save();
+    canvas.set_matrix(&M44::from(to_sk_matrix(ctm)));
+    let overflow = node.element.attrs.get("overflow").map(String::as_str);
+    if !matches!(overflow, Some("visible" | "auto")) {
+        clip_viewport(canvas, viewport.viewport, true);
+    }
+    let inner = ctm.then_apply(&viewport.content_transform());
+    let (width, height) = viewport.content_size();
+    let inner_vp = Viewport {
+        ctm: Matrix::IDENTITY,
+        width,
+        height,
+    };
+    paint_children(
+        canvas, root, node, &inner, &inner_vp, props, to_host, servers,
+    );
+    canvas.restore();
 }
 
 #[test]
@@ -678,6 +978,11 @@ fn paint_v4_matches_chromium_147() {
 #[test]
 fn paint_v5_matches_chromium_147() {
     check("svg-paint-v5", KNOWN_GAPS_V5);
+}
+
+#[test]
+fn paint_v6_matches_chromium_147() {
+    check("svg-paint-v6", KNOWN_GAPS_V6);
 }
 
 fn check(set: &str, known_gaps: &str) {
@@ -725,6 +1030,7 @@ fn check(set: &str, known_gaps: &str) {
                 (case["y"].as_f64().unwrap() * scale) as usize,
             );
             let svg = tree(case["svg"].as_str().unwrap());
+            let svg = instantiate(&svg, &svg, &mut Vec::new(), false);
             let size = (
                 case["width"].as_f64().unwrap(),
                 case["height"].as_f64().unwrap(),

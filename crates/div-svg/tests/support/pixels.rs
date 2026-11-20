@@ -49,12 +49,16 @@ pub fn cascade(element: &Element, parent: &BTreeMap<String, String>) -> BTreeMap
     if let Some(value) = element.attrs.get("vector-effect") {
         out.insert("vector-effect".to_owned(), value.clone());
     }
-    for name in PROPERTIES {
-        if let Some(value) = element.attrs.get(name) {
-            out.insert(name.to_owned(), value.clone());
+    let attributes = PROPERTIES
+        .iter()
+        .filter_map(|name| Some((name.to_string(), element.attrs.get(*name)?.clone())));
+    let style = style_map(element.attrs.get("style").map_or("", |s| s));
+    // `inherit` keeps the parent's value.
+    for (name, value) in attributes.chain(style) {
+        if value != "inherit" {
+            out.insert(name, value);
         }
     }
-    out.extend(style_map(element.attrs.get("style").map_or("", |s| s)));
     out
 }
 

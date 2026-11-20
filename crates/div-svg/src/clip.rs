@@ -88,8 +88,10 @@ pub enum ClipContent {
         /// Off for `shape-rendering: crispEdges` and `optimizeSpeed`.
         anti_alias: bool,
     },
-    /// Content V3a cannot draw yet (text and `use`). A `clipPath` with
-    /// such a child is not a path, and its mask leaves the child out.
+    /// Content that cannot be drawn yet (text). A `clipPath` with such a
+    /// child is not a path, and its mask leaves the child out. A `use` of
+    /// a shape is a [`ClipContent::Shape`] under the `use`'s placement
+    /// ([`crate::use_element`]).
     Unsupported,
 }
 
