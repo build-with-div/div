@@ -108,6 +108,22 @@ evidence is div-fidelity-data `c4b87acd`
 `-div-coverage-v1.json` and `-div-coverage-zoom-v1.json` beside it);
 `fidelity-data.lock` pins it.
 
+### After rebasing onto `main` `3bed9562`
+
+`main` gained #103 (T5 and T6), whose evidence is div-fidelity-data
+`31eeae71`, the parent of this change's `c4b87acd`. The head `4a2e16e9`
+was measured again:
+
+| Check | Result |
+| --- | --- |
+| Windows suites: `div-style`, `div-text`, `div-layout`, `div-paint`, `div-svg`, `div-engine`, `divui` | 9,456 passed, 0 failed, including the SVG text corpus and the long-text oracle (59 of 160 exact, the 101 listed gaps unchanged) |
+| Linux suites, the same seven crates (WSL, CI's Skia flags) | 9,461 passed, 0 failed |
+| SVG text corpus, Linux | 24,056 position numbers, none differ; 264 of 290 captures exact, as on `main` |
+| Generators, `cargo fmt --check`, `fidelity_data.py verify --profile all` | All pass. SP20 could not be checked locally (this machine's WPT checkout is not the pinned tree); this change touches none of its inputs |
+
+The census was not rerun: T3 changes no Linux advance (FreeType advances
+are whole units), and #103 changed no census image either.
+
 ## Named gaps
 
 - **T8, exact HarfBuzz units.**
