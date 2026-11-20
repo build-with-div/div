@@ -355,3 +355,80 @@ fn ctrl_does_not_scroll_and_lines_and_pages_resolve_to_pixels() {
         ]
     );
 }
+
+const LIMIT_LINUX_X11: &str =
+    include_str!("../../../tests/fidelity/fixtures/wheel-limit-v1/chromium-linux-x11.json");
+
+/// A notch scrolls at most the scroller's client box, pixel-snapped in
+/// device pixels at its position: `capture_wheel_oracle.py --limit` placed
+/// a scroller at fractional tops and heights under the pointer, and one
+/// 120px X11 notch scrolled each from 0. Cases whose Chromium offset is
+/// not a whole CSS pixel are gap `device-scale-scroll-offset`: Div rounds
+/// an element's offset to whole CSS pixels at every scale.
+#[test]
+fn the_scroll_limit_is_the_device_pixel_snapped_client_box() {
+    let oracle: Value = serde_json::from_str(LIMIT_LINUX_X11).unwrap();
+    let mut compared = 0;
+    for (scale_name, capture) in oracle["scales"].as_object().unwrap() {
+        let scale: f64 = scale_name.parse().unwrap();
+        let (width, height) = pair(&capture["viewport"]);
+        let (x, y) = pair(&capture["pointer"]);
+        for case in capture["cases"].as_array().unwrap() {
+            let top = case["top"].as_f64().unwrap() as f32;
+            let box_height = case["height"].as_f64().unwrap() as f32;
+            let document = Document::with_viewport_metrics(
+                ViewportMetrics::from_logical_size(width, height, scale).unwrap(),
+            )
+            .unwrap();
+            let scroller = Element::create(&document, "div").unwrap();
+            scroller.set_position(Position::Absolute).unwrap();
+            scroller.set_left(Length::px(40.0)).unwrap();
+            scroller.set_top(Length::px(top)).unwrap();
+            scroller.set_width(LengthValue::px(300.0)).unwrap();
+            scroller.set_height(LengthValue::px(box_height)).unwrap();
+            scroller
+                .set_property(StyleProperty::OverflowX, Overflow::Hidden.into())
+                .unwrap();
+            scroller
+                .set_property(StyleProperty::OverflowY, Overflow::Scroll.into())
+                .unwrap();
+            document.body().append_child(&scroller).unwrap();
+            let content = Element::create(&document, "div").unwrap();
+            content.set_height(LengthValue::px(4000.0)).unwrap();
+            scroller.append_child(&content).unwrap();
+            document.update_all().unwrap();
+            assert_eq!(
+                scroller.client_height().unwrap() as f64,
+                case["client_height"].as_f64().unwrap(),
+                "{scale_name} top {top}: the client height"
+            );
+
+            // X11 button 5: one notch down.
+            let wheel = div_platform::WheelSettings::linux().deltas(0.0, -1.0);
+            assert_eq!(wheel.delta_y, 120.0);
+            document
+                .dispatch_wheel_event_with_mode(
+                    x as f32,
+                    y as f32,
+                    wheel.delta_x,
+                    wheel.delta_y,
+                    mode(wheel.mode),
+                    Modifiers::NONE,
+                )
+                .unwrap();
+            document.update_all().unwrap();
+            let chromium = pair(&case["scroll"]).1;
+            let div = scroller.scroll_top().unwrap();
+            if chromium.fract().abs() > 1e-4 {
+                // Gap `device-scale-scroll-offset`: Div keeps the whole
+                // CSS pixel nearest Chromium's device-pixel offset.
+                assert_eq!(div, chromium.round(), "{scale_name} top {top}: the gap");
+                assert_ne!(div, chromium, "{scale_name} top {top}: the gap now matches");
+            } else {
+                assert_eq!(div, chromium, "{scale_name} top {top}: the scrolled offset");
+                compared += 1;
+            }
+        }
+    }
+    assert_eq!(compared, 9);
+}

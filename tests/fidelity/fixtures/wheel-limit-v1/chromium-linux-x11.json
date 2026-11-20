@@ -1,0 +1,286 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux-x11",
+ "host": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+ "input": "X11 wheel button 5 (one notch down) through XTEST, --ozone-platform=x11",
+ "scale_method": "--force-device-scale-factor (RFC 0010 real zoom)",
+ "page": "a position:fixed 300px-wide overflow-y:scroll scroller at left 40px, placed at each case's top and height under the pointer; 4000px-high content; a passive window wheel listener",
+ "scales": {
+  "1.0": {
+   "viewport": [
+    480,
+    344
+   ],
+   "pointer": [
+    240,
+    210
+   ],
+   "cases": [
+    {
+     "top": 160.3,
+     "height": 100.4,
+     "rect": [
+      160.296875,
+      100.390625
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      101
+     ]
+    },
+    {
+     "top": 160.0,
+     "height": 100.6,
+     "rect": [
+      160,
+      100.59375
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      101
+     ]
+    },
+    {
+     "top": 160.6,
+     "height": 100.4,
+     "rect": [
+      160.59375,
+      100.390625
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 160.5,
+     "height": 100.5,
+     "rect": [
+      160.5,
+      100.5
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 160.0,
+     "height": 100.25,
+     "rect": [
+      160,
+      100.25
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 160.75,
+     "height": 100.5,
+     "rect": [
+      160.75,
+      100.5
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    }
+   ]
+  },
+  "1.25": {
+   "viewport": [
+    600,
+    444
+   ],
+   "pointer": [
+    299,
+    276
+   ],
+   "cases": [
+    {
+     "top": 226.3,
+     "height": 100.4,
+     "rect": [
+      226.3000030517578,
+      100.4000015258789
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 226.0,
+     "height": 100.6,
+     "rect": [
+      226,
+      100.5999984741211
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 226.6,
+     "height": 100.4,
+     "rect": [
+      226.60000610351562,
+      100.4000015258789
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100.80000305175781
+     ]
+    },
+    {
+     "top": 226.5,
+     "height": 100.5,
+     "rect": [
+      226.5,
+      100.5
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100.80000305175781
+     ]
+    },
+    {
+     "top": 226.0,
+     "height": 100.25,
+     "rect": [
+      226,
+      100.25
+     ],
+     "client_height": 100,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100
+     ]
+    },
+    {
+     "top": 226.75,
+     "height": 100.5,
+     "rect": [
+      226.75,
+      100.5
+     ],
+     "client_height": 101,
+     "log": [
+      {
+       "target": "content",
+       "deltaX": 0,
+       "deltaY": 120,
+       "deltaMode": 0
+      }
+     ],
+     "scroll": [
+      0,
+      100.80000305175781
+     ]
+    }
+   ]
+  }
+ }
+}

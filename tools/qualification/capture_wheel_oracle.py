@@ -20,6 +20,11 @@ the real-zoom oracle method of RFC 0010. The page is one scroller filling the
 viewport; a passive `wheel` listener on the window records every event, and
 the scroller's offsets are read once they settle. Each capture runs twice and
 must match. The test `crates/divui/tests/wheel_events.rs` reads the JSON.
+
+`--limit` (Linux only) measures which size limits a scroll: a 300px-wide
+`overflow-y: scroll` scroller is placed under the pointer at fractional tops
+and heights, and one 120px notch scrolls it. Each case starts at offset 0.
+It writes `tests/fidelity/fixtures/wheel-limit-v1/chromium-linux-x11.json`.
 """
 
 from __future__ import annotations
@@ -58,6 +63,31 @@ addEventListener("wheel", event => wheelLog.push({
   bubbles: event.bubbles, cancelable: event.cancelable,
   shiftKey: event.shiftKey, ctrlKey: event.ctrlKey,
   altKey: event.altKey, metaKey: event.metaKey,
+}), {passive: true});
+</script></body></html>"""
+
+LIMIT_FIXTURE = ROOT / "tests/fidelity/fixtures/wheel-limit-v1"
+# (fraction added to the pointer's whole-pixel top less 50px, height).
+LIMIT_CASES = (
+    (0.3, 100.4),
+    (0.0, 100.6),
+    (0.6, 100.4),
+    (0.5, 100.5),
+    (0.0, 100.25),
+    (0.75, 100.5),
+)
+LIMIT_PAGE = """<!DOCTYPE html><html><head><style>
+html, body { margin: 0; height: 100%; overflow: hidden }
+#scroller { position: fixed; left: 40px; width: 300px; height: 100px;
+  overflow-x: hidden; overflow-y: scroll }
+#content { height: 4000px }
+</style></head><body><div id="scroller"><div id="content"></div></div><script>
+window.wheelLog = [];
+window.pointer = null;
+addEventListener("mousemove", event => pointer = [event.clientX, event.clientY]);
+addEventListener("wheel", event => wheelLog.push({
+  target: event.target.id, deltaX: event.deltaX, deltaY: event.deltaY,
+  deltaMode: event.deltaMode,
 }), {passive: true});
 </script></body></html>"""
 
@@ -269,12 +299,105 @@ def capture_x11(chrome: Path, page: Path, scale: float) -> tuple[dict, dict]:
         x11.XCloseDisplay(display)
 
 
+def capture_x11_limit(chrome: Path, page: Path, scale: float) -> dict:
+    import ctypes
+
+    x11 = ctypes.CDLL("libX11.so.6")
+    xtst = ctypes.CDLL("libXtst.so.6")
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+    xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                          ctypes.c_ulong]
+    display = x11.XOpenDisplay(None)
+    if not display:
+        raise SystemExit("no X display: set DISPLAY")
+
+    browser = Browser(chrome, page, scale, ("--ozone-platform=x11", "--no-sandbox"))
+    try:
+        time.sleep(1.0)  # let the window manager place the window
+        left, top, outer_width, outer_height = browser.evaluate(
+            "[screenX, screenY, outerWidth, outerHeight]")
+        x = int((left + outer_width / 2) * scale)
+        y = int((top + outer_height * 2 / 3) * scale)
+        # Move off and back, so the page sees where the pointer is.
+        xtst.XTestFakeMotionEvent(display, -1, x + 7, y + 7, 0)
+        x11.XFlush(display)
+        time.sleep(0.3)
+        xtst.XTestFakeMotionEvent(display, -1, x, y, 0)
+        x11.XFlush(display)
+        browser.settle()
+        pointer = browser.evaluate("pointer")
+        if pointer is None:
+            raise RuntimeError("the page saw no pointer move")
+        cases = []
+        for fraction, height in LIMIT_CASES:
+            scroller_top = int(pointer[1]) - 50 + fraction
+            browser.evaluate(
+                f"scroller.style.top = '{scroller_top}px'; scroller.style.height = '{height}px';"
+                " scroller.scrollTop = 0")
+            browser.settle()
+            xtst.XTestFakeButtonEvent(display, 5, 1, 0)
+            xtst.XTestFakeButtonEvent(display, 5, 0, 0)
+            x11.XFlush(display)
+            result = browser.settle()
+            cases.append({
+                "top": scroller_top, "height": height,
+                "rect": browser.evaluate(
+                    "(r => [r.top, r.height])(scroller.getBoundingClientRect())"),
+                "client_height": browser.evaluate("scroller.clientHeight"),
+                **result,
+            })
+        return {"viewport": browser.evaluate("[innerWidth, innerHeight]"),
+                "pointer": pointer, "cases": cases}
+    finally:
+        browser.close()
+        x11.XCloseDisplay(display)
+
+
+def main_limit(chrome: Path, output: Path | None) -> int:
+    if os.name == "nt":
+        raise SystemExit("--limit is Linux only (X11 through XTEST)")
+    scales = {}
+    with tempfile.TemporaryDirectory(prefix="div-wheel-page-") as directory:
+        page = Path(directory) / "limit.html"
+        page.write_text(LIMIT_PAGE, encoding="utf-8")
+        for scale in SCALES:
+            first = capture_x11_limit(chrome.resolve(), page, scale)
+            second = capture_x11_limit(chrome.resolve(), page, scale)
+            if first != second:
+                raise RuntimeError(f"captures at {scale} differ:\n{first}\n{second}")
+            scales[str(scale)] = first
+    document = {
+        "chromium": CHROMIUM_VERSION,
+        "platform": "linux-x11",
+        "host": platform.platform(),
+        "input": "X11 wheel button 5 (one notch down) through XTEST, --ozone-platform=x11",
+        "scale_method": "--force-device-scale-factor (RFC 0010 real zoom)",
+        "page": "a position:fixed 300px-wide overflow-y:scroll scroller at left 40px, "
+                "placed at each case's top and height under the pointer; 4000px-high "
+                "content; a passive window wheel listener",
+        "scales": scales,
+    }
+    output = output or LIMIT_FIXTURE / "chromium-linux-x11.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(document, indent=1) + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {output}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--chrome", type=Path, required=True,
                         help="the pinned Chrome-for-Testing 147.0.7727.50 binary")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--limit", action="store_true",
+                        help="measure the scroll limit for fractional scrollers (Linux)")
     args = parser.parse_args()
+    if args.limit:
+        return main_limit(args.chrome, args.output)
     windows = os.name == "nt"
     if windows:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
