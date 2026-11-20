@@ -1,0 +1,19 @@
+# Paint corpus v7 (markers) gaps, one per line: [<os>] <scale>x <case> <differing pixels>
+# <largest channel difference>, each under a comment giving its cause and owner. A leading `linux` or
+# `windows` limits a line to that OS. crates/div-svg/tests/paint_corpus.rs fails on an unlisted
+# difference, on a listed one whose numbers change, and on a listed case that is now exact.
+
+# Marker transform rounding (div-svg `marker` placement and the harness's marker painting; owner: SVG
+# lane). At 2x a few edge pixels of an arrowhead differ by a few levels. The difference follows the
+# slot's place on the sheet: `pos/polyline` draws the same end arrow exactly in another column, and
+# `pos/arc-degenerate` and `pos/cubic-degenerate` differ identically while `pos/line`, with the same
+# geometry, is exact. Offsetting every angle by a few millionths of a degree flips these pixels, and
+# no single offset fixes all of them, so the difference is in the single-precision rounding of the
+# marker transform or of its device translation. Composing it in double precision, rounding it in
+# layer space, rounding the angles to single precision and moving the reference point into the
+# content transform each match fewer cases; the exact pipeline is unmeasured.
+2x dir/polyline 4 7
+2x prop/inherited 4 7
+2x pos/arc-degenerate 3 3
+2x pos/cubic-degenerate 3 3
+2x pos/quad 6 8

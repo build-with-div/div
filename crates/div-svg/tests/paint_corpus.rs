@@ -4,7 +4,7 @@
 //! strokes, transforms, viewports, Lucide icons), `v2` (dashes,
 //! `pathLength`, `paint-order`, `shape-rendering`, `vector-effect`, chart
 //! compositions), `v3` (`clipPath`), `v4` (paint servers: gradients and
-//! patterns), `v5` (`mask`) and `v6` (`use` and `symbol`).
+//! patterns), `v5` (`mask`), `v6` (`use` and `symbol`) and `v7` (markers).
 //!
 //! Chromium renders every case of a sheet in its own slot of one page, at
 //! scale 1 and, for a subset, at 2 (real zoom). This test paints
@@ -27,13 +27,16 @@ div_text::initialize_skia_at_load!();
 
 use div_svg::clip::{clip_content, ClipChild, ClipContent, ClipPath, ClipPathUnits, ClipReference};
 use div_svg::geometry::FillRule;
-use div_svg::length::Length;
+use div_svg::length::{Axis, Length};
+use div_svg::marker::{marker_positions, MarkerAttributes, MarkerKind, MarkerUnits, Orient};
 use div_svg::mask::{mask_content, Mask, MaskAttributes, MaskType};
 use div_svg::paint::{clip_viewport, paint_shape, to_sk_matrix, ShapeRendering};
 use div_svg::paint_server::{
     gradient_stops, parse_stop_offset, GradientAttributes, GradientKind, PaintServer,
     PatternAttributes, SpreadMethod, Units,
 };
+use div_svg::path_data::{PathData, Segment};
+use div_svg::shapes::parse_points;
 use div_svg::transform::{parse_transform_list, Matrix};
 use div_svg::use_element::UseAttributes;
 use div_svg::viewport::{
@@ -65,6 +68,8 @@ const KNOWN_GAPS_V5: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v5/known-gaps.txt");
 const KNOWN_GAPS_V6: &str =
     include_str!("../../../tests/fidelity/fixtures/svg-paint-v6/known-gaps.txt");
+const KNOWN_GAPS_V7: &str =
+    include_str!("../../../tests/fidelity/fixtures/svg-paint-v7/known-gaps.txt");
 fn fixtures(set: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../tests/fidelity/fixtures/{set}"))
 }
@@ -291,17 +296,28 @@ fn bounds(
             let half = if stroked {
                 props
                     .get("stroke-width")
-                    .map_or(1.0, |w| w.trim_end_matches("px").parse::<f32>().unwrap())
+                    .and_then(|w| Length::parse(w))
+                    .map_or(1.0, |w| {
+                        w.resolve(Axis::Other, &length_context(vp.width, vp.height))
+                    })
                     / 2.0
             } else {
                 0.0
             };
-            let rect = Rect::new(
+            let mut rect = Rect::new(
                 bbox.x - half,
                 bbox.y - half,
                 bbox.width + 2.0 * half,
                 bbox.height + 2.0 * half,
             );
+            // A shape's visual rect includes its markers'.
+            if let Some(markers) = CASE_ROOT.with(|r| {
+                r.borrow()
+                    .as_ref()
+                    .and_then(|root| marker_bounds(root, &node.element, vp, &props))
+            }) {
+                rect = union(rect, markers);
+            }
             if kind != Bounds::Drawable {
                 return Some(rect);
             }
@@ -358,7 +374,12 @@ fn single_space_draws(node: &Node, props: &BTreeMap<String, String>) -> Option<u
             .sum(),
         tag if is_shape(tag) => {
             let server = |name: &str| props.get(name).is_some_and(|v| v.starts_with("url("));
-            (!server("fill") && !server("stroke")).then(|| draws(&props))
+            // Markers draw a record of their own, each in its own space.
+            let markers = marker_segments(&node.element).is_some()
+                && ["marker-start", "marker-mid", "marker-end"]
+                    .iter()
+                    .any(|name| props.get(*name).is_some_and(|v| v.starts_with("url(")));
+            (!server("fill") && !server("stroke") && !markers).then(|| draws(&props))
         }
         _ => None,
     }
@@ -492,6 +513,7 @@ fn is_resource(tag: &str) -> bool {
             | "pattern"
             | "stop"
             | "symbol"
+            | "marker"
     )
 }
 
@@ -904,6 +926,7 @@ fn paint_children(
                     let folded = FOLDED_ALPHA.with(|alpha| alpha.take());
                     canvas.save();
                     canvas.set_matrix(&M44::from(to_sk_matrix(&ctm)));
+                    let props = with_context_paint(&props);
                     let mut style =
                         paint_style_with(&props, vp, &|id| resolve_server(root, id, vp, servers));
                     if let Some(alpha) = folded {
@@ -915,11 +938,284 @@ fn paint_children(
                         &shape(element, vp),
                         &style,
                         Some(&to_host.then_apply(&ctm)),
+                        &mut |canvas| {
+                            paint_markers(canvas, root, element, &ctm, vp, &props, to_host, servers)
+                        },
                     );
                     canvas.restore();
                 });
             }
         }
+    }
+}
+
+thread_local! {
+    /// The markers being painted, outermost first: a marker that refers to
+    /// one of them, itself included, is not painted.
+    static MARKERS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+    /// The fill and stroke of the shape whose markers are being painted,
+    /// which `context-fill` and `context-stroke` take.
+    static CONTEXT_PAINT: RefCell<Option<(String, String)>> = const { RefCell::new(None) };
+    /// The case being painted, for the markers a shape's bounds include.
+    static CASE_ROOT: RefCell<Option<Node>> = const { RefCell::new(None) };
+}
+
+/// `props` with `context-fill` and `context-stroke` replaced by the context
+/// element's paints, or by `none` outside a marker.
+fn with_context_paint(props: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    let context = CONTEXT_PAINT.with(|c| c.borrow().clone());
+    let mut out = props.clone();
+    for name in ["fill", "stroke"] {
+        let value = match props.get(name).map(String::as_str) {
+            Some("context-fill") => context.as_ref().map_or("none".to_owned(), |c| c.0.clone()),
+            Some("context-stroke") => context.as_ref().map_or("none".to_owned(), |c| c.1.clone()),
+            _ => continue,
+        };
+        out.insert(name.to_owned(), value);
+    }
+    out
+}
+
+/// The properties of `target` as it inherits from its ancestors in `node`.
+fn cascade_to(
+    node: &Node,
+    target: &Node,
+    parent: &BTreeMap<String, String>,
+) -> Option<BTreeMap<String, String>> {
+    let props = cascade(&node.element, parent);
+    if std::ptr::eq(node, target) {
+        return Some(props);
+    }
+    node.children
+        .iter()
+        .find_map(|child| cascade_to(child, target, &props))
+}
+
+/// The segments markers are placed on, for the shapes that take markers.
+fn marker_segments(element: &Element) -> Option<Vec<Segment>> {
+    let attr = |name: &str| element.attrs.get(name).map_or("", String::as_str);
+    let num = |name: &str| attr(name).parse::<f32>().unwrap_or(0.0);
+    let points = |closed: bool| {
+        let list = parse_points(attr("points"));
+        let mut segments: Vec<Segment> = list
+            .iter()
+            .enumerate()
+            .map(|(i, &p)| {
+                if i == 0 {
+                    Segment::MoveTo(p)
+                } else {
+                    Segment::LineTo(p)
+                }
+            })
+            .collect();
+        if closed && !segments.is_empty() {
+            segments.push(Segment::Close);
+        }
+        segments
+    };
+    Some(match element.tag.as_str() {
+        "path" => PathData::parse(attr("d")).segments,
+        "line" => vec![
+            Segment::MoveTo(div_svg::Point::new(num("x1"), num("y1"))),
+            Segment::LineTo(div_svg::Point::new(num("x2"), num("y2"))),
+        ],
+        "polyline" => points(false),
+        "polygon" => points(true),
+        _ => return None,
+    })
+}
+
+fn marker_attributes(element: &Element) -> MarkerAttributes {
+    let attrs = &element.attrs;
+    let len = |name: &str| attrs.get(name).and_then(|v| Length::parse(v));
+    let view_box = attrs.get("viewBox");
+    MarkerAttributes {
+        marker_width: len("markerWidth"),
+        marker_height: len("markerHeight"),
+        ref_x: len("refX"),
+        ref_y: len("refY"),
+        units: match attrs.get("markerUnits").map(String::as_str) {
+            Some("userSpaceOnUse") => MarkerUnits::UserSpaceOnUse,
+            _ => MarkerUnits::StrokeWidth,
+        },
+        orient: attrs
+            .get("orient")
+            .and_then(|v| Orient::parse(v))
+            .unwrap_or_default(),
+        view_box: view_box.and_then(|v| parse_view_box(v)),
+        empty_view_box: view_box.is_some_and(|v| is_empty_view_box(v)),
+        preserve_aspect_ratio: attrs
+            .get("preserveAspectRatio")
+            .and_then(|v| PreserveAspectRatio::parse(v))
+            .unwrap_or_default(),
+    }
+}
+
+/// The `marker` element a shape's `marker-start`, `marker-mid` or
+/// `marker-end` refers to, unless it is being painted already.
+fn marker_reference<'a>(
+    root: &'a Node,
+    props: &BTreeMap<String, String>,
+    kind: MarkerKind,
+) -> Option<(String, &'a Node)> {
+    let name = match kind {
+        MarkerKind::Start => "marker-start",
+        MarkerKind::Mid => "marker-mid",
+        MarkerKind::End => "marker-end",
+    };
+    let id = props
+        .get(name)?
+        .trim()
+        .strip_prefix("url(#")?
+        .strip_suffix(')')?
+        .to_owned();
+    if MARKERS.with(|m| m.borrow().contains(&id)) {
+        return None;
+    }
+    let node = find(root, &id).filter(|n| n.element.tag == "marker")?;
+    Some((id, node))
+}
+
+/// The union of a shape's markers' rects in its user space: each marker's
+/// viewport, or its content's visual rect when `overflow` is visible.
+fn marker_bounds(
+    root: &Node,
+    element: &Element,
+    vp: &Viewport,
+    props: &BTreeMap<String, String>,
+) -> Option<Rect> {
+    let segments = marker_segments(element)?;
+    let context = length_context(vp.width, vp.height);
+    let stroke_width = props
+        .get("stroke-width")
+        .and_then(|w| Length::parse(w))
+        .map_or(1.0, |w| w.resolve(Axis::Other, &context));
+    marker_positions(&segments)
+        .iter()
+        .filter_map(|position| {
+            let (_, marker) = marker_reference(root, props, position.kind)?;
+            let attributes = marker_attributes(&marker.element);
+            let placement = attributes.place(position, stroke_width, &context)?;
+            let rect = if marker_overflows(&marker.element) {
+                let size = attributes.view_box.unwrap_or(placement.viewport);
+                let inner = Viewport {
+                    ctm: Matrix::IDENTITY,
+                    width: size.width,
+                    height: size.height,
+                };
+                let props = cascade_to(root, marker, &BTreeMap::new()).unwrap_or_default();
+                let content = marker
+                    .children
+                    .iter()
+                    .filter_map(|c| {
+                        bounds(c, &inner, &props, Bounds::Visual)
+                            .map(|b| map_rect(&local_transform(c, &inner), b))
+                    })
+                    .reduce(union)?;
+                map_rect(&placement.content_transform, content)
+            } else {
+                placement.viewport
+            };
+            Some(map_rect(&placement.transform, rect))
+        })
+        .reduce(union)
+}
+
+/// Whether a marker's `overflow` lets its content out of its viewport.
+fn marker_overflows(element: &Element) -> bool {
+    let style = style_map(element.attrs.get("style").map_or("", |s| s));
+    let overflow = style
+        .get("overflow")
+        .or_else(|| element.attrs.get("overflow"))
+        .map(String::as_str);
+    matches!(overflow, Some("visible" | "auto"))
+}
+
+/// Paints a shape's markers (`div_svg::marker`): each on its own saved
+/// canvas carrying the marker transform, clipped to the marker viewport
+/// unless `overflow` is visible, with the marker's content inheriting from
+/// the marker element.
+#[allow(clippy::too_many_arguments)]
+fn paint_markers(
+    canvas: &Canvas,
+    root: &Node,
+    element: &Element,
+    ctm: &Matrix,
+    vp: &Viewport,
+    props: &BTreeMap<String, String>,
+    to_host: &Matrix,
+    servers: &[String],
+) {
+    let Some(segments) = marker_segments(element) else {
+        return;
+    };
+    let context = length_context(vp.width, vp.height);
+    let stroke_width = props
+        .get("stroke-width")
+        .and_then(|w| Length::parse(w))
+        .map_or(1.0, |w| w.resolve(Axis::Other, &context));
+    for position in marker_positions(&segments) {
+        let Some((id, marker)) = marker_reference(root, props, position.kind) else {
+            continue;
+        };
+        let Some(placement) =
+            marker_attributes(&marker.element).place(&position, stroke_width, &context)
+        else {
+            continue;
+        };
+        canvas.save();
+        canvas.set_matrix(&M44::from(to_sk_matrix(ctm)));
+        canvas.concat(&to_sk_matrix(&placement.transform));
+        if !marker_overflows(&marker.element) {
+            clip_viewport(canvas, placement.viewport, false);
+        }
+        canvas.save();
+        canvas.concat(&to_sk_matrix(&placement.content_transform));
+        let device = canvas.local_to_device_as_3x3();
+        canvas.restore();
+        let content = Matrix::new(
+            f64::from(device.scale_x()),
+            f64::from(device.skew_y()),
+            f64::from(device.skew_x()),
+            f64::from(device.scale_y()),
+            f64::from(device.translate_x()),
+            f64::from(device.translate_y()),
+        );
+        let size = marker_attributes(&marker.element)
+            .view_box
+            .unwrap_or(placement.viewport);
+        let inner_vp = Viewport {
+            ctm: Matrix::IDENTITY,
+            width: size.width,
+            height: size.height,
+        };
+        let marker_props = cascade_to(root, marker, &BTreeMap::new()).unwrap_or_default();
+        let saved = CONTEXT_PAINT.with(|c| {
+            c.replace(Some((
+                props
+                    .get("fill")
+                    .cloned()
+                    .unwrap_or_else(|| "#000000".to_owned()),
+                props
+                    .get("stroke")
+                    .cloned()
+                    .unwrap_or_else(|| "none".to_owned()),
+            )))
+        });
+        MARKERS.with(|m| m.borrow_mut().push(id));
+        paint_children(
+            canvas,
+            root,
+            marker,
+            &content,
+            &inner_vp,
+            &marker_props,
+            to_host,
+            servers,
+        );
+        MARKERS.with(|m| m.borrow_mut().pop());
+        CONTEXT_PAINT.with(|c| c.replace(saved));
+        canvas.restore();
     }
 }
 
@@ -985,6 +1281,11 @@ fn paint_v6_matches_chromium_147() {
     check("svg-paint-v6", KNOWN_GAPS_V6);
 }
 
+#[test]
+fn paint_v7_matches_chromium_147() {
+    check("svg-paint-v7", KNOWN_GAPS_V7);
+}
+
 fn check(set: &str, known_gaps: &str) {
     let (platform, prefix) = ORACLE;
     let dir = fixtures(set);
@@ -1031,6 +1332,7 @@ fn check(set: &str, known_gaps: &str) {
             );
             let svg = tree(case["svg"].as_str().unwrap());
             let svg = instantiate(&svg, &svg, &mut Vec::new(), false);
+            CASE_ROOT.with(|r| r.replace(Some(svg.clone())));
             let size = (
                 case["width"].as_f64().unwrap(),
                 case["height"].as_f64().unwrap(),
