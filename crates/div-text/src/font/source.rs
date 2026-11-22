@@ -71,7 +71,7 @@ impl FontFaceSourceInfo {
     /// Whether Chromium would load these bytes as a web font. Application
     /// registrations are; the deterministic test collection, which stands in
     /// for the census's Fontconfig system fonts, is not.
-    pub(crate) fn is_web_font(&self) -> bool {
+    pub fn is_web_font(&self) -> bool {
         self.web_font
     }
 

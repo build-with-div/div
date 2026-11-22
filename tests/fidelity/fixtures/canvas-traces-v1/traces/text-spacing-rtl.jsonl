@@ -1,0 +1,24 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"canvas":"c","width":260,"height":120}
+{"canvas":"c","set":"font","value":"16px CanvasSans"}
+{"canvas":"c","set":"letterSpacing","value":"3px"}
+{"canvas":"c","call":"fillText","args":["letter spaced",5,20]}
+{"canvas":"c","set":"letterSpacing","value":"-1px"}
+{"canvas":"c","call":"fillText","args":["tight letters",130,20]}
+{"canvas":"c","set":"letterSpacing","value":"0px"}
+{"canvas":"c","set":"wordSpacing","value":"12px"}
+{"canvas":"c","call":"fillText","args":["wide word spacing",5,45]}
+{"canvas":"c","call":"fillText","args":[" leading",180,45]}
+{"canvas":"c","set":"wordSpacing","value":"0px"}
+{"canvas":"c","call":"fillText","args":["AVAV To kern",5,70]}
+{"canvas":"c","set":"fontKerning","value":"none"}
+{"canvas":"c","call":"fillText","args":["AVAV To kern",130,70]}
+{"canvas":"c","set":"fontKerning","value":"auto"}
+{"canvas":"c","set":"direction","value":"rtl"}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","call":"fillText","args":["שלום עולם",250,95]}
+{"canvas":"c","call":"measureText","args":["שלום עולם"]}
+{"canvas":"c","set":"direction","value":"ltr"}
+{"canvas":"c","set":"textAlign","value":"left"}
+{"canvas":"c","call":"fillText","args":["abc שלום 123",5,115]}
+{"canvas":"c","call":"measureText","args":["abc שלום 123"]}

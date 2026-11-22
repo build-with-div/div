@@ -1,7 +1,7 @@
 # Third-party notices for div-canvas
 
 `div-canvas` is a port of Blink's canvas code at Chromium 147.0.7727.50
-(`third_party/blink/renderer`, and one function of `cc/paint`). The ported
+(`third_party/blink/renderer`, one function of `cc/paint` and one of `skia/ext`). The ported
 files are under BSD-style licences. Their notices follow, as the licences
 require: first the files under the Chromium licence, then each file with
 its own header.
@@ -16,7 +16,18 @@ license that can be found in the LICENSE file`. The licence is Chromium's
 | --- | --- | --- |
 | `platform/geometry/path_builder.cc` | 2025 The Chromium Authors | `src/path.rs` |
 | `modules/canvas/canvas2d/canvas_2d_recorder_context.{h,cc}` | 2025 The Chromium Authors | `src/context.rs` |
-| `modules/canvas/canvas2d/canvas_rendering_context_2d_state.cc` | 2015 The Chromium Authors | `src/state.rs` |
+| `modules/canvas/canvas2d/canvas_rendering_context_2d_state.cc` | 2015 The Chromium Authors | `src/state.rs`, `src/text.rs` |
+| `modules/canvas/canvas2d/base_rendering_context_2d.cc` (text) | 2016 The Chromium Authors | `src/context/text_methods.rs` |
+| `core/html/canvas/text_metrics.cc` | 2017 The Chromium Authors | `src/text.rs` |
+| `platform/fonts/plain_text_node.cc` | 2025 The Chromium Authors | `src/text.rs` |
+| `platform/fonts/shaping/shape_result_spacing.cc` | 2016 The Chromium Authors | `src/text.rs` |
+| `platform/fonts/skia/skia_text_metrics.cc` | 2016 The Chromium Authors | `src/text.rs` |
+| `platform/fonts/plain_text_painter.cc` | 2025 The Chromium Authors | `src/shape_cache.rs` |
+| `platform/fonts/shaping/frame_shape_cache.{h,cc}` | 2025 The Chromium Authors | `src/shape_cache.rs` |
+| `core/html/canvas/unique_font_selector.cc` | 2025 The Chromium Authors | `src/shape_cache.rs` |
+| `core/html/canvas/canvas_font_cache.cc` (font limit) | 2015 The Chromium Authors | `src/shape_cache.rs` |
+| `platform/graphics/canvas_resource_provider.cc` (`GetSkSurfaceProps`) | 2017 The Chromium Authors | `src/context.rs` |
+| `skia/ext/legacy_display_globals.cc` (`ComputeSurfaceProps`) | 2020 The Chromium Authors | `src/context.rs` |
 | `modules/canvas/canvas2d/clip_list.cc` | 2014 The Chromium Authors | `src/context.rs` |
 | `platform/runtime_enabled_features.json5` (one entry) | The Chromium Authors | `src/path.rs` |
 | `cc/paint/paint_op.cc` (`DrawArcImpl`) | 2017 The Chromium Authors | `src/context.rs` |
@@ -329,4 +340,72 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### `platform/fonts/simple_font_data.cc` and `platform/fonts/font_metrics.cc` (ported to `src/text.rs`)
+
+Both files carry this header.
+
+```text
+Copyright (C) 2005, 2008, 2010 Apple Inc. All rights reserved.
+Copyright (C) 2006 Alexey Proskuryakov
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1.  Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+2.  Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
+    its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### `platform/fonts/shaping/shape_result.cc` and `platform/fonts/shaping/glyph_bounds_accumulator.h` (ported to `src/text.rs`)
+
+Both files carry this header.
+
+```text
+Copyright (c) 2012 Google Inc. All rights reserved.
+Copyright (C) 2013 BlackBerry Limited. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+    * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```

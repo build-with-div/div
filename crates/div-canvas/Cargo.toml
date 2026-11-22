@@ -11,8 +11,9 @@ keywords.workspace = true
 description = "CanvasRenderingContext2D for Div, ported from Blink's canvas2d at Chromium 147"
 
 [dependencies]
+div-geometry = { version = "=0.2.0", path = "../div-geometry" }
 div-style = { version = "=0.2.0", path = "../div-style" }
-# `initialize_skia`, and text in a later step.
+# Text: font matching, shaping and glyph rasterization.
 div-text = { version = "=0.2.0", path = "../div-text" }
 skia-safe = "0.94"
 # Exact double parsing: trace arguments and oracle values must round-trip.

@@ -1,0 +1,29 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"fontFace":"CanvasSans","file":"DejaVuSans-Bold.ttf","weight":"700"}
+{"fontFace":"CanvasSerif","file":"DejaVuSerif.ttf","weight":"400"}
+{"fontFace":"CanvasMono","file":"DejaVuSansMono.ttf","weight":"400"}
+{"canvas":"c","width":240,"height":170}
+{"canvas":"c","set":"font","value":"20px CanvasSans"}
+{"canvas":"c","call":"fillText","args":["Hello, canvas!",10,25]}
+{"canvas":"c","set":"fillStyle","value":"#1060c0"}
+{"canvas":"c","call":"fillText","args":["Quick fox: 0123",10.25,50.5]}
+{"canvas":"c","set":"font","value":"bold 13px CanvasSans"}
+{"canvas":"c","set":"fillStyle","value":"rgba(200, 30, 30, 0.75)"}
+{"canvas":"c","call":"fillText","args":["Bold 13px AVAWAY Tj",10.7,70.3]}
+{"canvas":"c","set":"font","value":"17px CanvasSerif"}
+{"canvas":"c","set":"fillStyle","value":"black"}
+{"canvas":"c","call":"fillText","args":["Serif ffi fl été",10,95]}
+{"canvas":"c","set":"font","value":"11px CanvasMono, monospace"}
+{"canvas":"c","call":"fillText","args":["mono  two  spaces\ttab",10,115]}
+{"canvas":"c","set":"font","value":"9px CanvasSans"}
+{"canvas":"c","call":"fillText","args":["Small 9px text at fractional x",3.4,130]}
+{"canvas":"c","set":"font","value":"34px CanvasSans"}
+{"canvas":"c","set":"fillStyle","value":"green"}
+{"canvas":"c","call":"fillText","args":["Big gjy",120,160]}
+{"canvas":"c","call":"fillText","args":["",50,160]}
+{"canvas":"c","call":"fillText","args":["not drawn","NaN",20]}
+{"canvas":"c","call":"fillText","args":["not drawn",20,"Infinity"]}
+{"canvas":"d","width":60,"height":30}
+{"canvas":"d","call":"fillText","args":["default",5,20]}
+{"canvas":"d","call":"clearRect","args":[0,0,60,30]}
+{"canvas":"d","get":"font"}

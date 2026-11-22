@@ -1,0 +1,109 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"fontFace":"CanvasSans","file":"DejaVuSans-Bold.ttf","weight":"700"}
+{"canvas":"c","width":20,"height":20}
+{"canvas":"c","get":"font"}
+{"canvas":"c","get":"textAlign"}
+{"canvas":"c","get":"textBaseline"}
+{"canvas":"c","get":"direction"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","get":"wordSpacing"}
+{"canvas":"c","get":"fontKerning"}
+{"canvas":"c","get":"fontStretch"}
+{"canvas":"c","get":"fontVariantCaps"}
+{"canvas":"c","get":"textRendering"}
+{"canvas":"c","get":"lang"}
+{"canvas":"c","set":"font","value":"bold 20px CanvasSans"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"italic 600 small-caps 12.5px 'Canvas Sans', serif"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","get":"fontVariantCaps"}
+{"canvas":"c","set":"font","value":"oblique 20px CanvasSans"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"10.3px CanvasSans"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"300 16px \"CanvasSans\", monospace"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"20 CanvasSans"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"inherit"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":""}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"font","value":"18px CanvasSans"}
+{"canvas":"c","get":"fontStretch"}
+{"canvas":"c","set":"fontStretch","value":"expanded"}
+{"canvas":"c","get":"fontStretch"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"fontStretch","value":"wide"}
+{"canvas":"c","get":"fontStretch"}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","get":"textAlign"}
+{"canvas":"c","set":"textAlign","value":"middle"}
+{"canvas":"c","get":"textAlign"}
+{"canvas":"c","set":"textBaseline","value":"hanging"}
+{"canvas":"c","get":"textBaseline"}
+{"canvas":"c","set":"textBaseline","value":"center"}
+{"canvas":"c","get":"textBaseline"}
+{"canvas":"c","set":"direction","value":"rtl"}
+{"canvas":"c","get":"direction"}
+{"canvas":"c","set":"direction","value":"inherit"}
+{"canvas":"c","get":"direction"}
+{"canvas":"c","set":"direction","value":"up"}
+{"canvas":"c","get":"direction"}
+{"canvas":"c","set":"letterSpacing","value":"2px"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"0.5em"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"1e1px"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"1.5PT"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"0.1px"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":" 2px"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"3"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"2px 3px"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"letterSpacing","value":"5deg"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","set":"wordSpacing","value":"-1px"}
+{"canvas":"c","get":"wordSpacing"}
+{"canvas":"c","set":"wordSpacing","value":"+.25rem"}
+{"canvas":"c","get":"wordSpacing"}
+{"canvas":"c","set":"wordSpacing","value":"1in"}
+{"canvas":"c","get":"wordSpacing"}
+{"canvas":"c","set":"fontKerning","value":"none"}
+{"canvas":"c","get":"fontKerning"}
+{"canvas":"c","set":"fontKerning","value":"off"}
+{"canvas":"c","get":"fontKerning"}
+{"canvas":"c","set":"fontVariantCaps","value":"all-small-caps"}
+{"canvas":"c","get":"fontVariantCaps"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"fontVariantCaps","value":"small-caps"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","set":"textRendering","value":"geometricPrecision"}
+{"canvas":"c","get":"textRendering"}
+{"canvas":"c","set":"textRendering","value":"optimizelegibility"}
+{"canvas":"c","get":"textRendering"}
+{"canvas":"c","call":"save"}
+{"canvas":"c","set":"font","value":"30px CanvasSans"}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","set":"letterSpacing","value":"4px"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"c","call":"restore"}
+{"canvas":"c","get":"font"}
+{"canvas":"c","get":"textAlign"}
+{"canvas":"c","get":"letterSpacing"}
+{"canvas":"d","width":20,"height":20}
+{"canvas":"d","set":"letterSpacing","value":"3px"}
+{"canvas":"d","get":"font"}
+{"canvas":"d","get":"letterSpacing"}
+{"canvas":"d","set":"font","value":"12px CanvasSans"}
+{"canvas":"d","get":"letterSpacing"}
+{"canvas":"e","width":20,"height":20}
+{"canvas":"e","set":"fontKerning","value":"normal"}
+{"canvas":"e","get":"font"}
+{"canvas":"e","get":"fontKerning"}
