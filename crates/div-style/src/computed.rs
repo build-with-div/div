@@ -36,7 +36,7 @@ pub struct AspectRatio {
 /// A single box-shadow layer.
 ///
 /// CSS syntax: `[inset?] <offset-x> <offset-y> [<blur-radius>] [<spread-radius>] [<color>]`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -259,7 +259,7 @@ pub enum GradientColorSpace {
     Oklch,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -276,7 +276,7 @@ pub struct CssLinearGradient {
 }
 
 /// One component of a CSS background position.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -315,7 +315,7 @@ pub enum BackgroundRepeat {
 }
 
 /// CSS background-size for one image layer.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -339,7 +339,7 @@ pub enum RadialGradientShape {
 }
 
 /// Radial-gradient extent or explicit radii.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -352,7 +352,7 @@ pub enum RadialGradientSize {
     Explicit(Length, Length),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -367,7 +367,7 @@ pub struct RadialGradient {
     pub stops: Vec<GradientStop>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -383,7 +383,7 @@ pub struct ConicGradient {
 }
 
 /// Paintable CSS image independent of the raster backend.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -398,7 +398,7 @@ pub enum CssImage {
 
 /// One comma-separated CSS background layer. Layers remain in author order;
 /// paint traverses them back-to-front.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -432,7 +432,7 @@ impl BackgroundLayer {
 }
 
 /// Number, length/percentage, or `auto` component used by border-image.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -456,7 +456,7 @@ pub enum BorderImageRepeat {
 }
 
 /// Computed nine-slice border-image metadata.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
@@ -477,7 +477,7 @@ pub struct BorderImage {
 /// (block layout + box painting) are included. More will be added in later SPs.
 ///
 /// All initial values match Blink's `computed_style_initial_values.h`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ComputedStyle {
     pub(crate) fields: ComputedStyleFields,
 }
@@ -486,7 +486,7 @@ pub struct ComputedStyle {
 /// immutable `Deref`. A mutable view is intentionally never implemented.
 /// Author changes are applied by the schema-validated style boundary.
 #[doc(hidden)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ComputedStyleFields {
     /// Engine-owned raster context; never an author declaration.
     pub raster_configuration: RasterConfiguration,

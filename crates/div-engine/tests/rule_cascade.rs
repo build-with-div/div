@@ -9,9 +9,10 @@ use div_engine::{
 use div_style::selector_parser::parse_selector_list;
 use div_style::stylesheet::{CascadeOrigin, StyleRule, StyleSheet};
 use div_style::{
-    parse_literal, AnimationOptions, Color, FillMode, Keyframes, PropertyKeyframes, Style,
-    StyleProperty,
+    parse_literal, AnimationOptions, Color, FillMode, Keyframes, LengthValue, PropertyKeyframes,
+    Style, StyleProperty,
 };
+use std::collections::HashSet;
 
 fn engine() -> Engine {
     Engine::new(ViewportMetrics::from_logical_size(200.0, 200.0, 1.0).unwrap()).unwrap()
@@ -569,4 +570,309 @@ fn blurring_restyles_the_ancestors() {
     engine.blur(button).unwrap();
     engine.update().unwrap();
     assert_eq!(opacity_of(&engine, grand), 1.0, "after blurring");
+}
+
+// Restyle scope (0.1 PR 4): which elements a change resolves again, and
+// which invalidation classes it marks.
+
+fn sized(engine: &mut Engine, parent: NodeHandle, width: &str, height: &str) -> NodeHandle {
+    let element = element(engine, parent, ElementTag::Div);
+    for (property, value) in [
+        (StyleProperty::Width, width),
+        (StyleProperty::Height, height),
+    ] {
+        let value = parse_literal(property, value).unwrap();
+        engine.set_property(element, property, value).unwrap();
+    }
+    element
+}
+
+/// `.list`, holding three 200x30 `.item`s stacked from y 0, each holding a
+/// `.label` span.
+struct List {
+    list: NodeHandle,
+    items: Vec<NodeHandle>,
+    labels: Vec<NodeHandle>,
+}
+
+impl List {
+    fn new(engine: &mut Engine) -> Self {
+        let root = engine.root();
+        let list = element(engine, root, ElementTag::Div);
+        engine.set_attribute(list, "class", "list").unwrap();
+        let (mut items, mut labels) = (Vec::new(), Vec::new());
+        for _ in 0..3 {
+            let item = sized(engine, list, "200px", "30px");
+            engine.set_attribute(item, "class", "item").unwrap();
+            let label = element(engine, item, ElementTag::Span);
+            engine.set_attribute(label, "class", "label").unwrap();
+            items.push(item);
+            labels.push(label);
+        }
+        Self {
+            list,
+            items,
+            labels,
+        }
+    }
+
+    fn all(&self) -> Vec<NodeHandle> {
+        let mut all = vec![self.list];
+        all.extend(&self.items);
+        all.extend(&self.labels);
+        all
+    }
+
+    /// The y coordinate inside item `index`.
+    fn y(index: usize) -> f32 {
+        index as f32 * 30.0 + 10.0
+    }
+}
+
+fn set(handles: Vec<NodeHandle>) -> HashSet<NodeHandle> {
+    handles.into_iter().collect()
+}
+
+fn hover(engine: &mut Engine, y: f32) {
+    engine
+        .pointer_event(MOUSE_POINTER_ID, PointerEventKind::Move, 10.0, y)
+        .unwrap();
+}
+
+/// Layout's generations: the tree, intrinsic sizes and layout.
+fn layout_generations(engine: &Engine) -> (u64, u64, u64) {
+    let generations = engine.dirty_generations();
+    (generations.tree, generations.intrinsic, generations.layout)
+}
+
+/// A subject `:hover` restyles the elements whose hover state changed. An
+/// element whose own style does not change keeps its descendants; one whose
+/// style changes takes them along. A color change repaints without layout.
+#[test]
+fn subject_hover_restyles_the_hover_path_and_repaints_only() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".item:hover", Style::default().color(Color::RED)));
+    let mut engine = engine();
+    let list = List::new(&mut engine);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+
+    hover(&mut engine, List::y(1));
+    let (before, paint) = (
+        layout_generations(&engine),
+        engine.dirty_generations().paint,
+    );
+    engine.update().unwrap();
+    // The hover path is item 1 and the list; the list matches nothing new.
+    assert_eq!(
+        set(engine.take_selector_restyles()),
+        set(vec![list.list, list.items[1], list.labels[1]])
+    );
+    assert_eq!(
+        *engine.computed_style(list.labels[1]).unwrap().color(),
+        Color::RED
+    );
+    assert_eq!(layout_generations(&engine), before);
+    assert!(engine.dirty_generations().paint > paint);
+
+    // Moving to item 2 restyles items 1 and 2; the list stays hovered.
+    hover(&mut engine, List::y(2));
+    engine.update().unwrap();
+    assert_eq!(
+        set(engine.take_selector_restyles()),
+        set(vec![
+            list.items[1],
+            list.labels[1],
+            list.items[2],
+            list.labels[2]
+        ])
+    );
+}
+
+/// A property layout reads marks layout.
+#[test]
+fn a_hover_padding_change_marks_layout() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author).with_rule(rule(
+        ".item:hover",
+        Style::default().padding_left(LengthValue::px(5.0)),
+    ));
+    let mut engine = engine();
+    List::new(&mut engine);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    hover(&mut engine, List::y(0));
+    let before = layout_generations(&engine);
+    engine.update().unwrap();
+    assert_ne!(layout_generations(&engine), before);
+}
+
+/// `:hover` in an ancestor compound restyles the hovered element's subtree.
+#[test]
+fn ancestor_hover_restyles_the_subtree() {
+    let sheet =
+        StyleSheet::new(CascadeOrigin::Author).with_rule(rule(".list:hover .label", opacity(0.5)));
+    let mut engine = engine();
+    let list = List::new(&mut engine);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+    hover(&mut engine, List::y(0));
+    engine.update().unwrap();
+    assert_eq!(set(engine.take_selector_restyles()), set(list.all()));
+    for label in &list.labels {
+        assert_eq!(opacity_of(&engine, *label), 0.5);
+    }
+}
+
+/// An attribute or class no selector reads restyles nothing; one a subject
+/// compound reads restyles the element; one an ancestor compound reads
+/// restyles the subtree. Reordering classes changes no token.
+#[test]
+fn attribute_changes_restyle_by_where_selectors_read_them() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".a", opacity(0.5)))
+        .with_rule(rule("[data-on] span", opacity(0.25)))
+        .with_rule(rule("#x", opacity(0.75)));
+    let mut engine = engine();
+    let root = engine.root();
+    let target = element(&mut engine, root, ElementTag::Div);
+    let child = element(&mut engine, target, ElementTag::Span);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+    let step = |engine: &mut Engine, what: &str, expected: Vec<NodeHandle>| {
+        assert_eq!(
+            set(engine.take_selector_restyles()),
+            set(expected),
+            "after {what}"
+        );
+    };
+
+    engine.set_attribute(target, "class", "b").unwrap();
+    step(&mut engine, "an unread class", vec![]);
+    engine.set_attribute(target, "data-x", "1").unwrap();
+    step(&mut engine, "an unread attribute", vec![]);
+    engine.set_attribute(target, "id", "y").unwrap();
+    step(&mut engine, "an unread id", vec![]);
+    engine.set_attribute(target, "class", "b a").unwrap();
+    step(&mut engine, "a subject class", vec![target, child]);
+    assert_eq!(opacity_of(&engine, target), 0.5);
+    engine.set_attribute(target, "class", "a b").unwrap();
+    step(&mut engine, "reordered classes", vec![]);
+    engine.set_attribute(target, "data-on", "").unwrap();
+    step(&mut engine, "an ancestor attribute", vec![target, child]);
+    assert_eq!(opacity_of(&engine, child), 0.25);
+    engine.set_attribute(target, "id", "x").unwrap();
+    step(&mut engine, "a subject id", vec![target, child]);
+    assert_eq!(opacity_of(&engine, target), 0.75);
+    engine.remove_attribute(target, "data-x").unwrap();
+    step(&mut engine, "removing an unread attribute", vec![]);
+}
+
+/// A class a sibling compound reads restyles the parent's subtree.
+#[test]
+fn a_sibling_feature_restyles_the_parent_subtree() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author).with_rule(rule(".on + .item", opacity(0.5)));
+    let mut engine = engine();
+    let list = List::new(&mut engine);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+    engine
+        .set_attribute(list.items[0], "class", "item on")
+        .unwrap();
+    assert_eq!(set(engine.take_selector_restyles()), set(list.all()));
+    assert_eq!(opacity_of(&engine, list.items[1]), 0.5);
+}
+
+/// A class `:has()` reads restyles the document.
+#[test]
+fn a_relational_feature_restyles_the_document() {
+    let sheet =
+        StyleSheet::new(CascadeOrigin::Author).with_rule(rule(".list:has(.flag)", opacity(0.5)));
+    let mut engine = engine();
+    let list = List::new(&mut engine);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+    engine
+        .set_attribute(list.labels[2], "class", "label flag")
+        .unwrap();
+    let restyled = set(engine.take_selector_restyles());
+    assert!(restyled.is_superset(&set(list.all())));
+    assert_eq!(opacity_of(&engine, list.list), 0.5);
+}
+
+/// An attribute the engine writes itself, here the focus marker, restyles
+/// at the next `update()` the rules that read it.
+#[test]
+fn engine_written_attributes_restyle_at_the_next_update() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule("[data-divui-focused]", opacity(0.5)));
+    let mut engine = engine();
+    let root = engine.root();
+    let input = element(&mut engine, root, ElementTag::Input);
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine.record_selector_restyles();
+    engine.focus(input).unwrap();
+    assert_eq!(opacity_of(&engine, input), 1.0, "before update()");
+    engine.update().unwrap();
+    assert!(engine.take_selector_restyles().contains(&input));
+    assert_eq!(opacity_of(&engine, input), 0.5);
+    engine.blur(input).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, input), 1.0);
+}
+
+/// Pointer and focus state restyles, scoped by the index, equal a full
+/// re-cascade after every step.
+#[test]
+fn scoped_state_restyles_equal_a_full_cascade() {
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".item:hover", Style::default().color(Color::RED)))
+        .with_rule(rule(".list:hover .label", opacity(0.9)))
+        .with_rule(rule(".item:hover + .item", opacity(0.8)))
+        .with_rule(rule(".item:hover ~ .item .label", opacity(0.7)))
+        .with_rule(rule(".list:has(.item:active)", opacity(0.6)))
+        .with_rule(rule(":is(.item, .label):active", opacity(0.5)))
+        .with_rule(rule(".item:nth-child(2 of :hover)", opacity(0.4)))
+        .with_rule(rule(".list:focus-within .label", opacity(0.3)))
+        .with_rule(rule(".item:not(:hover) .label", opacity(0.2)));
+    let mut engine = engine();
+    let list = List::new(&mut engine);
+    let input = element(&mut engine, list.items[2], ElementTag::Input);
+    let mut id = engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    let mut elements = list.all();
+    elements.push(input);
+
+    let mouse = MOUSE_POINTER_ID;
+    let steps: Vec<Box<dyn Fn(&mut Engine)>> = vec![
+        Box::new(|e| hover(e, List::y(0))),
+        Box::new(|e| hover(e, List::y(1))),
+        Box::new(move |e| {
+            e.pointer_event(mouse, PointerEventKind::Down, 10.0, List::y(1))
+                .unwrap();
+        }),
+        Box::new(|e| hover(e, List::y(2))),
+        Box::new(move |e| {
+            e.pointer_event(mouse, PointerEventKind::Up, 10.0, List::y(2))
+                .unwrap();
+        }),
+        Box::new(move |e| e.focus(input).unwrap()),
+        Box::new(|e| hover(e, 150.0)),
+        Box::new(move |e| e.blur(input).unwrap()),
+        Box::new(move |e| {
+            e.pointer_leave(mouse);
+        }),
+    ];
+    for (step, mutate) in steps.iter().enumerate() {
+        mutate(&mut engine);
+        engine.update().unwrap();
+        let incremental = snapshot(&engine, &elements);
+        full_cascade(&mut engine, &sheet, &mut id);
+        assert_eq!(incremental, snapshot(&engine, &elements), "step {step}");
+    }
 }
