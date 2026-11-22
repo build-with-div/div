@@ -974,7 +974,8 @@
         "crates/div-paint/src/text_painter.rs",
         "crates/div-engine/src/authored_source.rs",
         "crates/div-engine/src/lib.rs",
-        "crates/div-engine/src/resize_observation.rs"
+        "crates/div-engine/src/resize_observation.rs",
+        "crates/div-engine/src/rule_cascade.rs"
       ],
       "css_name": null,
       "field": "device_scale_factor",
