@@ -1,7 +1,9 @@
 # RFC 0015: The top layer and `<dialog>`
 
-**Status:** Proposed, 21 November 2026, for the user's approval. It adds
-public API and changes what `set_modal_root` does.
+**Status:** Accepted by the user on 21 November 2026, with Tab wrapping
+inside a modal dialog (see Proposal 2, Focus). It adds public API and
+changes what `set_modal_root` does. Implementation follows the Migration
+order below.
 
 **Owner:** the components track, taking platform-plan item H4
 ([`platform-plan.md`](../platform-plan.md), section 1, "HTML elements").
@@ -108,13 +110,15 @@ Div has no toggle events yet. The two toggle events carry `old_state` and
 - `close` restores focus to the element focused before the dialog opened,
   without scrolling. For a non-modal dialog it does so only if focus is
   inside the dialog.
-- **Tab at the edges, a decision for the user.** In Chromium, Tab from the
-  last focusable element of a modal dialog, or Shift+Tab from the first,
-  moves focus out of the document to the browser's own UI (measured: the
-  page loses focus). A Div window has no browser UI. Proposed: Div keeps
-  today's `modal_root` behavior and wraps to the other end of the dialog.
-  The alternative is to leave focus nowhere until the next Tab, which is
-  closer to the measurement but strands keyboard users.
+- **Tab at the edges (decided by the user on 21 November 2026).** In
+  Chromium, Tab from the last focusable element of a modal dialog, or
+  Shift+Tab from the first, moves focus out of the document to the
+  browser's own UI (measured: the page loses focus). A Div window has no
+  browser UI, so Tab wraps to the start of the dialog and Shift+Tab to its
+  end, as `modal_root` does today. The user chose this over leaving focus
+  nowhere until the next Tab. This is the one place where Div departs from
+  the measured behavior, and the replay test records it as a deliberate
+  difference.
 
 **3. The top layer** (engine).
 - **The list.** The document keeps an ordered top layer. `show_modal`
