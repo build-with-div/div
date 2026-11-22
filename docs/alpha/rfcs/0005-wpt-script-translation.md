@@ -1,7 +1,9 @@
 # RFC 0005: Translating WPT testharness scripts into Div tests
 
-Status: proposed, 13 November 2026. Owner: components track, taking item
-0.13 (T3) of the platform plan for the engine-tools lane. Consumers: the
+Status: accepted, 21 November 2026 (proposed 13 November 2026). The user
+approved it and moved its ownership from the components track to the
+framework track. Owner: framework track, taking item 0.13 (T3) of the
+platform plan for the engine-tools lane. Consumers: the
 engine and framework tracks, for A1–A3 (animations), O1–O3 (observers), I1
 (Pointer Events), R1 (`requestAnimationFrame`) and C2 (Canvas 2D). Asks the
 engine track to agree, because it owns `tools/wpt` and the qualification
@@ -243,8 +245,8 @@ The generated tests use a small runtime module next to them. It runs on
   - Computed-value serialization, which retires `pass-typed`. This needs an
     engine part as well.
 - **Setup.** Adds `tools/wpt_script` and `tests/wpt-script` to the
-  ownership table under the components track.
-- **Components.** Runs the work below.
+  ownership table under the framework track.
+- **Framework**, as owner. Runs the work below.
 
 ## Migration
 

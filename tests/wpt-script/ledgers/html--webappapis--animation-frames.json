@@ -1,0 +1,106 @@
+{
+ "suite": "html/webappapis/animation-frames",
+ "chromium": "147.0.7727.50",
+ "wpt_revision": "09d377d9",
+ "subtests": 10,
+ "counts": {
+  "blocked": 4,
+  "translatable": 6
+ },
+ "blocked_by": {
+  "gap:attribute-reflection": 1,
+  "gap:child-documents": 1,
+  "gap:error-events": 2,
+  "gap:inner-text": 1,
+  "gap:load-event": 1,
+  "gap:page-visibility": 1,
+  "gap:query-selector": 1,
+  "gap:window-events": 1
+ },
+ "rows": [
+  {
+   "file": "html/webappapis/animation-frames/callback-cross-realm-report-exception.html",
+   "name": "requestAnimationFrame() reports the exception from its callback in the callback's global object",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:attribute-reflection",
+    "gap:child-documents",
+    "gap:error-events",
+    "gap:load-event",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "html/webappapis/animation-frames/callback-exception.html",
+   "name": "requestAnimationFrame callback exceptions are reported to error handler",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events",
+    "gap:window-events"
+   ]
+  },
+  {
+   "file": "html/webappapis/animation-frames/callback-handle.html",
+   "name": "Check window.requestAnimationFrame can return a valid callback handle",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/callback-invoked.html",
+   "name": "requestAnimationFrame callback is invoked at least once before the timeout",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:page-visibility"
+   ]
+  },
+  {
+   "file": "html/webappapis/animation-frames/callback-multicalls.html",
+   "name": "Check that multiple calls to requestAnimationFrame with the same callback will result in multiple entries being in the list with that same callback.",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/callback-timestamp.html",
+   "name": "Check FrameRequestCallback has a DOMHighResTimeStamp argument",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/cancel-handle-manual.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "manual"
+  },
+  {
+   "file": "html/webappapis/animation-frames/cancel-invoked.html",
+   "name": "cancelAnimationFrame does nothing if there is no callback with the given handle",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/cancel-pending.html",
+   "name": "cancelAnimationFrame cancels a pending animation frame callback",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/same-dispatch-time.html",
+   "name": "requestAnimationFrame will timestamp events in the same queue with the same time",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "html/webappapis/animation-frames/spurious-frame-callbacks-optimization.html",
+   "name": "Optimization of requestAnimationFrame callbacks that don't modify the DOM shouldn't break animations",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:inner-text"
+   ]
+  }
+ ]
+}
