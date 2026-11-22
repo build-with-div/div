@@ -6,9 +6,9 @@
 //! experimental too):
 //!
 //! - `show_modal` puts the dialog at the top of the document's top layer and
-//!   makes it modal; `close` and removal from the document take it out.
-//!   Removing only the `open` attribute leaves it modal and in the top
-//!   layer.
+//!   makes it modal; `close`, removal from the document and moving it or an
+//!   ancestor take it out. Removing only the `open` attribute leaves it
+//!   modal and in the top layer.
 //! - While a modal dialog is in the top layer, everything outside the
 //!   topmost one is inert: it cannot be focused, is not in the Tab order or
 //!   the accessibility tree, and is not hit by pointer input.
@@ -62,10 +62,13 @@ const SHOW_MODAL_DISCONNECTED: &str = "The element is not in a Document.";
 ///   `inset-inline` or `inset-block`, so the sheet uses `left`, `right`,
 ///   `top` and `bottom`. A non-modal dialog in a vertical writing mode gets
 ///   the wrong axis.
-/// - **System colors** (engine, with the `color-scheme` property of item S7
-///   and RFC 0014's `Document::set_color_scheme`). Div has no `Canvas` or
-///   `CanvasText`, so the sheet uses their light-scheme values, white and
-///   black. A dialog in a dark color scheme keeps them.
+/// - **System colors** (engine, with the `color-scheme` property of item
+///   S7). Div has no `Canvas` or `CanvasText`, so the sheet uses their
+///   light-scheme values, white and black. A dialog under a dark
+///   `color-scheme` property keeps them. Only that property closes this
+///   gap: with `prefers-color-scheme: dark` and no `color-scheme` property,
+///   pinned Chromium keeps the white background and black text, so RFC
+///   0014's `Document::set_color_scheme` alone must not change them.
 /// - **`dialog:modal`'s `max-width` and `max-height`**,
 ///   `calc(100% - 6px - 2em)` (engine 0.2 PR 2: `calc()` in `width`,
 ///   `height`, `min-*` and `max-*`, with `em` and `%`). Div's lengths cannot hold a percentage less a
@@ -413,6 +416,20 @@ impl Engine {
         if self.top_layer.elements.len() != before {
             self.note_top_layer_change();
         }
+    }
+
+    /// Moving a node removes and reinserts it, so a modal dialog at or under
+    /// `moved` leaves the top layer and stays open as a non-modal dialog.
+    /// With an empty top layer this walks nothing.
+    pub(crate) fn note_top_layer_move(&mut self, moved: NodeHandle) {
+        let leaving: Vec<NodeHandle> = self
+            .top_layer
+            .elements
+            .iter()
+            .copied()
+            .filter(|element| self.is_inclusive_ancestor(moved, *element))
+            .collect();
+        self.note_top_layer_removal(&leaving);
     }
 
     /// A destroyed node's slot forgets its dialog state.

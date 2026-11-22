@@ -162,6 +162,133 @@ fn removing_open_keeps_the_dialog_modal_and_removal_ends_it() {
     let _ = inside;
 }
 
+/// `root > (ancestor > dialog > button), other, outside`.
+#[derive(Clone, Copy)]
+struct MovePage {
+    root: NodeHandle,
+    ancestor: NodeHandle,
+    dialog: NodeHandle,
+    other: NodeHandle,
+    outside: NodeHandle,
+}
+
+fn move_page(engine: &mut Engine) -> MovePage {
+    let root = engine.root();
+    let ancestor = engine.create_native_element(ElementTag::Div).unwrap();
+    engine.append_child(root, ancestor).unwrap();
+    let dialog = engine
+        .create_native_element_named(ElementTag::Div, "dialog")
+        .unwrap();
+    engine.append_child(ancestor, dialog).unwrap();
+    button(engine, dialog);
+    let other = engine.create_native_element(ElementTag::Div).unwrap();
+    engine.append_child(root, other).unwrap();
+    let outside = button(engine, root);
+    MovePage {
+        root,
+        ancestor,
+        dialog,
+        other,
+        outside,
+    }
+}
+
+// The expectations below are pinned Chromium 147's. Chromium also clears
+// focus inside a moved subtree; that is a separate engine gap, so these tests
+// do not assert focus.
+#[test]
+fn moving_a_modal_dialog_or_an_ancestor_ends_modality_and_keeps_it_open() {
+    type Move = fn(&mut Engine, MovePage);
+    let moves: [(&str, Move); 5] = [
+        ("append", |engine, page| {
+            engine.append_or_move_child(page.root, page.dialog).unwrap();
+        }),
+        ("insertBefore", |engine, page| {
+            engine
+                .insert_before(page.root, page.dialog, page.other)
+                .unwrap();
+        }),
+        ("insertBefore an ancestor", |engine, page| {
+            engine
+                .insert_before(page.root, page.ancestor, page.outside)
+                .unwrap();
+        }),
+        ("append an ancestor", |engine, page| {
+            engine
+                .append_or_move_child(page.root, page.ancestor)
+                .unwrap();
+        }),
+        ("append to the same parent", |engine, page| {
+            engine
+                .append_or_move_child(page.ancestor, page.dialog)
+                .unwrap();
+        }),
+    ];
+    for (name, apply) in moves {
+        let mut engine = engine();
+        let page = move_page(&mut engine);
+        engine.show_modal(page.dialog).unwrap();
+        assert!(engine.is_inert(page.outside), "{name}");
+
+        apply(&mut engine, page);
+        assert!(!matches(&engine, page.dialog, ":modal"), "{name}");
+        assert!(matches(&engine, page.dialog, ":open"), "{name}");
+        assert_eq!(engine.active_modal_dialog(), None, "{name}");
+        assert!(!engine.is_inert(page.outside), "{name}");
+        engine.update().unwrap();
+        assert_eq!(
+            engine.computed_style(page.dialog).unwrap().position,
+            Position::Absolute,
+            "{name}"
+        );
+        // It is now an open non-modal dialog.
+        assert!(
+            matches!(
+                engine.show_modal(page.dialog),
+                Err(EngineError::InvalidState(_))
+            ),
+            "{name}"
+        );
+        assert!(engine.close_dialog(page.dialog, None).unwrap(), "{name}");
+        assert!(!matches(&engine, page.dialog, ":open"), "{name}");
+    }
+}
+
+#[test]
+fn a_move_only_ends_the_modality_of_dialogs_in_the_moved_subtree() {
+    // An unrelated node.
+    let mut unrelated = engine();
+    let page = move_page(&mut unrelated);
+    unrelated.show_modal(page.dialog).unwrap();
+    unrelated
+        .append_or_move_child(page.root, page.other)
+        .unwrap();
+    assert!(matches(&unrelated, page.dialog, ":modal"));
+    assert!(unrelated.is_inert(page.outside));
+
+    // The top of two modal dialogs: the lower one becomes the active one.
+    let mut top = engine();
+    let page = move_page(&mut top);
+    let second = dialog(&mut top);
+    top.show_modal(page.dialog).unwrap();
+    top.show_modal(second).unwrap();
+    top.append_or_move_child(page.root, second).unwrap();
+    assert!(!matches(&top, second, ":modal"));
+    assert_eq!(top.top_layer(), &[page.dialog]);
+    assert!(top.is_inert(page.outside));
+
+    // The lower of two: the top one stays active.
+    let mut lower = engine();
+    let page = move_page(&mut lower);
+    let second = dialog(&mut lower);
+    lower.show_modal(page.dialog).unwrap();
+    lower.show_modal(second).unwrap();
+    lower.append_or_move_child(page.root, page.dialog).unwrap();
+    assert!(!matches(&lower, page.dialog, ":modal"));
+    assert_eq!(lower.top_layer(), &[second]);
+    assert!(lower.is_inert(page.outside));
+}
+
 #[test]
 fn inert_content_cannot_take_focus_or_pointer_input() {
     let mut engine = engine();

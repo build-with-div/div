@@ -1102,6 +1102,7 @@ impl Engine {
         let parent_node = self.resolve(parent)?;
         let child_node = self.resolve(child)?;
         let former_parent = self.document.node(child_node).parent;
+        self.note_top_layer_move(child);
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         self.document.append_child(parent_node, child_node);
@@ -1135,6 +1136,7 @@ impl Engine {
             before_node
         };
         let former_parent = self.document.node(child_node).parent;
+        self.note_top_layer_move(child);
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         if insertion_point.is_none() {

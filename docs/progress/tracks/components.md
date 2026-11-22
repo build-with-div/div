@@ -98,7 +98,7 @@ exercises only the last:
 | Gap | Effect | Owner |
 | --- | --- | --- |
 | Logical insets: `left`, `right`, `top` and `bottom` stand for `inset-inline` and `inset-block` | A non-modal dialog in a vertical writing mode gets the wrong axis | Engine, platform-plan item S7 |
-| System colors: white and black stand for `Canvas` and `CanvasText` | A dialog in a dark color scheme keeps its light colors | Engine, with item S7's `color-scheme` and RFC 0014's `Document::set_color_scheme` |
+| System colors: white and black stand for `Canvas` and `CanvasText` | A dialog under a dark `color-scheme` property keeps its light colors. With `prefers-color-scheme: dark` and no such property, pinned Chromium keeps them too, so `Document::set_color_scheme` alone must not change them | Engine, with item S7's `color-scheme` property, the only thing that closes this gap |
 | The modal `max-width` and `max-height`, `calc(100% - 6px - 2em)`, are left out | A modal dialog larger than the viewport is not clamped | Engine 0.2 PR 2: `calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and `%` |
 
 | Scenario | Waits for |
