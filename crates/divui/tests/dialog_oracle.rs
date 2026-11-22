@@ -45,6 +45,10 @@ const ENGINE_REPLAYED: &[&str] = &[
     "non_modal_focus_outside",
     "non_modal_click_outside",
     "remove_open_modal",
+    "move_dialog_append",
+    "move_dialog_insert_before",
+    "move_ancestor_append",
+    "move_ancestor_insert_before",
 ];
 
 /// Escape, the dialog events and script exceptions.

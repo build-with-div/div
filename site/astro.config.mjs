@@ -88,6 +88,7 @@ export default defineConfig({
                 { label: 'select and option', link: '/elements/select/' },
                 { label: 'meter and progress', link: '/elements/meter-progress/' },
                 { label: 'details and summary', link: '/elements/details/' },
+                { label: 'dialog', link: '/elements/dialog/' },
                 { label: 'fieldset and legend', link: '/elements/fieldset/' },
                 { label: 'form', link: '/elements/form/' },
               ],

@@ -176,7 +176,12 @@
   "remove-d1": "D('d1').remove()",
   "remove-open-d1": "D('d1').removeAttribute('open')",
   "focus-outside": "act(() => D('outside').focus())",
-  "detached-show-modal-d2": "act(() => { const d = D('d2'); d.remove(); d.showModal(); })"
+  "detached-show-modal-d2": "act(() => { const d = D('d2'); d.remove(); d.showModal(); })",
+  "wrap-d1": "act(() => { const h = document.createElement('div'); h.id = 'holder'; D('d1').before(h); h.append(D('d1')); })",
+  "append-d1": "act(() => D('body').appendChild(D('d1')))",
+  "insert-d1": "act(() => D('body').insertBefore(D('d1'), D('after')))",
+  "append-holder": "act(() => D('body').appendChild(D('holder')))",
+  "insert-holder": "act(() => D('body').insertBefore(D('holder'), D('after')))"
  },
  "scenarios": {
   "modal_open_close": [
@@ -6470,6 +6475,1022 @@
     "input": [
      "do",
      "show-modal-d1"
+    ]
+   }
+  ],
+  "move_dialog_append": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "beforetoggle",
+      "target": "d1",
+      "cancelable": true,
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "later": [
+     {
+      "type": "toggle",
+      "target": "d1",
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": true,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "show-modal-d1"
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "append-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "outside"
+     },
+     {
+      "type": "mouseup",
+      "target": "outside"
+     },
+     {
+      "type": "click",
+      "target": "outside"
+     }
+    ],
+    "later": [],
+    "active": "outside",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "outside",
+     112,
+     312
+    ]
+   }
+  ],
+  "move_dialog_insert_before": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "beforetoggle",
+      "target": "d1",
+      "cancelable": true,
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "later": [
+     {
+      "type": "toggle",
+      "target": "d1",
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": true,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "show-modal-d1"
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "insert-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "outside"
+     },
+     {
+      "type": "mouseup",
+      "target": "outside"
+     },
+     {
+      "type": "click",
+      "target": "outside"
+     }
+    ],
+    "later": [],
+    "active": "outside",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "outside",
+     112,
+     312
+    ]
+   }
+  ],
+  "move_ancestor_append": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "wrap-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "beforetoggle",
+      "target": "d1",
+      "cancelable": true,
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "later": [
+     {
+      "type": "toggle",
+      "target": "d1",
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": true,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "show-modal-d1"
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "append-holder"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "outside"
+     },
+     {
+      "type": "mouseup",
+      "target": "outside"
+     },
+     {
+      "type": "click",
+      "target": "outside"
+     }
+    ],
+    "later": [],
+    "active": "outside",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "outside",
+     112,
+     312
+    ]
+   }
+  ],
+  "move_ancestor_insert_before": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "wrap-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "beforetoggle",
+      "target": "d1",
+      "cancelable": true,
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "later": [
+     {
+      "type": "toggle",
+      "target": "d1",
+      "oldState": "closed",
+      "newState": "open"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": true,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "show-modal-d1"
+    ]
+   },
+   {
+    "events": [],
+    "later": [],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "do",
+     "insert-holder"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "outside"
+     },
+     {
+      "type": "mouseup",
+      "target": "outside"
+     },
+     {
+      "type": "click",
+      "target": "outside"
+     }
+    ],
+    "later": [],
+    "active": "outside",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false,
+      "returnValue": ""
+     },
+     "d2": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dAuto": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dEmpty": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dInput": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dTall": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     },
+     "dWide": {
+      "open": false,
+      "modal": false,
+      "returnValue": ""
+     }
+    },
+    "input": [
+     "click",
+     "outside",
+     112,
+     312
     ]
    }
   ]

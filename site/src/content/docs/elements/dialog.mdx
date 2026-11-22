@@ -1,0 +1,55 @@
+---
+title: dialog
+description: A box that stays hidden until it has the open attribute. Modal dialogs cannot be opened from divui yet.
+---
+
+import ElementTable from '../../../components/ElementTable.astro';
+
+`<dialog>` is a box that stays hidden until it has the `open` attribute.
+Today you can use it from `divui` only as a plain, non-modal box. The engine
+already tracks modal state and focus, but `divui` has no way to call them
+yet, and a modal dialog is not painted above the page.
+
+This page is about the HTML element. For the system's file pickers, see
+[Dialogs](/docs/services/dialogs/).
+
+<ElementTable tags={['dialog']} links={false} />
+
+The table's `display` is that of an open dialog. Without `open`, it is
+`none`.
+
+## Attributes
+
+| | Effect |
+| --- | --- |
+| `open` | Present means shown; the default is hidden. |
+
+Set and remove it with `set_attribute("open", "")` and
+`remove_attribute("open")`. `Element::set_open` is for `<details>` and
+returns an error on a dialog. Setting the attribute does not move focus.
+
+## Styling
+
+An open dialog is absolutely positioned and centered horizontally in its
+containing block. It is as wide and as tall as its content, with a 3px solid
+border in the current color, `1em` of padding, a white background and black
+text. Any rule of your own overrides these.
+
+The background and text stay white and black in a dark color scheme for now.
+
+## Accessibility
+
+A dialog has the `GenericContainer` role for now, so assistive technology
+does not announce it as a dialog.
+
+## Differences from HTML
+
+| HTML | Div |
+| --- | --- |
+| `show()`, `showModal()`, `close()`, `requestClose()` and `returnValue` | Not available from `divui` yet |
+| `beforetoggle`, `toggle`, `cancel` and `close` events | Not available yet |
+| Escape closes a modal dialog | Not available yet |
+| A modal dialog is painted in the top layer, above the page | Not painted there yet |
+| `::backdrop` | Not available yet |
+| The `dialog` accessibility role | `GenericContainer` |
+| `Canvas` and `CanvasText` colors | White and black |

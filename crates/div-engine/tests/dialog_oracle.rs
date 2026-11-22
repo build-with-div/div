@@ -51,6 +51,22 @@ const REPLAYED: &[&str] = &[
     "non_modal_focus_outside",
     "non_modal_click_outside",
     "remove_open_modal",
+    "move_dialog_append",
+    "move_dialog_insert_before",
+    "move_ancestor_append",
+    "move_ancestor_insert_before",
+];
+
+/// Chromium clears focus inside a moved subtree and Div keeps it.
+const MOVED_FOCUS: &str = "engine: clear focus inside a moved subtree";
+
+/// The step of each move scenario whose `active` is pending on
+/// [`MOVED_FOCUS`]: the move. A match fails the test.
+const MOVED_FOCUS_STEPS: &[(&str, usize)] = &[
+    ("move_dialog_append", 2),
+    ("move_dialog_insert_before", 2),
+    ("move_ancestor_append", 3),
+    ("move_ancestor_insert_before", 3),
 ];
 
 /// The UA `max-width` and `max-height` of a modal dialog,
@@ -300,6 +316,25 @@ impl Page {
         let d1 = self.node("d1");
         match action {
             "show-d1" => self.engine.show_dialog(d1).unwrap(),
+            "wrap-d1" => {
+                let holder = self.engine.create_native_element(ElementTag::Div).unwrap();
+                self.engine.insert_before(self.body, holder, d1).unwrap();
+                self.name(holder, "holder");
+                self.engine.append_or_move_child(holder, d1).unwrap();
+            }
+            "append-d1" => self.engine.append_or_move_child(self.body, d1).unwrap(),
+            "insert-d1" => {
+                let after = self.node("after");
+                self.engine.insert_before(self.body, d1, after).unwrap();
+            }
+            "append-holder" => {
+                let holder = self.node("holder");
+                self.engine.append_or_move_child(self.body, holder).unwrap();
+            }
+            "insert-holder" => {
+                let (holder, after) = (self.node("holder"), self.node("after"));
+                self.engine.insert_before(self.body, holder, after).unwrap();
+            }
             "close-d1" => {
                 self.engine.close_dialog(d1, None).unwrap();
             }
@@ -539,16 +574,25 @@ fn the_replayed_scenarios_match_chromium() {
             let div_toggles: Vec<&Value> = Vec::new();
             pending_differs |= toggles != div_toggles;
             let expected = input_events(&step["events"]);
-            let actual = json!({
+            let mut actual = json!({
                 "events": events,
                 "active": page.active(),
                 "dialogs": page.dialogs(),
             });
-            let wanted = json!({
+            let mut wanted = json!({
                 "events": expected,
                 "active": step["active"],
                 "dialogs": step["dialogs"],
             });
+            if MOVED_FOCUS_STEPS.contains(&(*name, index)) {
+                if actual["active"] == wanted["active"] {
+                    failures.push(format!(
+                        "{name} step {index}: focus matches; it is no longer pending on {MOVED_FOCUS}"
+                    ));
+                }
+                actual["active"] = Value::Null;
+                wanted["active"] = Value::Null;
+            }
             if actual != wanted {
                 failures.push(format!(
                     "{name} step {index} {input:?}:\n  div:      {actual}\n  chromium: {wanted}"

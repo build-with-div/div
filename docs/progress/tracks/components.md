@@ -60,25 +60,30 @@ tag line.
 
 | Change | Owner | Source |
 | --- | --- | --- |
-| A dialog is a `Div` element named `dialog` through S6a's local name (agreed with the fidelity lane: no new `ElementTag`). `show()`, `showModal()` and `close(returnValue)` follow Blink 147's `HTMLDialogElement`: the `InvalidStateError` cases are named `EngineError::InvalidState`, `showModal()` (re)adds the dialog at the end of the top layer, `close()` restores focus to the opener when the dialog was modal or held focus, and removal from the document ends modality. The legacy focusing steps pick the autofocus element, else the first focusable one, skipping inside nested dialogs, else the dialog itself. A dialog is click and script focusable but sequentially focusable only with `tabindex`. | engine (H4, by components under RFC 0015) | `crates/div-engine/src/dialog.rs`, `focus_navigation.rs` |
+| A dialog is a `Div` element named `dialog` through S6a's local name (agreed with the fidelity lane: no new `ElementTag`). `show()`, `showModal()` and `close(returnValue)` follow Blink 147's `HTMLDialogElement`: the `InvalidStateError` cases are named `EngineError::InvalidState`, `showModal()` (re)adds the dialog at the end of the top layer, `close()` restores focus to the opener when the dialog was modal or held focus, and removal from the document, or moving the dialog or an ancestor (`append_or_move_child`, `insert_before`), ends modality. The legacy focusing steps pick the autofocus element, else the first focusable one, skipping inside nested dialogs, else the dialog itself. A dialog is click and script focusable but sequentially focusable only with `tabindex`. | engine (H4, by components under RFC 0015) | `crates/div-engine/src/dialog.rs`, `focus_navigation.rs` |
 | Inertness: the scope is the topmost modal dialog, else the `set_modal_root` root. Inert content takes no focus, no hit and no Tab stop, and leaves the accessibility tree. `set_modal_root` now also makes content outside it inert to pointers. | engine | `dialog.rs`, `interaction.rs`, `lib.rs`, `accessibility.rs` |
 | `:open` (open `<details>` and `<dialog>`) and `:modal` match as state pseudo-classes. | engine | `selector_match.rs`, `rule_cascade.rs` |
 | An always-on user-agent sheet, adopted with the first dialog, holds the `dialog` element rules adapted from the specification (WHATWG HTML 15.3.3 "Flow content", CC BY 4.0, the copy fetched for RFC 0004, cited in the source; not Blink's `html.css`, and not the specification's rules verbatim): `dialog` (absolute, `left`/`right: 0`, `margin: auto`, fit-content size, a 3px solid `currentcolor` border, `1em` padding, black text on white), `dialog:not([open])` (`display: none`) and `dialog:modal` (fixed, `top`/`bottom: 0`, `overflow: auto`). The sheet fails loudly if it drops a declaration. `::backdrop` waits for PR 4. Three named gaps remain (below). | engine | `dialog.rs` |
 | `Element::create("dialog")` creates the engine's dialog (a `Div` named `dialog`); S6b's element table later names every element. | framework (reviewed), by components under RFC 0015 | `crates/divui/src/element.rs`, `crates/divui/tests/dialog_element.rs` |
 | The porter's IR records `show()`/`close()` only on element receivers. A receiver made with `new` (a `MessageChannel`'s port, a `BroadcastChannel`) is rejected as `non-element-receiver` with its constructor, and one the porter cannot follow as `unresolved-dialog-receiver` (the engine review of PR 2). | components (for the engine lane) | `tools/wpt/javascript_mutation_ir.mjs` |
-| The engine replays the oracle (below); `divui`'s ledger lists ten scenarios as replayed by the engine and the rest with what each waits for. | components | `crates/div-engine/tests/dialog_oracle.rs`, `crates/divui/tests/dialog_oracle.rs` |
+| The engine replays the oracle (below); `divui`'s ledger lists fourteen scenarios as replayed by the engine and the rest with what each waits for. | components | `crates/div-engine/tests/dialog_oracle.rs`, `crates/divui/tests/dialog_oracle.rs` |
+| The oracle gains four scenarios from pinned Chromium 147: moving a modal dialog and moving its ancestor, each with `appendChild` and `insertBefore`. | components | `tools/qualification/capture_dialog_oracle.py`, `tests/fidelity/fixtures/dialog-v1/chromium-linux-x11.json` |
+| The site's element table lists `dialog`, with a reference page that says what works today and what does not. | website, by components (the generated table requires a page for each tag) | `site/src/content/docs/elements/dialog.mdx`, `site/src/components/ElementTable.astro`, `site/astro.config.mjs` |
 
 ### Measurement
 
 Replayed exactly against `tests/fidelity/fixtures/dialog-v1/chromium-linux-x11.json`:
 
-- **Ten scenarios** (`modal_open_close`, `modal_tab`,
+- **Fourteen scenarios** (`modal_open_close`, `modal_tab`,
   `click_dialog_content`, `script_focus_inert`, `autofocus`,
   `no_focusable`, `non_modal_focus`, `non_modal_focus_outside`,
-  `non_modal_click_outside`, `remove_open_modal`): every input event's
+  `non_modal_click_outside`, `remove_open_modal`, `move_dialog_append`,
+  `move_dialog_insert_before`, `move_ancestor_append`,
+  `move_ancestor_insert_before`): every input event's
   type and target, the focused element and each dialog's `open`, `:modal`
   and `returnValue` after every step. Their `beforetoggle`, `toggle`,
   `cancel` and `close` events are `divui`'s: a pending field owned by PR 5.
+  At the move step of the four move scenarios, `active` is pending on the engine ("clear focus inside a moved subtree"): Chromium clears focus there and Div keeps it, a gap already on `main`. The next step's click compares focus again.
 - **All 15 geometry records**, field by field at 480x400, 800x600 and
   375x667: the border box, the client and scroll sizes and the 16
   computed-style properties, with `auto` insets and margins resolved from
@@ -122,6 +127,8 @@ tools:
 | Porter IR and contract tests | `python -m unittest tools.qualification.test_renderer_matrix` and `python -m unittest tools/wpt/test_renderer_generality.py`, with the pinned Acorn | 38 and 7 passed |
 | Renderer contract | `python tools/qualification/generate_renderer_contract.py --check` with the pinned Acorn and the WPT sources at `09d377d9` | no drift; `javascript=393` |
 | Formatting | `rustfmt --edition 2021 --check` on each changed Rust file | clean |
+| Oracle capture, whole page again | `python3 tools/qualification/capture_dialog_oracle.py --chrome <pinned chrome-linux64/chrome>` in WSL (WSLg) | 27 scenarios and 15 geometry records, both runs identical, 125 s. The 23 earlier scenarios and the geometry are unchanged; 4 scenarios and 5 actions are added |
+| Site, as CI builds it | in `site/`: `npm ci`, `npm run check-reference`, `npm run build`, `npm run build:cover`, with Node 22.18 locally (CI pins 24.22.1) | all pass; 45 pages, including `/elements/dialog/` |
 | Harness check, on the previous base `662e366` | `click_inert` added to the engine replay temporarily | fails as expected (no backdrop: the press finds no target) |
 | Census and CSS Grid coverage (D4) | Base `24436b9` against this branch, under the census lock | **Not measured yet.** Required before this PR is queued |
 
