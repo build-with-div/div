@@ -44,6 +44,7 @@ path/close-then-move points
 path/two-closes points
 path/no-separators points
 path/exponents points
+path/fractions points
 path/leading-dot points
 arc/flags-00 total_length
 arc/flags-00 points

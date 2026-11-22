@@ -86,6 +86,9 @@ def path_cases() -> list[dict[str, str]]:
         "exponents": "M1e1 1e1 L1.9e2 1e+1 L1.9E2 19e1",
         "commas": "M 10 , 10 L 190 , 10 , 190 , 190",
         "leading-dot": "M.5 .5 L190.25.75",
+        # Fractions that each single-precision accumulation order, and
+        # correct rounding, read differently.
+        "fractions": "M1.354 1.771 L5.33 5.33 L1.834 10.67",
         # Error handling: render up to the error.
         "error-bad-command": "M10 10 L190 10 X L190 190",
         "error-truncated": "M10 10 L190 10 L190",
