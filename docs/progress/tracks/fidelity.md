@@ -14,6 +14,63 @@ Each named gap is pinned by a test that fails if its count changes.
 | `rounded-border-raster-1.25x`: the outer curve of a solid rounded border ring at 1.25x differs from Chromium's by up to 7, and the clipped content next to it follows | fidelity (border raster) | `native_rounded_clip.rs`, page `rrect` | 23 pixels at 1.25x, all in the bottom-left corner | 17 November 2026 |
 | `gradient-dither-fractional-scale`: Chromium's dithered gradient blends to 129 on a rounded clip's curve where Div blends to 128 | fidelity (gradient raster) | `native_rounded_clip.rs`, page `gradient-clip` | 36 pixels at 1.25x | 17 November 2026 |
 
+## 22 November 2026: style presets and the first user-agent rules (S5a)
+
+RFC 0004's API, in `divui` (`style_preset.rs`, `Document::set_style_preset`):
+
+- `UserAgentStyle { None, Browser }` and `StylePreset { user_agent }`, with
+  `StylePreset::NONE` (the default) and `StylePreset::BROWSER`.
+- `StylePreset` is `#[non_exhaustive]`. RFC 0004's author-origin `base` sheets
+  come with the components preset; adopting them before every other sheet
+  needs an engine insertion point that does not exist yet.
+
+`BROWSER` adopts one sheet in the user-agent origin. The engine already
+ranked that origin (R0, `rule_cascade.rs`): below presentational hints,
+author rules, the `style` attribute and element styles, with user-agent
+`!important` above all of them. So S5a changes no engine file.
+
+**The sheet, part 0.** `crates/divui/src/user_agent/html.css` is written from
+the HTML Standard's rendering section (fetched 22 November 2026, CC BY 4.0,
+credited in the file's header). It holds:
+
+- "Hidden elements" (15.3.1);
+- "The page" (15.3.2): `html, body { display: block }`.
+
+It compiles strictly through `stylesheet!`, and its rules move into a
+user-agent sheet on first use. It lives in `divui` rather than `div-style`
+(as the engine design note has it), because `div-style` cannot use the
+`stylesheet!` macro: `div-macros` depends on `div-style`.
+
+Two of the section's rules wait:
+
+- `[hidden=until-found i] { content-visibility: hidden }`: Div's value parser
+  does not yet read `content-visibility` keywords (engine).
+- `@media (scripting) { noscript { … } }`: this waits for `@media` in sheets
+  (engine S3/S4 PR 1).
+
+Of the hidden-elements list, S6b already hides `rp`, `basefont`, `noembed`,
+`noframes` and `param` by their constructor display, and still rejects the
+rest. So today the list's rule only restates that. The `html, body` rule
+applies once S6c builds the document's root through the engine.
+
+**Verification** (WSL, CI Skia flags):
+
+- `cargo fmt --all --check`: clean.
+- `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components
+  -p div-engine -p div-dom` with `divui/async divui/http divui/testing`, on
+  S5a over S6b: 130 test binaries, 1,022 passed, 0 failed, 15 ignored.
+  - `tests/style_preset.rs` covers: `NONE` adds nothing; `BROWSER` hides
+    `[hidden]` and `input[type=hidden i]`, and leaves `hidden=until-found`
+    and a hidden `embed` displayed; author rules, the `style` attribute and element styles
+    outrank the sheet; user-agent `!important` outranks author `!important`;
+    switching back to `NONE` removes the rules.
+- Census and coverage were not run: `pixel-compare` does not depend on
+  `divui`, so this change cannot reach them.
+
+RFC 0004 asks for the WHATWG attribution in `NOTICE`, and for a legal check
+before the preset ships. Both are the user's decision. Until then the preset
+is opt-in and `NONE` stays the default.
+
 ## 22 November 2026: HTML element names (S6a and S6b)
 
 Platform-plan item 0.3 (S6) gives each element the HTML name it was created
