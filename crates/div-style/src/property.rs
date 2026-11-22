@@ -435,6 +435,9 @@ pub enum StyleValue {
     PointerEvents(PointerEvents),
     Typography(TypographyValue),
     Renderer(RendererStyleValue),
+    /// A `calc()` value, resolved once the element's font and viewport
+    /// are known. `line-height` is the first property to accept one.
+    Math(crate::math::MathFunction),
 }
 
 impl StyleValue {
@@ -467,6 +470,7 @@ impl StyleValue {
             }
             Self::CornerRadii(value) => edges(&value.0),
             Self::Transform(value) => crate::transform_depends_on_font_metrics(value),
+            Self::Math(value) => value.depends_on_font_metrics(),
             _ => false,
         }
     }
@@ -1442,6 +1446,10 @@ fn parse_typography_literal(property: StyleProperty, input: &str) -> Option<Styl
         }),
         P::LineHeight => TypographyValue::LineHeight(if input == "normal" {
             LineHeight::Normal
+        } else if let Some(function) = crate::math::MathFunction::parse(input) {
+            return function
+                .is_valid_for_line_height()
+                .then_some(StyleValue::Math(function));
         } else if let Ok(value) = input.parse::<f32>() {
             LineHeight::Number(value)
         } else {
@@ -2756,9 +2764,11 @@ pub fn apply_to_computed(
                     style.fields.font_size * (length.value() as i32) as f32 / 100.0
                 }
                 LengthType::Calculated => {
+                    // Blink's `CalculationValue::Evaluate`: pixels plus
+                    // percent / 100 times the basis.
                     let font = div_geometry::LayoutUnit::from_f32(style.fields.font_size).to_f32();
                     div_geometry::LayoutUnit::from_f32(
-                        font * length.value() / 100.0 + length.calc_offset(),
+                        length.calc_offset() + length.value() / 100.0 * font,
                     )
                     .to_f32()
                 }
@@ -2768,6 +2778,19 @@ pub fn apply_to_computed(
                 return Err(mismatch());
             }
             style.fields.line_height = LineHeight::Length(pixels);
+        }
+        (P::LineHeight, StyleValue::Math(function)) => {
+            // Without a selected font, the metric units use the same
+            // fallbacks as `LengthValue::resolve`.
+            let resolver = crate::math::MathResolver {
+                font_size,
+                root_font_size: 16.0,
+                viewport,
+                ch: font_size * 0.5,
+                ex: font_size * 0.5,
+                lh: font_size * 1.2,
+            };
+            style.fields.line_height = function.line_height(&resolver).ok_or_else(mismatch)?;
         }
         (P::FontSize, StyleValue::Length(v)) => style.fields.font_size = resolve(*v).value(),
         (P::FontWeight, StyleValue::FontWeight(v)) => style.fields.font_weight = *v,

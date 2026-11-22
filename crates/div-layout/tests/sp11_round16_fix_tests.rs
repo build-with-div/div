@@ -1,6 +1,6 @@
 //! Tests for SP11 Round 16 fixes.
 //!
-//! Issue 1: Half-leading preserves sub-pixel precision (no floor/ceil truncation).
+//! Issue 1: Half-leading keeps the layout-unit line height (no whole-pixel truncation).
 //! Issue 2: Percentage padding on descendants resolves against containing block width.
 //! Issue 3: OpenTag/CloseTag percentage padding uses containing block width, not line available.
 //! Issue 4: Ellipsis trimming respects grapheme cluster boundaries.
@@ -50,49 +50,32 @@ fn collect_text_fragments(fragment: &Fragment) -> Vec<&Fragment> {
 // ── Issue 1: Half-leading sub-pixel precision ───────────────────────────
 
 #[test]
-fn half_leading_preserves_subpixel_line_height_1_2_font_16() {
-    // line-height: 1.2 with font-size: 16px.
-    // computed line-height = 16 * 1.2 = 19.2
-    // With sub-pixel precision, leading is not integer-truncated.
+fn half_leading_keeps_the_layout_unit_line_height_1_15_font_16() {
+    // line-height: 1.15 with font-size: 16px computes to 18.4px. Chromium
+    // 147 holds the line box in layout units, truncating to 18.390625px
+    // (tests/fidelity/fixtures/calc-v1/chromium-windows.json), neither the
+    // whole pixel 18 nor 18.40625.
     let mut doc = Document::new();
     let root = doc.root();
 
     let block = doc.create_node(ElementTag::Div);
     doc.update_resolved_style(block, |style| style.display = Display::Block);
     doc.update_resolved_style(block, |style| style.font_size = 16.0);
-    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Number(1.2));
+    doc.update_resolved_style(block, |style| style.line_height = LineHeight::Number(1.15));
     doc.append_child(root, block);
 
     let text = doc.create_node(ElementTag::Text);
     doc.node_mut(text).text = Some("Hello".to_string());
     doc.update_resolved_style(text, |style| style.display = Display::Inline);
     doc.update_resolved_style(text, |style| style.font_size = 16.0);
-    doc.update_resolved_style(text, |style| style.line_height = LineHeight::Number(1.2));
+    doc.update_resolved_style(text, |style| style.line_height = LineHeight::Number(1.15));
     doc.append_child(block, text);
 
     let constraint = make_constraint_width(800);
     let frag = inline_layout(&doc, block, &constraint);
     let lines = collect_line_boxes(&frag);
     assert!(!lines.is_empty(), "Should produce at least one line");
-
-    let line_height = lines[0].size.height;
-    // Computed line-height = 19.2px. The line box height should be at least
-    // this large (ceil to pixel boundary). With the old floor() bug, it
-    // could be 19px; with the fix it should be >= 19.2 (ceil to 20px).
-    assert!(
-        line_height >= lu(19.0),
-        "Line height {:?} should be >= 19px for line-height:1.2 @ 16px",
-        line_height,
-    );
-    // Ensure it's not rounded down to 19 exactly (which would indicate
-    // the old floor-truncated behavior).
-    let height_f32 = line_height.to_f32();
-    assert!(
-        height_f32 >= 19.2 || (height_f32 - 20.0).abs() < 0.01,
-        "Line height {:.2}px should reflect sub-pixel precision (~19.2 or ceil to 20), \
-         not floor-truncated 19",
-        height_f32,
-    );
+    assert_eq!(lines[0].size.height.to_f32(), 18.390625);
 }
 
 // ── Issue 2: Percentage padding resolves against containing block ────────
