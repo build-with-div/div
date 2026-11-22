@@ -27,7 +27,7 @@ pub struct AppSpec {
     windows: Vec<(WindowSpec, ViewFn)>,
     exit_on_last_window_closed: bool,
     backend: BackendPreference,
-    engine_options: EngineOptions,
+    engine_options: Option<EngineOptions>,
 }
 
 impl App {
@@ -43,7 +43,7 @@ impl App {
             windows: Vec::new(),
             exit_on_last_window_closed: true,
             backend: BackendPreference::Auto,
-            engine_options: EngineOptions::default(),
+            engine_options: None,
         }
     }
 }
@@ -90,9 +90,11 @@ impl AppSpec {
         self
     }
 
-    /// Engine options for every window's document.
+    /// Engine options for every window's document. Without this call, a
+    /// Windows app's windows use the system's text raster configuration
+    /// (RFC 0012); with it, `options` always win.
     pub fn engine_options(mut self, options: EngineOptions) -> Self {
-        self.engine_options = options;
+        self.engine_options = Some(options);
         self
     }
 
@@ -132,7 +134,8 @@ impl AppSpec {
 pub(crate) struct Defaults {
     pub(crate) title: String,
     pub(crate) backend: BackendPreference,
-    pub(crate) engine_options: EngineOptions,
+    /// The app's explicit choice, if any (RFC 0012).
+    pub(crate) engine_options: Option<EngineOptions>,
     #[cfg(feature = "menu")]
     pub(crate) menu: Option<std::rc::Rc<dyn Fn() -> crate::menu::Menu>>,
 }
@@ -140,12 +143,14 @@ pub(crate) struct Defaults {
 impl Defaults {
     /// A window's document with its view mounted.
     fn build(&self, key: &WindowKey, spec: &WindowSpec, view: ViewFn) -> Result<App, Error> {
-        let mut app = App::builder()
+        let mut builder = App::builder()
             .title(spec.title.clone().unwrap_or_else(|| self.title.clone()))
             .size(spec.size)
-            .backend(self.backend)
-            .engine_options(self.engine_options)
-            .build()?;
+            .backend(self.backend);
+        if let Some(options) = self.engine_options {
+            builder = builder.engine_options(options);
+        }
+        let mut app = builder.build()?;
         window::with_current(key, || app.mount(view))?;
         Ok(app)
     }
