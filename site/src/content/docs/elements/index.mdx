@@ -34,10 +34,12 @@ Div from the code shown.
    Div keeps the tag name, which `Element::local_name` returns.
 3. **Other names are plain inline elements.** `view!` turns any lowercase
    tag into a call that creates the element at run time. A valid name that
-   is not in the table below, such as `<x-card>`, creates an inline element
+   is not in the table below, such as `<widget>`, creates an inline element
    with that name and no behavior, so a misspelt tag compiles and renders
-   as inline text. The few names listed [under the table](#all-elements)
-   fail there, with `UnknownTag`, and panic when the view is built.
+   as inline text. `view!` reads a tag as one word, so a hyphenated name
+   such as `x-card` needs `Element::create`. The few names listed
+   [under the table](#all-elements) fail at run time, with `UnknownTag`,
+   and panic when the view is built.
 4. **Attributes are strings, set once.** `name="value"` and
    `name={expr}` both call `Element::set_attribute`, once, when the view is
    built; a boolean attribute is set whatever its value, so
@@ -70,8 +72,8 @@ the document, and names that are not valid element names, such as `1x`.
 
 Other names, including `slot` and SVG shapes such as `path` and `rect`, are
 unknown inline elements that do nothing. Most tags in the table have no
-default style either: give a `<code>` a `font-family="Geist Mono"`, for
-example.
+default style either: give a `<code>` a `style:font-family="Geist Mono"`,
+for example.
 </Aside>
 
 ## Attributes every element takes

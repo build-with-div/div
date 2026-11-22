@@ -19,9 +19,10 @@ page covers what they share.
 ## How elements differ from HTML
 
 - **Other names are inline.** A valid name the [reference](/elements/) does
-  not list, such as `<x-card>`, creates a plain inline element. A few names
-  Div has no behavior for, such as `<script>`, compile and then panic when
-  the view is built.
+  not list, such as `<widget>`, creates a plain inline element. `view!`
+  reads a tag as one word, so a hyphenated name needs `Element::create`. A
+  few names Div has no behavior for, such as `<script>`, compile and then
+  panic when the view is built.
 - **Tags are kinds.** `h1`, `p`, `section` and `nav` all create the same
   block element, and `strong`, `em` and `a` the same inline element. The
   tag picks the kind and its default `display`; the name is kept, and
