@@ -282,6 +282,11 @@ the framework track, with T3b-1). It replaces section 1's "same interpretation
 approach" bullet. It changes nothing else: the capability table, the
 ledger, the expectations and the "no near equivalent" rule stand.
 
+T3b-2 extends the accepted subset under the same rule: strict mode moves
+from rejected to accepted, and promises and async functions are added. It
+also adds the reachability rule below. These extensions are proposed in the
+T3b-2 PR.
+
 ### Problem
 
 The straight-line model can't express the suites T3 starts with. Their
@@ -336,7 +341,9 @@ reason named below):
   - identifiers and `this`;
   - member access, with a name or a computed key;
   - calls and method calls without spread;
-  - `new`, which reports every constructor until one has a host;
+  - `new` of `Promise`, `ResizeObserver` and `ResizeTestHelper`, which
+    have hosts; any other constructor is reported;
+  - `await`;
   - `=` and the arithmetic compound assignments;
   - `++` and `--`;
   - unary `!`, `-`, `+`, `typeof` and `void`;
@@ -346,17 +353,17 @@ reason named below):
   - `?:` and the comma operator;
   - array literals without holes or spread;
   - object literals with name or string keys and plain values;
-  - function expressions and arrow functions with identifier parameters.
+  - function expressions and arrow functions with identifier parameters,
+    `async` or not.
 - Not accepted yet, each with a named reason:
   - `try`, `throw`, `switch` and labels;
   - `for`/`in`, classes and regular expressions;
   - optional chaining and spread;
   - default, rest and pattern parameters;
   - logical assignment and getters;
-  - strict-mode code (`syntax:strict-mode`).
-
-  `async` functions, `await` and promises come with T3b-2, under this
-  same rule; T3b-2 extends this list.
+  - generators (`syntax:generator`) and `for await`.
+- Strict mode: a `"use strict"` directive of a script or function is
+  accepted, with the semantics in the table below.
 - Scoping:
   - Variables are hoisted to their function.
   - A block's `let` or `const` is accepted only when nothing outside the
@@ -378,8 +385,13 @@ reason named below):
 | `==` | Exact between primitives (`null` equals `undefined`, mixed primitives through `ToNumber`). An object against a primitive is rejected (`loose-equality:object`). |
 | `<` and the other comparisons | Exact: strings compare by UTF-16 code units, everything else through `ToNumber`. |
 | Closure capture | Exact: closures share their variables' cells, and `let` and `const` keep their temporal dead zone. Per-iteration loop bindings are rejected. |
-| `this` | Exact for sloppy scripts: a plain call's `this` is the global object, and arrows keep their enclosing `this`. A primitive `this` (which JavaScript boxes) is rejected. |
-| `arguments` | Exact as a copy of the arguments. A function that also assigns a parameter, which aliases `arguments`, is rejected (`syntax:mapped-arguments`). |
+| `this` | Exact. Sloppy: a plain call's `this` is the global object, and a primitive `this` (which JavaScript boxes) is rejected. Strict: `this` is what the caller passed, `undefined` for a plain call, and is never boxed. Arrows keep their enclosing `this`. |
+| `arguments` | Exact as a copy of the arguments. In sloppy mode, a function that also assigns a parameter, which aliases `arguments`, is rejected (`syntax:mapped-arguments`). In strict mode `arguments` is unmapped, so the copy is exact. |
+| Strict mode's other differences | Assigning a named function expression's own name throws `TypeError` (sloppy: ignored). Assigning an undeclared name is rejected in both modes (`global-assignment:<name>`): strict mode throws `ReferenceError` only when the global doesn't exist, and the runtime doesn't know every global. Writing a read-only property is rejected, because read-only platform objects reject every write. The directive applies per script and is inherited by nested functions. |
+| Promises | Exact job order (ECMA-262): a reaction is one microtask, and resolving with a promise goes through `NewPromiseResolveThenableJob`. The microtask checkpoint runs when the stack empties, after each script, timer, animation frame callback and `ResizeObserver` callback. An unhandled rejection is testharness.js's harness error. Rejected by name: rejection handlers (`.then(f, g)`, `.catch`, `.finally`), `reject(value)`, thenables that aren't promises, and other `Promise` statics. |
+| `async` and `await` | Exact: the body runs synchronously up to its first `await`; `await` is `PromiseResolve` and one reaction; a `return` resolves the function's promise, and a throw rejects it. |
+| `promise_test` | testharness.js's queue: each test starts from a reaction on the one before it. After an `UNSUPPORTED` test the queue stops, because the next test would start from a state the translation can't vouch for. |
+| `ResizeTestHelper` | A native intrinsic of the sha256-pinned helper, statement for statement. An unsupported operation finishes the test as `UNSUPPORTED` and stops the page's chain; the helper's `catch` would otherwise turn it into a failure and carry on. |
 | Built-in methods on arrays, objects, strings, numbers and functions | Rejected by name (`builtin:Array.prototype.push`), never `undefined`. |
 | Timers (`step_timeout`) | Exact WebIDL `long` delay (`ToInt32`), due-time then creation order, the test as `this` and the extra arguments. A timer that HTML's nesting clamp could raise to 4 ms is rejected (`timer-nesting-clamp`). |
 
@@ -404,8 +416,31 @@ recording run, and checks the page's harness error too:
 - `codegen.py --check` fails when the generated tests or their embedded
   expectations differ from what the pinned inputs and `expected/` give.
 
-A recorded fail is a named gap. Counts report pass, fail and unsupported
-separately.
+A recorded fail is a named gap. Counts report pass, fail, unsupported and
+not run separately.
+
+### Reachability
+
+Pages stay unmodified. Some chain their subtests with promises, as
+`observe.html` does (`test0().then(() => test1())...`), so a link that can't
+run stops every link after it. A subtest behind such a link doesn't run, so
+it isn't translatable, whatever surfaces it uses:
+
+- `translate.mjs` reports each top-level promise chain, link by link. A
+  link's surfaces exclude synchronous `test()` bodies, which catch their own
+  failures and let the chain go on.
+- `ledger.py` finds the first link with a blocked surface. Every subtest a
+  later link declares or finishes that would otherwise be translatable gets
+  the status `unreachable`, with the reason `blocked-chain:<link>`.
+- An `unreachable` subtest's expected Div result is `NOTRUN`. If it starts
+  running, the generated test fails until the row is updated.
+- The expectations also record the run's reason for the stop (for
+  `observe.html`, `surface:Image`). A chain that stops elsewhere or for
+  another reason fails the generated test, even with the same subtests
+  unrun.
+- `ledger.py` also fails when the classifier and the recorded run disagree:
+  a `translatable` row recorded `NOTRUN`, or an `unreachable` row recorded
+  with any other result.
 
 ### Affected tracks
 
