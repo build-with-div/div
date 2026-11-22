@@ -876,3 +876,23 @@ fn scoped_state_restyles_equal_a_full_cascade() {
         assert_eq!(incremental, snapshot(&engine, &elements), "step {step}");
     }
 }
+
+#[test]
+fn type_rules_select_an_element_by_its_created_name() {
+    let mut engine = engine();
+    let root = engine.root();
+    let heading = engine
+        .create_native_element_named(ElementTag::Div, "h1")
+        .unwrap();
+    engine.append_child(root, heading).unwrap();
+    let plain = element(&mut engine, root, ElementTag::Div);
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule("div", opacity(0.4)))
+        .with_rule(rule("h1", opacity(0.7)));
+    engine.adopt_style_sheet(&sheet).unwrap();
+    // `h1` is a `Div` for layout, but only the `h1` rule's bucket holds it.
+    assert_eq!(opacity_of(&engine, heading), 0.7);
+    assert_eq!(opacity_of(&engine, plain), 0.4);
+    assert_eq!(engine.local_name(heading).unwrap(), Some("h1"));
+    assert_eq!(engine.local_name(plain).unwrap(), Some("div"));
+}

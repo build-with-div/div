@@ -5,6 +5,7 @@
 //! parent, first_child, last_child, next_sibling, prev_sibling.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use div_geometry::RasterConfiguration;
 use div_style::{
@@ -188,6 +189,85 @@ pub enum ElementTag {
     Viewport,
 }
 
+impl ElementTag {
+    /// The HTML local name an element of this kind has when it was created
+    /// without one, for type selectors. Kinds that several HTML elements
+    /// share (`Div` for `p`, `h1`, `section` ...) answer with the generic
+    /// element's name; an element created with its own name keeps that name
+    /// in [`NodeData::local_name`] instead. Text and the viewport have none.
+    pub fn default_local_name(self) -> Option<&'static str> {
+        Some(match self {
+            ElementTag::Div => "div",
+            ElementTag::Span => "span",
+            ElementTag::Break => "br",
+            ElementTag::WordBreak => "wbr",
+            ElementTag::Ruby => "ruby",
+            ElementTag::RubyText => "rt",
+            ElementTag::Table => "table",
+            ElementTag::TableCaption => "caption",
+            ElementTag::TableColumnGroup => "colgroup",
+            ElementTag::TableColumn => "col",
+            ElementTag::TableHead => "thead",
+            ElementTag::TableBody => "tbody",
+            ElementTag::TableFoot => "tfoot",
+            ElementTag::TableRow => "tr",
+            ElementTag::TableCell => "td",
+            ElementTag::TableHeaderCell => "th",
+            ElementTag::Image => "img",
+            ElementTag::Canvas => "canvas",
+            ElementTag::Svg => "svg",
+            ElementTag::IFrame => "iframe",
+            ElementTag::Object => "object",
+            ElementTag::Audio => "audio",
+            ElementTag::Video => "video",
+            ElementTag::Input => "input",
+            ElementTag::Button => "button",
+            ElementTag::Meter => "meter",
+            ElementTag::Progress => "progress",
+            ElementTag::Fieldset => "fieldset",
+            ElementTag::Legend => "legend",
+            ElementTag::Details => "details",
+            ElementTag::Summary => "summary",
+            ElementTag::TextArea => "textarea",
+            ElementTag::Select => "select",
+            ElementTag::Option => "option",
+            ElementTag::OptGroup => "optgroup",
+            ElementTag::Form => "form",
+            ElementTag::Embed => "embed",
+            ElementTag::Html => "html",
+            ElementTag::Body => "body",
+            ElementTag::Style => "style",
+            ElementTag::Text | ElementTag::Viewport => return None,
+        })
+    }
+}
+
+/// An element's local name, as DOM `Element.localName` reports it: `h1`,
+/// `blockquote`, `code`, or any other name an element was created with.
+///
+/// The name is the element's identity for type selectors; [`ElementTag`]
+/// stays its layout and paint kind (RFC 0004, prerequisite 1). Callers
+/// creating HTML elements pass the name in ASCII lowercase, as the HTML
+/// parser produces it; the name is kept exactly as given.
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct LocalName(Arc<str>);
+
+impl LocalName {
+    pub fn new(name: &str) -> Self {
+        Self(Arc::from(name))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Debug for LocalName {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&*self.0, formatter)
+    }
+}
+
 /// Generated pseudo-element identity stored on an ordinary arena node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PseudoElementKind {
@@ -206,6 +286,9 @@ pub enum PseudoElementKind {
 #[derive(Clone)]
 pub struct NodeData {
     pub tag: ElementTag,
+    /// The local name the element was created with, when it differs from
+    /// its kind's default. Read it through [`NodeData::local_name`].
+    pub created_name: Option<LocalName>,
     pub style: ComputedStyle,
 
     /// Identity and originating element for generated boxes. Pseudo boxes
@@ -298,6 +381,7 @@ impl NodeData {
         }
         Self {
             tag,
+            created_name: None,
             style,
             pseudo_kind: None,
             pseudo_origin: NodeId::NONE,
@@ -324,6 +408,15 @@ impl NodeData {
             prev_sibling: NodeId::NONE,
             text: None,
             label: None,
+        }
+    }
+
+    /// The element's local name for type selectors: the name it was created
+    /// with, else its kind's default ([`ElementTag::default_local_name`]).
+    pub fn local_name(&self) -> Option<&str> {
+        match &self.created_name {
+            Some(name) => Some(name.as_str()),
+            None => self.tag.default_local_name(),
         }
     }
 }

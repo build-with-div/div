@@ -133,7 +133,7 @@ impl Engine {
         Ok(match simple {
             SimpleSelector::Universal => true,
             SimpleSelector::Tag(name) => {
-                local_name(self.element_tag(element)?).is_some_and(|local| local == name)
+                self.local_name(element)?.is_some_and(|local| local == name)
             }
             SimpleSelector::Id(id) => self.attribute(element, "id")? == Some(id.as_str()),
             SimpleSelector::Class(class) => self
@@ -691,53 +691,6 @@ fn nth_matches(step: i64, offset: i64, index: i64) -> bool {
 
 pub(crate) fn is_html_space(c: char) -> bool {
     matches!(c, ' ' | '\t' | '\n' | '\r' | '\x0C')
-}
-
-/// The HTML local name of an element kind, for type selectors.
-pub(crate) fn local_name(tag: ElementTag) -> Option<&'static str> {
-    Some(match tag {
-        ElementTag::Div => "div",
-        ElementTag::Span => "span",
-        ElementTag::Break => "br",
-        ElementTag::WordBreak => "wbr",
-        ElementTag::Ruby => "ruby",
-        ElementTag::RubyText => "rt",
-        ElementTag::Table => "table",
-        ElementTag::TableCaption => "caption",
-        ElementTag::TableColumnGroup => "colgroup",
-        ElementTag::TableColumn => "col",
-        ElementTag::TableHead => "thead",
-        ElementTag::TableBody => "tbody",
-        ElementTag::TableFoot => "tfoot",
-        ElementTag::TableRow => "tr",
-        ElementTag::TableCell => "td",
-        ElementTag::TableHeaderCell => "th",
-        ElementTag::Image => "img",
-        ElementTag::Canvas => "canvas",
-        ElementTag::Svg => "svg",
-        ElementTag::IFrame => "iframe",
-        ElementTag::Object => "object",
-        ElementTag::Audio => "audio",
-        ElementTag::Video => "video",
-        ElementTag::Input => "input",
-        ElementTag::Button => "button",
-        ElementTag::Meter => "meter",
-        ElementTag::Progress => "progress",
-        ElementTag::Fieldset => "fieldset",
-        ElementTag::Legend => "legend",
-        ElementTag::Details => "details",
-        ElementTag::Summary => "summary",
-        ElementTag::TextArea => "textarea",
-        ElementTag::Select => "select",
-        ElementTag::Option => "option",
-        ElementTag::OptGroup => "optgroup",
-        ElementTag::Form => "form",
-        ElementTag::Embed => "embed",
-        ElementTag::Html => "html",
-        ElementTag::Body => "body",
-        ElementTag::Style => "style",
-        _ => return None,
-    })
 }
 
 /// HTML 4.01 attributes whose values Blink compares ASCII
