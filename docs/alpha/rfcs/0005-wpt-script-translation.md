@@ -3,7 +3,9 @@
 Status: accepted, 21 November 2026 (proposed 13 November 2026). The user
 approved it and moved its ownership from the components track to the
 framework track. Owner: framework track, taking item 0.13 (T3) of the
-platform plan for the engine-tools lane. Consumers: the
+platform plan for the engine-tools lane. Amendment 1 (compiled subset
+on a value runtime, below) accepted by the user on 22 November 2026.
+Consumers: the
 engine and framework tracks, for A1–A3 (animations), O1–O3 (observers), I1
 (Pointer Events), R1 (`requestAnimationFrame`) and C2 (Canvas 2D). Asks the
 engine track to agree, because it owns `tools/wpt` and the qualification
@@ -61,7 +63,8 @@ every upstream subtest, including the ones that were not translated.
   the one deviation.
 - **Same interpretation approach.** Constant branches are evaluated, bounded
   loops are unrolled and named functions are inlined, as in the existing
-  front end. The resulting script must be straight-line.
+  front end. The resulting script must be straight-line. (Amendment 1
+  replaces this bullet.)
 - **What it accepts:**
   - `test`, `async_test`, `promise_test` and `setup`, plus `t.step_func`,
     `t.add_cleanup` and `t.step_timeout`.
@@ -271,3 +274,142 @@ tools or workflow change on `main`.
 
 `main` stays green between these PRs. Each one adds new paths and CI steps
 and changes no existing test.
+
+## Amendment 1: a compiled subset on a value runtime
+
+Status: accepted by the user on 22 November 2026 (proposed the same day by
+the framework track, with T3b-1). It replaces section 1's "same interpretation
+approach" bullet. It changes nothing else: the capability table, the
+ledger, the expectations and the "no near equivalent" rule stand.
+
+### Problem
+
+The straight-line model can't express the suites T3 starts with. Their
+subtests are callbacks that run frames later and share mutable state:
+
+- a `requestAnimationFrame` callback that requests itself until a counter
+  reaches 2 (`callback-multicalls.html`);
+- a callback that cancels another and sets a flag a third one reads
+  (`cancel-pending.html`).
+
+How many frames these take is a result of the test, not something known
+when it's generated, so unrolling and inlining can't reach a straight line.
+
+### Proposal
+
+`tools/wpt_script/codegen.py` compiles each page's inline scripts, from the
+pinned Acorn AST, into Rust that runs on a small value runtime
+(`tests/wpt-script/src/runtime.rs`):
+
+- JavaScript values are a Rust `Value`.
+- Variables are shared cells, so closures see each other's writes.
+- Every web surface is a host function that calls the public `divui` API.
+
+Nothing is evaluated from strings, either when the test is generated or
+when it runs. `eval`, `Function`, `with`, `document.write` and string
+timers stay untranslatable, as in section 1.
+
+**The rule.** Two things make a subtest untranslatable. It stops at run
+time, at the point it reaches one of them, and its Div result is
+`UNSUPPORTED` with a named reason:
+
+- a construct outside the accepted subset;
+- an operation where the web API and `divui` differ.
+
+There's never a near mapping. The ledger records the reason in the subtest's
+Div result, and `UNSUPPORTED` is counted apart from pass and fail.
+
+**Accepted constructs** (everything else is `syntax:<node type>` or the
+reason named below):
+
+- Statements:
+  - expression statements;
+  - `var`, `let` and `const` with an identifier (no destructuring);
+  - function declarations at the top of a function or script;
+  - `return`, blocks, `if`/`else`;
+  - `for`, `while`, `do`/`while`, and `for`/`of` over an array;
+  - unlabelled `break` and `continue`;
+  - empty statements.
+- Expressions:
+  - number, string, boolean and `null` literals;
+  - untagged template literals;
+  - identifiers and `this`;
+  - member access, with a name or a computed key;
+  - calls and method calls without spread;
+  - `new`, which reports every constructor until one has a host;
+  - `=` and the arithmetic compound assignments;
+  - `++` and `--`;
+  - unary `!`, `-`, `+`, `typeof` and `void`;
+  - binary `===`, `!==`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `<`, `>`,
+    `<=` and `>=`;
+  - `&&`, `||` and `??`;
+  - `?:` and the comma operator;
+  - array literals without holes or spread;
+  - object literals with name or string keys and plain values;
+  - function expressions and arrow functions with identifier parameters.
+- Not accepted yet, each with a named reason:
+  - `try`, `throw`, `switch` and labels;
+  - `for`/`in`, classes and regular expressions;
+  - optional chaining and spread;
+  - default, rest and pattern parameters;
+  - logical assignment and getters;
+  - strict-mode code (`syntax:strict-mode`).
+
+  `async` functions, `await` and promises come with T3b-2, under this
+  same rule; T3b-2 extends this list.
+- Scoping:
+  - Variables are hoisted to their function.
+  - A block's `let` or `const` is accepted only when nothing outside the
+    block names it (`syntax:block-scoped-binding`).
+  - A closure over a binding declared inside a loop is rejected
+    (`syntax:per-iteration-binding`).
+  - Redeclaring a `let` or `const`, and a function declared inside a
+    block, are rejected.
+
+### JavaScript semantics a naive Rust mapping would get wrong
+
+| Semantics | Runtime |
+| --- | --- |
+| Number to string (`String(x)`, `+` with a string, computed keys) | Exact: ECMA-262 `Number::toString`, with the shortest round-trip digits, `0` for `-0`, and exponent form below 1e-6 and from 1e21. |
+| String to number (`+s`, arithmetic, comparisons) | Exact `StringToNumber` for decimal strings and `Infinity`, with JavaScript's whitespace set. Any other string is NaN, as in JavaScript. Hexadecimal, octal and binary strings are rejected (`non-decimal-string-to-number`). |
+| Objects to primitives (`ToPrimitive`: an array's `join`, an object's own `toString` or `valueOf`) | Rejected (`to-string:object`, `to-number:object`). |
+| `typeof` | Exact for every value kind. An undeclared name that the runtime doesn't define is rejected, not answered `"undefined"`. |
+| `===` | Exact: NaN differs from itself, `+0` equals `-0`, and objects compare by identity. |
+| `==` | Exact between primitives (`null` equals `undefined`, mixed primitives through `ToNumber`). An object against a primitive is rejected (`loose-equality:object`). |
+| `<` and the other comparisons | Exact: strings compare by UTF-16 code units, everything else through `ToNumber`. |
+| Closure capture | Exact: closures share their variables' cells, and `let` and `const` keep their temporal dead zone. Per-iteration loop bindings are rejected. |
+| `this` | Exact for sloppy scripts: a plain call's `this` is the global object, and arrows keep their enclosing `this`. A primitive `this` (which JavaScript boxes) is rejected. |
+| `arguments` | Exact as a copy of the arguments. A function that also assigns a parameter, which aliases `arguments`, is rejected (`syntax:mapped-arguments`). |
+| Built-in methods on arrays, objects, strings, numbers and functions | Rejected by name (`builtin:Array.prototype.push`), never `undefined`. |
+| Timers (`step_timeout`) | Exact WebIDL `long` delay (`ToInt32`), due-time then creation order, the test as `this` and the extra arguments. A timer that HTML's nesting clamp could raise to 4 ms is rejected (`timer-nesting-clamp`). |
+
+testharness.js keeps its own definitions:
+
+- `assert_equals` is SameValue;
+- `assert_true` and `assert_false` need a boolean;
+- the ordering assertions need numbers;
+- `assert_approx_equals` uses the test's own epsilon.
+
+The runtime adds no tolerance. The clock stays exact: frame *n* runs at
+*n* × 1000/60 ms (section 3).
+
+### Expectations
+
+The generated test checks each translatable subtest against
+`tests/wpt-script/expected/`, which `codegen.py --record` writes from a
+recording run, and checks the page's harness error too:
+
+- any change of outcome fails the test, including a recorded fail that
+  starts passing;
+- `codegen.py --check` fails when the generated tests or their embedded
+  expectations differ from what the pinned inputs and `expected/` give.
+
+A recorded fail is a named gap. Counts report pass, fail and unsupported
+separately.
+
+### Affected tracks
+
+The framework track owns it, and no other track is affected:
+
+- no `divui` API is added;
+- `tools/wpt` and the renderer contract stay untouched.
