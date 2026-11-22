@@ -494,11 +494,13 @@ def _cssom_property_name(value: str) -> str:
 def _validate_mutation_styles(analysis: dict[str, object]) -> None:
     """Attach canonical schema identities to every static cascade delta."""
 
+    from tools.style.generate_properties import INTERNAL_CSS_NAMES
     from tools.wpt.port_wpt import parse_inline_styles
 
     by_css_name = {
         row["css_name"]: row
         for row in csv.DictReader(SCHEMA.read_text().splitlines())
+        if row["css_name"] not in INTERNAL_CSS_NAMES
     }
     rejections = analysis["rejections"]
     assert isinstance(rejections, list)

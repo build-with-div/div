@@ -84,6 +84,18 @@ class CanonicalOwnershipGeneratorTests(unittest.TestCase):
                     with self.assertRaises(SystemExit):
                         GENERATOR.outputs()
 
+    def test_an_internal_css_name_must_be_a_schema_row(self):
+        with patch.object(GENERATOR, "INTERNAL_CSS_NAMES", ("not-a-property",)):
+            with self.assertRaisesRegex(SystemExit, "not in the style schema"):
+                GENERATOR.outputs()
+
+    def test_internal_css_names_have_no_name_lookup(self):
+        generated = GENERATOR.outputs()[GENERATOR.RUST_OUT].decode()
+        self.assertEqual(len(GENERATOR.INTERNAL_CSS_NAMES), 8)
+        for name in GENERATOR.INTERNAL_CSS_NAMES:
+            self.assertNotIn(f'"{name}" => Some', generated)
+            self.assertIn(f'    "{name}",', generated)
+
     def test_real_cli_check_rejects_drift_without_writing_outputs(self):
         generated = GENERATOR.outputs()
         inputs = [GENERATOR.SCHEMA, GENERATOR.INTERNAL_SCHEMA, GENERATOR.CANONICAL_SCHEMA, GENERATOR.CANONICAL_IDS_SCHEMA, GENERATOR.COMPUTED,
