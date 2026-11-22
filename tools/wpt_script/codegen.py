@@ -177,6 +177,8 @@ class Scope:
     def __init__(self, parent: "Scope | None", arrow: bool = False):
         self.parent = parent
         self.arrow = arrow
+        # Strict mode is inherited from the enclosing function or script.
+        self.strict = parent.strict if parent is not None else False
         self.names: dict[str, str] = {}  # name -> var | let | const | function | param
         self.problem: str | None = None
         self.functions: list[dict] = []
@@ -329,6 +331,14 @@ class Compiler:
             if kind == "const":
                 return ('return Err(Throw::error('
                         '"TypeError: Assignment to constant variable."));')
+            if kind == "function-name":
+                # A named function expression's own name is immutable:
+                # assigning it throws in strict mode and does nothing in
+                # sloppy mode.
+                if scope.strict:
+                    return ('return Err(Throw::error('
+                            '"TypeError: Assignment to constant variable."));')
+                return f"let _ = {value};"
             if kind == "let":
                 return f"write(&{rust_ident(name)}, {rust_string(name)}, {value})?;"
             return f"store(&{rust_ident(name)}, {value});"
@@ -544,7 +554,7 @@ class Compiler:
             else None
         if self_name:
             outer = Scope(outer)
-            outer.names[self_name] = "var"
+            outer.names[self_name] = "function-name"
         scope = Scope(outer, arrow=arrow)
         lines = []
         for index, param in enumerate(node["params"]):
@@ -561,10 +571,11 @@ class Compiler:
         uses_arguments = not arrow and "arguments" in identifiers(body) and \
             "arguments" not in scope.names
         if statements is not None and strict(statements):
-            scope.fail("syntax:strict-mode")
+            scope.strict = True
         # A sloppy function's `arguments` aliases its parameters.
-        if uses_arguments and assigned(body) & {p["name"] for p in node["params"]
-                                                if p["type"] == "Identifier"}:
+        if uses_arguments and not scope.strict and \
+                assigned(body) & {p["name"] for p in node["params"]
+                                  if p["type"] == "Identifier"}:
             scope.fail("syntax:mapped-arguments")
         captures = sorted((identifiers(node) & outer.visible()) - set(scope.names))
         prelude = [f"let {rust_ident(c)} = {rust_ident(c)}.clone();" for c in captures]
@@ -574,7 +585,7 @@ class Compiler:
         if scope.problem:
             lines.append(f"return rt.unsupported({rust_string(scope.problem)});")
         else:
-            if not arrow and uses_this(body):
+            if not arrow and not scope.strict and uses_this(body):
                 # Sloppy mode: a missing `this` is the global object, and a
                 # primitive one would be boxed (not translated).
                 lines.append("let this_ = sloppy_this(this_)?;")
@@ -826,8 +837,6 @@ def page_test(relative: str, title: str | None, text: str, programs: list[dict],
     page = Scope(None)
     for program in programs:
         page.collect(program["body"], program)
-        if strict(program["body"]):
-            page.fail("syntax:strict-mode")
     lines = ["let this_ = Value::Host(Host::Window);"]
     if page.problem:
         lines.append(f"rt.unsupported_page({rust_string(page.problem)});")
@@ -853,6 +862,8 @@ def page_test(relative: str, title: str | None, text: str, programs: list[dict],
                              f"rt.unsupported_page(&format!(\"{{error:?}}\")); return; }}")
             else:
                 program = programs[event[1]]
+                # Each script has its own directive prologue.
+                page.strict = strict(program["body"])
                 functions = [s for s in program["body"] if s["type"] == "FunctionDeclaration"]
                 body = compiler.hoisted_functions(page, functions)
                 for statement in program["body"]:

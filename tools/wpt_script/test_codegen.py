@@ -112,6 +112,7 @@ class CompilerTest(unittest.TestCase):
             ("(async function () {})", "syntax:async-or-generator"),
             ("(function () { return [...a]; })", "syntax:array-hole-or-spread"),
             ("(function () { x = 1; })", "global-assignment:x"),
+            ('(function () { "use strict"; x = 1; })', "global-assignment:x"),
         ]:
             with self.subTest(source=source):
                 self.assertIn(codegen.rust_string(reason), compile_function(source))
@@ -135,9 +136,24 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("let v_n = v_n.clone();", rust)
         self.assertIn("store(&v_n,", rust)
 
-    def test_strict_mode_is_reported(self):
-        rust = compile_function('(function () { "use strict"; f(this); })')
-        self.assertIn('rt.unsupported("syntax:strict-mode")', rust)
+    def test_strict_functions_keep_this_and_do_not_alias_arguments(self):
+        rust = compile_function(
+            '(function (a) { "use strict"; a = 2; g(this, arguments[0]); })')
+        self.assertNotIn("sloppy_this", rust)
+        self.assertNotIn("mapped-arguments", rust)
+        self.assertIn("cell(Value::array(args.clone()))", rust)
+
+    def test_strict_mode_is_inherited_by_nested_functions(self):
+        rust = compile_function(
+            '(function () { "use strict"; return function () { return this; }; })')
+        self.assertNotIn("sloppy_this", rust)
+
+    def test_a_function_expression_name_is_immutable(self):
+        sloppy = compile_function("(function f() { f = 1; })")
+        self.assertNotIn("Assignment to constant variable", sloppy)
+        self.assertNotIn("store(&v_f, t", sloppy)
+        strict_mode = compile_function('(function f() { "use strict"; f = 1; })')
+        self.assertIn("Assignment to constant variable", strict_mode)
 
     def test_arguments_aliasing_assigned_parameters_is_reported(self):
         rust = compile_function("(function (a) { a = 2; return arguments[0]; })")
