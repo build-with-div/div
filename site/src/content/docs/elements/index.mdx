@@ -1,6 +1,6 @@
 ---
 title: Elements
-description: The 60 tags Div's view! accepts, what each one is, and how it differs from the HTML element of the same name.
+description: The tags Div's view! knows, what each one is, and how it differs from the HTML element of the same name.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -11,7 +11,7 @@ Div is not a browser. There is no HTML parser and no JavaScript: you
 build the interface in Rust with `view!`, and every tag in it becomes a
 native element that Div lays out and paints itself. The tags borrow
 HTML's names, so `<div>`, `<button>` and `<input>` mean roughly what you
-expect, but the set is closed and the behavior is Div's own.
+expect, but the behavior is Div's own.
 
 This reference has one page per element, or per group of tags that are the
 same element under different names. Each page covers what the element is,
@@ -30,12 +30,14 @@ Div from the code shown.
    `<strong>` its weight until you give them a style.
 2. **Many tags are one element.** `h1`, `p`, `section` and `nav` are all
    the same block element; `strong`, `em` and `a` are the same inline
-   element. The tag picks the element kind and its default `display`, and
-   nothing else. Div does not keep the tag name.
-3. **Unknown tags compile, then panic.** `view!` turns any lowercase tag
-   into a call that creates the element at run time. A tag that is not in
-   the table below, such as `<b>`, `<code>`, `<pre>` or `<dialog>`, fails
-   there, with `UnknownTag`.
+   element. The tag picks the element kind and its default `display`.
+   Div keeps the tag name, which `Element::local_name` returns.
+3. **Other names are plain inline elements.** `view!` turns any lowercase
+   tag into a call that creates the element at run time. A valid name that
+   is not in the table below, such as `<x-card>`, creates an inline element
+   with that name and no behavior, so a misspelt tag compiles and renders
+   as inline text. The few names listed [under the table](#all-elements)
+   fail there, with `UnknownTag`, and panic when the view is built.
 4. **Attributes are strings, set once.** `name="value"` and
    `name={expr}` both call `Element::set_attribute`, once, when the view is
    built; a boolean attribute is set whatever its value, so
@@ -49,7 +51,7 @@ Div from the code shown.
 
 ## All elements
 
-These are all the tags `view!` and `Element::create` accept. The table is
+These are the tags `view!` and `Element::create` know. The table is
 generated from the source on `main` (`tag_definition` in
 `divui/src/element.rs`, the engine's constructor and its accessibility
 roles), so it lists exactly what exists.
@@ -61,10 +63,14 @@ from their control type, and `<input>` from its `type` attribute; see
 [input](/elements/input/).
 
 <Aside type="note" title="What is not here">
-Anything else, including `b`, `i`, `u`, `code`, `pre`, `blockquote`, `dl`,
-`dt`, `dd`, `figure`, `sup`, `sub`, `mark`, `time`, `dialog`, `template`,
-`slot` and SVG shapes such as `path` and `rect`. Use the elements above and
-style them: a `<span>` with `font-family="Geist Mono"` for code, for
+`area`, `base`, `datalist`, `dialog`, `head`, `link`, `meta`, `noscript`,
+`script`, `style`, `template` and `title` return `UnknownTag`, because Div
+does not have their behavior yet. So do `html` and `body`, which belong to
+the document, and names that are not valid element names, such as `1x`.
+
+Other names, including `slot` and SVG shapes such as `path` and `rect`, are
+unknown inline elements that do nothing. Most tags in the table have no
+default style either: give a `<code>` a `font-family="Geist Mono"`, for
 example.
 </Aside>
 

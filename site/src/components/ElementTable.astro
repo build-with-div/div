@@ -15,11 +15,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 // The reference page that documents each tag.
 const pageOf: Record<string, string> = {};
 const pages: Record<string, string[]> = {
-  div: ['div', 'main', 'nav', 'header', 'footer', 'section', 'article', 'aside', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr'],
-  span: ['span', 'a', 'label', 'strong', 'em', 'small'],
-  lists: ['ul', 'ol', 'li'],
+  div: ['div', 'main', 'nav', 'header', 'footer', 'section', 'article', 'aside', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'hgroup', 'blockquote', 'pre', 'figure', 'figcaption', 'address', 'search', 'center'],
+  span: ['span', 'a', 'label', 'strong', 'em', 'small', 'b', 'i', 'u', 's', 'strike', 'tt', 'code', 'kbd', 'samp', 'var', 'sub', 'sup', 'q', 'del', 'ins', 'mark', 'abbr', 'cite', 'dfn', 'time', 'data', 'bdi', 'bdo', 'picture', 'source', 'basefont', 'noembed', 'noframes', 'param'],
+  lists: ['ul', 'ol', 'li', 'menu', 'dl', 'dt', 'dd'],
   br: ['br', 'wbr'],
-  ruby: ['ruby', 'rt'],
+  ruby: ['ruby', 'rt', 'rp'],
   table: ['table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th'],
   img: ['img'],
   button: ['button'],

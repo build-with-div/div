@@ -13,13 +13,14 @@ and its annotation out as one unit, so they never split across lines.
 
 <Example name="el_ruby" alt="The characters for Tokyo with their hiragana readings above them, followed by the word Tokyo" />
 
-<ElementTable tags={['ruby', 'rt']} links={false} />
+<ElementTable tags={['ruby', 'rt', 'rp']} links={false} />
 
 ## Writing ruby
 
 Put the base text first and its `<rt>` after it, inside one `<ruby>`. Use
-one `<ruby>` per base, as in the example. `<rp>` and `<rb>` are not
-supported tags.
+one `<ruby>` per base, as in the example. `<rp>` is hidden by default
+(`display: none`), as in a browser that supports ruby. `<rb>` and `<rtc>`
+have no ruby behavior: they are unknown inline elements.
 
 <Aside type="caution" title="Leave room for the annotation">
 The annotation is drawn above the line without making the line taller. Give
@@ -44,4 +45,4 @@ The roles are `Ruby` and `RubyAnnotation`.
 | --- | --- |
 | `rt` is half size by default | No default size |
 | The line grows to fit annotations | Leave room with `line-height` |
-| `rp`, `rb`, `rtc` | Not supported |
+| `rb` and `rtc` are part of the ruby layout | Unknown inline elements |

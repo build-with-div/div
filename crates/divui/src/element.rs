@@ -1293,11 +1293,12 @@ fn tag_definition(name: &str) -> Result<(ElementTag, Option<Display>), Error> {
         | "blockquote" | "pre" | "dl" | "dt" | "dd" | "figure" | "figcaption" | "address"
         | "search" | "center" => (T::Div, None),
         "li" => (T::Div, Some(Display::ListItem)),
+        // Two arms so rustfmt does not wrap this one in a block, which
+        // site/scripts/gen-reference.mjs cannot read yet; merge them once it can.
         "span" | "a" | "label" | "strong" | "em" | "small" | "b" | "i" | "u" | "s" | "strike"
         | "tt" | "code" | "kbd" | "samp" | "var" | "sub" | "sup" | "q" | "del" | "ins" | "mark"
-        | "abbr" | "cite" | "dfn" | "time" | "data" | "bdi" | "bdo" | "picture" | "source" => {
-            (T::Span, None)
-        }
+        | "abbr" | "cite" | "dfn" | "time" | "data" | "bdi" | "bdo" => (T::Span, None),
+        "picture" | "source" => (T::Span, None),
         // Hidden by default (15.3.1 "Hidden elements"), with no behavior to
         // keep: Chromium 147's computed `display` for each is `none`.
         "rp" | "basefont" | "noembed" | "noframes" | "param" => (T::Span, Some(Display::None)),
