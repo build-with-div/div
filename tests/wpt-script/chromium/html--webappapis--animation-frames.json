@@ -1,0 +1,100 @@
+{
+ "chromium": "147.0.7727.50",
+ "wpt_revision": "09d377d9",
+ "suite": "html/webappapis/animation-frames",
+ "files": {
+  "html/webappapis/animation-frames/callback-cross-realm-report-exception.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "requestAnimationFrame() reports the exception from its callback in the callback's global object",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/callback-exception.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "requestAnimationFrame callback exceptions are reported to error handler",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/callback-handle.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Check window.requestAnimationFrame can return a valid callback handle",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/callback-invoked.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "requestAnimationFrame callback is invoked at least once before the timeout",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/callback-multicalls.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Check that multiple calls to requestAnimationFrame with the same callback will result in multiple entries being in the list with that same callback.",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/callback-timestamp.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Check FrameRequestCallback has a DOMHighResTimeStamp argument",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/cancel-handle-manual.html": {
+   "excluded": "manual"
+  },
+  "html/webappapis/animation-frames/cancel-invoked.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "cancelAnimationFrame does nothing if there is no callback with the given handle",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/cancel-pending.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "cancelAnimationFrame cancels a pending animation frame callback",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/same-dispatch-time.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "requestAnimationFrame will timestamp events in the same queue with the same time",
+     "status": "PASS"
+    }
+   ]
+  },
+  "html/webappapis/animation-frames/spurious-frame-callbacks-optimization.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Optimization of requestAnimationFrame callbacks that don't modify the DOM shouldn't break animations",
+     "status": "PASS"
+    }
+   ]
+  }
+ }
+}

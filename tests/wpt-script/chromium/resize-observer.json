@@ -1,0 +1,435 @@
+{
+ "chromium": "147.0.7727.50",
+ "wpt_revision": "09d377d9",
+ "suite": "resize-observer",
+ "files": {
+  "resize-observer/calculate-depth-for-node.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "\"Calculate depth for node\" algorithm with Shadow DOM",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/callback-cross-realm-report-exception.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver reports the exception from its callback in the callback's global object",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/change-layout-in-error.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Changing layout in window error handler should not result in lifecyle loop when resize observer loop limit is reached.",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/devicepixel-ref.html": {
+   "excluded": "reference"
+  },
+  "resize-observer/devicepixel.html": {
+   "excluded": "not-testharness"
+  },
+  "resize-observer/devicepixel2-ref.html": {
+   "excluded": "reference"
+  },
+  "resize-observer/devicepixel2.html": {
+   "excluded": "not-testharness"
+  },
+  "resize-observer/eventloop.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: multiple notifications inside same event loop",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: depths of shadow roots",
+     "status": "PASS"
+    },
+    {
+     "name": "test2: move target in dom while inside event loop",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/fragments.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Single fragment",
+     "status": "PASS"
+    },
+    {
+     "name": "Adding 2nd fragment",
+     "status": "FAIL",
+     "message": "assert_equals: number of fragments expected 2 but got 1"
+    },
+    {
+     "name": "Resizing 2nd fragment",
+     "status": "FAIL",
+     "message": "assert_equals: number of fragments expected 2 but got 1"
+    },
+    {
+     "name": "Resizing all fragments",
+     "status": "FAIL",
+     "message": "assert_equals: number of fragments expected 2 but got 1"
+    },
+    {
+     "name": "Removing 2nd fragment",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/idlharness.window.js": {
+   "excluded": "wptserve-generated-wrapper"
+  },
+  "resize-observer/iframe-same-origin-ref.html": {
+   "excluded": "reference"
+  },
+  "resize-observer/iframe-same-origin.html": {
+   "excluded": "not-testharness"
+  },
+  "resize-observer/multiple-observers-with-mutation-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "resize-observer/notify.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: notification ordering",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: display:none triggers notification",
+     "status": "PASS"
+    },
+    {
+     "name": "test2: remove/appendChild trigger notification",
+     "status": "PASS"
+    },
+    {
+     "name": "test3: dimensions match",
+     "status": "PASS"
+    },
+    {
+     "name": "test4: transform do not cause notifications",
+     "status": "PASS"
+    },
+    {
+     "name": "test5: moving an element does not trigger notifications",
+     "status": "PASS"
+    },
+    {
+     "name": "test6: inline element notifies once with 0x0.",
+     "status": "PASS"
+    },
+    {
+     "name": "test7: unobserve inside notify callback",
+     "status": "PASS"
+    },
+    {
+     "name": "test8: observe inside notify callback",
+     "status": "PASS"
+    },
+    {
+     "name": "test9: disconnect inside notify callback",
+     "status": "PASS"
+    },
+    {
+     "name": "test10: element notifies when parent removed",
+     "status": "PASS"
+    },
+    {
+     "name": "test11: display:none element should be notified",
+     "status": "PASS"
+    },
+    {
+     "name": "test12: element sized 0x0 should be notified",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/observe.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: simple observation",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: multiple observation on same element trigger only one",
+     "status": "PASS"
+    },
+    {
+     "name": "test2: throw exception when observing non-element",
+     "status": "PASS"
+    },
+    {
+     "name": "test3: disconnect stops all notifications",
+     "status": "PASS"
+    },
+    {
+     "name": "test4: unobserve target stops notifications, unobserve non-observed does nothing",
+     "status": "PASS"
+    },
+    {
+     "name": "test5: observe img",
+     "status": "PASS"
+    },
+    {
+     "name": "test6: iframe notifications",
+     "status": "PASS"
+    },
+    {
+     "name": "test7: callback.this",
+     "status": "PASS"
+    },
+    {
+     "name": "test8: simple content-box observation",
+     "status": "PASS"
+    },
+    {
+     "name": "test9: simple content-box observation but keep border-box size unchanged",
+     "status": "PASS"
+    },
+    {
+     "name": "test10: simple border-box observation",
+     "status": "PASS"
+    },
+    {
+     "name": "test11: simple observation with vertical writing mode",
+     "status": "PASS"
+    },
+    {
+     "name": "test12: no observation is fired after the change of writing mode when box's specified size comes from logical size properties.",
+     "status": "PASS"
+    },
+    {
+     "name": "test13: an observation is fired after the change of writing mode when box's specified size comes from physical size properties.",
+     "status": "PASS"
+    },
+    {
+     "name": "test14: observe the same target but using a different box should override the previous one",
+     "status": "PASS"
+    },
+    {
+     "name": "test15: an observation is fired with box dimensions 0 when element's display property is set to inline",
+     "status": "PASS"
+    },
+    {
+     "name": "test16: observations fire once with 0x0 size for non-replaced inline elements",
+     "status": "PASS"
+    },
+    {
+     "name": "test17: Box sizing snd Resize Observer notifications",
+     "status": "PASS"
+    },
+    {
+     "name": "test18: an observation is fired when device-pixel-content-box is being observed",
+     "status": "PASS"
+    },
+    {
+     "name": "test19: an observation is fired when device-pixel-content-box is being observed and zoom change",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/observer-in-cross-origin-frame.sub.html": {
+   "excluded": "wptserve-substitution"
+  },
+  "resize-observer/ordering.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver and IntersectionObserver ordering",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/scrollbars-2.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver content-box size and scrollbars",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/scrollbars.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver content-box size and scrollbars",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/svg-with-css-box-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: observe `foreignObject` SVG in HTML document",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: observe inline SVG in HTML",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/svg-with-css-box-002.svg": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: Root SVG resize observed",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: `foreignObject` SVG resize observed",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/svg.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver implemented",
+     "status": "PASS"
+    },
+    {
+     "name": "guard",
+     "status": "PASS"
+    },
+    {
+     "name": "test0: observe svg:circle",
+     "status": "PASS"
+    },
+    {
+     "name": "test1: observe svg:ellipse",
+     "status": "PASS"
+    },
+    {
+     "name": "test2: observe svg:foreignObject",
+     "status": "PASS"
+    },
+    {
+     "name": "test3: observe svg:image",
+     "status": "PASS"
+    },
+    {
+     "name": "test4: observe svg:line",
+     "status": "PASS"
+    },
+    {
+     "name": "test5: observe svg:path",
+     "status": "PASS"
+    },
+    {
+     "name": "test6: observe svg:polygon",
+     "status": "PASS"
+    },
+    {
+     "name": "test7: observe svg:polyline",
+     "status": "PASS"
+    },
+    {
+     "name": "test8: observe svg:rect",
+     "status": "PASS"
+    },
+    {
+     "name": "test9: observe svg:text",
+     "status": "PASS"
+    },
+    {
+     "name": "test10: observe svg:svg, top/left is 0 even with padding",
+     "status": "PASS"
+    },
+    {
+     "name": "test11: observe svg non-displayable element",
+     "status": "PASS"
+    },
+    {
+     "name": "test12: observe svg:rect content box",
+     "status": "PASS"
+    },
+    {
+     "name": "test13: observe svg:rect border box",
+     "status": "PASS"
+    },
+    {
+     "name": "test14: observe g:rect content and border box",
+     "status": "PASS"
+    },
+    {
+     "name": "test15: observe svg:text content and border box",
+     "status": "PASS"
+    },
+    {
+     "name": "test16: observe g:rect content, border and device-pixel-content boxes",
+     "status": "PASS"
+    },
+    {
+     "name": "test17: observe g:rect content, border and device-pixel-content boxes with zoom",
+     "status": "PASS"
+    }
+   ]
+  },
+  "resize-observer/zoom.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "ResizeObserver sizes account for zoom",
+     "status": "PASS"
+    }
+   ]
+  }
+ }
+}

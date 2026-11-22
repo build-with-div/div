@@ -76,6 +76,24 @@ uses.)
 | I2a | Keyboard scrolling and `keypress` (sample-markdown MD-23, RFC 0007 section 7) | Merged (#86) |
 | I2b | Keyboard-focusable scrollers and the navigation starting point (gap `keyboard-focusable-scrollers`, RFC 0007 section 8) | Merged (#89) |
 
+## T3: WPT script translation (item 0.13, RFC 0005)
+
+The framework track took T3 on 21 November 2026, in the re-plan that moves
+the large Tier 0 items forward (approved through the parent session). It
+follows RFC 0005, which is still marked proposed: the RFC's status and owner
+go to the user with RFCs 0014 and 0015. The translator is a new
+`tools/wpt_script/`; `tools/wpt` and the renderer contract stay untouched.
+Item 1.2 (`matchMedia` change events, OS reduced-motion and colour-scheme,
+`devicePixelRatio`) moves ahead of T3b–T3d once the engine's S3/S4 PR 2
+merges. The editor gaps below wait behind T3.
+
+| # | Item | State |
+| --- | --- | --- |
+| T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | In progress |
+| T3b | The `div-wpt-script` crate, its runtime and generated tests for animation-frames and resize-observer | Not started |
+| T3c | `pointerevents` (`test_driver` actions to `TestApp` input) | Not started |
+| T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
+
 ## After Tier 0
 
 Queued after keyboard scrolling, in this order, unless one blocks a sample
@@ -94,6 +112,84 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 21 November 2026: T3a, the WPT script ledgers (RFC 0005 step 2)
+
+Problem: WPT measures `requestAnimationFrame`, `ResizeObserver`, Pointer
+Events and the animation features mostly with `testharness.js` scripts,
+which Div's WPT tooling rejects. Nothing counted which of those subtests Div
+could run, or what blocks the rest.
+
+Change (`tools/wpt_script/`, `tests/wpt-script/`, CI only; no Rust):
+
+- `capture_chromium_subtests.py` loads each page of a suite in pinned
+  Chromium 147.0.7727.50, headless, from a local server whose
+  `testharnessreport.js` stores the harness's results. It records every
+  subtest's name, status and message in `tests/wpt-script/chromium/`. These
+  recordings are each suite's denominator: names built at run time (loops,
+  helpers, the title as default name) cannot be listed statically.
+  - Pages that need wptserve (`.sub.`, `.https.`, generated `.any.js` and
+    `.window.js` wrappers), a person (`-manual`) or are references are
+    recorded as excluded, with the reason.
+- `translate.mjs` (pinned Acorn 8.14.0) finds each page's subtest
+  declarations (`test`, `async_test`, `promise_test`, single-page tests and
+  the intrinsic `ResizeTestHelper`) with their static names, and the web
+  surfaces each one reaches:
+  - its own call, its enclosing top-level function, the top-level helper
+    functions those call, and the page's own top-level code;
+  - not another subtest's body, so the page's `test0().then(test1)…`
+    chain does not mix them up.
+  - Names built at run time and dynamic code (`eval`, `Function`, `with`,
+    `document.write`) make a subtest untranslatable, with the reason.
+- `ledger.py` adds the page's markup (tags, `<style>`, `style` attributes,
+  linked stylesheets), resolves helper scripts against `intrinsics.json` by
+  path and sha256, and maps every surface through `capabilities.json` to
+  its plan feature and its `divui` call, or to null.
+  - No surface maps to a near equivalent. Gaps without a plan row are named
+    `gap:…` (for example `gap:query-selector`).
+  - Generic member names (`.width`, `.left`, `.length`) are labelled by the
+    use the suites make of them; T3b's codegen types each use and rejects
+    any other.
+  - It fails if the recording no longer matches the suite's pages, and
+    records Chromium's own `-expected.txt` result next to the recorded one
+    when they differ.
+- CI (`python-accountability`) fetches the two suites in a sparse checkout
+  of their own (`WPT_SCRIPT_ROOT`) and runs the unit tests and
+  `ledger.py --check`. It is kept apart from `CHROMIUM_WPT_ROOT`: the CSS
+  porter resolves `/resources/` and `/common/` files that exist under that
+  root, so adding them there would change pinned porter output.
+
+Results at Chromium `09d377d9` (`tests/wpt-script/ledgers/`):
+
+| Suite | Subtests | Chromium passes | Translatable | Blocked | Untranslatable | Excluded pages |
+| --- | --- | --- | --- | --- | --- | --- |
+| `html/webappapis/animation-frames` | 10 | 10 | 6 | 4 | 0 | 1 (manual) |
+| `resize-observer` | 82 | 79 | 17 | 60 | 5 | 9 |
+
+- **Chromium's failures.** The 3 it fails are `fragments.html`'s, as its
+  `-expected.txt` says.
+- **The largest blockers in `resize-observer`:**
+  - `querySelector` (36 subtests);
+  - SVG markup: V1 shapes (28) and V2 `<text>` (20);
+  - `document.fonts.ready` (20);
+  - error events (9).
+- **Untranslatable.** The 5 are `fragments.html`'s, whose names are built in
+  a loop.
+- **Excluded pages.** 3 references, 4 pages without `testharness.js`, the
+  cross-origin frame (`.sub.`) and `idlharness`.
+
+Verification:
+
+- `python -m unittest tools.wpt_script.test_ledger`: 18 tests pass.
+  - With the top-level-only shadowing rule replaced by the page-wide one,
+    `test_a_local_named_test_does_not_hide_declarations` fails.
+  - Without the rule that keeps subtests' bodies apart,
+    `test_subtests_do_not_take_each_others_surfaces` fails.
+- `python tools/wpt_script/ledger.py --check` passes on Windows, against a
+  checkout with only the two suites' directories (as CI has).
+- The recordings were made in WSL with the pinned Linux build
+  (`~/openui-oracle/chrome/linux-147.0.7727.50`).
+- No Rust, engine or census change (D4 does not apply).
 
 ### 19 November 2026: Chromium's text raster as the Windows default (RFC 0012)
 

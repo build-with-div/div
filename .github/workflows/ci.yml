@@ -422,6 +422,25 @@ jobs:
           printf 'CHROMIUM_WPT_ROOT=%s\nCHROMIUM_WPT_CSS=%s\n' \
             "$wpt_root" "$wpt_root/css" >> "$GITHUB_ENV"
 
+      # RFC 0005's testharness suites, in a checkout of their own: the CSS
+      # porter resolves files that exist under CHROMIUM_WPT_ROOT.
+      - name: Fetch pinned Chromium 147 WPT script suites
+        run: |
+          script_src="$RUNNER_TEMP/chromium-wpt-script"
+          chromium_commit=09d377d9438dc95267369f74a073acd81bdde38f
+          git init --quiet "$script_src"
+          git -C "$script_src" remote add origin https://github.com/chromium/chromium.git
+          git -C "$script_src" sparse-checkout init --cone
+          git -C "$script_src" sparse-checkout set \
+            third_party/blink/web_tests/external/wpt/html/webappapis/animation-frames \
+            third_party/blink/web_tests/external/wpt/resize-observer
+          git -C "$script_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
+          git -C "$script_src" checkout --detach --quiet FETCH_HEAD
+          test "$(git -C "$script_src" rev-parse HEAD)" = "$chromium_commit"
+          script_root="$script_src/third_party/blink/web_tests/external/wpt"
+          test -f "$script_root/resize-observer/resources/resizeTestHelper.js"
+          printf 'WPT_SCRIPT_ROOT=%s\n' "$script_root" >> "$GITHUB_ENV"
+
       - name: Restore the pinned fidelity data
         run: python3 tools/fidelity_data.py fetch
 
@@ -451,13 +470,15 @@ jobs:
             tools.style.test_generate_properties \
             tools.test_skia_prebuilt \
             tools.ci.test_check_platform_scoped_tests \
-            tools.ci.test_msvc_toolset
+            tools.ci.test_msvc_toolset \
+            tools.wpt_script.test_ledger
 
       - name: Verify immutable closure ledgers
         run: |
           python3 tools/ci/check_platform_scoped_tests.py
           python3 tools/accountability/restore_frozen_openui_archive.py --check
           python3 tools/qualification/generate_renderer_contract.py --check
+          python3 tools/wpt_script/ledger.py --check
           python3 tools/wpt/generate_sp13r_multicol_closure.py --check
           python3 tools/wpt/generate_sp17_closure.py --check
           python3 tools/wpt/generate_sp18_closure.py --check

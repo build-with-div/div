@@ -1,0 +1,19 @@
+{
+ "resize-observer/resources/resizeTestHelper.js": {
+  "sha256": "f0d87c6b5f1026aa929f923afb62aa3b15490e71837fe225bf7dbb60f3054bc5",
+  "provides": {
+   "ResizeTestHelper": [
+    "new ResizeObserver()",
+    "window.requestAnimationFrame()",
+    "window.cancelAnimationFrame()",
+    "harness:t.step_timeout"
+   ],
+   "createAndAppendElement": [
+    "document.body",
+    "document.createElement()",
+    ".appendChild()"
+   ]
+  },
+  "methods": ["start", "startCountingRaf", "rafCount", "test"]
+ }
+}

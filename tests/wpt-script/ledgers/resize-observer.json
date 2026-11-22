@@ -1,0 +1,862 @@
+{
+ "suite": "resize-observer",
+ "chromium": "147.0.7727.50",
+ "wpt_revision": "09d377d9",
+ "subtests": 82,
+ "counts": {
+  "blocked": 60,
+  "translatable": 17,
+  "untranslatable": 5
+ },
+ "blocked_by": {
+  "O2": 1,
+  "R3": 1,
+  "V1": 28,
+  "V2": 20,
+  "editor-27": 1,
+  "gap:attribute-reflection": 1,
+  "gap:child-documents": 2,
+  "gap:css-supports": 2,
+  "gap:css-zoom": 3,
+  "gap:document-element": 1,
+  "gap:error-events": 9,
+  "gap:font-loading": 20,
+  "gap:images-from-script": 2,
+  "gap:load-event": 3,
+  "gap:logical-sizes": 2,
+  "gap:named-element-access": 1,
+  "gap:query-selector": 36,
+  "gap:script-exceptions": 1,
+  "gap:shadow-dom": 2,
+  "gap:window-events": 1
+ },
+ "rows": [
+  {
+   "file": "resize-observer/calculate-depth-for-node.html",
+   "name": "\"Calculate depth for node\" algorithm with Shadow DOM",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events",
+    "gap:query-selector",
+    "gap:shadow-dom"
+   ]
+  },
+  {
+   "file": "resize-observer/callback-cross-realm-report-exception.html",
+   "name": "ResizeObserver reports the exception from its callback in the callback's global object",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:child-documents",
+    "gap:error-events",
+    "gap:load-event",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/change-layout-in-error.html",
+   "name": "Changing layout in window error handler should not result in lifecyle loop when resize observer loop limit is reached.",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events",
+    "gap:named-element-access",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/devicepixel-ref.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "reference"
+  },
+  {
+   "file": "resize-observer/devicepixel.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "not-testharness"
+  },
+  {
+   "file": "resize-observer/devicepixel2-ref.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "reference"
+  },
+  {
+   "file": "resize-observer/devicepixel2.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "not-testharness"
+  },
+  {
+   "file": "resize-observer/eventloop.html",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events"
+   ]
+  },
+  {
+   "file": "resize-observer/eventloop.html",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events"
+   ]
+  },
+  {
+   "file": "resize-observer/eventloop.html",
+   "name": "test0: multiple notifications inside same event loop",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events",
+    "gap:load-event"
+   ]
+  },
+  {
+   "file": "resize-observer/eventloop.html",
+   "name": "test1: depths of shadow roots",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events",
+    "gap:shadow-dom"
+   ]
+  },
+  {
+   "file": "resize-observer/eventloop.html",
+   "name": "test2: move target in dom while inside event loop",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:error-events"
+   ]
+  },
+  {
+   "file": "resize-observer/fragments.html",
+   "name": "Single fragment",
+   "chromium": "PASS",
+   "status": "untranslatable",
+   "reasons": [
+    "runtime-subtest-name"
+   ]
+  },
+  {
+   "file": "resize-observer/fragments.html",
+   "name": "Adding 2nd fragment",
+   "chromium": "FAIL",
+   "status": "untranslatable",
+   "reasons": [
+    "runtime-subtest-name"
+   ]
+  },
+  {
+   "file": "resize-observer/fragments.html",
+   "name": "Resizing 2nd fragment",
+   "chromium": "FAIL",
+   "status": "untranslatable",
+   "reasons": [
+    "runtime-subtest-name"
+   ]
+  },
+  {
+   "file": "resize-observer/fragments.html",
+   "name": "Resizing all fragments",
+   "chromium": "FAIL",
+   "status": "untranslatable",
+   "reasons": [
+    "runtime-subtest-name"
+   ]
+  },
+  {
+   "file": "resize-observer/fragments.html",
+   "name": "Removing 2nd fragment",
+   "chromium": "PASS",
+   "status": "untranslatable",
+   "reasons": [
+    "runtime-subtest-name"
+   ]
+  },
+  {
+   "file": "resize-observer/idlharness.window.js",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "wptserve-generated-wrapper"
+  },
+  {
+   "file": "resize-observer/iframe-same-origin-ref.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "reference"
+  },
+  {
+   "file": "resize-observer/iframe-same-origin.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "not-testharness"
+  },
+  {
+   "file": "resize-observer/multiple-observers-with-mutation-crash.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "not-testharness"
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test0: notification ordering",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test1: display:none triggers notification",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test2: remove/appendChild trigger notification",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test3: dimensions match",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test4: transform do not cause notifications",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test5: moving an element does not trigger notifications",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test6: inline element notifies once with 0x0.",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test7: unobserve inside notify callback",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test8: observe inside notify callback",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test9: disconnect inside notify callback",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test10: element notifies when parent removed",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test11: display:none element should be notified",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/notify.html",
+   "name": "test12: element sized 0x0 should be notified",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test0: simple observation",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test1: multiple observation on same element trigger only one",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test2: throw exception when observing non-element",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:script-exceptions"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test3: disconnect stops all notifications",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test4: unobserve target stops notifications, unobserve non-observed does nothing",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test5: observe img",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:images-from-script"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test6: iframe notifications",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:attribute-reflection",
+    "gap:child-documents",
+    "gap:error-events",
+    "gap:images-from-script",
+    "gap:load-event",
+    "gap:window-events"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test7: callback.this",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test8: simple content-box observation",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test9: simple content-box observation but keep border-box size unchanged",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test10: simple border-box observation",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test11: simple observation with vertical writing mode",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:logical-sizes"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test12: no observation is fired after the change of writing mode when box's specified size comes from logical size properties.",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:logical-sizes"
+   ]
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test13: an observation is fired after the change of writing mode when box's specified size comes from physical size properties.",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test14: observe the same target but using a different box should override the previous one",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test15: an observation is fired with box dimensions 0 when element's display property is set to inline",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test16: observations fire once with 0x0 size for non-replaced inline elements",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test17: Box sizing snd Resize Observer notifications",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test18: an observation is fired when device-pixel-content-box is being observed",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/observe.html",
+   "name": "test19: an observation is fired when device-pixel-content-box is being observed and zoom change",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "gap:css-supports",
+    "gap:css-zoom"
+   ]
+  },
+  {
+   "file": "resize-observer/observer-in-cross-origin-frame.sub.html",
+   "name": null,
+   "chromium": null,
+   "status": "excluded",
+   "reason": "wptserve-substitution"
+  },
+  {
+   "file": "resize-observer/ordering.html",
+   "name": "ResizeObserver and IntersectionObserver ordering",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "O2",
+    "gap:document-element"
+   ]
+  },
+  {
+   "file": "resize-observer/scrollbars-2.html",
+   "name": "ResizeObserver content-box size and scrollbars",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "editor-27"
+   ]
+  },
+  {
+   "file": "resize-observer/scrollbars.html",
+   "name": "ResizeObserver content-box size and scrollbars",
+   "chromium": "PASS",
+   "status": "translatable"
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-001.html",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-001.html",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-001.html",
+   "name": "test0: observe `foreignObject` SVG in HTML document",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-001.html",
+   "name": "test1: observe inline SVG in HTML",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-002.svg",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-002.svg",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-002.svg",
+   "name": "test0: Root SVG resize observed",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg-with-css-box-002.svg",
+   "name": "test1: `foreignObject` SVG resize observed",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "ResizeObserver implemented",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "guard",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test0: observe svg:circle",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test1: observe svg:ellipse",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test2: observe svg:foreignObject",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test3: observe svg:image",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test4: observe svg:line",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test5: observe svg:path",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test6: observe svg:polygon",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test7: observe svg:polyline",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test8: observe svg:rect",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test9: observe svg:text",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test10: observe svg:svg, top/left is 0 even with padding",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test11: observe svg non-displayable element",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test12: observe svg:rect content box",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test13: observe svg:rect border box",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test14: observe g:rect content and border box",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test15: observe svg:text content and border box",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test16: observe g:rect content, border and device-pixel-content boxes",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/svg.html",
+   "name": "test17: observe g:rect content, border and device-pixel-content boxes with zoom",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "V1",
+    "V2",
+    "gap:css-supports",
+    "gap:css-zoom",
+    "gap:font-loading",
+    "gap:query-selector"
+   ]
+  },
+  {
+   "file": "resize-observer/zoom.html",
+   "name": "ResizeObserver sizes account for zoom",
+   "chromium": "PASS",
+   "status": "blocked",
+   "features": [
+    "R3",
+    "gap:css-zoom",
+    "gap:query-selector"
+   ]
+  }
+ ]
+}
