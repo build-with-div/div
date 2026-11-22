@@ -713,6 +713,13 @@
       "display": "inline-block",
       "control": false,
       "role": "EmbeddedObject"
+    },
+    {
+      "tag": "dialog",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
     }
   ],
   "inputTypes": [
