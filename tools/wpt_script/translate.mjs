@@ -11,13 +11,19 @@
 //   name, never interpreted.
 // Output (stdout, JSON): one record per file:
 //   {file, parse_error?, subtests: [{name, name_known, declared_by, surfaces,
-//    untranslatable?}], page_surfaces}
+//    untranslatable?}], page_surfaces, chains: [[{label, surfaces, reasons,
+//    subtests, finishes}]]}
 //
 // A subtest's surfaces are every web surface its declaring call reaches
 // statically: the call's own arguments, the named top-level function that
 // encloses it, the top-level functions those call (transitively) and the
 // page's top-level statements. Nothing is dropped: a construct the runtime
 // cannot express marks the subtest untranslatable with a reason.
+//
+// `chains` are the page's top-level promise chains, `f().then(() => g())...`,
+// link by link. A link's surfaces are what it runs outside a synchronous
+// `test()`, which catches whatever its body throws; if one of them cannot
+// run, no later link does (ledger.py's reachability).
 
 import {pathToFileURL} from 'node:url';
 
@@ -308,24 +314,120 @@ function analyse(page) {
     return {surfaces, reasons};
   };
 
+  // The argument index of the name of the subtest `node` declares, or null.
+  const nameIndexOf = node => {
+    const callee = node.callee.type === 'Identifier' ? node.callee.name : null;
+    if (callee && HARNESS_DECLARATIONS.has(callee) && !topNames.has(callee)) {
+      // test(fn, name), async_test(fn, name), async_test(name), promise_test(fn, name).
+      const first = node.arguments[0];
+      return first && ['FunctionExpression', 'ArrowFunctionExpression', 'Identifier',
+        'CallExpression', 'MemberExpression'].includes(first.type)
+        && constantString(first) === null ? 1 : 0;
+    }
+    if (callee && HELPER_DECLARATIONS.has(callee) && helpers.has(callee)) {
+      return HELPER_DECLARATIONS.get(callee);
+    }
+    return null;
+  };
+  const declaredName = node => {
+    const nameNode = node.arguments[nameIndexOf(node)];
+    return nameNode === undefined ? page.title : constantString(nameNode);
+  };
+
+  // Variables holding an `async_test`, which a later link may finish.
+  const asyncTests = new Map();
+  const bindAsyncTest = (id, init) => {
+    if (id?.type === 'Identifier' && init?.type === 'CallExpression' && isDeclaration(init)
+        && init.callee.name === 'async_test') {
+      const name = declaredName(init);
+      if (name !== null) asyncTests.set(id.name, name);
+    }
+  };
+  const findAsyncTests = node => {
+    if (node.type === 'AssignmentExpression') bindAsyncTest(node.left, node.right);
+    if (node.type === 'VariableDeclarator') bindAsyncTest(node.id, node.init);
+    for (const [child] of children(node)) findAsyncTests(child);
+  };
+  findAsyncTests(program);
+
+  // What a chain link runs. A synchronous `test()` reports its own failure
+  // and the link goes on, so its body cannot stop the chain.
+  const isSyncTest = node => node.type === 'CallExpression' && node.callee.type === 'Identifier'
+    && node.callee.name === 'test' && !topNames.has('test');
+  const gated = new Map();
+  for (const [name, node] of functions) {
+    gated.set(name, surfacesOf(node, locals, helpers, isSyncTest));
+  }
+  const linkOf = (body, label) => {
+    const start = surfacesOf(body, locals, helpers, isSyncTest);
+    const surfaces = new Set(start.surfaces);
+    const reasons = new Set(start.reasons);
+    const nodes = [body];
+    const seen = new Set();
+    const queue = [...start.calls];
+    while (queue.length) {
+      const name = queue.shift();
+      if (seen.has(name) || !gated.has(name)) continue;
+      seen.add(name);
+      const found = gated.get(name);
+      found.surfaces.forEach(s => surfaces.add(s));
+      found.reasons.forEach(r => reasons.add(r));
+      queue.push(...found.calls);
+      nodes.push(functions.get(name));
+    }
+    const declared = new Set();
+    const finishes = new Set();
+    const walk = node => {
+      if ((node.type === 'CallExpression' || node.type === 'NewExpression') && isDeclaration(node)) {
+        const name = declaredName(node);
+        if (name !== null && name !== undefined) declared.add(name);
+      }
+      if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression'
+          && propertyName(node.callee) === 'done' && node.callee.object.type === 'Identifier'
+          && asyncTests.has(node.callee.object.name)) {
+        finishes.add(asyncTests.get(node.callee.object.name));
+      }
+      for (const [child] of children(node)) walk(child);
+    };
+    nodes.forEach(walk);
+    return {label, surfaces: [...surfaces].sort(), reasons: [...reasons].sort(),
+      subtests: [...declared], finishes: [...finishes]};
+  };
+  // `f().then(() => g()).then(h)`, or null for anything else: a rejection
+  // handler changes which links run.
+  const chainOf = statement => {
+    if (statement.type !== 'ExpressionStatement') return null;
+    const bodies = [];
+    let node = statement.expression;
+    while (node.type === 'CallExpression' && node.callee.type === 'MemberExpression'
+           && propertyName(node.callee) === 'then') {
+      const handler = node.arguments[0];
+      if (node.arguments.length !== 1) return null;
+      if (['FunctionExpression', 'ArrowFunctionExpression'].includes(handler.type)) {
+        bodies.unshift(handler.body);
+      } else if (handler.type === 'Identifier') {
+        bodies.unshift({type: 'CallExpression', callee: handler, arguments: []});
+      } else {
+        return null;
+      }
+      node = node.callee.object;
+    }
+    if (!bodies.length || node.type !== 'CallExpression' || node.callee.type !== 'Identifier'
+        || !functions.has(node.callee.name)) return null;
+    bodies.unshift(node);
+    return bodies.map((body, index) => linkOf(body,
+      body.type === 'CallExpression' && body.callee.type === 'Identifier'
+        ? body.callee.name : `link${index}`));
+  };
+  const chains = topLevel.map(chainOf).filter(Boolean);
+
   // Find every subtest declaration and the top-level function enclosing it.
   const subtests = [];
   const visit = (node, enclosing, inLoop) => {
     if (node.type === 'CallExpression' || node.type === 'NewExpression') {
       const callee = node.callee.type === 'Identifier' ? node.callee.name : null;
-      let nameIndex = null;
-      if (callee && HARNESS_DECLARATIONS.has(callee) && !topNames.has(callee)) {
-        // test(fn, name), async_test(fn, name), async_test(name), promise_test(fn, name).
-        const first = node.arguments[0];
-        nameIndex = first && ['FunctionExpression', 'ArrowFunctionExpression', 'Identifier',
-          'CallExpression', 'MemberExpression'].includes(first.type)
-          && constantString(first) === null ? 1 : 0;
-      } else if (callee && HELPER_DECLARATIONS.has(callee) && helpers.has(callee)) {
-        nameIndex = HELPER_DECLARATIONS.get(callee);
-      }
-      if (nameIndex !== null) {
-        const nameNode = node.arguments[nameIndex];
-        const name = nameNode === undefined ? page.title : constantString(nameNode);
+      if (nameIndexOf(node) !== null) {
+        const name = declaredName(node);
         const own = surfacesOf(node, locals, helpers);
         const base = enclosing ? functionSurfaces.get(enclosing) : {surfaces: new Set(),
           calls: new Set(), reasons: new Set()};
@@ -372,7 +474,7 @@ function analyse(page) {
       ...(reached.reasons.size ? {untranslatable: [...reached.reasons].sort()} : {}),
     });
   }
-  return {file: page.file, subtests, page_surfaces: [...pageLevel.surfaces].sort()};
+  return {file: page.file, subtests, page_surfaces: [...pageLevel.surfaces].sort(), chains};
 }
 
 // `--ast`: the parsed scripts themselves, one Program per inline script,

@@ -38,10 +38,16 @@ TOOL = ledger.TOOL
 TESTS = ROOT / "tests/wpt-script/tests"
 EXPECTED = ROOT / "tests/wpt-script/expected"
 # The suites whose translatable subtests the runtime covers, and their
-# generated module names. T3b-2 adds resize-observer.
+# generated module names.
 GENERATED = {
     "html/webappapis/animation-frames": "animation_frames",
+    "resize-observer": "resize_observer",
 }
+# The ledger statuses that have a generated expectation: a subtest the page
+# reaches, and one it does not (expected NOTRUN, so running it fails).
+GENERATED_ROWS = ("translatable", "unreachable")
+# The sheets of the pages' `<style>` elements, read by `stylesheet!`.
+STYLES = ROOT / "tests/wpt-script/styles"
 STATUSES = {"PASS": "Pass", "FAIL": "Fail", "TIMEOUT": "Timeout",
             "NOTRUN": "NotRun", "UNSUPPORTED": "Unsupported"}
 
@@ -537,6 +543,9 @@ class Compiler:
         return "Value::object(vec![" + ", ".join(
             f"({rust_string(k)}, {v})" for k, v in entries) + "])"
 
+    def e_AwaitExpression(self, node, scope):
+        return f"rt.await_value({self.expression(node['argument'], scope)}).await?"
+
     def e_FunctionExpression(self, node, scope, name=""):
         return self.function(node, scope, name)
 
@@ -544,8 +553,8 @@ class Compiler:
         return self.function(node, scope, name)
 
     def function(self, node, outer: Scope, name: str) -> str:
-        if node.get("async") or node.get("generator"):
-            return unsupported("syntax:async-or-generator")
+        if node.get("generator"):
+            return unsupported("syntax:generator")
         arrow = node["type"] == "ArrowFunctionExpression"
         if node.get("id"):
             name = node["id"]["name"]
@@ -604,6 +613,14 @@ class Compiler:
             else:
                 lines.append(f"Ok({self.expression(body, scope)})")
         inner = "\n".join(lines)
+        if node.get("async"):
+            # The closure is `Fn`, and each call's body is a future that owns
+            # its variables: it may outlive the call.
+            owned = [f"let {rust_ident(c)} = {rust_ident(c)}.clone();" for c in captures]
+            if arrow:
+                owned.append("let this_ = this_.clone();")
+            inner = (" ".join(owned) + "\nlet owned_rt = rt.clone();\n"
+                     "rt.spawn_async(async move {\nlet rt = &owned_rt;\n" + inner + "\n})")
         function = (f"move |rt: &Rt, {this_parameter}: Value, args: Vec<Value>| -> Res {{\n"
                     f"{inner}\n}}")
         value = f"Value::function({rust_string(name)}, {{ {' '.join(prelude)} {function} }})"
@@ -737,8 +754,11 @@ IGNORED = {"html", "head", "body", "title", "meta", "link"}
 class Markup(html.parser.HTMLParser):
     """The page's elements, text and inline scripts in document order."""
 
-    def __init__(self):
+    def __init__(self, page: str | None = None, intrinsics: dict | None = None):
         super().__init__(convert_charrefs=True)
+        self.page = page
+        self.intrinsics = intrinsics or {}
+        self.style_text: list[str] = []
         self.events: list[tuple] = []
         self.stack: list[int | None] = []
         self.count = 0
@@ -761,11 +781,17 @@ class Markup(html.parser.HTMLParser):
                 self.events.append(("script", self.scripts))
                 self.scripts += 1
             elif source not in ledger.HARNESS_SCRIPTS:
-                self.events.append(("unsupported", f"intrinsic:{source}"))
+                path = ledger.resolve(source, self.page) if self.page else None
+                if path in self.intrinsics:
+                    self.events.append(("helper", path))
+                else:
+                    self.events.append(("unsupported", f"intrinsic:{source}"))
             self.in_script = True
             return
         if tag == "style":
-            self.events.append(("unsupported", "markup:<style>"))
+            if attrs:
+                self.events.append(("unsupported", "markup:<style>-attributes"))
+            self.style_text = []
             self.in_style = True
             return
         if tag == "link" and any(k == "rel" and v and "stylesheet" in v.lower()
@@ -800,6 +826,7 @@ class Markup(html.parser.HTMLParser):
             self.in_title = False
         if tag == "style":
             self.in_style = False
+            self.events.append(("style", "".join(self.style_text)))
             return
         if tag in VOID:
             return
@@ -807,7 +834,10 @@ class Markup(html.parser.HTMLParser):
             self.stack.pop()
 
     def handle_data(self, data):
-        if self.in_script or self.in_style or self.in_title or not data.strip():
+        if self.in_style:
+            self.style_text.append(data)
+            return
+        if self.in_script or self.in_title or not data.strip():
             return
         self.events.append(("text", data, self.parent()))
 
@@ -827,8 +857,10 @@ def test_name(relative: str, suite: str, used: set[str]) -> str:
 
 
 def page_test(relative: str, title: str | None, text: str, programs: list[dict],
-              names: list[str], expected: dict | None, compiler: Compiler) -> list[str]:
-    markup = Markup()
+              names: list[str], expected: dict | None, compiler: Compiler,
+              intrinsics: dict | None = None, stem: str = "page",
+              styles: dict[str, str] | None = None) -> list[str]:
+    markup = Markup(relative, intrinsics)
     markup.feed(text)
     markup.close()
     if markup.scripts != len(programs):
@@ -848,7 +880,17 @@ def page_test(relative: str, title: str | None, text: str, programs: list[dict],
                 lines.append(f"rt.unsupported_page({rust_string(event[1])});")
                 lines.append("return;")
                 break
-            if event[0] == "element":
+            if event[0] == "helper":
+                lines.append(f"rt.load_helper({rust_string(event[1])});")
+            elif event[0] == "style":
+                number = sum(1 for name in styles if name.startswith(f"{stem}-")) + 1
+                file_name = f"{stem}-{number}.css"
+                styles[file_name] = event[1]
+                lines.append(f"div::stylesheet!(sheet_{number}, "
+                             f"{rust_string('styles/' + file_name)});")
+                lines.append(f"if let Err(error) = rt.adopt(&sheet_{number}::SHEET) {{ "
+                             f"rt.unsupported_page(&format!(\"{{error:?}}\")); return; }}")
+            elif event[0] == "element":
                 _, index, tag, attrs, parent = event
                 pairs = ", ".join(f"({rust_string(k)}, {rust_string(v)})" for k, v in attrs)
                 where = f"Some(&e{parent})" if parent else "None"
@@ -870,20 +912,23 @@ def page_test(relative: str, title: str | None, text: str, programs: list[dict],
                     body += compiler.statement(statement, page)
                 lines.append("if let Err(thrown) = (|| -> Res {")
                 lines += body
-                lines += ["Ok(Value::Undefined)", "})() {", "rt.uncaught(thrown);", "}"]
+                lines += ["Ok(Value::Undefined)", "})() {", "rt.uncaught(thrown);", "}",
+                          "rt.checkpoint();"]
     rows = []
     for name in names:
         status = (expected or {}).get("subtests", {}).get(name)
         if status is not None:
             rows.append(f"({rust_string(name)}, Expected::{STATUSES[status['status']]})")
     harness = (expected or {}).get("harness_error")
+    stopped = (expected or {}).get("stopped")
     return [
         f"    let rt = Rt::new({'Some(' + rust_string(title) + ')' if title is not None else 'None'});",
         "    let result = rt.run_page(|rt| {",
         *indent(lines, 2),
         "    });",
         f"    expect({rust_string(relative)}, &result, "
-        f"{'None' if harness is None else 'Some(' + rust_string(harness) + ')'}, &[",
+        f"{'None' if harness is None else 'Some(' + rust_string(harness) + ')'}, "
+        f"{'None' if stopped is None else 'Some(' + rust_string(stopped) + ')'}, &[",
         *[f"        {row}," for row in rows],
         "    ]);",
     ]
@@ -914,11 +959,11 @@ use div_wpt_script::runtime::*;
 
 
 def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: dict,
-             expected: dict) -> tuple[str, list[str]]:
+             expected: dict) -> tuple[str, list[str], dict[str, str]]:
     current = ledger.load_json(ledger.ledger_path(suite))
     translatable: dict[str, list[str]] = {}
     for row in current["rows"]:
-        if row["status"] == "translatable":
+        if row["status"] in GENERATED_ROWS:
             translatable.setdefault(row["file"], []).append(row["name"])
     files = sorted(translatable)
     pages = [ledger.read_page(wpt_root, relative, intrinsics) for relative in files]
@@ -932,6 +977,7 @@ def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: di
     out = [HEADER.format(suite=suite, chromium=current["chromium"],
                          revision=current["wpt_revision"]).rstrip("\n")]
     missing, used = [], set()
+    styles: dict[str, str] = {}
     for page in pages:
         relative = page["file"]
         if "parse_error" in parsed[relative]:
@@ -944,11 +990,13 @@ def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: di
         out.append("")
         out.append("#[test]")
         out.append("#[rustfmt::skip]")
-        out.append(f"fn {test_name(relative, suite, used)}() {{")
+        function = test_name(relative, suite, used)
+        out.append(f"fn {function}() {{")
         out += page_test(relative, page["title"], text, parsed[relative]["programs"],
-                         translatable[relative], page_expected, compiler)
+                         translatable[relative], page_expected, compiler, intrinsics,
+                         f"{module}-{function}", styles)
         out.append("}")
-    return "\n".join(out) + "\n", missing
+    return "\n".join(out) + "\n", missing, styles
 
 
 def expected_path(suite: str) -> Path:
@@ -959,9 +1007,12 @@ def record(suite: str, directory: Path, expected: dict) -> dict:
     """The expectations from a recording run's results for `suite`."""
     current = ledger.load_json(ledger.ledger_path(suite))
     translatable: dict[str, list[str]] = {}
+    reasons: dict[tuple[str, str], str] = {}
     for row in current["rows"]:
-        if row["status"] == "translatable":
+        if row["status"] in GENERATED_ROWS:
             translatable.setdefault(row["file"], []).append(row["name"])
+            if "reason" in row:
+                reasons[(row["file"], row["name"])] = row["reason"]
     results = {}
     for path in sorted(directory.glob("*.json")):
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -981,7 +1032,12 @@ def record(suite: str, directory: Path, expected: dict) -> dict:
                 row = ({"status": "UNSUPPORTED", "message": data["unsupported"]}
                        if data.get("unsupported") else {"status": "NOTRUN"})
             subtests[name] = {k: row[k] for k in ("status", "message") if k in row}
+            # A subtest behind a stopped chain says which link stopped it.
+            if subtests[name]["status"] == "NOTRUN" and (relative, name) in reasons:
+                subtests[name]["message"] = reasons[(relative, name)]
         updated[relative] = {"harness_error": data.get("harness_error"), "subtests": subtests}
+        if data.get("stopped"):
+            updated[relative]["stopped"] = data["stopped"]
     return updated
 
 
@@ -998,6 +1054,7 @@ def main() -> int:
         raise SystemExit(f"{args.acorn} is not the pinned acorn@8.14.0")
     intrinsics = ledger.load_json(TOOL / "intrinsics.json")
     failed = False
+    all_styles: set[str] = set()
     for suite, module in GENERATED.items():
         path = expected_path(suite)
         expected = ledger.load_json(path) if path.is_file() else {}
@@ -1007,8 +1064,9 @@ def main() -> int:
             path.write_text(json.dumps(expected, indent=1, ensure_ascii=False) + "\n",
                             encoding="utf-8", newline="\n")
             print(path.relative_to(ROOT))
-        text, missing = generate(suite, module, args.wpt_root.resolve(), args.acorn,
-                                 intrinsics, expected)
+        text, missing, styles = generate(suite, module, args.wpt_root.resolve(), args.acorn,
+                                         intrinsics, expected)
+        all_styles |= set(styles)
         target = TESTS / f"{module}.rs"
         if missing:
             print(f"{suite}: no recorded Div result for {len(missing)} translatable "
@@ -1021,10 +1079,28 @@ def main() -> int:
             if not target.is_file() or target.read_text(encoding="utf-8") != text:
                 print(f"{target.relative_to(ROOT)} is stale", file=sys.stderr)
                 failed = True
+            for name, sheet in styles.items():
+                path = STYLES / name
+                if not path.is_file() or path.read_text(encoding="utf-8") != sheet:
+                    print(f"{path.relative_to(ROOT)} is stale", file=sys.stderr)
+                    failed = True
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(text, encoding="utf-8", newline="\n")
             print(target.relative_to(ROOT))
+            for name, sheet in styles.items():
+                STYLES.mkdir(parents=True, exist_ok=True)
+                (STYLES / name).write_text(sheet, encoding="utf-8", newline="\n")
+                print((STYLES / name).relative_to(ROOT))
+    # A sheet no generated test reads any more.
+    for path in sorted(STYLES.glob("*.css")) if STYLES.is_dir() else []:
+        if path.name in all_styles:
+            continue
+        if args.check:
+            print(f"{path.relative_to(ROOT)} is stale", file=sys.stderr)
+            failed = True
+        else:
+            path.unlink()
     return 1 if failed else 0
 
 

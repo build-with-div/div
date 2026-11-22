@@ -24,8 +24,9 @@ fn callback_handle() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/callback-handle.html", &result, None, &[
+    expect("html/webappapis/animation-frames/callback-handle.html", &result, None, None, &[
         ("Check window.requestAnimationFrame can return a valid callback handle", Expected::Unsupported),
     ]);
 }
@@ -63,8 +64,9 @@ fn callback_multicalls() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/callback-multicalls.html", &result, None, &[
+    expect("html/webappapis/animation-frames/callback-multicalls.html", &result, None, None, &[
         ("Check that multiple calls to requestAnimationFrame with the same callback will result in multiple entries being in the list with that same callback.", Expected::Pass),
     ]);
 }
@@ -90,8 +92,9 @@ fn callback_timestamp() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/callback-timestamp.html", &result, None, &[
+    expect("html/webappapis/animation-frames/callback-timestamp.html", &result, None, None, &[
         ("Check FrameRequestCallback has a DOMHighResTimeStamp argument", Expected::Pass),
     ]);
 }
@@ -114,8 +117,9 @@ fn cancel_invoked() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/cancel-invoked.html", &result, None, &[
+    expect("html/webappapis/animation-frames/cancel-invoked.html", &result, None, None, &[
         ("cancelAnimationFrame does nothing if there is no callback with the given handle", Expected::Unsupported),
     ]);
 }
@@ -156,8 +160,9 @@ fn cancel_pending() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/cancel-pending.html", &result, None, &[
+    expect("html/webappapis/animation-frames/cancel-pending.html", &result, None, None, &[
         ("cancelAnimationFrame cancels a pending animation frame callback", Expected::Pass),
     ]);
 }
@@ -197,8 +202,9 @@ fn same_dispatch_time() {
         })() {
             rt.uncaught(thrown);
         }
+        rt.checkpoint();
     });
-    expect("html/webappapis/animation-frames/same-dispatch-time.html", &result, None, &[
+    expect("html/webappapis/animation-frames/same-dispatch-time.html", &result, None, None, &[
         ("requestAnimationFrame will timestamp events in the same queue with the same time", Expected::Pass),
     ]);
 }

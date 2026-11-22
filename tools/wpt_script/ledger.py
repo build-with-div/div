@@ -7,7 +7,12 @@ Chromium 147 reports them (`capture_chromium_subtests.py`), with:
 - `chromium`: Chromium's own result (PASS, FAIL, ...), from the recording,
   cross-checked against the pinned `-expected.txt` baselines;
 - `status`: what Div can do with the subtest today:
-  - `translatable`: every web surface it uses maps to a `divui` call;
+  - `translatable`: every web surface it uses maps to a `divui` call, and
+    the page can reach it;
+  - `unreachable`: it would be translatable, but it sits behind a link of
+    the page's promise chain that cannot run (`reason`:
+    `blocked-chain:<link>`). The page stays unmodified, so the test does not
+    run: its Div result is NOTRUN, and running must fail the check;
   - `blocked`: some surface maps to a feature Div lacks (`features`) or to
     nothing yet (`unmapped`);
   - `untranslatable`: the script needs something a straight-line Rust test
@@ -127,6 +132,11 @@ COMMENT = re.compile(r"<!--.*?-->", re.S)
 TAG = re.compile(r"<([a-zA-Z][\w:.-]*)\b([^>]*)>")
 STYLE_ATTRIBUTE = re.compile(r"\sstyle\s*=", re.I)
 REL_STYLESHEET = re.compile(r"""\brel\s*=\s*["']?stylesheet""", re.I)
+CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
+CSS_BLOCK = re.compile(r"\{([^{}]*)\}")
+# The property names `stylesheet!` accepts.
+PROPERTY_TABLE = ROOT / "crates/div-style/src/generated_properties.rs"
+PROPERTY_ARM = re.compile(r'^\s*"([a-z-]+)" => Some\(Self::\w+\),$', re.M)
 # Document structure the generated test does not build: `TestApp` provides it.
 STRUCTURE = {"html", "head", "body", "title", "meta", "link", "script", "style", "?xml"}
 
@@ -134,12 +144,17 @@ STRUCTURE = {"html", "head", "body", "title", "meta", "link", "script", "style",
 def markup_surfaces(text: str, relative: str) -> list[str]:
     """What building the page's static markup needs (RFC 0005 "page setup").
 
-    Each element tag, `<style>` sheets, `style` attributes and linked
-    stylesheets. Every subtest on the page needs them.
+    Each element tag, `<style>` sheets and the properties they declare
+    (`css:<name>`: `stylesheet!` refuses a property Div lacks), `style`
+    attributes and linked stylesheets. Every subtest on the page needs them.
     """
     surfaces = set()
-    if STYLE_ELEMENT.search(text):
+    for sheet in STYLE_ELEMENT.finditer(text):
         surfaces.add("markup:<style>")
+        for block in CSS_BLOCK.findall(CSS_COMMENT.sub("", sheet.group(0))):
+            for declaration in block.split(";"):
+                if ":" in declaration:
+                    surfaces.add("css:" + declaration.split(":", 1)[0].strip().lower())
     body = STYLE_ELEMENT.sub("", SCRIPT.sub("", COMMENT.sub("", text)))
     for match in TAG.finditer(body):
         tag = match.group(1).split(":")[-1].lower()
@@ -226,6 +241,59 @@ def subtest_surfaces(record: dict, page: dict, intrinsics: dict) -> list[str]:
     return sorted(found)
 
 
+def chain_stops(record: dict, page: dict, intrinsics: dict, capabilities: dict) -> dict[str, str]:
+    """The subtests behind a chain link that cannot run, and that link.
+
+    A link that needs a surface Div lacks throws or never settles, so no
+    later link runs, on the unmodified page. A subtest a later link declares
+    or finishes is not reachable.
+    """
+    stops: dict[str, str] = {}
+    for chain in record.get("chains", []):
+        broken = None
+        for link in chain:
+            if broken is not None:
+                for name in link["subtests"] + link["finishes"]:
+                    stops.setdefault(name, broken)
+                continue
+            surfaces = subtest_surfaces({"surfaces": link["surfaces"],
+                                         "declared_by": "harness:chain"}, page, intrinsics)
+            if link["reasons"] or classify(surfaces, capabilities)["status"] != "translatable":
+                broken = link["label"]
+    return stops
+
+
+def div_css_properties(text: str) -> set[str]:
+    """The names in `StyleProperty::from_css_name`, from its source."""
+    start = text.index("pub fn from_css_name")
+    return set(PROPERTY_ARM.findall(text[start:text.index("_ => None", start)]))
+
+
+def check_css_capabilities(capabilities: dict, known: set[str]) -> None:
+    """Each `css:` surface is mapped exactly when Div has the property, so a
+    shorthand that lands fails the check until its row is updated."""
+    stale = sorted(surface for surface, entry in capabilities.items()
+                   if surface.startswith("css:")
+                   and (entry.get("divui") is not None) != (surface[4:] in known))
+    if stale:
+        raise SystemExit("capabilities.json disagrees with StyleProperty::from_css_name on: "
+                         + ", ".join(stale))
+
+
+def check_reachability(relative: str, name: str, status: str, recorded: str) -> None:
+    """The classifier and the recorded run must agree on what the page reaches."""
+    if (status == "unreachable") != (recorded == "NOTRUN"):
+        raise SystemExit(f"{relative}: {name!r} is {status} but its recorded Div result is "
+                         f"{recorded}: update the chain analysis or re-record")
+
+
+def check_stopped(relative: str, name: str, status: str, stopped: str | None) -> None:
+    """A row behind a stopped chain needs the run's reason for the stop."""
+    if status == "unreachable" and not stopped:
+        raise SystemExit(f"{relative}: {name!r} is unreachable but the recorded run names no "
+                         "reason its chain stopped: re-record")
+
+
 def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities: dict) -> dict:
     recording = load_json(CHROMIUM / (suite.replace("/", "--") + ".json"))
     files = recording["files"]
@@ -256,6 +324,7 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
                 declared.setdefault(subtest["name"], subtest)
         dynamic = [s for s in record["subtests"] if not s["name_known"]]
         baseline = expected_baseline(wpt_root, relative)
+        stops = chain_stops(record, page, intrinsics, capabilities)
         for observed in entry["subtests"]:
             name = observed["name"]
             row = {"file": relative, "name": name, "chromium": observed["status"]}
@@ -278,8 +347,15 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
                 row.update(classify(
                     sorted(set(subtest_surfaces(subtest, page, intrinsics)) | set(page["markup"])),
                     capabilities))
+            stop = stops.get(name)
+            if stop is not None and row["status"] == "translatable":
+                row.update(status="unreachable", reason=f"blocked-chain:{stop}")
+            elif stop is not None and row["status"] == "blocked":
+                row["blocked_chain"] = stop
             result = div.get(relative, {}).get("subtests", {}).get(name)
-            if row["status"] == "translatable" and result is not None:
+            if row["status"] in ("translatable", "unreachable") and result is not None:
+                check_reachability(relative, name, row["status"], result["status"])
+                check_stopped(relative, name, row["status"], div[relative].get("stopped"))
                 row["div"] = result["status"]
                 if "message" in result:
                     row["div_message"] = result["message"]
@@ -333,6 +409,8 @@ def main() -> int:
         raise SystemExit(f"{args.acorn} is not the pinned acorn@8.14.0")
     intrinsics = load_json(TOOL / "intrinsics.json")
     capabilities = load_json(TOOL / "capabilities.json")
+    check_css_capabilities(capabilities,
+                           div_css_properties(PROPERTY_TABLE.read_text(encoding="utf-8")))
     failed = False
     for suite in args.suite or SUITES:
         text = render(build(suite, args.wpt_root.resolve(), args.acorn, intrinsics, capabilities))
