@@ -83,8 +83,46 @@ class PageTest(unittest.TestCase):
 <!-- <section> in a comment --><div style="width: 1px"><span>x</span></div>
 <svg><circle r="1"/></svg><script>let s = "<table>";</script></body></html>""")
         self.assertEqual(page["markup"], [
-            "markup:<style>", "markup:circle", "markup:div", "markup:span",
+            "css:color", "markup:<style>", "markup:circle", "markup:div", "markup:span",
             "markup:style-attribute", "markup:stylesheet:fonts/ahem.css", "markup:svg"])
+
+
+class CssSurfaceTest(unittest.TestCase):
+    def test_a_sheet_reports_each_declared_property(self):
+        surfaces = ledger.markup_surfaces("""<style>
+/* margin: 0 */
+a:hover { COLOR: red; background: url(x:y) }
+@layer base { b { width: 1px } }
+</style>""", "s/p.html")
+        self.assertEqual(surfaces, ["css:background", "css:color", "css:width", "markup:<style>"])
+
+
+class CssCapabilityTest(unittest.TestCase):
+    def test_the_property_names_come_from_from_css_name(self):
+        source = """fn other() { "skipped" => Some(Self::Skipped), }
+pub fn from_css_name(name: &str) -> Option<Self> {
+    match name {
+        "width" => Some(Self::Width),
+        "box-sizing" => Some(Self::BoxSizing),
+        _ => None,
+    }
+}
+"after" => Some(Self::After),"""
+        self.assertEqual(ledger.div_css_properties(source), {"width", "box-sizing"})
+
+    def test_the_real_table_has_the_properties_the_ledger_relies_on(self):
+        known = ledger.div_css_properties(ledger.PROPERTY_TABLE.read_text(encoding="utf-8"))
+        self.assertIn("width", known)
+        self.assertIn("overflow", known)
+
+    def test_a_shorthand_that_lands_fails_until_its_row_is_updated(self):
+        capabilities = {"_comment": "x", "css:width": {"feature": "S1", "divui": "Width"},
+                        "css:background": {"feature": "gap:background-shorthand", "divui": None}}
+        ledger.check_css_capabilities(capabilities, {"width"})
+        with self.assertRaisesRegex(SystemExit, "css:background"):
+            ledger.check_css_capabilities(capabilities, {"width", "background"})
+        with self.assertRaisesRegex(SystemExit, "css:width"):
+            ledger.check_css_capabilities(capabilities, set())
 
 
 class ClassifyTest(unittest.TestCase):
@@ -114,6 +152,42 @@ class ClassifyTest(unittest.TestCase):
         record = {"declared_by": "harness:Helper", "surfaces": [".start()", ".observe()"]}
         self.assertEqual(ledger.subtest_surfaces(record, page, intrinsics),
                          [".observe()", "harness:.start()", "new ResizeObserver()"])
+
+    def test_a_chain_stops_at_the_first_link_that_cannot_run(self):
+        capabilities = {**self.CAPABILITIES, "harness:t.done": {"feature": "T3", "divui": "x"}}
+
+        def link(label, surfaces, subtests=(), finishes=(), reasons=()):
+            return {"label": label, "surfaces": list(surfaces), "reasons": list(reasons),
+                    "subtests": list(subtests), "finishes": list(finishes)}
+        chain = [link("a", ["harness:test"], ["a"]),
+                 link("b", ["new IntersectionObserver()"], ["b"]),
+                 link("c", ["harness:test"], ["c"]),
+                 link("link3", ["harness:t.done"], finishes=["guard"])]
+        self.assertEqual(
+            ledger.chain_stops({"chains": [chain]}, {"helpers": []}, {}, capabilities),
+            {"c": "b", "guard": "b"})
+        chain[1] = link("b", ["harness:test"], ["b"], reasons=["dynamic-code"])
+        self.assertEqual(
+            ledger.chain_stops({"chains": [chain]}, {"helpers": []}, {}, capabilities),
+            {"c": "b", "guard": "b"})
+        self.assertEqual(ledger.chain_stops({}, {"helpers": []}, {}, capabilities), {})
+
+    def test_the_classifier_and_the_recorded_run_must_agree(self):
+        ledger.check_reachability("p", "a", "translatable", "PASS")
+        ledger.check_reachability("p", "a", "translatable", "FAIL")
+        ledger.check_reachability("p", "a", "unreachable", "NOTRUN")
+        # A row behind a stopped chain that starts running.
+        with self.assertRaisesRegex(SystemExit, "unreachable but its recorded Div result is PASS"):
+            ledger.check_reachability("p", "a", "unreachable", "PASS")
+        # A row the classifier calls reachable that did not run.
+        with self.assertRaisesRegex(SystemExit, "translatable but its recorded"):
+            ledger.check_reachability("p", "a", "translatable", "NOTRUN")
+
+    def test_an_unreachable_row_needs_the_runs_stop_reason(self):
+        ledger.check_stopped("p", "a", "unreachable", "surface:Image")
+        ledger.check_stopped("p", "a", "translatable", None)
+        with self.assertRaisesRegex(SystemExit, "names no reason"):
+            ledger.check_stopped("p", "a", "unreachable", None)
 
 
 @unittest.skipUnless(ACORN, "CHROMIUM_ACORN is not set")
@@ -192,6 +266,33 @@ function test0() { let h = new ResizeTestHelper("helped", []); return h.start();
 test0();""", helpers=["ResizeTestHelper"])
         self.assertEqual(self.names(record), [("helped", True)])
         self.assertEqual(record["subtests"][0]["declared_by"], "harness:ResizeTestHelper")
+
+    def test_a_chain_reports_each_link_without_synchronous_test_bodies(self):
+        record = self.analyse("""
+let guard;
+test(() => { guard = async_test("guard"); }, "setup");
+function a() {
+  test(() => { new IntersectionObserver(() => {}); }, "a");
+  return Promise.resolve();
+}
+function b() { const image = new Image(); return Promise.resolve(); }
+function c() { test(() => {}, "c"); return Promise.resolve(); }
+a().then(() => b()).then(() => c()).then(() => guard.done());""")
+        self.assertEqual(len(record["chains"]), 1)
+        chain = record["chains"][0]
+        self.assertEqual([link["label"] for link in chain], ["a", "b", "c", "link3"])
+        self.assertNotIn("new IntersectionObserver()", chain[0]["surfaces"])
+        self.assertEqual(chain[0]["subtests"], ["a"])
+        self.assertIn("new Image()", chain[1]["surfaces"])
+        self.assertEqual(chain[2]["subtests"], ["c"])
+        self.assertEqual(chain[3]["finishes"], ["guard"])
+
+    def test_a_chain_with_a_rejection_handler_is_not_analysed(self):
+        record = self.analyse("""
+function a() { return Promise.resolve(); }
+function b() {}
+a().then(() => b(), () => b());""")
+        self.assertEqual(record["chains"], [])
 
     def test_a_parse_error_is_reported(self):
         record = self.analyse("test(() => {, 'x');")

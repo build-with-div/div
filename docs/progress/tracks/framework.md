@@ -90,8 +90,8 @@ merges. The editor gaps below wait behind T3.
 | # | Item | State |
 | --- | --- | --- |
 | T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | Merged (#113) |
-| T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | In progress |
-| T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Not started |
+| T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | Merged (#116) |
+| T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | In progress |
 | T3c | `pointerevents` (`test_driver` actions to `TestApp` input) | Not started |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
 
@@ -113,6 +113,70 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 22 November 2026: T3b-2, generated tests for resize-observer (RFC 0005 step 3)
+
+Problem: T3a marked 17 `resize-observer` subtests translatable, but that
+count ignored two things. `observe.html` chains its tests with promises, so
+a link that can't run stops every later one. And `scrollbars.html`'s sheet
+uses a shorthand Div doesn't have.
+
+Change (`tests/wpt-script/` and `tools/wpt_script/`; no `divui` change, no
+`Cargo.lock` change). RFC 0005's Amendment 1 is extended in this PR:
+
+- **Strict mode moves from rejected to accepted**, with undefined `this`,
+  unmapped `arguments` and a named function expression's read-only name
+  exact. Assigning an undeclared name stays rejected in both modes.
+- Promises and `async` functions are accepted with ECMA-262's job order.
+  Rejection handlers, `reject(value)`, non-promise thenables and other
+  `Promise` statics are rejected by name.
+- `promise_test` follows testharness.js's queue. `ResizeTestHelper` is a
+  native intrinsic of the pinned helper, statement for statement.
+- DOM, inline style and `ResizeObserver` hosts call `divui`. A style value
+  Div can't parse reports `style-value:<key>=<text>`.
+- **Reachability.** Pages stay unmodified. `translate.mjs` reports each
+  top-level promise chain, and `ledger.py` marks a subtest behind the first
+  blocked link `unreachable` with `blocked-chain:<link>`. Its expected Div
+  result is `NOTRUN`, and the expectations pin the run's stop reason.
+- **CSS surfaces.** The ledger reports each property a `<style>` sheet
+  declares as `css:<name>`, and checks those rows against
+  `StyleProperty::from_css_name`. `scrollbars.html` is blocked by
+  `gap:background-shorthand`. When the shorthand lands, the check fails until
+  its row is updated; the page isn't edited.
+
+Results (WSL with the `rust-parity` environment, this branch on `main`
+`090406bc`). Div's four counts cover the generated rows:
+
+| Suite | Subtests | Translatable | Unreachable | Blocked | Untranslatable | Div pass | Div fail | Div unsupported | Div not run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `html/webappapis/animation-frames` | 10 | 6 | 0 | 4 | 0 | 4 | 0 | 2 | 0 |
+| `resize-observer` | 82 | 5 | 11 | 61 | 5 | 5 | 0 | 0 | 11 |
+
+- **5 of `observe.html`'s 16 otherwise translatable rows are reachable
+  today.** The chain stops at `test5`'s `new Image()` (`surface:Image`), so
+  `guard`, test7–10 and test13–18 don't run.
+- The 11 not-run rows are named gaps, not passes.
+
+Verification:
+
+- `cargo test -p div-wpt-script` (WSL, debug): the 7 runtime tests pass, and
+  the 7 generated tests match their recorded outcomes. Windows runs it in
+  CI's `windows-msvc` job; it was not run locally.
+- Mutations:
+  - skipping `test5` and `test6` in the generated test makes test7–10 run
+    and pass; the test fails on each of them and on the changed stop reason;
+  - an unreachable row recorded PASS fails `ledger.py --check`;
+  - a reachable row recorded NOTRUN fails `ledger.py --check`.
+- `python -m unittest discover -s tools/wpt_script -p "test_*.py"`: 47 tests
+  pass.
+- `ledger.py --check` and `codegen.py --check` pass against a checkout with
+  only the two suites, as CI has.
+- `cargo fmt --all --check` passes.
+
+WPT sources read (BSD-3, Chromium `09d377d9`): the six animation-frames
+pages, `resize-observer/resources/resizeTestHelper.js`, parts of
+`resize-observer/observe.html`, `resize-observer/scrollbars.html`, and parts
+of `resources/testharness.js`.
 
 ### 22 November 2026: T3b-1, generated tests for animation-frames (RFC 0005 step 3)
 
@@ -237,6 +301,10 @@ Results at Chromium `09d377d9` (`tests/wpt-script/ledgers/`):
 | --- | --- | --- | --- | --- | --- | --- |
 | `html/webappapis/animation-frames` | 10 | 10 | 6 | 4 | 0 | 1 (manual) |
 | `resize-observer` | 82 | 79 | 17 | 60 | 5 | 9 |
+
+T3b-2 corrected `resize-observer`'s 17: 5 are translatable, 11 of
+`observe.html`'s can't be reached on the unmodified page, and
+`scrollbars.html`'s 1 is blocked by `gap:background-shorthand`.
 
 - **Chromium's failures.** The 3 it fails are `fragments.html`'s, as its
   `-expected.txt` says.

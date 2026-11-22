@@ -71,8 +71,15 @@ class MarkupTest(unittest.TestCase):
 
     def test_style_and_helpers_are_reported(self):
         events = self.events('<style>div { color: red }</style><script src="/x.js"></script>')
-        self.assertEqual(events, [("unsupported", "markup:<style>"),
+        self.assertEqual(events, [("style", "div { color: red }"),
                                   ("unsupported", "intrinsic:/x.js")])
+
+    def test_a_pinned_helper_is_loaded_by_its_resolved_path(self):
+        markup = codegen.Markup("s/p.html", {"s/resources/h.js": {}})
+        markup.feed('<script src="./resources/h.js"></script><script src="other.js"></script>')
+        markup.close()
+        self.assertEqual(markup.events, [("helper", "s/resources/h.js"),
+                                         ("unsupported", "intrinsic:other.js")])
 
 
 class RecordTest(unittest.TestCase):
@@ -102,6 +109,27 @@ class RecordTest(unittest.TestCase):
         })
 
 
+    def test_the_reason_a_chain_stopped_is_kept(self):
+        directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, directory)
+        (directory / "a.json").write_text(json.dumps({
+            "page": "s/a.html", "harness_error": None, "unsupported": None,
+            "stopped": "surface:Image", "subtests": [{"name": "one", "status": "PASS"}]}))
+        ledger = {"rows": [
+            {"file": "s/a.html", "name": "one", "status": "translatable"},
+            {"file": "s/a.html", "name": "two", "status": "unreachable",
+             "reason": "blocked-chain:b"},
+        ]}
+        original = codegen.ledger.load_json
+        codegen.ledger.load_json = lambda path: ledger
+        self.addCleanup(setattr, codegen.ledger, "load_json", original)
+        self.assertEqual(codegen.record("s", directory, {}), {
+            "s/a.html": {"harness_error": None, "stopped": "surface:Image", "subtests": {
+                "one": {"status": "PASS"},
+                "two": {"status": "NOTRUN", "message": "blocked-chain:b"}}},
+        })
+
+
 @unittest.skipUnless(ACORN, "CHROMIUM_ACORN is not set")
 class CompilerTest(unittest.TestCase):
     def test_constructs_outside_the_subset_are_reported_not_approximated(self):
@@ -109,12 +137,20 @@ class CompilerTest(unittest.TestCase):
             ("(function () { try { f(); } catch (e) {} })", "syntax:TryStatement"),
             ("(function () { return /x/; })", "syntax:regex"),
             ("(function () { return a?.b; })", "syntax:optional-chaining"),
-            ("(async function () {})", "syntax:async-or-generator"),
+            ("(function* () {})", "syntax:generator"),
             ("(function () { return [...a]; })", "syntax:array-hole-or-spread"),
             ("(function () { x = 1; })", "global-assignment:x"),
+            ('(function () { "use strict"; x = 1; })', "global-assignment:x"),
         ]:
             with self.subTest(source=source):
                 self.assertIn(codegen.rust_string(reason), compile_function(source))
+
+    def test_an_async_function_owns_its_variables_and_awaits_in_order(self):
+        rust = compile_function(
+            "(function () { var n = 0; return async () => { n++; await g(n); }; })")
+        self.assertIn("rt.spawn_async(async move {", rust)
+        self.assertIn(".await?", rust)
+        self.assertIn("let v_n = v_n.clone(); let this_ = this_.clone();", rust)
 
     def test_a_block_binding_named_outside_its_block_is_not_hoisted(self):
         rust = compile_function("(function () { if (a) { let x = 1; } return x; })")
@@ -135,9 +171,24 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("let v_n = v_n.clone();", rust)
         self.assertIn("store(&v_n,", rust)
 
-    def test_strict_mode_is_reported(self):
-        rust = compile_function('(function () { "use strict"; f(this); })')
-        self.assertIn('rt.unsupported("syntax:strict-mode")', rust)
+    def test_strict_functions_keep_this_and_do_not_alias_arguments(self):
+        rust = compile_function(
+            '(function (a) { "use strict"; a = 2; g(this, arguments[0]); })')
+        self.assertNotIn("sloppy_this", rust)
+        self.assertNotIn("mapped-arguments", rust)
+        self.assertIn("cell(Value::array(args.clone()))", rust)
+
+    def test_strict_mode_is_inherited_by_nested_functions(self):
+        rust = compile_function(
+            '(function () { "use strict"; return function () { return this; }; })')
+        self.assertNotIn("sloppy_this", rust)
+
+    def test_a_function_expression_name_is_immutable(self):
+        sloppy = compile_function("(function f() { f = 1; })")
+        self.assertNotIn("Assignment to constant variable", sloppy)
+        self.assertNotIn("store(&v_f, t", sloppy)
+        strict_mode = compile_function('(function f() { "use strict"; f = 1; })')
+        self.assertIn("Assignment to constant variable", strict_mode)
 
     def test_arguments_aliasing_assigned_parameters_is_reported(self):
         rust = compile_function("(function (a) { a = 2; return arguments[0]; })")

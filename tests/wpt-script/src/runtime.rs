@@ -19,10 +19,18 @@
 
 use div::prelude::LogicalSize;
 use div::testing::TestApp;
-use div::{AnimationFrameHandle, Document, Element};
+use div::{AnimationFrameHandle, Document, Element, ResizeObserver};
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::fmt;
 use std::rc::Rc;
+
+mod dom;
+mod promise;
+mod resize;
+
+pub use promise::{Await, JsPromise};
+pub use resize::Helper;
 
 /// The result of evaluating JavaScript: a value, or what was thrown.
 pub type Res = Result<Value, Throw>;
@@ -35,6 +43,9 @@ pub const FRAME_MS: f64 = 1000.0 / 60.0;
 
 /// WPT's default test timeout.
 pub const TIMEOUT_MS: f64 = 10_000.0;
+
+/// The intrinsic helper the `ResizeTestHelper` globals come from.
+const RESIZE_TEST_HELPER: &str = "resize-observer/resources/resizeTestHelper.js";
 
 /// A new variable holding `value`.
 pub fn cell(value: Value) -> Cell {
@@ -118,13 +129,37 @@ pub enum Host {
     Test(usize),
     /// An element.
     Element(Element),
+    /// An element's `style` object.
+    Style(Element),
+    /// An interface object: `Promise`, `ResizeObserver`, `ResizeTestHelper`.
+    Constructor(&'static str),
+    /// A promise.
+    Promise(Rc<JsPromise>),
+    /// A `ResizeObserver`.
+    ResizeObserver(ResizeObserver),
+    /// A `ResizeTestHelper`, the intrinsic of `resizeTestHelper.js`.
+    Helper(Rc<Helper>),
 }
 
 /// An ordinary object or array: properties in insertion order.
 #[derive(Default)]
 pub struct Object {
     array: bool,
+    /// A read-only platform object's interface: reading a member it does
+    /// not list, or writing any, is reported.
+    record: Option<&'static str>,
     properties: RefCell<Vec<(Rc<str>, Value)>>,
+}
+
+impl Object {
+    /// The own property `key`.
+    fn own(&self, key: &str) -> Option<Value> {
+        self.properties
+            .borrow()
+            .iter()
+            .find(|(name, _)| &**name == key)
+            .map(|(_, value)| value.clone())
+    }
 }
 
 /// `Object.prototype`'s properties, which no generated object has: reading
@@ -188,6 +223,21 @@ impl Value {
     pub fn object(properties: Vec<(&str, Value)>) -> Value {
         Value::Object(Rc::new(Object {
             array: false,
+            record: None,
+            properties: RefCell::new(
+                properties
+                    .into_iter()
+                    .map(|(key, value)| (Rc::from(key), value))
+                    .collect(),
+            ),
+        }))
+    }
+
+    /// A read-only platform object of interface `class`.
+    pub fn record(class: &'static str, properties: Vec<(&str, Value)>) -> Value {
+        Value::Object(Rc::new(Object {
+            array: false,
+            record: Some(class),
             properties: RefCell::new(
                 properties
                     .into_iter()
@@ -208,6 +258,7 @@ impl Value {
         properties.push((Rc::from("length"), Value::Number(length as f64)));
         Value::Object(Rc::new(Object {
             array: true,
+            record: None,
             properties: RefCell::new(properties),
         }))
     }
@@ -224,6 +275,11 @@ impl Value {
             Value::Host(Host::FrameHandle(_)) => "frame handle",
             Value::Host(Host::Test(_)) => "Test",
             Value::Host(Host::Element(_)) => "element",
+            Value::Host(Host::Style(_)) => "style",
+            Value::Host(Host::Promise(_)) => "promise",
+            Value::Host(Host::ResizeObserver(_)) => "ResizeObserver",
+            Value::Host(Host::Helper(_)) => "ResizeTestHelper",
+            Value::Host(Host::Constructor(name)) => name,
             Value::Host(_) => "host object",
             Value::Uninitialized => "uninitialized",
         }
@@ -387,6 +443,8 @@ struct Subtest {
     status: Status,
     finished: bool,
     cleanups: Vec<Value>,
+    /// `add_test_done_callback`'s promises: the `promise_test` queue.
+    done_callbacks: Vec<Rc<JsPromise>>,
 }
 
 struct Timer {
@@ -412,6 +470,20 @@ struct Inner {
     timer_nesting: std::cell::Cell<u32>,
     harness_error: RefCell<Option<String>>,
     unsupported: RefCell<Option<String>>,
+    /// Why the page's chain of tests stopped: the tests still waiting on it
+    /// did not run.
+    stopped: RefCell<Option<String>>,
+    /// `get_title()`'s suffix counter for unnamed tests.
+    name_counter: std::cell::Cell<u32>,
+    helpers: RefCell<Vec<String>>,
+    microtasks: RefCell<VecDeque<promise::Microtask>>,
+    in_checkpoint: std::cell::Cell<bool>,
+    rejections: RefCell<Vec<Rc<JsPromise>>>,
+    current_task: RefCell<Option<Rc<promise::Task>>>,
+    promise_tests: RefCell<Option<Rc<JsPromise>>>,
+    /// The web keeps an observer with targets alive however few references
+    /// a script holds; `divui` stops one when its last handle drops.
+    observers: RefCell<Vec<ResizeObserver>>,
 }
 
 /// One page's runtime: its document, its harness and its clock.
@@ -427,6 +499,9 @@ pub struct PageResult {
     /// Why the page could not be built or run exactly, if it could not:
     /// every subtest it would have declared is unsupported.
     pub unsupported: Option<String>,
+    /// Why the page's chain of tests stopped, if it did: an unsupported
+    /// operation no step reported. The tests waiting on it did not run.
+    pub stopped: Option<String>,
 }
 
 impl Rt {
@@ -446,6 +521,15 @@ impl Rt {
             timer_nesting: std::cell::Cell::new(0),
             harness_error: RefCell::new(None),
             unsupported: RefCell::new(None),
+            stopped: RefCell::new(None),
+            name_counter: std::cell::Cell::new(0),
+            helpers: RefCell::new(Vec::new()),
+            microtasks: RefCell::new(VecDeque::new()),
+            in_checkpoint: std::cell::Cell::new(false),
+            rejections: RefCell::new(Vec::new()),
+            current_task: RefCell::new(None),
+            promise_tests: RefCell::new(None),
+            observers: RefCell::new(Vec::new()),
         }))
     }
 
@@ -460,9 +544,16 @@ impl Rt {
         while self.has_pending_tests() && self.0.now_ms.get() < TIMEOUT_MS {
             self.frame();
         }
+        // The observers' callbacks hold this runtime.
+        self.0.observers.borrow_mut().clear();
+        let stopped = self.0.stopped.borrow().clone();
         let mut tests = self.0.tests.borrow_mut();
         for test in tests.iter_mut().filter(|test| !test.finished) {
-            test.status = Timeout;
+            test.status = if stopped.is_some() {
+                Status::NotRun
+            } else {
+                Timeout
+            };
             test.finished = true;
         }
         PageResult {
@@ -472,7 +563,54 @@ impl Rt {
                 .collect(),
             harness_error: self.0.harness_error.borrow().clone(),
             unsupported: self.0.unsupported.borrow().clone(),
+            stopped,
         }
+    }
+
+    /// The page loaded the intrinsic helper at `path`.
+    pub fn load_helper(&self, path: &str) {
+        self.0.helpers.borrow_mut().push(path.to_owned());
+    }
+
+    fn has_helper(&self, path: &str) -> bool {
+        self.0.helpers.borrow().iter().any(|helper| helper == path)
+    }
+
+    /// The page's chain of tests cannot continue exactly, for `reason`.
+    fn stall(&self, reason: &str) {
+        self.0
+            .stopped
+            .borrow_mut()
+            .get_or_insert_with(|| reason.to_owned());
+    }
+
+    /// A rejection nothing handled: testharness.js reports a harness error.
+    /// An unsupported operation is not a rejection the page could see: it
+    /// stops the chain the promise belonged to.
+    fn unhandled_rejection(&self, thrown: Throw) {
+        match thrown {
+            Throw::Error(message) => {
+                self.0
+                    .harness_error
+                    .borrow_mut()
+                    .get_or_insert(format!("Unhandled rejection: {message}"));
+            }
+            Throw::Unsupported(reason) => self.stall(&reason),
+        }
+    }
+
+    /// `requestAnimationFrame` for a native callback.
+    fn native_frame(
+        &self,
+        callback: impl FnOnce(&Rt) -> Result<(), Throw> + 'static,
+    ) -> AnimationFrameHandle {
+        let host = self.clone();
+        self.document().request_animation_frame(move |_| {
+            if let Err(thrown) = callback(&host) {
+                host.uncaught(thrown);
+            }
+            host.checkpoint();
+        })
     }
 
     /// The page cannot be built or run exactly, for `reason`: the subtests
@@ -515,6 +653,7 @@ impl Rt {
                     }
                 }
             }
+            self.checkpoint();
             self.0.timer_nesting.set(0);
         }
         self.0.now_ms.set(next);
@@ -530,6 +669,7 @@ impl Rt {
                 self.0.harness_error.borrow_mut().get_or_insert(message);
             }
             Throw::Unsupported(reason) => {
+                self.unsupported_page(&reason);
                 for test in self.0.tests.borrow_mut().iter_mut() {
                     if !test.finished {
                         test.status = Status::Unsupported(reason.clone());
@@ -545,7 +685,15 @@ impl Rt {
     fn new_test(&self, name: Option<&Value>) -> Result<usize, Throw> {
         let name = match name {
             None | Some(Value::Undefined) => match &self.0.title {
-                Some(title) => title.clone(),
+                // testharness.js's `next_default_test_name`.
+                Some(title) => {
+                    let counter = self.0.name_counter.replace(self.0.name_counter.get() + 1);
+                    if counter > 0 {
+                        format!("{title} {counter}")
+                    } else {
+                        title.clone()
+                    }
+                }
                 None => return Err(Throw::unsupported("default-test-name")),
             },
             Some(Value::Str(text)) => text.to_string(),
@@ -557,6 +705,7 @@ impl Rt {
             status: Status::NotRun,
             finished: false,
             cleanups: Vec::new(),
+            done_callbacks: Vec::new(),
         });
         Ok(tests.len() - 1)
     }
@@ -574,18 +723,18 @@ impl Rt {
         match self.call(function, this, args) {
             Ok(value) => value,
             Err(thrown) => {
-                let status = match thrown {
-                    Throw::Error(message) => Status::Fail(message),
-                    Throw::Unsupported(reason) => Status::Unsupported(reason),
-                };
-                self.finish(index, status);
+                self.finish_thrown(index, thrown);
                 Value::Undefined
             }
         }
     }
 
     fn finish(&self, index: usize, status: Status) {
-        let cleanups = {
+        let unsupported = match &status {
+            Status::Unsupported(reason) => Some(reason.clone()),
+            _ => None,
+        };
+        let (cleanups, callbacks) = {
             let mut tests = self.0.tests.borrow_mut();
             let test = &mut tests[index];
             if test.finished {
@@ -593,13 +742,41 @@ impl Rt {
             }
             test.status = status;
             test.finished = true;
-            std::mem::take(&mut test.cleanups)
+            (
+                std::mem::take(&mut test.cleanups),
+                std::mem::take(&mut test.done_callbacks),
+            )
         };
         for cleanup in cleanups {
             if let Err(thrown) = self.call(&cleanup, Value::Undefined, Vec::new()) {
                 self.uncaught(thrown);
             }
         }
+        for callback in callbacks {
+            // The `promise_test` queue stops after an unsupported test: the
+            // next would start from a state the translation cannot vouch for.
+            match &unsupported {
+                Some(reason) => self.stall(reason),
+                None => self.resolve_promise(&callback, Value::Undefined),
+            }
+        }
+    }
+
+    /// Finish test `index` with what a step threw.
+    fn finish_thrown(&self, index: usize, thrown: Throw) {
+        let status = match thrown {
+            Throw::Error(message) => Status::Fail(message),
+            Throw::Unsupported(reason) => Status::Unsupported(reason),
+        };
+        self.finish(index, status);
+    }
+
+    fn is_finished(&self, index: usize) -> bool {
+        self.0.tests.borrow()[index].finished
+    }
+
+    fn add_cleanup(&self, index: usize, cleanup: Value) {
+        self.0.tests.borrow_mut()[index].cleanups.push(cleanup);
     }
 
     fn done(&self, index: usize) {
@@ -652,8 +829,7 @@ impl Rt {
                 }))
             }),
             "add_cleanup" => Value::function("add_cleanup", move |_, _, args| {
-                let function = args.into_iter().next().unwrap_or_default();
-                rt.0.tests.borrow_mut()[index].cleanups.push(function);
+                rt.add_cleanup(index, args.into_iter().next().unwrap_or_default());
                 Ok(Value::Undefined)
             }),
             "step_timeout" => Value::function("step_timeout", move |_, _, args| {
@@ -666,14 +842,14 @@ impl Rt {
                     Some(value) => to_int32(rt.to_number(&value)?),
                     None => 0,
                 };
-                rt.set_timer(
+                let id = rt.set_timer(
                     function,
                     Value::Host(Host::Test(index)),
                     args.collect(),
                     delay,
                     Some(index),
                 )?;
-                Ok(Value::Undefined)
+                Ok(Value::Number(id as f64))
             }),
             "name" => Value::str(&self.0.tests.borrow()[index].name),
             other => return Err(Throw::unsupported(format!("surface:Test.{other}"))),
@@ -682,7 +858,7 @@ impl Rt {
     }
 
     /// `setTimeout`'s timer initialization steps, for a delay already
-    /// converted to WebIDL `long`.
+    /// converted to WebIDL `long`. Returns the timer's handle.
     fn set_timer(
         &self,
         callback: Value,
@@ -690,7 +866,7 @@ impl Rt {
         args: Vec<Value>,
         delay_ms: i32,
         test: Option<usize>,
-    ) -> Result<(), Throw> {
+    ) -> Result<u64, Throw> {
         let nesting = self.0.timer_nesting.get() + 1;
         // HTML raises a deeply nested short timeout to 4 ms; browsers
         // differ on the level, so a timer that could be clamped is not
@@ -709,7 +885,12 @@ impl Rt {
             args,
             test,
         });
-        Ok(())
+        Ok(order)
+    }
+
+    /// `clearTimeout`.
+    fn clear_timer(&self, id: u64) {
+        self.0.timers.borrow_mut().retain(|timer| timer.order != id);
     }
 
     // ----- globals -----
@@ -747,6 +928,17 @@ impl Rt {
                 }
                 Ok(test)
             }),
+            "promise_test" => Value::function("promise_test", |rt, _, args| rt.promise_test(args)),
+            "Promise" => Value::Host(Host::Constructor("Promise")),
+            "ResizeObserver" => Value::Host(Host::Constructor("ResizeObserver")),
+            "ResizeTestHelper" if self.has_helper(RESIZE_TEST_HELPER) => {
+                Value::Host(Host::Constructor("ResizeTestHelper"))
+            }
+            "createAndAppendElement" if self.has_helper(RESIZE_TEST_HELPER) => {
+                Value::function("createAndAppendElement", |rt, _, args| {
+                    rt.create_and_append_element(args)
+                })
+            }
             "setup" => Value::function("setup", |_, _, args| {
                 // Only an empty or function-only setup is exact here; options
                 // change the harness and are reported.
@@ -770,6 +962,7 @@ impl Rt {
                         {
                             host.uncaught(thrown);
                         }
+                        host.checkpoint();
                     });
                     Ok(Value::Host(Host::FrameHandle(handle)))
                 })
@@ -821,26 +1014,30 @@ impl Rt {
 
     pub fn get(&self, object: &Value, key: &str) -> Res {
         match object {
-            Value::Object(object) => {
-                let own = object
-                    .properties
-                    .borrow()
-                    .iter()
-                    .find(|(name, _)| &**name == key)
-                    .map(|(_, value)| value.clone());
-                match own {
-                    Some(value) => Ok(value),
-                    None if OBJECT_PROTOTYPE.contains(&key) => Err(Throw::unsupported(format!(
-                        "builtin:Object.prototype.{key}"
-                    ))),
-                    None if object.array && key.parse::<usize>().is_err() => {
-                        Err(Throw::unsupported(format!("builtin:Array.prototype.{key}")))
-                    }
-                    None => Ok(Value::Undefined),
+            Value::Object(object) => match object.own(key) {
+                Some(value) => Ok(value),
+                None if object.record.is_some() => Err(Throw::unsupported(format!(
+                    "surface:{}.{key}",
+                    object.record.unwrap_or_default()
+                ))),
+                None if OBJECT_PROTOTYPE.contains(&key) => Err(Throw::unsupported(format!(
+                    "builtin:Object.prototype.{key}"
+                ))),
+                None if object.array && key.parse::<usize>().is_err() => {
+                    Err(Throw::unsupported(format!("builtin:Array.prototype.{key}")))
                 }
-            }
+                None => Ok(Value::Undefined),
+            },
             Value::Host(Host::Window) => self.global(key),
             Value::Host(Host::Test(index)) => self.test_method(*index, key),
+            Value::Host(Host::Document) => self.document_member(key),
+            Value::Host(Host::Element(element)) => self.element_member(element, key),
+            Value::Host(Host::Promise(promise)) => self.promise_member(promise, key),
+            Value::Host(Host::Constructor("Promise")) => self.promise_static(key),
+            Value::Host(Host::ResizeObserver(observer)) => {
+                self.resize_observer_member(observer, key)
+            }
+            Value::Host(Host::Helper(helper)) => self.helper_member(helper, key),
             Value::Str(text) if key == "length" => {
                 Ok(Value::Number(text.encode_utf16().count() as f64))
             }
@@ -860,6 +1057,11 @@ impl Rt {
             Value::Object(object) if object.array => {
                 Err(Throw::unsupported(format!("builtin:array-set:{key}")))
             }
+            Value::Object(object) if object.record.is_some() => Err(Throw::unsupported(format!(
+                "surface:{}.{key}=",
+                object.record.unwrap_or_default()
+            ))),
+            Value::Host(Host::Style(element)) => self.set_style(element, key, &value),
             Value::Object(object) => {
                 let mut properties = object.properties.borrow_mut();
                 match properties.iter_mut().find(|(name, _)| &**name == key) {
@@ -879,8 +1081,15 @@ impl Rt {
         }
     }
 
-    pub fn construct(&self, callee: &Value, _args: Vec<Value>) -> Res {
-        Err(Throw::unsupported(format!("surface:new {}", callee.kind())))
+    pub fn construct(&self, callee: &Value, args: Vec<Value>) -> Res {
+        match callee {
+            Value::Host(Host::Constructor("Promise")) => self.construct_promise(args),
+            Value::Host(Host::Constructor("ResizeObserver")) => {
+                self.construct_resize_observer(args)
+            }
+            Value::Host(Host::Constructor("ResizeTestHelper")) => self.construct_helper(args),
+            other => Err(Throw::unsupported(format!("surface:new {}", other.kind()))),
+        }
     }
 
     pub fn truthy(&self, value: &Value) -> bool {
@@ -900,7 +1109,7 @@ impl Rt {
             Value::Bool(_) => "boolean",
             Value::Number(_) => "number",
             Value::Str(_) => "string",
-            Value::Function(_) => "function",
+            Value::Function(_) | Value::Host(Host::Constructor(_)) => "function",
             Value::Host(Host::FrameHandle(_)) => {
                 return Err(Throw::unsupported("numeric-frame-handle"))
             }
@@ -990,10 +1199,7 @@ impl Rt {
             (Value::Host(Host::FrameHandle(_)), _) | (_, Value::Host(Host::FrameHandle(_))) => {
                 return Err(Throw::unsupported("numeric-frame-handle"))
             }
-            (Value::Host(Host::Test(x)), Value::Host(Host::Test(y))) => x == y,
-            (Value::Host(Host::Window), Value::Host(Host::Window)) => true,
-            (Value::Host(Host::Document), Value::Host(Host::Document)) => true,
-            (Value::Host(Host::Element(x)), Value::Host(Host::Element(y))) => same_element(x, y)?,
+            (Value::Host(x), Value::Host(y)) => same_host(x, y)?,
             _ => false,
         })
     }
@@ -1105,9 +1311,7 @@ fn same_value(a: &Value, b: &Value) -> Result<bool, Throw> {
                 (Value::Host(Host::FrameHandle(_)), _) | (_, Value::Host(Host::FrameHandle(_))) => {
                     Err(Throw::unsupported("numeric-frame-handle"))
                 }
-                (Value::Host(Host::Element(x)), Value::Host(Host::Element(y))) => {
-                    same_element(x, y)
-                }
+                (Value::Host(x), Value::Host(y)) => same_host(x, y),
                 _ => {
                     Ok(std::mem::discriminant(a) == std::mem::discriminant(b)
                         && equal_same_kind(a, b))
@@ -1124,11 +1328,24 @@ fn equal_same_kind(a: &Value, b: &Value) -> bool {
         (Value::Str(x), Value::Str(y)) => x == y,
         (Value::Object(x), Value::Object(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
-        (Value::Host(Host::Test(x)), Value::Host(Host::Test(y))) => x == y,
-        (Value::Host(Host::Window), Value::Host(Host::Window)) => true,
-        (Value::Host(Host::Document), Value::Host(Host::Document)) => true,
         _ => false,
     }
+}
+
+/// Identity of two host objects (frame handles are compared before this).
+fn same_host(a: &Host, b: &Host) -> Result<bool, Throw> {
+    Ok(match (a, b) {
+        (Host::Window, Host::Window) | (Host::Document, Host::Document) => true,
+        (Host::Test(x), Host::Test(y)) => x == y,
+        (Host::Element(x), Host::Element(y)) | (Host::Style(x), Host::Style(y)) => {
+            same_element(x, y)?
+        }
+        (Host::Constructor(x), Host::Constructor(y)) => x == y,
+        (Host::Promise(x), Host::Promise(y)) => Rc::ptr_eq(x, y),
+        (Host::ResizeObserver(x), Host::ResizeObserver(y)) => x == y,
+        (Host::Helper(x), Host::Helper(y)) => Rc::ptr_eq(x, y),
+        _ => false,
+    })
 }
 
 /// Node identity, as `===` compares elements.
@@ -1244,6 +1461,35 @@ fn assertion(name: &str) -> Res {
                     ));
                 }
             }
+            "assert_own_property" => {
+                let key = match arg(1) {
+                    Value::Str(key) => key,
+                    other => {
+                        return Err(Throw::unsupported(format!(
+                            "surface:assert_own_property({})",
+                            other.kind()
+                        )))
+                    }
+                };
+                let found = match arg(0) {
+                    Value::Object(object) => object.own(&key).is_some(),
+                    // The interfaces the runtime exposes on the global.
+                    Value::Host(Host::Window) if &*key == "ResizeObserver" => true,
+                    other => {
+                        return Err(Throw::unsupported(format!(
+                            "surface:assert_own_property({}, {key})",
+                            other.kind()
+                        )))
+                    }
+                };
+                if !found {
+                    return Err(failure(
+                        name,
+                        &description(&args, 2),
+                        format!("expected property \"{key}\" missing"),
+                    ));
+                }
+            }
             "assert_unreached" => {
                 return Err(failure(
                     name,
@@ -1276,6 +1522,7 @@ pub fn expect(
     page: &str,
     result: &PageResult,
     harness_error: Option<&str>,
+    stopped: Option<&str>,
     expected: &[(&str, Expected)],
 ) {
     if let Some(directory) = std::env::var_os("DIV_WPT_SCRIPT_RECORD") {
@@ -1287,6 +1534,14 @@ pub fn expect(
         problems.push(format!(
             "harness error: expected {harness_error:?}, got {:?}",
             result.harness_error
+        ));
+    }
+    // A chain that stops elsewhere, or for another reason, is a different
+    // result even when the same subtests are left unrun.
+    if result.stopped.as_deref() != stopped {
+        problems.push(format!(
+            "chain stopped: expected {stopped:?}, got {:?}",
+            result.stopped
         ));
     }
     for (name, expected) in expected {
@@ -1356,10 +1611,11 @@ fn record(directory: &std::path::Path, page: &str, result: &PageResult) {
         None => "null".into(),
     };
     let json = format!(
-        "{{\"page\": {}, \"harness_error\": {}, \"unsupported\": {}, \"subtests\": [{}]}}\n",
+        "{{\"page\": {}, \"harness_error\": {}, \"unsupported\": {}, \"stopped\": {}, \"subtests\": [{}]}}\n",
         escape(page),
         optional(&result.harness_error),
         optional(&result.unsupported),
+        optional(&result.stopped),
         rows.join(", ")
     );
     let file = directory.join(format!("{}.json", page.replace(['/', '.'], "_")));
@@ -1417,6 +1673,94 @@ mod tests {
             assert!(matches!(string_to_number(text), Err(Throw::Unsupported(_))));
         }
         assert!(string_to_number("-0x10").unwrap().is_nan());
+    }
+
+    type Log = Rc<RefCell<Vec<&'static str>>>;
+
+    fn note(log: &Log, text: &'static str) -> Value {
+        let log = log.clone();
+        Value::function("note", move |_, _, _| {
+            log.borrow_mut().push(text);
+            Ok(Value::Undefined)
+        })
+    }
+
+    fn resolved(rt: &Rt) -> Value {
+        Value::Host(Host::Promise(rt.promise_resolve(Value::Undefined)))
+    }
+
+    #[test]
+    fn returning_a_promise_takes_the_thenable_job_ticks() {
+        // Promise.resolve().then(() => { log(0); return Promise.resolve(); })
+        //   .then(() => log(4));
+        // Promise.resolve().then(() => log(1)).then(() => log(2)) ...
+        let rt = Rt::new(None);
+        let log = Log::default();
+        let returns = {
+            let log = log.clone();
+            Value::function("", move |rt, _, _| {
+                log.borrow_mut().push("0");
+                Ok(resolved(rt))
+            })
+        };
+        let first = rt.call_method(&resolved(&rt), "then", vec![returns]);
+        rt.call_method(&first.unwrap(), "then", vec![note(&log, "4")])
+            .unwrap();
+        let mut chain = resolved(&rt);
+        for text in ["1", "2", "3", "5", "6"] {
+            chain = rt
+                .call_method(&chain, "then", vec![note(&log, text)])
+                .unwrap();
+        }
+        rt.checkpoint();
+        assert_eq!(*log.borrow(), ["0", "1", "2", "3", "4", "5", "6"]);
+    }
+
+    #[test]
+    fn an_async_body_runs_to_its_first_await() {
+        let rt = Rt::new(None);
+        let log = Log::default();
+        let (inner, body_log) = (rt.clone(), log.clone());
+        rt.spawn_async(async move {
+            body_log.borrow_mut().push("a");
+            inner.await_value(Value::Null).await?;
+            body_log.borrow_mut().push("c");
+            Ok(Value::Undefined)
+        })
+        .unwrap();
+        log.borrow_mut().push("b");
+        rt.call_method(&resolved(&rt), "then", vec![note(&log, "d")])
+            .unwrap();
+        rt.checkpoint();
+        assert_eq!(*log.borrow(), ["a", "b", "c", "d"]);
+    }
+
+    #[test]
+    fn an_unsupported_link_stops_the_chain_and_is_not_a_harness_error() {
+        let rt = Rt::new(None);
+        let log = Log::default();
+        let stops = Value::function("", |rt, _, _| rt.unsupported("surface:Image"));
+        let link = rt.call_method(&resolved(&rt), "then", vec![stops]).unwrap();
+        rt.call_method(&link, "then", vec![note(&log, "later")])
+            .unwrap();
+        rt.checkpoint();
+        assert!(log.borrow().is_empty());
+        assert_eq!(rt.0.stopped.borrow().as_deref(), Some("surface:Image"));
+        assert_eq!(*rt.0.harness_error.borrow(), None);
+    }
+
+    #[test]
+    fn an_inline_style_outranks_an_adopted_sheet() {
+        div::stylesheet!(sheet { #a { width: 30px; } });
+        let rt = Rt::new(None);
+        rt.adopt(&sheet::SHEET).unwrap();
+        let element = rt.element("div", &[("id", "a")], None).unwrap();
+        rt.frame();
+        assert_eq!(element.client_width().unwrap(), 30);
+        rt.set_style(&element, "width", &Value::str("40px"))
+            .unwrap();
+        rt.frame();
+        assert_eq!(element.client_width().unwrap(), 40);
     }
 
     #[test]
