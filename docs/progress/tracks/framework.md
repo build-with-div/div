@@ -91,8 +91,9 @@ merges. The editor gaps below wait behind T3.
 | --- | --- | --- |
 | T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | Merged (#113) |
 | T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | Merged (#116) |
-| T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | In progress |
-| T3c | `pointerevents` (`test_driver` actions to `TestApp` input) | Not started |
+| T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Merged (#119) |
+| T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | In progress |
+| T3c-2 | `pointerevents`: `test_driver` actions to `TestApp` input, and the generated tests | Not started |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
 
 ## After Tier 0
@@ -113,6 +114,64 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 22 November 2026: T3c-1, the pointerevents recording and ledger (RFC 0005 step 2)
+
+Problem: 152 of the suite's 166 runnable pages use `test_driver`, and WPT's
+own `testdriver-vendor.js` is empty, so plain headless Chrome can't perform
+their input and its results say nothing about Chromium.
+
+Change (`tools/wpt_script/`, `tests/wpt-script/`, CI's sparse checkout; no
+`divui` change and no Div run of this suite yet):
+
+- `capture_chromium_subtests.py` runs the suite with the driver Chromium's
+  web test server serves, pinned by sha256. Pointer actions go through
+  `chrome.gpuBenchmarking.pointerActionSequence`.
+- The browser takes the `content/web_test` runner's switches that decide
+  these results, and an exact 800x600 viewport, which the tool verifies.
+- Each `<meta name=variant>` is its own run: 232 runs from 166 pages.
+- Each run is repeated three times and gets an oracle status. This is pinned
+  Chrome for Testing rather than `content_shell`, so a run stands for
+  Chromium only where it reproduces Chromium's own pinned record.
+- The ledger gains the status `disputed`. Disputed rows stay in the
+  denominator, aren't generated, and never count as a Chromium pass.
+
+Oracle (Chrome for Testing 147.0.7727.50, Linux, WSL):
+
+| Oracle | Runs | Subtests |
+| --- | --- | --- |
+| Agrees with Chromium's pinned record | 186 | 2,045 (1,913 pass, 132 fail) |
+| Disputed: `TestExpectations` entry | 27 | 80 |
+| Disputed: `-expected.txt` mismatch | 9 | 122 |
+| Disputed: keyboard action needs `eventSender` | 7 | 18 |
+| Disputed: unstable across repeats | 3 | 8 |
+
+Ledger (`tests/wpt-script/ledgers/pointerevents.json`), 2,273 subtests:
+**0 translatable**, 192 blocked, 228 disputed, 1,853 untranslatable. Div
+has no pass, fail, unsupported or not-run count for this suite yet, because
+none of it runs.
+
+- 1,813 of the untranslatable rows are `runtime-subtest-name`: the page
+  computes the name while it runs. T3a's rule predates the compiled runtime,
+  so T3c-2 has to propose what replaces it.
+- 25 files are excluded: 15 `.https.`, 8 manual, 1 generated wrapper and 1
+  page without `testharness.js`.
+
+Verification:
+
+- `python -m unittest discover -s tools/wpt_script -p "test_*.py"`: 55 tests
+  pass.
+- `ledger.py --check` and `codegen.py --check` pass against a checkout with
+  only the paths CI's sparse checkout now fetches. The animation-frames and
+  resize-observer ledgers don't change.
+- `NeverFixTests` has no entry that applies on Linux to any of the 232 runs.
+
+Chromium sources read (permissive, `09d377d9`): `testdriver.js` and
+`testdriver-actions.js` (first 30 lines), `pointerevent_support.js`,
+`web_tests/resources/testdriver-vendor.js` (first 30 lines and its input
+calls), `TestExpectations` and `NeverFixTests` (headers and pointerevents
+entries), `external/wpt/config.tmpl.json` (aliases), `wptserve.py`
+(`_prepare_config`) and `web_test_browser_main_runner.cc` (its switches).
 
 ### 22 November 2026: T3b-2, generated tests for resize-observer (RFC 0005 step 3)
 
