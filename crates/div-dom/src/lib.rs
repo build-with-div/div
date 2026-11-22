@@ -12,6 +12,6 @@ mod tree;
 
 pub use tree::{
     ContainerQueryProperty, ContainerQueryRule, Document, ElementTag, EncodedImageResource,
-    FormControlRole, NodeData, NodeId, PseudoElementKind, ReplacedContent, ReplacedResourceKind,
-    ScrollButtonDirection,
+    FormControlRole, LocalName, NodeData, NodeId, PseudoElementKind, ReplacedContent,
+    ReplacedResourceKind, ScrollButtonDirection,
 };

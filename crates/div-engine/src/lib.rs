@@ -835,6 +835,43 @@ impl Engine {
         Ok(handle)
     }
 
+    /// Create an application element of a native kind that keeps its own
+    /// local name, such as `h1` or `blockquote` over the `Div` kind. Type
+    /// selectors match the name; layout and paint follow the kind, with its
+    /// display default as [`Engine::create_native_element`] gives it.
+    pub fn create_native_element_named(
+        &mut self,
+        tag: ElementTag,
+        name: &str,
+    ) -> Result<NodeHandle, EngineError> {
+        let handle = self.create_native_element(tag)?;
+        self.set_created_name(handle, name)?;
+        Ok(handle)
+    }
+
+    /// [`Engine::create_native_element_named`] with a constructor-owned
+    /// display default, as `li` over the `Div` kind uses.
+    #[doc(hidden)]
+    pub fn create_native_element_named_with_display_default(
+        &mut self,
+        tag: ElementTag,
+        name: &str,
+        display: Display,
+    ) -> Result<NodeHandle, EngineError> {
+        let handle = self.create_native_element_with_display_default(tag, display)?;
+        self.set_created_name(handle, name)?;
+        Ok(handle)
+    }
+
+    fn set_created_name(&mut self, handle: NodeHandle, name: &str) -> Result<(), EngineError> {
+        let node = self.resolve(handle)?;
+        let data = self.document.node_mut(node);
+        if data.tag.default_local_name() != Some(name) {
+            data.created_name = Some(div_dom::LocalName::new(name));
+        }
+        Ok(())
+    }
+
     /// Create a native SVG foreignObject viewport for retained UI children.
     /// Width and height describe the viewport, including the fragment bounds;
     /// border and padding do not enlarge it. Authored children, style, events,
@@ -2450,6 +2487,12 @@ impl Engine {
 
     pub fn element_tag(&self, handle: NodeHandle) -> Result<ElementTag, EngineError> {
         Ok(self.document.node(self.resolve(handle)?).tag)
+    }
+
+    /// The element's local name, as DOM `Element.localName` reports it: the
+    /// name it was created with, else its kind's default. Text has none.
+    pub fn local_name(&self, handle: NodeHandle) -> Result<Option<&str>, EngineError> {
+        Ok(self.document.node(self.resolve(handle)?).local_name())
     }
 
     /// Whether this handle identifies an authored element rather than text or

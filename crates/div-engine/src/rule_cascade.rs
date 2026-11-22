@@ -61,7 +61,7 @@ use div_style::{
     InvalidationClass, Style, StyleProperty, StyleValue,
 };
 
-use crate::selector_match::{is_html_space, local_name, SelectorMatchError};
+use crate::selector_match::{is_html_space, SelectorMatchError};
 use crate::{Engine, EngineError, NodeHandle};
 
 /// An adopted style sheet.
@@ -1151,7 +1151,7 @@ impl Engine {
                 candidates.extend(rules.by_class.get(class).into_iter().flatten());
             }
         }
-        if let Some(name) = local_name(data.tag) {
+        if let Some(name) = data.local_name() {
             candidates.extend(rules.by_tag.get(name).into_iter().flatten());
         }
         let mut matched: Vec<Matched> = Vec::new();

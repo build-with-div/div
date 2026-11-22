@@ -123,3 +123,40 @@ fn text_and_the_viewport_are_not_elements() {
     engine.append_child(root, text).unwrap();
     assert!(!engine.matches_selector(text, universal).unwrap());
 }
+
+#[test]
+fn type_selectors_match_the_created_name_not_the_kind() {
+    let mut engine =
+        Engine::new(ViewportMetrics::from_logical_size(200.0, 200.0, 1.0).unwrap()).unwrap();
+    let quote = engine
+        .create_native_element_named(ElementTag::Div, "blockquote")
+        .unwrap();
+    engine.append_child(engine.root(), quote).unwrap();
+    let item = engine
+        .create_native_element_named_with_display_default(
+            ElementTag::Div,
+            "li",
+            div_style::Display::ListItem,
+        )
+        .unwrap();
+    engine.append_child(quote, item).unwrap();
+    // Naming an element with its kind's default name stores nothing new.
+    let div = engine
+        .create_native_element_named(ElementTag::Div, "div")
+        .unwrap();
+    engine.append_child(quote, div).unwrap();
+    let matches = |element, text: &str| {
+        let list = parse_selector_list(text, None).unwrap();
+        engine.matches_selector_list(element, &list).unwrap()
+    };
+    assert!(matches(quote, "blockquote"));
+    assert!(matches(quote, "BLOCKQUOTE"));
+    assert!(!matches(quote, "div"));
+    assert!(matches(item, "blockquote > li"));
+    assert!(!matches(item, "div"));
+    assert!(matches(div, "blockquote > div"));
+    assert_eq!(
+        engine.computed_style(item).unwrap().display,
+        div_style::Display::ListItem
+    );
+}
