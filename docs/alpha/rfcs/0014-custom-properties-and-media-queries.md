@@ -1,6 +1,6 @@
 # RFC 0014: Custom properties and media queries
 
-Status: draft, for the user's approval. Owner: the engine track
+Status: Approved by the user on 21 November 2026. Owner: the engine track
 (`div-style`, `div-macros` style parsing, `div-engine` cascade). Consumers:
 the framework track (`divui` wrappers, `matchMedia` events, platform item
 1.2), the components track (shadcn and Geist tokens), the SVG and canvas
@@ -247,7 +247,7 @@ Each PR is green on `main` by itself, has its own record, and runs the full
 census and CSS Grid coverage. The census and coverage fixtures adopt no
 sheet and set no custom property, so neither may move (D4).
 
-1. This RFC.
+1. This RFC, approved on 21 November 2026.
 2. **`@media` in sheets**, the evaluator and `Document::set_color_scheme`.
    RFC 0001 already covers these, so this PR may start before this RFC is
    approved.
