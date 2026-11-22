@@ -1,0 +1,52 @@
+{
+ "html/webappapis/animation-frames/callback-handle.html": {
+  "harness_error": null,
+  "subtests": {
+   "Check window.requestAnimationFrame can return a valid callback handle": {
+    "status": "UNSUPPORTED",
+    "message": "numeric-frame-handle"
+   }
+  }
+ },
+ "html/webappapis/animation-frames/callback-multicalls.html": {
+  "harness_error": null,
+  "subtests": {
+   "Check that multiple calls to requestAnimationFrame with the same callback will result in multiple entries being in the list with that same callback.": {
+    "status": "PASS"
+   }
+  }
+ },
+ "html/webappapis/animation-frames/callback-timestamp.html": {
+  "harness_error": null,
+  "subtests": {
+   "Check FrameRequestCallback has a DOMHighResTimeStamp argument": {
+    "status": "PASS"
+   }
+  }
+ },
+ "html/webappapis/animation-frames/cancel-invoked.html": {
+  "harness_error": null,
+  "subtests": {
+   "cancelAnimationFrame does nothing if there is no callback with the given handle": {
+    "status": "UNSUPPORTED",
+    "message": "numeric-frame-handle"
+   }
+  }
+ },
+ "html/webappapis/animation-frames/cancel-pending.html": {
+  "harness_error": null,
+  "subtests": {
+   "cancelAnimationFrame cancels a pending animation frame callback": {
+    "status": "PASS"
+   }
+  }
+ },
+ "html/webappapis/animation-frames/same-dispatch-time.html": {
+  "harness_error": null,
+  "subtests": {
+   "requestAnimationFrame will timestamp events in the same queue with the same time": {
+    "status": "PASS"
+   }
+  }
+ }
+}

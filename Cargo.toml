@@ -17,6 +17,7 @@ members = [
     "crates/divui",
     "crates/div-macros",
     "crates/div-cli",
+    "tests/wpt-script",
     "examples/rust/hello",
     "examples/rust/counter",
     "examples/rust/accessibility",

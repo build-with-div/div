@@ -53,6 +53,8 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOL = Path(__file__).resolve().parent
 CHROMIUM = ROOT / "tests/wpt-script/chromium"
 LEDGERS = ROOT / "tests/wpt-script/ledgers"
+# Div's recorded results for the generated tests (codegen.py --record).
+EXPECTED = ROOT / "tests/wpt-script/expected"
 SUITES = ("html/webappapis/animation-frames", "resize-observer")
 ACORN_SHA256 = "402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93"
 
@@ -239,6 +241,8 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
     pages = {relative: read_page(wpt_root, relative, intrinsics)
              for relative, entry in files.items() if "excluded" not in entry}
     analysed = front_end(list(pages.values()), intrinsics, acorn) if pages else {}
+    expected_path = EXPECTED / (suite.replace("/", "--") + ".json")
+    div = load_json(expected_path) if expected_path.is_file() else {}
     rows = []
     for relative, entry in files.items():
         if "excluded" in entry:
@@ -274,16 +278,24 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
                 row.update(classify(
                     sorted(set(subtest_surfaces(subtest, page, intrinsics)) | set(page["markup"])),
                     capabilities))
+            result = div.get(relative, {}).get("subtests", {}).get(name)
+            if row["status"] == "translatable" and result is not None:
+                row["div"] = result["status"]
+                if "message" in result:
+                    row["div_message"] = result["message"]
             rows.append(row)
         if entry["harness"] != "OK":
             rows.append({"file": relative, "name": None, "chromium": entry["harness"],
                          "status": "harness", "message": entry.get("message")})
     counts: dict[str, int] = {}
     blocked_by: dict[str, int] = {}
+    div_counts: dict[str, int] = {}
     for row in rows:
         if row["name"] is None:
             continue
         counts[row["status"]] = counts.get(row["status"], 0) + 1
+        if "div" in row:
+            div_counts[row["div"]] = div_counts.get(row["div"], 0) + 1
         for feature in row.get("features", []):
             blocked_by[feature] = blocked_by.get(feature, 0) + 1
         if row.get("unmapped"):
@@ -294,6 +306,7 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
         "wpt_revision": recording["wpt_revision"],
         "subtests": sum(counts.values()),
         "counts": dict(sorted(counts.items())),
+        "div": dict(sorted(div_counts.items())),
         "blocked_by": dict(sorted(blocked_by.items())),
         "rows": rows,
     }
