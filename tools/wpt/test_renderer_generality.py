@@ -83,6 +83,70 @@ class RendererGeneralityTests(unittest.TestCase):
         )
         self.assertTrue(PORT_WPT.analyze_portability(parser)[0])
 
+    def test_ast_mutation_ir_lowers_dialog_show_and_close(self):
+        # RFC 0015: show() adds `open`, close() removes it, and each is a
+        # no-op in the state it would produce.
+        def by_id(identifier):
+            return {
+                "kind": "dom-query",
+                "method": "getElementById",
+                "argument": identifier,
+                "constant": True,
+            }
+
+        mutation_ir = {
+            "lowerable": True,
+            "operations": [
+                {"kind": "dialog-show", "order": 0, "target": by_id("shown")},
+                {"kind": "dialog-show", "order": 1, "target": by_id("shown")},
+                {"kind": "dialog-close", "order": 2, "target": by_id("closed"),
+                 "return_value": "done"},
+                {"kind": "dialog-close", "order": 3, "target": by_id("closed"),
+                 "return_value": None},
+                {"kind": "dialog-close", "order": 4, "target": by_id("never"),
+                 "return_value": None},
+            ],
+        }
+        parser = PORT_WPT._parse_wpt_markup(
+            "<body><dialog id='shown'>a</dialog><dialog id='closed' open>b</dialog>"
+            "<dialog id='never'>c</dialog></body>",
+            str(ROOT),
+            mutation_ir=mutation_ir,
+        )
+        shown, closed, never = parser.root.children
+        self.assertEqual(shown.attrs, {"id": "shown", "open": ""})
+        self.assertEqual(closed.attrs, {"id": "closed"})
+        self.assertEqual(never.attrs, {"id": "never"})
+
+    def test_ast_mutation_ir_rejects_show_modal_and_non_dialogs(self):
+        # showModal() needs the top layer (RFC 0015 PR 3), and show() or
+        # close() on another element throws in the browser.
+        cases = [
+            ("dialog-show-modal", "<dialog id='target'></dialog>",
+             "top layer (RFC 0015 PR 3)"),
+            ("dialog-show", "<div id='target'></div>", "not a dialog"),
+            ("dialog-close", "<div id='target'></div>", "not a dialog"),
+        ]
+        for kind, markup, reason in cases:
+            with self.subTest(kind=kind):
+                mutation_ir = {
+                    "lowerable": True,
+                    "operations": [{
+                        "kind": kind,
+                        "order": 0,
+                        "target": {
+                            "kind": "dom-query",
+                            "method": "getElementById",
+                            "argument": "target",
+                            "constant": True,
+                        },
+                    }],
+                }
+                with self.assertRaisesRegex(ValueError, re.escape(f"{kind}@0: {reason}")):
+                    PORT_WPT._parse_wpt_markup(
+                        f"<body>{markup}</body>", str(ROOT), mutation_ir=mutation_ir
+                    )
+
     def test_ast_mutation_ir_emits_script_free_final_state_template(self):
         mutation_ir = {
             "lowerable": True,

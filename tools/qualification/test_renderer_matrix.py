@@ -20,6 +20,12 @@ assert SPEC.loader is not None
 sys.modules[SPEC.name] = MATRIX
 SPEC.loader.exec_module(MATRIX)
 import audit_chromium_oracles as ORACLE_AUDIT
+CONTRACT_SPEC = importlib.util.spec_from_file_location(
+    "generate_renderer_contract", ROOT / "tools/qualification/generate_renderer_contract.py"
+)
+CONTRACT = importlib.util.module_from_spec(CONTRACT_SPEC)
+assert CONTRACT_SPEC.loader is not None
+CONTRACT_SPEC.loader.exec_module(CONTRACT)
 
 
 class ContentAddressedPngTests(unittest.TestCase):
@@ -691,6 +697,34 @@ class RendererMatrixTests(unittest.TestCase):
                     ),
                 }],
             },
+            {
+                "test_id": "dialog",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": (
+                        "const d = document.getElementById('d'); d.show(); "
+                        "d.close('done'); d.close(); d.close(undefined); "
+                        "d.close(7); window.close(); document.close(); close();"
+                    ),
+                }],
+            },
+            {
+                "test_id": "dialog-modal",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": "document.getElementById('d').showModal();",
+                }],
+            },
+            {
+                "test_id": "dialog-runtime-return-value",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": "d.close(String(Date.now()));",
+                }],
+            },
         ]
         completed = subprocess.run(
             ["node", ROOT / "tools/wpt/javascript_mutation_ir.mjs", acorn],
@@ -724,6 +758,35 @@ class RendererMatrixTests(unittest.TestCase):
         self.assertEqual(
             [operation["kind"] for operation in results["constant-control"]["operations"]],
             ["create-element", "append"] * 3,
+        )
+        # RFC 0015: HTMLDialogElement's methods, not window's or document's.
+        dialog = results["dialog"]
+        self.assertTrue(dialog["lowerable"])
+        self.assertEqual(
+            [
+                (operation["kind"], operation.get("return_value"))
+                for operation in dialog["operations"]
+            ],
+            [
+                ("bind-target", None),
+                ("dialog-show", None),
+                ("dialog-close", "done"),
+                ("dialog-close", None),
+                ("dialog-close", None),
+                ("dialog-close", "7"),
+            ],
+        )
+        modal = results["dialog-modal"]
+        self.assertEqual(
+            [operation["kind"] for operation in modal["operations"]],
+            ["dialog-show-modal"],
+        )
+        CONTRACT._validate_mutation_lowering_scope(modal)
+        self.assertFalse(modal["lowerable"])
+        self.assertEqual(modal["rejection_reasons"], ["top-layer-dependency"])
+        self.assertIn(
+            "runtime-dependent-mutation-input",
+            results["dialog-runtime-return-value"]["rejection_reasons"],
         )
 
 
