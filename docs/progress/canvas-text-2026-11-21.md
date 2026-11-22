@@ -72,6 +72,24 @@ source, then confirmed by the oracle.
    and strike as a model of Linux Fontconfig; at 17px and 34px that turned
    hinting off. Canvas asks for medium.
 
+## Temporary compensations
+
+Two font choices in `div-canvas` make up for div-text behaviour. Under the
+porting principle they are temporary: each is marked `TEMPORARY` in the
+code and goes away with an engine-lane fix in div-text. Both findings were
+sent to the engine lane on 22 November 2026; neither fix has an item number
+yet.
+
+| Compensation | Code | Engine fix that removes it |
+| --- | --- | --- |
+| Windows canvas text asks for `TextHinting::Normal` | `platform_raster_configuration` in `src/context.rs` | `resolve_hinting` (`div-text/src/font/platform.rs`) stops applying its Linux Fontconfig model on Windows, or `RasterConfiguration::chromium_windows_lcd` (`div-geometry/src/raster.rs`) asks for Chromium's medium hinting. Page text on Windows may have the same problem; that is not measured. |
+| Linux web fonts ask for `TextEdging::AntiAlias` | `access_font` in `src/context/text_methods.rs` | div-text's web-font path (`shaping/web_font_outlines.rs`) gives plain grayscale on a surface without pixel geometry, as the Fontations scaler does. |
+
+The second compensation picks the edging from the primary font, so a run
+that falls back between web and system fonts is approximate until the fix.
+When either fix lands, delete its compensation and rerun
+`cargo test -p div-canvas` on both platforms: the traces must stay exact.
+
 ## Sources
 
 Every ported file was read from Chromium 147.0.7727.50 in

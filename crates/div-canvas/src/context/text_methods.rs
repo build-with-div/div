@@ -231,14 +231,19 @@ impl CanvasRenderingContext2D {
         description.text_autospace = TextAutospace::NoAutospace;
         description.locale = (state.lang != "inherit").then(|| state.lang.clone());
         let font = Font::new_in_collection(description.clone(), self.fonts.clone());
-        // A canvas surface has no known pixel geometry, so Skia draws an LCD
-        // request as grayscale coverage built from an LCD mask
-        // (`kGenA8FromLCD`). Linux Chromium draws a web font with the
-        // Fontations scaler, whose `onFilterRec` drops that flag: its glyphs
-        // are plain grayscale coverage, and so are their bounds. div-text
-        // draws a web font through a custom typeface that keeps the flag,
-        // so canvas asks for grayscale directly. Windows Chromium draws web
-        // fonts with DirectWrite, which keeps it.
+        // TEMPORARY: compensates for div-text. A canvas surface has no known
+        // pixel geometry, so Skia draws an LCD request as grayscale coverage
+        // built from an LCD mask (`kGenA8FromLCD`). Linux Chromium draws a
+        // web font with the Fontations scaler, whose `onFilterRec` drops that
+        // flag: its glyphs are plain grayscale coverage, and so are their
+        // bounds. div-text draws a web font through a custom typeface that
+        // keeps the flag, so canvas asks for grayscale directly. Windows
+        // Chromium draws web fonts with DirectWrite, which keeps it.
+        // Removed by the engine lane's fix: div-text's web-font path gives
+        // plain grayscale on a surface without pixel geometry. A run that
+        // mixes web and system fonts stays approximate until then. See
+        // "Temporary compensations" in
+        // docs/progress/canvas-text-2026-11-21.md.
         if cfg!(not(target_os = "windows")) && primary_is_web_font(&font) {
             description.raster_configuration.author_text.edging = TextEdging::AntiAlias;
             return Font::new_in_collection(description, self.fonts.clone());

@@ -78,11 +78,16 @@ type Bounds = (f32, f32, f32, f32);
 fn platform_raster_configuration() -> RasterConfiguration {
     if cfg!(target_os = "windows") {
         let mut configuration = RasterConfiguration::chromium_windows_lcd();
-        // Windows Chromium asks for medium hinting (`gfx::FontRenderParams`,
+        // TEMPORARY: compensates for div-text. Windows Chromium asks for
+        // medium hinting (`gfx::FontRenderParams`,
         // `font_render_params_win.cc`), which Skia's DirectWrite scaler
         // treats as it treats slight hinting. Asking for it keeps div-text's
         // per-family resolution of slight hinting, a model of Linux
         // Fontconfig profiles, away from canvas text on Windows.
+        // Removed by the engine lane's fix: `resolve_hinting` stops applying
+        // that model on Windows, or `chromium_windows_lcd` asks for medium
+        // hinting itself. See "Temporary compensations" in
+        // docs/progress/canvas-text-2026-11-21.md.
         configuration.author_text.hinting = TextHinting::Normal;
         configuration
     } else {
