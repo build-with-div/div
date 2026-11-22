@@ -28,6 +28,14 @@ const LAYOUT_PROPERTIES = new Set([
 ]);
 const TEXT_PROPERTIES = new Set(['textContent', 'innerText', 'nodeValue', 'data']);
 const SCROLL_PROPERTIES = new Set(['scrollTop', 'scrollLeft']);
+// HTMLDialogElement's methods and the operations they become (RFC 0015).
+const DIALOG_METHODS = new Map([
+  ['showModal', 'dialog-show-modal'],
+  ['show', 'dialog-show'],
+  ['close', 'dialog-close'],
+]);
+// Receivers whose show() or close() is not a dialog's.
+const GLOBAL_RECEIVERS = new Set(['window', 'document', 'self', 'globalThis', 'top', 'parent']);
 
 function propertyName(node) {
   if (!node) return null;
@@ -102,6 +110,10 @@ function target(node) {
     }
   }
   return {kind: 'expression', node_type: node.type};
+}
+
+function isGlobalReceiver(value) {
+  return value.kind === 'binding' && GLOBAL_RECEIVERS.has(value.name);
 }
 
 function hasDynamicTarget(value) {
@@ -485,6 +497,20 @@ function analyzeScript(script, scriptIndex, state) {
         mutation = ['set-attribute', {target: target(object), name: attributeName, value: requireConstant(node.arguments[1], node, 'attribute value')}];
       } else if (name === 'removeAttribute') {
         mutation = ['remove-attribute', {target: target(object), name: requireConstant(node.arguments[0], node, 'attribute name')}];
+      } else if (DIALOG_METHODS.has(name) && object && !isGlobalReceiver(target(object))) {
+        // HTMLDialogElement's showModal(), show() and close(returnValue)
+        // (RFC 0015). window.close() and document.close() are not dialogs.
+        const fields = {target: target(object)};
+        if (name === 'close') {
+          const argument = node.arguments[0];
+          fields.return_value = null;
+          if (argument && !(argument.type === 'Identifier' && argument.name === 'undefined')) {
+            const value = constant(argument);
+            if (value.known) fields.return_value = String(value.value);
+            else reject('runtime-dependent-mutation-input', node, 'dialog return value');
+          }
+        }
+        mutation = [DIALOG_METHODS.get(name), fields];
       } else if (object?.type === 'MemberExpression' && propertyName(object) === 'style'
                  && name === 'setProperty') {
         mutation = ['set-style', {target: target(object.object), property: requireConstant(node.arguments[0], node, 'style property'), value: requireConstant(node.arguments[1], node, 'style value')}];

@@ -46,6 +46,40 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 
+## 22 November 2026: the WPT porter's dialog mutations (H4, RFC 0015 PR 2)
+
+The WPT porter's static script reader learns `HTMLDialogElement`'s
+`showModal()`, `show()` and `close(returnValue)`, so ported tests can state
+them. The engine lane, which owns the porter, reviews this PR.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| The mutation IR records `showModal()`, `show()` and `close()` as `dialog-show-modal`, `dialog-show` and `dialog-close`, with `close()`'s constant return value (a runtime value is rejected as `runtime-dependent-mutation-input`). Calls on `window`, `document`, `self`, `globalThis`, `top` and `parent`, and bare `close()`, are not dialogs and stay unrecorded, as before. | components (H4, for the engine lane) | `tools/wpt/javascript_mutation_ir.mjs` |
+| The porter lowers `show()` to adding `open` and `close()` to removing it, each a no-op in the state it would produce. `showModal()` and either method on another element fail the port with a named reason (`top layer (RFC 0015 PR 3)`, `not a dialog`). | components (H4, for the engine lane) | `tools/wpt/port_wpt.py` |
+| The renderer contract rejects `showModal()` as `top-layer-dependency` until the top layer lands (RFC 0015 PR 3), so such a test stays `behavioral-nonvisual`. | components (H4, for the engine lane) | `tools/qualification/generate_renderer_contract.py` |
+| Tests: the IR's operations and return values, and that `window.close()`, `document.close()` and `close()` are not recorded; the contract's rejection; the porter's final state and its failures. | components | `tools/qualification/test_renderer_matrix.py`, `tools/wpt/test_renderer_generality.py` |
+
+### Measurement
+
+None of the renderer contract's 393 JavaScript candidates calls
+`showModal()`, `show()` or `close()` (searched in the WPT sources at
+`09d377d9`), so the pinned audit,
+`docs/renderer/generated/javascript-mutation-audit-v4.json`, does not
+change: 201 `lowered-exact`, 35 `ast-lowered-pending-exact` and 157
+`behavioral-nonvisual`. The dialog tests in
+`html/semantics/interactive-elements/the-dialog-element` are outside the
+candidate set and CI's sparse WPT checkout; RFC 0015 PRs 3 to 5 port them.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Renderer contract | `python tools/qualification/generate_renderer_contract.py --check` on Windows, with the pinned Acorn 8.14.0 (sha256 `402f6759…`), the WPT sources at `09d377d9`, the fidelity data fetched and `PYTHONUTF8=1` | no drift; `javascript=393` |
+| IR and contract tests | `python -m unittest tools.qualification.test_renderer_matrix` | 38 passed |
+| Porter tests | `python -m unittest tools/wpt/test_renderer_generality.py tools/wpt/test_native_mutation_codegen.py tools/wpt/test_port_coverage_area.py` | 7 and 21 passed |
+
 ## 21 November 2026: the dialog oracle (H4, RFC 0015 PR 1)
 
 The components track builds platform-plan item H4, the top layer and

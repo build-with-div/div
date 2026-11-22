@@ -2632,6 +2632,20 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
                     target.scroll_left = float(arguments[0])
                 if len(arguments) >= 2:
                     target.scroll_top = float(arguments[1])
+        elif kind in {'dialog-show', 'dialog-show-modal', 'dialog-close'}:
+            # HTMLDialogElement (RFC 0015). show() adds `open` and close()
+            # removes it; neither does anything when the dialog is already
+            # in that state. showModal() needs the top layer, which the
+            # renderer does not have before RFC 0015 PR 3.
+            if (not isinstance(target, DomNode) or target.is_text
+                    or target.tag.lower() != 'dialog'):
+                unsupported.append((kind, operation.get('order'), 'not a dialog'))
+            elif kind == 'dialog-show-modal':
+                unsupported.append((kind, operation.get('order'), 'top layer (RFC 0015 PR 3)'))
+            elif kind == 'dialog-show':
+                target.attrs.setdefault('open', '')
+            else:
+                target.attrs.pop('open', None)
         else:
             unsupported.append((kind, operation.get('order'), 'unknown operation'))
 
