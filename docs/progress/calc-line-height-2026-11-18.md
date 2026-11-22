@@ -138,7 +138,28 @@ snapped line heights moved no census or coverage image. The evidence
 is div-fidelity-data `4c0031a3`
 (`docs/progress/evidence/calc-line-height-div-census-v1.json`, and
 `-census-zoom-v1.json`, `-coverage-v1.json` and `-coverage-zoom-v1.json`
-beside it); `fidelity-data.lock` pins it.
+beside it).
+
+### After rebasing onto `main` `1f31bc59`
+
+About 16 PRs merged after `c65b1245`, and this PR changes every line
+box, so the suites, census and coverage were run again with this PR
+rebased onto `main` `1f31bc59`, at `0c67312`.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Windows suites | `cargo test --locked --no-fail-fast -j 4 -p div-style -p div-text -p div-layout -p div-paint -p div-svg -p div-engine -p divui` under the shared lock | 9,481 passed, 0 failed, 18 ignored |
+| Generators and ledgers (Windows) | `check_platform_scoped_tests.py`, the renderer contract, v0.2, property and FFI generators and the SP13-R, SP17, SP18 and SP20 closures with `--check`; `cargo fmt --all --check`; `fidelity_data.py verify` | All pass, no drift |
+| Linux suites (WSL, CI's Skia flags) | The same seven crates | 9,485 passed, 0 failed |
+| SVG text corpus (Linux) | `cargo test -p div-svg --test text_corpus` | 24,056 numbers equal; 264 of 290 captures exact, as on `main` |
+| Expanded census, all four profiles, against `main` `1f31bc59` | `div-census.sh` (1x run) and `div-census-zoom.sh` (real-zoom oracle above scale 1) under the shared lock | 16,296 of 23,728 exact (1x run) and 10,403 of 17,796 (real zoom), before and after. 0 gains, 0 losses, 0 errors; 0 Div images changed |
+| CSS Grid coverage | The same runs | 1,473 of 4,204 exact (1x run) and 894 of 3,153 (real zoom), before and after. 0 statuses or images changed |
+
+The evidence is div-fidelity-data `2d7287de`
+(`docs/progress/evidence/calc-line-height-1f31bc59-div-census-v1.json`,
+and `-census-zoom-v1.json`, `-coverage-v1.json` and
+`-coverage-zoom-v1.json` beside it), whose parent is `4c0031a3`;
+`fidelity-data.lock` pins it.
 
 ## Not done here
 

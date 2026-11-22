@@ -243,3 +243,8 @@ on branch `components/c4-assets` and the shared findings note.
   of 328 cases matches except 11 named gaps. The census and CSS Grid
   coverage are unchanged at all four profiles.
   [Record](../calc-line-height-2026-11-18.md).
+- 22 November 2026: calc() (0.2 PR 1) rebased onto `main` `1f31bc59`
+  and measured again: Windows 9,481 and Linux 9,485 tests pass, and the
+  census and CSS Grid coverage are unchanged at all four profiles
+  against that `main` (evidence `2d7287de`).
+  [Record](../calc-line-height-2026-11-18.md).
