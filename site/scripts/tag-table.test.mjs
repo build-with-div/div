@@ -62,6 +62,32 @@ test('ignores tags and braces in comments', () => {
   assert.deepEqual(tags(rows), ['div']);
 });
 
+test('leaves out tags the table rejects, wrapped or not', () => {
+  const rows = parseTagTable(
+    table(`"div" => (T::Div, None),
+        "html" | "body" => return Err(Error::UnknownTag(name.to_owned())),
+        "area" | "base"
+        | "template" => {
+            return Err(Error::UnknownTag(name.to_owned()))
+        }
+        _ if is_valid_element_name(name) => (T::Span, None),`),
+  );
+  assert.deepEqual(tags(rows), ['div']);
+});
+
+test('fails on a rejecting arm in a form it cannot read', () => {
+  for (const arm of [
+    '"mark" => return Err(Error::Other),',
+    '"mark" => { log(); return Err(Error::UnknownTag(name.to_owned())) }',
+  ]) {
+    assert.throws(
+      () => parseTagTable(table(`"div" => (T::Div, None),\n${arm}`)),
+      /no table row for "mark"/,
+      arm,
+    );
+  }
+});
+
 test('fails when a quoted tag produces no row', () => {
   for (const arm of [
     '"mark" => make_mark(),',
