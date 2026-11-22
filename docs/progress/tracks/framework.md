@@ -80,8 +80,8 @@ uses.)
 
 The framework track took T3 on 21 November 2026, in the re-plan that moves
 the large Tier 0 items forward (approved through the parent session). It
-follows RFC 0005, which is still marked proposed: the RFC's status and owner
-go to the user with RFCs 0014 and 0015. The translator is a new
+follows RFC 0005, which the user accepted on 21 November 2026 with the
+framework track as its owner. The translator is a new
 `tools/wpt_script/`; `tools/wpt` and the renderer contract stay untouched.
 Item 1.2 (`matchMedia` change events, OS reduced-motion and colour-scheme,
 `devicePixelRatio`) moves ahead of T3b–T3d once the engine's S3/S4 PR 2
