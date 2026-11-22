@@ -44,7 +44,9 @@ features that 147 ships only as experimental are left out:
 - `DialogNewFocusBehavior`: 147 runs the legacy dialog focusing steps;
 - `DialogCloseWhenOpenRemoved`: removing `open` does not close a dialog.
 
-A Chromium oracle measures what the source leaves open (see Migration).
+What the source leaves open was measured with real input in pinned
+Chromium (`dialog-v1`, Migration PR 1: 23 scenarios and 15 geometry
+records, captured twice and identical). "Measured" below refers to it.
 
 **1. The element.** `dialog` becomes an element (`ElementTag::Dialog`) with
 the HTML rendering section's UA rules:
@@ -101,10 +103,18 @@ Div has no toggle events yet. The two toggle events carry `old_state` and
 - On open, the legacy focusing steps run. They focus the first autofocus
   focusable descendant, else the first focusable descendant, else the dialog
   itself; nested dialogs are skipped. If nothing can be focused, focus is
-  cleared.
+  cleared. A dialog element is click-focusable, so a dialog with nothing
+  focusable inside takes focus itself (measured).
 - `close` restores focus to the element focused before the dialog opened,
   without scrolling. For a non-modal dialog it does so only if focus is
   inside the dialog.
+- **Tab at the edges, a decision for the user.** In Chromium, Tab from the
+  last focusable element of a modal dialog, or Shift+Tab from the first,
+  moves focus out of the document to the browser's own UI (measured: the
+  page loses focus). A Div window has no browser UI. Proposed: Div keeps
+  today's `modal_root` behavior and wraps to the other end of the dialog.
+  The alternative is to leave focus nowhere until the next Tab, which is
+  closer to the measurement but strands keyboard users.
 
 **3. The top layer** (engine).
 - **The list.** The document keeps an ordered top layer. `show_modal`
@@ -127,7 +137,15 @@ Div has no toggle events yet. The two toggle events carry `old_state` and
   - it cannot be focused and is not in the Tab order;
   - it is not in the accessibility tree;
   - it receives no pointer events.
-- Where a press on inert content is delivered is measured by the oracle.
+- A press on inert content, or on the backdrop, is delivered to the topmost
+  modal dialog (`mousedown`, `mouseup` and `click` target it) and focuses
+  the dialog itself. A press on non-focusable content inside the dialog
+  also focuses the dialog. Tab from the focused dialog goes to its first
+  focusable element. (All measured.)
+- Removing `open` from a modal dialog, without `close()`, hides it but
+  leaves it `:modal` and the rest of the document inert. Focus is cleared,
+  and presses reach the root, until the dialog is shown again (measured;
+  Chromium 147's behavior, which Div copies).
 - `set_modal_root` changes, and is deprecated: it now makes everything
   outside its root inert in the same way, but without the top layer or a
   backdrop. Its unconditional focus restore stays, so its callers keep
@@ -156,13 +174,16 @@ unless that is cancelled, calls `close` with no return value.
   - The top-layer paint pass is based on the SVG lane's partial redraw
     (A1), which goes first in `painter.rs`.
   - The pseudo-class work follows #107 (selector state invalidation).
+  - The WPT porter's static IR (`tools/wpt/javascript_mutation_ir.mjs`)
+    learns `showModal()`, `show()` and `close()` as mutations; `remove()`
+    is already one. The engine reviews it, and the renderer contract's
+    pinned mutation audit is regenerated, or its change explained, in that
+    PR. The framework's T3 (RFC 0005) is a separate module,
+    `tools/wpt_script/`, so the two do not conflict.
 - **Framework.** Owns `divui`: the tag line, the API above,
   `Error::InvalidState`, the Escape default action, and the event types.
   - Adding the error variant breaks exhaustive matches on `divui::Error`.
   - `set_modal_root`'s doc comment records its deprecation.
-  - The `tools/wpt/javascript_mutation_ir.mjs` extension (`showModal`,
-    `show`, `close`, `remove`) lands before the framework's T3 rework
-    (RFC 0005) and is reviewed by both lanes.
 - **Fidelity.** Its UA sheet receives the four rules in Proposal 1.
 - **Components and samples.** Move from `set_modal_root` and hand-made
   overlays to `show_modal`. Focus-preserving chrome cancels `mousedown`
@@ -176,7 +197,7 @@ One PR at a time. Each keeps `main` green and records its results in
 | # | PR | Gate |
 | --- | --- | --- |
 | 1 | **Chromium dialog oracle** (no product code). Captured twice from real input at 1x, with a replay test that lists every scenario as pending. | Byte-stable capture; the replay test passes with its pending list |
-| 2 | **WPT porter mutations** (`showModal`, `show`, `close`, `remove`). | The porter's own tests |
+| 2 | **WPT porter mutations** (`showModal`, `show`, `close`), reviewed by the engine. | The porter's own tests; `generate_renderer_contract.py --check` |
 | 3 | **Engine top layer:** the tag, the top-layer list, inertness (the `set_modal_root` change), `:modal`, `:open`, the containing block, the paint pass and hit testing. | Ported reftests: `top-layer-*` (stacking, nesting, position, containing block, `display: none`, parent clip, opacity, transform and overflow), `removed-element-is-removed-from-top-layer`, `element-removed-from-top-layer-has-original-position`, `modal-dialog-sibling`; the oracle's geometry and click scenarios |
 | 4 | **`::backdrop` and the UA rules.** | `backdrop-*`, `modal-dialog-backdrop(-opacity)`, `dialogs-with-no-backdrop`, `green-dialog-and-backdrop`, `top-layer-backdrop-remove-add-ordering` |
 | 5 | **The `divui` API, events, Escape and focus.** | The oracle's pending list is empty. Rust translations name each WPT file and assert they reproduce: `dialog-showModal`, `-close`, `-close-event`, `-cancel-events`, `-cancel-preventDefault`, `-canceling`, `-return-value`, `-focusing-steps-*`, `focus-after-close`, `modal-dialog-ancestor-is-inert`, `remove-dialog-should-unblock-document`, `closed-`/`non-modal-dialog-does-not-block-mouse-events`, `inert-node-is-unfocusable` |
