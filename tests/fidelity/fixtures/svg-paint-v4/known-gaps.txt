@@ -7,9 +7,9 @@
 # the Skia build. div-svg hands Skia what Chromium's cc does (checked against paint_shader.cc and
 # gradient.cc), and the test binaries initialize Skia at load as Chromium does (SkGraphics::Init),
 # so the raster pipeline runs the same CPU stages; that made 15 of the first 18 gaps exact on
-# Windows and 16 on Linux (the fidelity lane's finding). What remains is one channel level in one or two pixels of three
-# radial gradients with a focal point or a repeat, at scale 2.
+# Windows and 16 on Linux (the fidelity lane's finding). On Windows, compiling Skia with Chromium's
+# /clang:-ffp-contract=off (no fused multiply-add in its AVX2 stages) made 2x rad/focal and
+# 2x rad/repeat exact as well. What remains is one channel level in one or two pixels of two
+# radial gradients with a focal point, at scale 2; its cause is not known.
 linux 2x rad/focal 2 1
-windows 2x rad/focal 1 1
 2x rad/fr-focal 1 1
-windows 2x rad/repeat 2 1

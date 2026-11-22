@@ -1,5 +1,40 @@
 # Setup track progress
 
+## Windows Skia without FMA contraction 22 November 2026
+
+Chromium 147.0.7727.50 compiles every file with `-ffp-contract=off`; on
+Windows it passes `/clang:-ffp-contract=off` (`build/config/compiler/BUILD.gn`
+lines 653-658). Skia's own GN adds the flag only for clang off Windows
+(`gn/skia/BUILD.gn:71`). rust-skia builds Windows Skia with clang-cl, so
+Div's Windows Skia fused `a*b+c` into FMA in its `/arch:AVX2` (HSW) raster
+stages, and Chromium's does not.
+
+- The windows-msvc job's `SKIA_GN_ARGS` adds `/clang:-ffp-contract=off`.
+  clang-cl ignores the plain `-ffp-contract=off` ("unknown argument
+  ignored"), and Linux clang would read the `/clang:` form as a file name,
+  so the flag is Windows' alone.
+- `crates/div-cli/src/skia.rs` has a Windows profile, `WINDOWS_GN_ARGS`,
+  that `div new` writes on Windows, and its drift test pins windows-msvc to
+  it. The framework lane reviewed it.
+- `docs/DEVELOPMENT.md` gives the flag in the Windows snippet.
+
+Measured on Windows at main `848551a`, under the census lock, with CI's
+flags against the same flags plus `/clang:-ffp-contract=off`, over CI's
+headless workspace tests, divui's `testing` suites and div-components:
+
+| Run | Passed | Failed | Ignored |
+| --- | --- | --- | --- |
+| CI flags | 10,113 | 0 | 31 |
+| With `/clang:-ffp-contract=off` | 10,112 | 1 | 31 |
+
+- The one failure is div-svg `paint_v4_matches_chromium_147`, which reports
+  that the listed gaps `windows 2x rad/focal` and `windows 2x rad/repeat`
+  are now exact. Both are removed from
+  `tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt`.
+- Every other test, including every pinned pixel gap, is unchanged.
+- `2x rad/fr-focal` (both OSes) and `linux 2x rad/focal` stay listed; their
+  cause is not known.
+
 ## windows-msvc MSVC toolset pin 18 November 2026
 
 Runner image `windows-2025-vs2026` 20261116.315.1 made VS 18's MSVC
