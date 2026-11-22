@@ -13,7 +13,10 @@ capture for the operating system it runs on:
 
 - `traces/*.jsonl`: the traces. The format is documented in
   `crates/div-canvas/src/trace.rs`: one JSON object per line, creating a
-  canvas, calling a method, setting or getting an attribute.
+  canvas, calling a method, setting or getting an attribute, or (text
+  traces) loading a font face. A `fontFace` line names a file in
+  `crates/div-text/fonts`, which both Chromium (`FontFace` from the bytes)
+  and Div load as a web font, so text does not depend on installed fonts.
 - `chromium-linux.json`, `chromium-windows.json`: per trace, the
   observations and each canvas's size and sha256 of its RGBA bytes.
 - `chromium-linux/`, `chromium-windows/`: each canvas's `getImageData`
@@ -32,9 +35,21 @@ canvases are rasterized in software by Skia, as in Div:
   `https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.50/win64/chrome-win64.zip`,
   run on Windows 11 on 15 November 2026.
 
+The text traces were captured on 21 November 2026 with the same builds:
+
+- Linux: with `--enable-features=FontDataServiceLinux:typeface/Freetype`
+  and the real-font Fontconfig profile of the page census
+  (`tools/accountability/data/fonts/sp16_real_font.conf`), as the page
+  census runs Chrome;
+- Windows: after `tools/qualification/windows_chrome.py` checks the text
+  raster pin of RFC 0012 (ClearType on, RGB order).
+
 The capture replays each trace twice in fresh canvases and keeps it only if
-the two replays agree. For this corpus the Linux and Windows captures are
-identical (every bitmap hash and every observation).
+the two replays agree. The Linux and Windows captures of the core traces are
+identical (every bitmap hash and every observation). The text traces are
+not: every attribute read agrees, but text pixels differ on five of the
+seven traces and some `measureText` bounds differ by one pixel, so each
+platform is compared with its own capture.
 
 ## Regenerating
 

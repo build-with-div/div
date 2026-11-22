@@ -11,12 +11,19 @@
 use div_style::Color;
 use skia_safe::{
     canvas::SaveLayerRec, path_utils, AlphaType, BlendMode, Canvas, ClipOp, ColorType, IRect,
-    ImageInfo, Matrix, Paint, PaintStyle, Path, PathBuilder, PathFillType, Rect, Surface, M44,
+    ImageInfo, Matrix, Paint, PaintStyle, Path, PathBuilder, PathFillType, PixelGeometry, Rect,
+    Surface, SurfaceProps, SurfacePropsFlags, M44,
 };
+
+use std::sync::Arc;
+
+use div_geometry::{RasterConfiguration, TextHinting};
+use div_text::{FontCollection, TextShaper};
 
 use crate::affine::AffineTransform;
 use crate::math::{clamp_non_finite_to_zero, clamp_to_f32, float_nearly_equal, PI_FLOAT};
 use crate::path::{CanvasPath, RoundRectRadius};
+use crate::shape_cache::ShapeCaches;
 use crate::state::{composite_name, parse_composite, CanvasState, LineCap, LineJoin, PaintType};
 use crate::CanvasError;
 
@@ -52,24 +59,77 @@ pub struct CanvasRenderingContext2D {
     height: i32,
     states: Vec<CanvasState>,
     path: CanvasPath,
+    /// The fonts text resolves against (a document's `FontFaceSet` and the
+    /// system fonts).
+    fonts: Arc<FontCollection>,
+    shaper: TextShaper,
+    shape_caches: ShapeCaches,
+    raster: RasterConfiguration,
 }
 
+mod text_methods;
+
 type Bounds = (f32, f32, f32, f32);
+
+/// Chromium's text raster for the platform: its page text's font settings
+/// (RFC 0012 on Windows) with the hinting Chromium asks for. Canvas text is
+/// drawn on a surface with unknown pixel geometry, so Skia draws it
+/// grayscale.
+fn platform_raster_configuration() -> RasterConfiguration {
+    if cfg!(target_os = "windows") {
+        let mut configuration = RasterConfiguration::chromium_windows_lcd();
+        // Windows Chromium asks for medium hinting (`gfx::FontRenderParams`,
+        // `font_render_params_win.cc`), which Skia's DirectWrite scaler
+        // treats as it treats slight hinting. Asking for it keeps div-text's
+        // per-family resolution of slight hinting, a model of Linux
+        // Fontconfig profiles, away from canvas text on Windows.
+        configuration.author_text.hinting = TextHinting::Normal;
+        configuration
+    } else {
+        RasterConfiguration::chromium_linux_lcd()
+    }
+}
 
 impl CanvasRenderingContext2D {
     /// A transparent `width`×`height` canvas (N32, premultiplied, as Blink's
     /// software canvas resource). Returns `None` for a size Skia rejects.
     pub fn new(width: i32, height: i32) -> Option<Self> {
+        Self::with_fonts(width, height, FontCollection::system())
+    }
+
+    /// [`Self::new`] with text resolved against `fonts`, which several
+    /// canvases may share as a document's canvases share its fonts.
+    pub fn with_fonts(width: i32, height: i32, fonts: Arc<FontCollection>) -> Option<Self> {
         // SkGraphics::Init before this Skia user exists (see div-text).
         div_text::initialize_skia();
-        let surface = skia_safe::surfaces::raster_n32_premul((width, height))?;
+        let raster = platform_raster_configuration();
+        // `CanvasResourceProvider::GetSkSurfaceProps` for a canvas with alpha:
+        // `LegacyDisplayGlobals::ComputeSurfaceProps(false)`, unknown pixel
+        // geometry (no LCD text) with the display's text contrast and gamma.
+        let props = SurfaceProps::new_with_text_properties(
+            SurfacePropsFlags::default(),
+            PixelGeometry::Unknown,
+            raster.contrast(),
+            raster.gamma(),
+        );
+        let info = ImageInfo::new_n32_premul((width, height), None);
+        let surface = skia_safe::surfaces::raster(&info, None, Some(&props))?;
         Some(Self {
             surface,
             width,
             height,
             states: vec![CanvasState::default()],
             path: CanvasPath::new(),
+            fonts,
+            shaper: TextShaper::new(),
+            shape_caches: ShapeCaches::new(),
+            raster,
         })
+    }
+
+    /// The fonts this canvas's text resolves against.
+    pub fn font_collection(&self) -> &Arc<FontCollection> {
+        &self.fonts
     }
 
     pub fn width(&self) -> i32 {

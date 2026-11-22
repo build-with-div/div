@@ -12,20 +12,28 @@
 //! `globalAlpha`, composite modes, colour fill and stroke styles, line styles
 //! and dashes, paths (lines, curves, `arcTo`, `arc`, `ellipse`, `rect`,
 //! `roundRect`), `fill`, `stroke`, `clip`, the rectangle calls and the
-//! point-in-path tests. Gradients, patterns, text, images, shadows and
-//! filters come in later steps of RFC 0008's migration.
+//! point-in-path tests. Step 3 adds text: `font` and the other text
+//! attributes, `fillText`, `strokeText` and `measureText`, shaped and
+//! rasterized by div-text. Gradients, patterns, images, shadows and filters
+//! come in later steps of RFC 0008's migration.
 
 mod affine;
 mod context;
 mod math;
 mod path;
+mod shape_cache;
 mod state;
+mod text;
 pub mod trace;
 
 pub use affine::AffineTransform;
 pub use context::{CanvasRenderingContext2D, FillRule};
 pub use path::{CanvasPath, RoundRectRadius};
 pub use state::{LineCap, LineJoin};
+pub use text::{
+    CanvasDirection, CanvasFontKerning, CanvasFontStretch, CanvasFontVariantCaps,
+    CanvasTextRendering, TextAlign, TextBaseline, TextMetrics,
+};
 
 /// A `DOMException` or JavaScript error a canvas call throws.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

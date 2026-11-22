@@ -14,6 +14,12 @@ rasterized) and writes, for the given platform:
 `div-canvas`'s `chromium_traces` test replays the same files and compares
 bytes and observations with `==`.
 
+A trace's `fontFace` lines name fonts in `crates/div-text/fonts`; the page
+loads them as `FontFace` objects from the embedded bytes. Text is rasterized
+as Div's text oracles are: on Linux with the real-font Fontconfig profile and
+Chromium's FreeType typeface path, on Windows after checking the RFC 0012
+text raster pin (ClearType on, RGB).
+
 Usage:
   python3 tools/canvas/capture_canvas_traces.py \
       --chrome <path to chrome or chrome.exe> --platform linux|windows \
@@ -34,7 +40,10 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+FONTS = ROOT / "crates" / "div-text" / "fonts"
 CHROMIUM_VERSION = "147.0.7727.50"
+# Linux: Chromium's FreeType path for the faces, as the web font oracles.
+LINUX_FLAGS = ["--enable-features=FontDataServiceLinux:typeface/Freetype"]
 FLAGS = [
     "--headless",
     "--disable-gpu",
@@ -56,8 +65,13 @@ def _accountability():
 # The replayer. It mirrors `div_canvas::trace::replay`: the same decoding of
 # special numbers, the same observation shapes.
 REPLAY_JS = r"""
-(lines) => {
+async (lines) => {
   const SPECIAL = {"NaN": NaN, "Infinity": Infinity, "-Infinity": -Infinity, "-0": -0};
+  const METRICS = ["width", "actualBoundingBoxLeft", "actualBoundingBoxRight",
+                   "fontBoundingBoxAscent", "fontBoundingBoxDescent",
+                   "actualBoundingBoxAscent", "actualBoundingBoxDescent",
+                   "hangingBaseline",
+                   "alphabeticBaseline", "ideographicBaseline"];
   const num = (v) => (typeof v === "string" && v in SPECIAL) ? SPECIAL[v] : v;
   const enc = (v) => {
     if (typeof v !== "number") return v;
@@ -79,7 +93,17 @@ REPLAY_JS = r"""
   const contexts = new Map();
   const order = [];
   const observations = [];
+  // Faces a previous replay added.
+  document.fonts.clear();
   for (const e of lines) {
+    if ("fontFace" in e) {
+      const bytes = Uint8Array.from(atob(e.data), (c) => c.charCodeAt(0));
+      const face = new FontFace(e.fontFace, bytes,
+                                {weight: e.weight || "400", style: e.style || "normal"});
+      await face.load();
+      document.fonts.add(face);
+      continue;
+    }
     if ("width" in e) {
       const c = document.createElement("canvas");
       c.width = e.width;
@@ -95,6 +119,12 @@ REPLAY_JS = r"""
         if (e.call === "getTransform") {
           observations.push({canvas: e.canvas, call: e.call,
                              return: [r.a, r.b, r.c, r.d, r.e, r.f].map(enc)});
+        } else if (e.call === "measureText") {
+          // TextMetrics keeps its values in prototype getters, which
+          // JSON.stringify skips: list the twelve metrics explicitly.
+          const m = {};
+          for (const k of METRICS) m[k] = enc(r[k]);
+          observations.push({canvas: e.canvas, call: e.call, return: m});
         } else if (r !== undefined) {
           observations.push({canvas: e.canvas, call: e.call,
                              return: Array.isArray(r) ? r.map(enc) : enc(r)});
@@ -143,10 +173,13 @@ def png_rgba(width, height, rgba):
             + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b""))
 
 
-def start_chrome(acc, chrome, profile_dir):
-    cmd = [chrome, *FLAGS, f"--user-data-dir={profile_dir}", "about:blank"]
-    env = os.environ.copy()
-    env["LD_LIBRARY_PATH"] = str(Path(chrome).parent) + ":" + env.get("LD_LIBRARY_PATH", "")
+def start_chrome(acc, chrome, profile_dir, platform):
+    extra = LINUX_FLAGS if platform == "linux" else []
+    cmd = [chrome, *FLAGS, *extra, f"--user-data-dir={profile_dir}", "about:blank"]
+    if platform == "linux":
+        env = acc.chrome_environment(str(Path(chrome).parent), use_real_font=True)
+    else:
+        env = os.environ.copy()
     process = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL, start_new_session=(os.name == "posix"))
     try:
@@ -163,10 +196,23 @@ def version(client):
     return product.split("/", 1)[-1]
 
 
+def embed_fonts(lines):
+    """Adds each `fontFace` line's file as base64 `data`."""
+    out = []
+    for line in lines:
+        if "fontFace" in line:
+            name = line["file"]
+            if Path(name).name != name:
+                sys.exit(f"fontFace file {name!r} must be a file in {FONTS}")
+            line = dict(line, data=base64.b64encode((FONTS / name).read_bytes()).decode("ascii"))
+        out.append(line)
+    return out
+
+
 def replay(client, lines):
-    expression = f"({REPLAY_JS})({json.dumps(lines)})"
+    expression = f"({REPLAY_JS})({json.dumps(embed_fonts(lines))})"
     result = client.command("Runtime.evaluate", {
-        "expression": expression, "returnByValue": True, "awaitPromise": False,
+        "expression": expression, "returnByValue": True, "awaitPromise": True,
     })
     if "exceptionDetails" in result:
         raise RuntimeError(json.dumps(result["exceptionDetails"])[:2000])
@@ -189,9 +235,17 @@ def main():
         old.unlink()
 
     acc = _accountability()
-    oracle = {"chromium": None, "platform": args.platform, "flags": FLAGS[:2], "traces": {}}
+    flags = FLAGS[:2] + (LINUX_FLAGS if args.platform == "linux" else [])
+    if args.platform == "windows":
+        sys.path.insert(0, str(ROOT / "tools" / "qualification"))
+        import windows_chrome
+
+        # ClearType on, RGB, no tuning: the settings Div's Windows text
+        # raster reproduces (RFC 0012).
+        windows_chrome.check_text_raster_pin()
+    oracle = {"chromium": None, "platform": args.platform, "flags": flags, "traces": {}}
     with tempfile.TemporaryDirectory(prefix="div-canvas-chrome-") as profile:
-        process, client = start_chrome(acc, args.chrome, profile)
+        process, client = start_chrome(acc, args.chrome, profile, args.platform)
         try:
             oracle["chromium"] = version(client)
             if oracle["chromium"] != CHROMIUM_VERSION:

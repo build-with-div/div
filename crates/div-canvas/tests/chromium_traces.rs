@@ -66,10 +66,39 @@ fn write_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
         .expect("write PNG");
 }
 
-/// Canvases known to differ from Chromium, each with its cause. They are
-/// still replayed and compared: a listed canvas must keep differing (the
-/// entry is removed when it starts to match), and is reported, not hidden.
-const KNOWN_GAPS: &[(&str, &str)] = &[];
+/// A `fontFace` line's file: one of div-text's bundled fonts, which the
+/// capture embeds from the same directory.
+fn bundled_font(file: &str) -> Option<Vec<u8>> {
+    if file.contains(['/', '\\']) || file.starts_with('.') {
+        return None;
+    }
+    fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../div-text/fonts")
+            .join(file),
+    )
+    .ok()
+}
+
+/// Canvases (`trace.canvas`) and observations (`trace#index`) known to
+/// differ from one platform's Chromium, each with its cause. They are still
+/// replayed and compared: a listed entry must keep differing (it is removed
+/// when it starts to match), and is reported, not hidden.
+const KNOWN_GAPS: &[(&str, &str, &str)] = &[(
+    "linux",
+    "text-transform-composite.c",
+    "scaled, skewed and rotated web-font text: hinting and coverage differ \
+     (the 2x1.5 scaled text's first ink row moves); div-text web-font \
+     outlines under a transform, engine track",
+)];
+
+/// The cause of a known gap for `key` on `platform`.
+fn known_gap(platform: &str, key: &str) -> Option<&'static str> {
+    KNOWN_GAPS
+        .iter()
+        .find(|(p, k, _)| *p == platform && *k == key)
+        .map(|(_, _, why)| *why)
+}
 
 #[test]
 fn traces_match_chromium() {
@@ -103,7 +132,7 @@ fn traces_match_chromium() {
             expected.is_object(),
             "{name}: no Chromium capture; rerun capture_canvas_traces.py"
         );
-        let replay = trace::replay(&fs::read_to_string(path).unwrap())
+        let replay = trace::replay_with_fonts(&fs::read_to_string(path).unwrap(), &bundled_font)
             .unwrap_or_else(|e| panic!("{name}: {e}"));
 
         let want = expected["observations"].as_array().expect("observations");
@@ -116,10 +145,20 @@ fn traces_match_chromium() {
         }
         for (i, (got, want)) in replay.observations.iter().zip(want).enumerate() {
             checked_observations += 1;
-            if !same(got, want) {
-                failures.push(format!(
-                    "{name}: observation {i}: Div {got}, Chromium {want}"
-                ));
+            let key = format!("{name}#{i}");
+            let gap = known_gap(platform, &key);
+            if same(got, want) {
+                if gap.is_some() {
+                    failures.push(format!(
+                        "{key}: now matches Chromium; remove it from KNOWN_GAPS"
+                    ));
+                }
+            } else {
+                let message = format!("{key}: Div {got}, Chromium {want}");
+                match gap {
+                    Some(why) => known.push(format!("{message}: known gap: {why}")),
+                    None => failures.push(message),
+                }
             }
         }
 
@@ -141,10 +180,7 @@ fn traces_match_chromium() {
                 "{name}.{id}: size"
             );
             let key = format!("{name}.{id}");
-            let gap = KNOWN_GAPS
-                .iter()
-                .find(|(k, _)| *k == key)
-                .map(|(_, why)| *why);
+            let gap = known_gap(platform, &key);
             if rgba == canvas.rgba {
                 if gap.is_some() {
                     failures.push(format!(

@@ -1,0 +1,27 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"fontFace":"CanvasSans","file":"DejaVuSans-Bold.ttf","weight":"700"}
+{"canvas":"c","width":260,"height":200}
+{"canvas":"c","set":"font","value":"bold 28px CanvasSans"}
+{"canvas":"c","call":"strokeText","args":["Stroke",10,35]}
+{"canvas":"c","set":"lineWidth","value":2.5}
+{"canvas":"c","set":"strokeStyle","value":"#c03080"}
+{"canvas":"c","set":"lineJoin","value":"round"}
+{"canvas":"c","call":"strokeText","args":["Round",120,35]}
+{"canvas":"c","set":"lineWidth","value":1}
+{"canvas":"c","call":"setLineDash","args":[[3,2]]}
+{"canvas":"c","set":"strokeStyle","value":"black"}
+{"canvas":"c","call":"strokeText","args":["Dashed",10,75]}
+{"canvas":"c","call":"setLineDash","args":[[]]}
+{"canvas":"c","set":"font","value":"18px CanvasSans"}
+{"canvas":"c","call":"fillText","args":["squeezed into 80px",10,110,80]}
+{"canvas":"c","call":"fillText","args":["wide enough",10,135,500]}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","call":"fillText","args":["centered squeeze",180,110,60.5]}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","call":"strokeText","args":["right stroke",250,160,90]}
+{"canvas":"c","set":"textAlign","value":"left"}
+{"canvas":"c","call":"fillText","args":["zero max",10,185,0]}
+{"canvas":"c","call":"fillText","args":["negative max",10,185,-5]}
+{"canvas":"c","call":"fillText","args":["nan max",10,185,"NaN"]}
+{"canvas":"c","call":"fillText","args":["inf max",10,185,"Infinity"]}
+{"canvas":"c","call":"fillText","args":["tiny max",10,190,1]}

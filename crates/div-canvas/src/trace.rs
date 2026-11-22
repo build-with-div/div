@@ -5,7 +5,12 @@
 //! - `{"canvas": id, "width": w, "height": h}` creates a canvas;
 //! - `{"canvas": id, "call": name, "args": [...]}` calls a method;
 //! - `{"canvas": id, "set": prop, "value": v}` assigns an attribute;
-//! - `{"canvas": id, "get": prop}` reads an attribute.
+//! - `{"canvas": id, "get": prop}` reads an attribute;
+//! - `{"fontFace": family, "file": name, "weight": w, "style": s}` adds a
+//!   font face, as `document.fonts.add(new FontFace(...))` does: `file` names
+//!   one of div-text's bundled fonts (`crates/div-text/fonts`), which the
+//!   capture embeds and [`replay_with_fonts`]'s loader supplies. Every canvas
+//!   of the trace sees every face, as a document's canvases do.
 //!
 //! Numbers that JSON cannot carry are strings: `"NaN"`, `"Infinity"`,
 //! `"-Infinity"` and `"-0"`. Replaying a trace yields its observations (every
@@ -16,9 +21,12 @@
 
 use std::collections::BTreeMap;
 
+use std::sync::Arc;
+
+use div_text::{FontAxisRange, FontCollection, FontFaceDescriptor, FontStyleRange};
 use serde_json::{json, Map, Number, Value};
 
-use crate::{CanvasError, CanvasRenderingContext2D, FillRule, RoundRectRadius};
+use crate::{CanvasError, CanvasRenderingContext2D, FillRule, RoundRectRadius, TextMetrics};
 
 /// One canvas's final state after a replay.
 pub struct ReplayedCanvas {
@@ -86,8 +94,19 @@ pub fn encode_number(v: f64) -> Value {
     }
 }
 
-/// Replays `trace` (JSON lines; blank lines are skipped).
+/// Replays `trace` (JSON lines; blank lines are skipped). A trace that adds
+/// font faces needs [`replay_with_fonts`].
 pub fn replay(trace: &str) -> Result<Replay, TraceError> {
+    replay_with_fonts(trace, &|_| None)
+}
+
+/// Replays `trace`, reading the font files its `fontFace` lines name with
+/// `load`.
+pub fn replay_with_fonts(
+    trace: &str,
+    load: &dyn Fn(&str) -> Option<Vec<u8>>,
+) -> Result<Replay, TraceError> {
+    let fonts = FontCollection::system();
     let mut canvases: BTreeMap<String, CanvasRenderingContext2D> = BTreeMap::new();
     let mut observations = Vec::new();
     for (index, line) in trace.lines().enumerate() {
@@ -102,6 +121,10 @@ pub fn replay(trace: &str) -> Result<Replay, TraceError> {
         };
         let entry: Map<String, Value> =
             serde_json::from_str(line).map_err(|e| err(e.to_string()))?;
+        if let Some(family) = entry.get("fontFace").and_then(Value::as_str) {
+            add_font_face(&fonts, family, &entry, load).map_err(err)?;
+            continue;
+        }
         let id = entry
             .get("canvas")
             .and_then(Value::as_str)
@@ -112,7 +135,7 @@ pub fn replay(trace: &str) -> Result<Replay, TraceError> {
                 w.as_i64().ok_or_else(|| err("bad width".into()))? as i32,
                 h.as_i64().ok_or_else(|| err("bad height".into()))? as i32,
             );
-            let ctx = CanvasRenderingContext2D::new(w, h)
+            let ctx = CanvasRenderingContext2D::with_fonts(w, h, Arc::clone(&fonts))
                 .ok_or_else(|| err(format!("cannot create a {w}x{h} canvas")))?;
             canvases.insert(id, ctx);
             continue;
@@ -162,6 +185,52 @@ pub fn replay(trace: &str) -> Result<Replay, TraceError> {
     })
 }
 
+/// Registers a `fontFace` line's face.
+fn add_font_face(
+    fonts: &FontCollection,
+    family: &str,
+    entry: &Map<String, Value>,
+    load: &dyn Fn(&str) -> Option<Vec<u8>>,
+) -> Result<(), String> {
+    let file = entry
+        .get("file")
+        .and_then(Value::as_str)
+        .ok_or("fontFace: missing file")?;
+    let bytes = load(file).ok_or_else(|| format!("fontFace: cannot load {file}"))?;
+    let mut descriptor = FontFaceDescriptor::new(family);
+    if let Some(weight) = entry.get("weight").and_then(Value::as_str) {
+        let w: f32 = weight
+            .parse()
+            .map_err(|_| format!("fontFace: bad weight {weight}"))?;
+        descriptor.weight = FontAxisRange::new(w, w);
+    }
+    descriptor.style = match entry.get("style").and_then(Value::as_str) {
+        None | Some("normal") => FontStyleRange::Normal,
+        Some("italic") => FontStyleRange::Italic,
+        Some(other) => return Err(format!("fontFace: unsupported style {other}")),
+    };
+    fonts
+        .register(Arc::from(bytes), descriptor)
+        .map_err(|e| format!("fontFace {family}: {e}"))?;
+    Ok(())
+}
+
+/// A `TextMetrics` as the capture lists it.
+fn text_metrics(m: &TextMetrics) -> Value {
+    json!({
+        "width": encode_number(m.width),
+        "actualBoundingBoxLeft": encode_number(m.actual_bounding_box_left),
+        "actualBoundingBoxRight": encode_number(m.actual_bounding_box_right),
+        "fontBoundingBoxAscent": encode_number(m.font_bounding_box_ascent),
+        "fontBoundingBoxDescent": encode_number(m.font_bounding_box_descent),
+        "actualBoundingBoxAscent": encode_number(m.actual_bounding_box_ascent),
+        "actualBoundingBoxDescent": encode_number(m.actual_bounding_box_descent),
+        "hangingBaseline": encode_number(m.hanging_baseline),
+        "alphabeticBaseline": encode_number(m.alphabetic_baseline),
+        "ideographicBaseline": encode_number(m.ideographic_baseline),
+    })
+}
+
 enum CallResult {
     Void,
     Return(Value),
@@ -186,6 +255,18 @@ fn call(
             .ok_or_else(|| format!("{name}: argument {i} is not a number"))
     };
     let flag = |i: usize| -> bool { args.get(i).and_then(Value::as_bool).unwrap_or(false) };
+    let string = |i: usize| -> Result<&str, String> {
+        args.get(i)
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("{name}: argument {i} is not a string"))
+    };
+    let optional = |i: usize| -> Result<Option<f64>, String> {
+        if args.len() > i {
+            n(i).map(Some)
+        } else {
+            Ok(None)
+        }
+    };
     let rule = |i: usize| -> Result<FillRule, String> {
         match args.get(i) {
             None => Ok(FillRule::NonZero),
@@ -311,6 +392,15 @@ fn call(
         "getLineDash" => CallResult::Return(Value::Array(
             ctx.get_line_dash().into_iter().map(encode_number).collect(),
         )),
+        "fillText" => {
+            ctx.fill_text(string(0)?, n(1)?, n(2)?, optional(3)?);
+            CallResult::Void
+        }
+        "strokeText" => {
+            ctx.stroke_text(string(0)?, n(1)?, n(2)?, optional(3)?);
+            CallResult::Void
+        }
+        "measureText" => CallResult::Return(text_metrics(&ctx.measure_text(string(0)?))),
         other => return Err(format!("unsupported call {other}")),
     })
 }
@@ -350,6 +440,17 @@ fn set(ctx: &mut CanvasRenderingContext2D, prop: &str, value: &Value) -> Result<
         "lineDashOffset" => ctx.set_line_dash_offset(num()?),
         "globalAlpha" => ctx.set_global_alpha(num()?),
         "globalCompositeOperation" => ctx.set_global_composite_operation(text()?),
+        "font" => ctx.set_font(text()?),
+        "textAlign" => ctx.set_text_align(text()?),
+        "textBaseline" => ctx.set_text_baseline(text()?),
+        "direction" => ctx.set_direction(text()?),
+        "letterSpacing" => ctx.set_letter_spacing(text()?),
+        "wordSpacing" => ctx.set_word_spacing(text()?),
+        "fontKerning" => ctx.set_font_kerning(text()?),
+        "fontStretch" => ctx.set_font_stretch(text()?),
+        "fontVariantCaps" => ctx.set_font_variant_caps(text()?),
+        "textRendering" => ctx.set_text_rendering(text()?),
+        "lang" => ctx.set_lang(text()?),
         other => return Err(format!("unsupported attribute {other}")),
     }
     Ok(())
@@ -366,6 +467,17 @@ fn get(ctx: &CanvasRenderingContext2D, prop: &str) -> Result<Value, String> {
         "lineDashOffset" => encode_number(ctx.line_dash_offset()),
         "globalAlpha" => encode_number(ctx.global_alpha()),
         "globalCompositeOperation" => json!(ctx.global_composite_operation()),
+        "font" => json!(ctx.font()),
+        "textAlign" => json!(ctx.text_align()),
+        "textBaseline" => json!(ctx.text_baseline()),
+        "direction" => json!(ctx.direction()),
+        "letterSpacing" => json!(ctx.letter_spacing()),
+        "wordSpacing" => json!(ctx.word_spacing()),
+        "fontKerning" => json!(ctx.font_kerning()),
+        "fontStretch" => json!(ctx.font_stretch()),
+        "fontVariantCaps" => json!(ctx.font_variant_caps()),
+        "textRendering" => json!(ctx.text_rendering()),
+        "lang" => json!(ctx.lang()),
         other => return Err(format!("unsupported attribute {other}")),
     })
 }

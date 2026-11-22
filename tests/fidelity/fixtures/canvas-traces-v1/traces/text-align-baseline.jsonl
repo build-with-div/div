@@ -1,0 +1,43 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"canvas":"c","width":300,"height":240}
+{"canvas":"c","set":"font","value":"16px CanvasSans"}
+{"canvas":"c","set":"textAlign","value":"left"}
+{"canvas":"c","call":"fillText","args":["left",150,20]}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","call":"fillText","args":["center",150,40]}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","call":"fillText","args":["right",150,60]}
+{"canvas":"c","set":"textAlign","value":"start"}
+{"canvas":"c","call":"fillText","args":["start",150,80]}
+{"canvas":"c","set":"textAlign","value":"end"}
+{"canvas":"c","call":"fillText","args":["end",150,100]}
+{"canvas":"c","set":"direction","value":"rtl"}
+{"canvas":"c","set":"textAlign","value":"start"}
+{"canvas":"c","call":"fillText","args":["rtl start",150,120]}
+{"canvas":"c","set":"textAlign","value":"end"}
+{"canvas":"c","call":"fillText","args":["rtl end",150,140]}
+{"canvas":"c","set":"direction","value":"ltr"}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","call":"fillText","args":["odd width center",150.5,160]}
+{"canvas":"c","set":"textAlign","value":"left"}
+{"canvas":"c","set":"textBaseline","value":"top"}
+{"canvas":"c","call":"fillText","args":["top",5,180]}
+{"canvas":"c","set":"textBaseline","value":"hanging"}
+{"canvas":"c","call":"fillText","args":["hang",45,180]}
+{"canvas":"c","set":"textBaseline","value":"middle"}
+{"canvas":"c","call":"fillText","args":["mid",95,180]}
+{"canvas":"c","set":"textBaseline","value":"alphabetic"}
+{"canvas":"c","call":"fillText","args":["alpha",135,180]}
+{"canvas":"c","set":"textBaseline","value":"ideographic"}
+{"canvas":"c","call":"fillText","args":["ideo",185,180]}
+{"canvas":"c","set":"textBaseline","value":"bottom"}
+{"canvas":"c","call":"fillText","args":["bottom",230,180]}
+{"canvas":"c","set":"font","value":"13px CanvasSans"}
+{"canvas":"c","set":"textBaseline","value":"top"}
+{"canvas":"c","call":"fillText","args":["top 13",5,210.5]}
+{"canvas":"c","set":"textBaseline","value":"middle"}
+{"canvas":"c","call":"fillText","args":["mid 13",75,210.5]}
+{"canvas":"c","set":"textBaseline","value":"bottom"}
+{"canvas":"c","call":"fillText","args":["bottom 13",150,210.5]}
+{"canvas":"c","set":"textBaseline","value":"hanging"}
+{"canvas":"c","call":"fillText","args":["hang 13",230,210.5]}

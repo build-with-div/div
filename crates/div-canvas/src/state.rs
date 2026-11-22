@@ -6,6 +6,7 @@ use div_style::Color;
 use skia_safe::{dash_path_effect, BlendMode, Color4f, Paint, PaintCap, PaintJoin, PaintStyle};
 
 use crate::affine::AffineTransform;
+use crate::text::TextState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineCap {
@@ -150,6 +151,7 @@ pub(crate) struct CanvasState {
     pub composite: BlendMode,
     pub has_clip: bool,
     pub has_complex_clip: bool,
+    pub text: TextState,
 }
 
 impl Default for CanvasState {
@@ -169,6 +171,7 @@ impl Default for CanvasState {
             composite: BlendMode::SrcOver,
             has_clip: false,
             has_complex_clip: false,
+            text: TextState::default(),
         }
     }
 }

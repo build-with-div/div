@@ -1,0 +1,63 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"fontFace":"CanvasSans","file":"DejaVuSans-Bold.ttf","weight":"700"}
+{"fontFace":"CanvasSerif","file":"DejaVuSerif.ttf","weight":"400"}
+{"canvas":"c","width":10,"height":10}
+{"canvas":"c","set":"font","value":"20px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["Hello"]}
+{"canvas":"c","call":"measureText","args":["Hello, canvas!"]}
+{"canvas":"c","call":"measureText","args":[""]}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":[" a  b "]}
+{"canvas":"c","call":"measureText","args":["AVAV To"]}
+{"canvas":"c","call":"measureText","args":["gjpqy"]}
+{"canvas":"c","call":"measureText","args":["a\tb\nc"]}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","call":"measureText","args":["centered"]}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","call":"measureText","args":["right"]}
+{"canvas":"c","set":"textAlign","value":"end"}
+{"canvas":"c","call":"measureText","args":["end"]}
+{"canvas":"c","set":"direction","value":"rtl"}
+{"canvas":"c","set":"textAlign","value":"start"}
+{"canvas":"c","call":"measureText","args":["rtl start"]}
+{"canvas":"c","set":"direction","value":"ltr"}
+{"canvas":"c","set":"textAlign","value":"start"}
+{"canvas":"c","set":"textBaseline","value":"top"}
+{"canvas":"c","call":"measureText","args":["top"]}
+{"canvas":"c","set":"textBaseline","value":"hanging"}
+{"canvas":"c","call":"measureText","args":["hanging"]}
+{"canvas":"c","set":"textBaseline","value":"middle"}
+{"canvas":"c","call":"measureText","args":["middle"]}
+{"canvas":"c","set":"textBaseline","value":"ideographic"}
+{"canvas":"c","call":"measureText","args":["ideographic"]}
+{"canvas":"c","set":"textBaseline","value":"bottom"}
+{"canvas":"c","call":"measureText","args":["bottom"]}
+{"canvas":"c","set":"textBaseline","value":"alphabetic"}
+{"canvas":"c","set":"font","value":"bold 13px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["Bold 13px"]}
+{"canvas":"c","set":"font","value":"17px CanvasSerif"}
+{"canvas":"c","call":"measureText","args":["Serif ffi"]}
+{"canvas":"c","set":"font","value":"12.5px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["fractional size"]}
+{"canvas":"c","set":"font","value":"2px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["tiny"]}
+{"canvas":"c","set":"font","value":"1px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["tinier"]}
+{"canvas":"c","set":"font","value":"48px CanvasSans"}
+{"canvas":"c","call":"measureText","args":["Large Wg"]}
+{"canvas":"c","set":"font","value":"20px CanvasSans"}
+{"canvas":"c","set":"letterSpacing","value":"3px"}
+{"canvas":"c","call":"measureText","args":["spaced"]}
+{"canvas":"c","set":"letterSpacing","value":"-2px"}
+{"canvas":"c","call":"measureText","args":["tight"]}
+{"canvas":"c","set":"letterSpacing","value":"-15px"}
+{"canvas":"c","call":"measureText","args":["ab"]}
+{"canvas":"c","set":"letterSpacing","value":"0px"}
+{"canvas":"c","set":"wordSpacing","value":"10px"}
+{"canvas":"c","call":"measureText","args":["a b c"]}
+{"canvas":"c","call":"measureText","args":[" lead"]}
+{"canvas":"c","set":"wordSpacing","value":"0.5em"}
+{"canvas":"c","call":"measureText","args":["x y"]}
+{"canvas":"c","set":"wordSpacing","value":"0px"}
+{"canvas":"c","set":"fontKerning","value":"none"}
+{"canvas":"c","call":"measureText","args":["AVAV To"]}
