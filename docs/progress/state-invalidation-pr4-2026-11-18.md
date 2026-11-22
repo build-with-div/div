@@ -111,6 +111,22 @@ expected. The evidence is div-fidelity-data `f97a017b`
 and `-div-coverage-v1.json` and `-div-coverage-zoom-v1.json` beside
 it); `fidelity-data.lock` pins it.
 
+### After rebasing onto `main` `2c25496a`
+
+`main` gained #103 (T5 and T6), #104 (SVG markers) and #105 (T3). T3's
+evidence, div-fidelity-data `c4b87acd`, is the parent of this change's
+`f97a017b`. The head `92ef89d8` was measured again:
+
+| Check | Result |
+| --- | --- |
+| Windows suites: `div-style`, `div-text`, `div-layout`, `div-paint`, `div-svg`, `div-engine`, `divui` | 9,469 passed, 0 failed |
+| Linux suites, the same seven crates (WSL, CI's Skia flags) | 9,474 passed, 0 failed |
+| SVG text corpus, Linux | 24,056 position numbers, none differ; 264 of 290 captures exact, as on `main` |
+| Generators, `cargo fmt --check`, `fidelity_data.py verify --profile all` | All pass. SP20 could not be checked locally (neither of this machine's WPT checkouts is the pinned tree now); this change touches none of its inputs |
+
+The census was not rerun: it adopts no style sheet, so this change
+cannot move it.
+
 The new tests:
 
 - **Subject `:hover`:** `subject_hover_restyles_the_hover_path_and_repaints_only`.
