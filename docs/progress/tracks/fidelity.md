@@ -73,9 +73,22 @@ No preset exists yet, so a named element is styled only by author rules.
 
 **Verification** (WSL, CI Skia flags, census under the census lock):
 
-- `cargo fmt --all --check`: clean.
-- `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components`
-  with `divui/async divui/http divui/testing`: no failures.
+- `cargo fmt --all --check`: clean at `af739f7`, S6b rebased on main `24436b9`.
+- `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components
+  -p div-engine -p div-dom` with `divui/async divui/http divui/testing` at
+  `af739f7`: 131 test binaries, 1,023 passed, 0 failed, 15 ignored.
+- The site's "does not do yet" lines, measured at `af739f7` with a throwaway
+  `divui` test:
+  - The computed style of each of the 37 new block and inline tags equals
+    `div`'s or `span`'s.
+  - `pre` lays its line breaks out as one line.
+  - `code`, `kbd`, `samp`, `tt`, `q`, `sub`, `sup`, `b`, `i`, `small` and `mark`
+    have the width, height and position of a `span` with the same text.
+  - `dir="rtl"` leaves the computed style of `bdi` and `bdo` unchanged.
+  - `picture` and `source` are zero-width, and no crate reads `srcset`.
+- `site-build`'s steps (`npm ci`, `check-reference`, `build`, `build:cover`)
+  pass at `af739f7` on local Node 22.18; CI uses Node 24.22.1. All 102 accepted
+  tags appear in `site/src/data/elements.json`.
 - Expanded census and CSS Grid coverage, S6a `6c7bdd9` against S6b's first
   version `0c1ce64`:
   both sides are 16,296 exact, 7,432 different, 0 errors (census) and
