@@ -1,4 +1,4 @@
-//! Web-font text against pinned Chromium 147 on Linux.
+//! Web-font text against pinned Chromium 147 on Linux and Windows.
 //!
 //! Chromium on Linux rasterizes every `@font-face` typeface with Skia's
 //! Fontations (skrifa) scaler. The lines in
@@ -14,7 +14,12 @@
 //! harness's real-font Fontconfig profile) and compares each 24px row with
 //! Chromium's, pixel for pixel. A row that is not exact is listed in
 //! `GAPS` with its own pixel count, so any change, better or worse, fails.
-#![cfg(all(target_os = "linux", feature = "testing"))]
+//!
+//! On Windows the fixture holds the pinned Windows build's frames at scales
+//! 1 and 2 (`--platform windows`), captured under RFC 0012's oracle pin
+//! (ClearType on, RGB order, no per-display ClearType tuning). The page is
+//! built with `RasterConfiguration::chromium_windows_lcd`.
+#![cfg(all(any(target_os = "linux", windows), feature = "testing"))]
 
 use div::typed_style::{parse_literal, StyleProperty};
 use div::{
@@ -35,9 +40,25 @@ const INTER: &[u8] =
 const WIDTH: f64 = 400.0;
 const ROW: f64 = 24.0;
 const LEFT: f64 = 4.0;
-const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
+#[cfg(target_os = "linux")]
+const PLATFORM: &str = "linux";
+#[cfg(target_os = "linux")]
+const SCALES: &[&str] = &["1", "1.25", "1.5", "2"];
+#[cfg(target_os = "linux")]
+fn raster_configuration() -> RasterConfiguration {
+    RasterConfiguration::chromium_linux_lcd()
+}
 
-// Rows that are not exact: (scale, row index, differing pixels).
+#[cfg(windows)]
+const PLATFORM: &str = "windows";
+#[cfg(windows)]
+const SCALES: &[&str] = &["1", "2"];
+#[cfg(windows)]
+fn raster_configuration() -> RasterConfiguration {
+    RasterConfiguration::chromium_windows_lcd()
+}
+
+// Rows that are not exact on Linux: (scale, row index, differing pixels).
 //
 // The frames above scale 1 are real zoom (`--force-device-scale-factor`,
 // RFC 0010): Blink lays the line boxes out in device pixels. Div lays out
@@ -55,6 +76,7 @@ const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 // uses `opsz` 14 (13px clamped to Inter's minimum) at every scale; Div gives
 // the same counts with `'opsz' 14` set explicitly, so optical sizing is not
 // the cause.
+#[cfg(target_os = "linux")]
 const GAPS: &[(&str, usize, usize)] = &[
     ("1.25", 1, 3125),
     ("1.25", 2, 2729),
@@ -70,6 +92,22 @@ const GAPS: &[(&str, usize, usize)] = &[
     ("2", 3, 6315),
     ("2", 4, 4804),
     ("2", 5, 6083),
+];
+
+// Rows that are not exact on Windows. Scale 1 is exact. At 2x the glyph
+// raster of every row is identical and the whole row is offset by one device
+// pixel, as on Linux: Div's ink is 1 device px higher (Geist Mono and Geist
+// 650) or lower (Inter, both sizes), and shifting Div's row by that pixel
+// leaves 0 differing pixels. Owner: line-box layout in device pixels
+// (engine, RFC 0011).
+#[cfg(windows)]
+const GAPS: &[(&str, usize, usize)] = &[
+    ("2", 0, 3969),
+    ("2", 1, 4751),
+    ("2", 2, 4622),
+    ("2", 3, 5742),
+    ("2", 4, 4542),
+    ("2", 5, 5735),
 ];
 
 struct Line {
@@ -122,7 +160,7 @@ fn div_frame(items: &[Line], scale: f64) -> (usize, usize, Vec<[u8; 3]>) {
     let document = Document::with_options(
         ViewportMetrics::from_logical_size(WIDTH, height, scale).unwrap(),
         EngineOptions {
-            raster_configuration: RasterConfiguration::chromium_linux_lcd(),
+            raster_configuration: raster_configuration(),
         },
     )
     .unwrap();
@@ -172,7 +210,7 @@ fn div_frame(items: &[Line], scale: f64) -> (usize, usize, Vec<[u8; 3]>) {
 
 fn chromium_frame(scale: &str) -> (usize, usize, Vec<[u8; 3]>) {
     let path = format!(
-        "{}/{FIXTURE}/chromium-linux-{scale}.png",
+        "{}/{FIXTURE}/chromium-{PLATFORM}-{scale}.png",
         env!("CARGO_MANIFEST_DIR")
     );
     let mut decoder =
@@ -207,7 +245,7 @@ fn write_png(path: &std::path::Path, width: usize, height: usize, pixels: &[[u8;
 fn web_font_rows_match_pinned_chromium() {
     let items = lines();
     let mut measured = Vec::new();
-    for scale in SCALES {
+    for &scale in SCALES {
         let factor: f64 = scale.parse().unwrap();
         let (width, height, expected) = chromium_frame(scale);
         let (div_width, div_height, actual) = div_frame(&items, factor);
