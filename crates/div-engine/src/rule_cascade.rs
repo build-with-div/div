@@ -47,11 +47,19 @@
 //! so a hover color change repaints without layout. Inserting or removing
 //! children restyles the parent's subtree, or the document when a rule uses
 //! `:has()`. Nothing here runs until a sheet is adopted.
+//!
+//! A rule inside `@media` applies while its query lists match (Media
+//! Queries 4, as Blink's `MediaQueryEvaluator` reads them). The rule set
+//! keeps each distinct list stack once, with its result. When the viewport,
+//! scale factor, color scheme or reduced-motion preference changes, each is
+//! evaluated again, and if any result flipped the document restyles at the
+//! next `update()`. Nothing is evaluated while no rule is inside `@media`.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
 
 use div_dom::NodeId;
+use div_style::media_query::{ColorScheme, MediaQueryList, MediaValues};
 use div_style::selector::{
     Combinator, Compound, PseudoClass, Selector, SimpleSelector, Specificity,
 };
@@ -113,6 +121,10 @@ struct CompiledRule {
     important: AuthoredStyleDeclarations,
     /// Index into the sheet's layer names.
     layer: Option<usize>,
+    /// The rule's media query lists, outermost first.
+    media: Vec<MediaQueryList>,
+    /// Index into the rule set's media table; `None` without `@media`.
+    media_slot: Option<u32>,
 }
 
 struct AdoptedSheet {
@@ -410,6 +422,9 @@ pub(crate) struct RuleSet {
     pending: Vec<(NodeId, RestyleScope)>,
     /// The slots selector restyles resolved, while a test records them.
     restyle_log: Option<Vec<u32>>,
+    /// Each distinct stack of media query lists the rules use, and whether
+    /// it matched when last evaluated.
+    media_table: Vec<(Vec<MediaQueryList>, bool)>,
 }
 
 /// Where a change can alter which rules match.
@@ -555,6 +570,8 @@ impl RuleSet {
                     .layer()
                     .map(|name| sheet.layers().iter().position(|layer| layer == name))
                     .map(|index| index.expect("a pushed rule declares its layer")),
+                media: rule.media().to_vec(),
+                media_slot: None,
             });
         }
         self.next_id += 1;
@@ -566,8 +583,26 @@ impl RuleSet {
         })
     }
 
-    /// Recompute layer ranks, buckets and flags from the adopted sheets.
-    fn rebuild(&mut self) {
+    /// Recompute layer ranks, buckets, flags and media results from the
+    /// adopted sheets.
+    fn rebuild(&mut self, media: &MediaValues) {
+        let mut table: Vec<(Vec<MediaQueryList>, bool)> = Vec::new();
+        for sheet in &mut self.sheets {
+            for rule in &mut sheet.rules {
+                rule.media_slot = (!rule.media.is_empty()).then(|| {
+                    let slot = match table.iter().position(|(lists, _)| *lists == rule.media) {
+                        Some(slot) => slot,
+                        None => {
+                            let matches = rule.media.iter().all(|list| list.matches(media));
+                            table.push((rule.media.clone(), matches));
+                            table.len() - 1
+                        }
+                    };
+                    slot as u32
+                });
+            }
+        }
+        self.media_table = table;
         let mut names: [Vec<&str>; 2] = [Vec::new(), Vec::new()];
         self.layer_ranks = self
             .sheets
@@ -617,6 +652,24 @@ impl RuleSet {
             }
         }
         self.state_mask = self.index.state_mask();
+    }
+
+    /// Evaluate every media query list stack again. Whether any result
+    /// changed.
+    fn evaluate_media(&mut self, media: &MediaValues) -> bool {
+        let mut flipped = false;
+        for (lists, matches) in &mut self.media_table {
+            let now = lists.iter().all(|list| list.matches(media));
+            flipped |= now != *matches;
+            *matches = now;
+        }
+        flipped
+    }
+
+    /// Whether the rule's media queries match, or it has none.
+    fn media_applies(&self, rule: &CompiledRule) -> bool {
+        rule.media_slot
+            .is_none_or(|slot| self.media_table[slot as usize].1)
     }
 
     /// Normal layered rules rank below unlayered ones, in layer order;
@@ -671,10 +724,11 @@ impl Engine {
             .try_reserve(1)
             .map_err(|_| EngineError::AllocationFailure)?;
         self.rule_set.sheets.push(adopted);
-        self.rule_set.rebuild();
+        let media = self.media_values();
+        self.rule_set.rebuild(&media);
         if let Err(error) = self.restyle_document_for_rules() {
             self.rule_set.sheets.pop();
-            self.rule_set.rebuild();
+            self.rule_set.rebuild(&media);
             return Err(error.into());
         }
         Ok(id)
@@ -689,10 +743,11 @@ impl Engine {
             .position(|sheet| sheet.id == id)
             .ok_or(StyleSheetError::UnknownSheet)?;
         let removed = self.rule_set.sheets.remove(position);
-        self.rule_set.rebuild();
+        let media = self.media_values();
+        self.rule_set.rebuild(&media);
         if let Err(error) = self.restyle_document_for_rules() {
             self.rule_set.sheets.insert(position, removed);
-            self.rule_set.rebuild();
+            self.rule_set.rebuild(&media);
             return Err(error.into());
         }
         Ok(())
@@ -908,6 +963,48 @@ impl Engine {
             self.rule_set.pending.push((node, scope));
             self.selector_restyle_pending = true;
             self.dirty.paint = true;
+        }
+    }
+
+    /// What media queries are evaluated against: the viewport in CSS pixels,
+    /// the device scale factor, the color scheme and the reduced-motion
+    /// preference, with a desktop mouse until the platform reports other
+    /// input devices (RFC 0014).
+    pub(crate) fn media_values(&self) -> MediaValues {
+        let (width, height) = self.viewport.logical_size();
+        MediaValues {
+            color_scheme: self.color_scheme,
+            reduced_motion: self.reduced_motion,
+            ..MediaValues::screen(width, height, self.viewport.device_scale_factor())
+        }
+    }
+
+    /// An input of media queries changed. If any rule's result flipped, the
+    /// document restyles at the next `update()`.
+    pub(crate) fn note_media_change(&mut self) {
+        if self.rule_set.media_table.is_empty() {
+            return;
+        }
+        let media = self.media_values();
+        if self.rule_set.evaluate_media(&media) {
+            let root = self.document.root();
+            self.rule_set.pending.push((root, RestyleScope::Document));
+            self.selector_restyle_pending = true;
+            self.dirty.paint = true;
+        }
+    }
+
+    /// The color scheme media queries see as `prefers-color-scheme`.
+    pub fn color_scheme(&self) -> ColorScheme {
+        self.color_scheme
+    }
+
+    /// Set the color scheme media queries see. Rules whose
+    /// `prefers-color-scheme` result changes apply at the next `update()`.
+    pub fn set_color_scheme(&mut self, scheme: ColorScheme) {
+        if self.color_scheme != scheme {
+            self.color_scheme = scheme;
+            self.note_media_change();
         }
     }
 
@@ -1156,9 +1253,11 @@ impl Engine {
         }
         let mut matched: Vec<Matched> = Vec::new();
         for reference in candidates {
-            let (selector, specificity) = &rules.sheets[reference.sheet as usize].rules
-                [reference.rule as usize]
-                .selectors[reference.selector as usize];
+            let rule = &rules.sheets[reference.sheet as usize].rules[reference.rule as usize];
+            if !rules.media_applies(rule) {
+                continue;
+            }
+            let (selector, specificity) = &rule.selectors[reference.selector as usize];
             let matches = match self.matches_selector(handle, selector) {
                 Ok(matches) => matches,
                 Err(SelectorMatchError::Engine(error)) => return Err(error),

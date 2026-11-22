@@ -1,0 +1,86 @@
+/* media-queries-v1: each query makes one element opaque. */
+div { opacity: 0 }
+@media all { #q0 { opacity: 1 } }
+@media screen { #q1 { opacity: 1 } }
+@media print { #q2 { opacity: 1 } }
+@media not print { #q3 { opacity: 1 } }
+@media not screen { #q4 { opacity: 1 } }
+@media only screen { #q5 { opacity: 1 } }
+@media print, screen { #q6 { opacity: 1 } }
+@media (min-width: 600px) { #q7 { opacity: 1 } }
+@media (max-width: 599px) { #q8 { opacity: 1 } }
+@media (width: 600px) { #q9 { opacity: 1 } }
+@media (min-width: 600.01px) { #q10 { opacity: 1 } }
+@media (min-width: 600.02px) { #q11 { opacity: 1 } }
+@media (max-width: 599.99px) { #q12 { opacity: 1 } }
+@media (max-width: 599.98px) { #q13 { opacity: 1 } }
+@media (width >= 600px) { #q14 { opacity: 1 } }
+@media (width > 600px) { #q15 { opacity: 1 } }
+@media (width < 600.01px) { #q16 { opacity: 1 } }
+@media (400px < width <= 800px) { #q17 { opacity: 1 } }
+@media (800px >= width > 400px) { #q18 { opacity: 1 } }
+@media (100px <= width <= 300px) { #q19 { opacity: 1 } }
+@media (min-width: 37.5em) { #q20 { opacity: 1 } }
+@media (min-width: 37.5rem) { #q21 { opacity: 1 } }
+@media (max-width: 6.25in) { #q22 { opacity: 1 } }
+@media (min-width: 0) { #q23 { opacity: 1 } }
+@media (width) { #q24 { opacity: 1 } }
+@media (height > 399px) { #q25 { opacity: 1 } }
+@media (max-height: 400px) { #q26 { opacity: 1 } }
+@media (min-width: -1px) { #q27 { opacity: 1 } }
+@media (max-width: -1px) { #q28 { opacity: 1 } }
+@media (min-width: 50vw) { #q29 { opacity: 1 } }
+@media (min-height: 100vh) { #q30 { opacity: 1 } }
+@media (max-width: 100vmax) { #q31 { opacity: 1 } }
+@media (aspect-ratio: 3/2) { #q32 { opacity: 1 } }
+@media (aspect-ratio: 4 / 3) { #q33 { opacity: 1 } }
+@media (min-aspect-ratio: 1) { #q34 { opacity: 1 } }
+@media (max-aspect-ratio: 1/1) { #q35 { opacity: 1 } }
+@media (aspect-ratio > 4/3) { #q36 { opacity: 1 } }
+@media (aspect-ratio: 0/0) { #q37 { opacity: 1 } }
+@media (aspect-ratio) { #q38 { opacity: 1 } }
+@media (orientation: landscape) { #q39 { opacity: 1 } }
+@media (orientation: portrait) { #q40 { opacity: 1 } }
+@media (resolution: 1dppx) { #q41 { opacity: 1 } }
+@media (resolution: 1x) { #q42 { opacity: 1 } }
+@media (min-resolution: 2dppx) { #q43 { opacity: 1 } }
+@media (resolution: 1.25x) { #q44 { opacity: 1 } }
+@media (resolution: 120dpi) { #q45 { opacity: 1 } }
+@media (min-resolution: 192dpi) { #q46 { opacity: 1 } }
+@media (resolution: 47.24dpcm) { #q47 { opacity: 1 } }
+@media (resolution) { #q48 { opacity: 1 } }
+@media (-webkit-device-pixel-ratio: 2) { #q49 { opacity: 1 } }
+@media (-webkit-min-device-pixel-ratio: 1.5) { #q50 { opacity: 1 } }
+@media (-webkit-max-device-pixel-ratio: 1) { #q51 { opacity: 1 } }
+@media (prefers-color-scheme: dark) { #q52 { opacity: 1 } }
+@media (prefers-color-scheme: light) { #q53 { opacity: 1 } }
+@media (prefers-color-scheme) { #q54 { opacity: 1 } }
+@media (prefers-reduced-motion) { #q55 { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { #q56 { opacity: 1 } }
+@media (prefers-reduced-motion: no-preference) { #q57 { opacity: 1 } }
+@media (forced-colors: none) { #q58 { opacity: 1 } }
+@media (forced-colors: active) { #q59 { opacity: 1 } }
+@media (forced-colors) { #q60 { opacity: 1 } }
+@media (hover: hover) { #q61 { opacity: 1 } }
+@media (hover: none) { #q62 { opacity: 1 } }
+@media (hover) { #q63 { opacity: 1 } }
+@media (any-hover: hover) { #q64 { opacity: 1 } }
+@media (any-hover: none) { #q65 { opacity: 1 } }
+@media (pointer: fine) { #q66 { opacity: 1 } }
+@media (pointer: coarse) { #q67 { opacity: 1 } }
+@media (pointer) { #q68 { opacity: 1 } }
+@media (any-pointer: fine) { #q69 { opacity: 1 } }
+@media (any-pointer: coarse) { #q70 { opacity: 1 } }
+@media (any-pointer: none) { #q71 { opacity: 1 } }
+@media only screen and (min-width: 1px) { #q72 { opacity: 1 } }
+@media not screen and (min-width: 1px) { #q73 { opacity: 1 } }
+@media not screen and (max-width: 1px) { #q74 { opacity: 1 } }
+@media (min-width: 1px) and (max-width: 1px) { #q75 { opacity: 1 } }
+@media (max-width: 1px) or (min-width: 1px) { #q76 { opacity: 1 } }
+@media not (max-width: 1px) { #q77 { opacity: 1 } }
+@media not ((max-width: 1px) or (orientation: portrait)) { #q78 { opacity: 1 } }
+@media ((min-width: 500px) and (orientation: landscape)) { #q79 { opacity: 1 } }
+@media all and (orientation: landscape) { #q80 { opacity: 1 } }
+@media screen and (prefers-color-scheme: dark), (min-resolution: 2x) { #q81 { opacity: 1 } }
+@media screen { @media (min-width: 600px) { #q82 { opacity: 1 } } }
+#q83 { @media (orientation: landscape) { @media (min-resolution: 2dppx) { opacity: 1 } } }

@@ -103,3 +103,47 @@ fn an_inline_sheet_matches_selector_lists_and_combinators() {
     assert_eq!((red.r, red.g, red.b), (1.0, 0.0, 0.0));
     assert_eq!((blue.r, blue.g, blue.b), (0.0, 0.0, 1.0));
 }
+
+stylesheet!(responsive {
+    .panel { opacity: 0.1 }
+    @media screen and (width >= 600px) {
+        .panel { opacity: 0.2 }
+        @media (min-resolution: 2dppx) { .panel { opacity: 0.3 } }
+    }
+    .panel {
+        @media (prefers-color-scheme: dark) { opacity: 0.4 }
+    }
+    @media print { .panel { opacity: 0.9 } }
+});
+
+#[test]
+fn media_rules_apply_while_their_queries_match() {
+    use div::{ColorScheme, ViewportMetrics};
+    let rules = responsive::SHEET.rules();
+    assert_eq!(rules.len(), 5);
+    assert!(rules[0].media().is_empty());
+    assert_eq!(rules[2].media().len(), 2);
+
+    let document = Document::new(400, 300).unwrap();
+    let body = document.body();
+    let panel = element(&document, &body, &["panel"]);
+    document.adopt_stylesheet(&responsive::SHEET).unwrap();
+    assert_eq!(opacity(&panel), 0.1);
+
+    let resize = |width: f64, scale: f64| {
+        let metrics = ViewportMetrics::from_logical_size(width, 300.0, scale).unwrap();
+        document.set_viewport(metrics).unwrap();
+        document.update_all().unwrap();
+    };
+    resize(600.0, 1.0);
+    assert_eq!(opacity(&panel), 0.2);
+    resize(600.0, 2.0);
+    assert_eq!(opacity(&panel), 0.3);
+    resize(599.0, 2.0);
+    assert_eq!(opacity(&panel), 0.1);
+
+    document.set_color_scheme(ColorScheme::Dark).unwrap();
+    assert_eq!(document.color_scheme().unwrap(), ColorScheme::Dark);
+    document.update_all().unwrap();
+    assert_eq!(opacity(&panel), 0.4);
+}

@@ -6,19 +6,23 @@
 //! the subset of CSS the cascade supports:
 //!
 //! - style rules, with nested style rules (`&` and implicit nesting);
-//! - `@layer a, b;` and `@layer name { ... }`.
+//! - `@layer a, b;` and `@layer name { ... }`;
+//! - `@media <query list> { ... }`, at the top level, in a layer, nested in
+//!   another `@media` or in a style rule.
 //!
 //! Anything else is an error that names the construct, never a rule that
-//! silently applies nothing: `@media`, `@supports` and other at-rules,
-//! anonymous and nested layers, and at-rules inside style rules. Like the
-//! declaration block parser, this module exists only with the internal
-//! `constructor-tokens` feature.
+//! silently applies nothing: `@supports` and other at-rules, anonymous and
+//! nested layers, layers inside `@media`, other at-rules inside style rules,
+//! and media queries Chromium would treat as `not all` or unknown, or that
+//! Div does not evaluate yet. Like the declaration block parser, this module
+//! exists only with the internal `constructor-tokens` feature.
 
 use std::ops::Range;
 
 use crate::declaration_block::{
     parse_declaration, strip_comments, trimmed_range, BlockDeclaration,
 };
+use crate::media_query::{parse_media_query_list, MediaQueryList};
 use crate::selector::{PseudoClass, RelativeSelector, Selector, SimpleSelector};
 use crate::selector_parser::parse_selector_list;
 
@@ -30,6 +34,9 @@ pub struct SheetRule {
     pub selectors: Vec<Selector>,
     pub declarations: Vec<BlockDeclaration>,
     pub layer: Option<String>,
+    /// The query lists of the `@media` rules around the rule, outermost
+    /// first. The rule applies while every one matches.
+    pub media: Vec<MediaQueryList>,
 }
 
 /// A statement of the sheet, in source order.
@@ -63,7 +70,7 @@ pub fn parse_stylesheet(text: &str) -> Result<Vec<SheetItem>, Vec<SheetError>> {
         items: Vec::new(),
         errors: Vec::new(),
     };
-    parser.top_level(0..cleaned.len(), None);
+    parser.top_level(0..cleaned.len(), None, &[]);
     if parser.errors.is_empty() {
         Ok(parser.items)
     } else {
@@ -170,8 +177,9 @@ impl SheetParser<'_> {
         }
     }
 
-    /// The rules of a sheet, or of an `@layer` block when `layer` is set.
-    fn top_level(&mut self, range: Range<usize>, layer: Option<&str>) {
+    /// The rules of a sheet, or of an `@layer` block when `layer` is set, or
+    /// of an `@media` block when `media` is not empty.
+    fn top_level(&mut self, range: Range<usize>, layer: Option<&str>, media: &[MediaQueryList]) {
         for item in self.items_in(range) {
             match item {
                 Item::AtRule {
@@ -179,12 +187,12 @@ impl SheetParser<'_> {
                     whole,
                     prelude,
                     block,
-                } => self.at_rule(&name, whole, prelude, block, layer),
+                } => self.at_rule(&name, whole, prelude, block, layer, media),
                 Item::Qualified { prelude, block } => {
                     let Some(selectors) = self.selectors(prelude, None) else {
                         continue;
                     };
-                    self.style_block(block, &selectors, layer);
+                    self.style_block(block, &selectors, layer, media);
                 }
                 Item::Declaration(range) => {
                     let snippet = self.snippet(&range);
@@ -204,10 +212,15 @@ impl SheetParser<'_> {
         prelude: Range<usize>,
         block: Option<Range<usize>>,
         layer: Option<&str>,
+        media: &[MediaQueryList],
     ) {
         let lowercase = name.to_ascii_lowercase();
         match lowercase.as_str() {
             "layer" => {
+                if !media.is_empty() {
+                    self.error("a layer inside `@media` is not supported yet", whole);
+                    return;
+                }
                 if layer.is_some() {
                     self.error(
                         "a layer inside a layer (a sublayer) is not supported yet",
@@ -242,11 +255,16 @@ impl SheetParser<'_> {
                             return;
                         }
                         let names = names.to_owned();
-                        self.top_level(block, Some(&names));
+                        self.top_level(block, Some(&names), media);
                     }
                 }
             }
-            "media" => self.error("`@media`: media queries land with Tier 0 item 0.5", whole),
+            "media" => {
+                let Some((block, media)) = self.media_rule(whole, prelude, block, media) else {
+                    return;
+                };
+                self.top_level(block, layer, &media);
+            }
             "supports" => self.error("`@supports` is not supported yet", whole),
             _ => self.error(
                 format!("`@{name}` is not supported in a style sheet"),
@@ -259,7 +277,16 @@ impl SheetParser<'_> {
     /// follow it in order of appearance. Declarations after a nested rule
     /// form a rule of their own with the same selectors, after that nested
     /// rule, as CSS Nesting's nested declarations rules do.
-    fn style_block(&mut self, range: Range<usize>, selectors: &[Selector], layer: Option<&str>) {
+    ///
+    /// An `@media` rule nested in it is a block of the same kind, with the
+    /// same selectors, that applies while its queries match.
+    fn style_block(
+        &mut self,
+        range: Range<usize>,
+        selectors: &[Selector],
+        layer: Option<&str>,
+        media: &[MediaQueryList],
+    ) {
         let mut declarations = Vec::new();
         for item in self.items_in(range) {
             match item {
@@ -270,11 +297,23 @@ impl SheetParser<'_> {
                     }
                 }
                 Item::Qualified { prelude, block } => {
-                    self.push_rule(selectors, std::mem::take(&mut declarations), layer);
+                    self.push_rule(selectors, std::mem::take(&mut declarations), layer, media);
                     let Some(nested) = self.selectors(prelude, Some(selectors)) else {
                         continue;
                     };
-                    self.style_block(block, &nested, layer);
+                    self.style_block(block, &nested, layer, media);
+                }
+                Item::AtRule {
+                    name,
+                    whole,
+                    prelude,
+                    block,
+                } if name.eq_ignore_ascii_case("media") => {
+                    self.push_rule(selectors, std::mem::take(&mut declarations), layer, media);
+                    let Some((block, media)) = self.media_rule(whole, prelude, block, media) else {
+                        continue;
+                    };
+                    self.style_block(block, selectors, layer, &media);
                 }
                 Item::AtRule { name, whole, .. } => self.error(
                     format!("`@{name}` inside a style rule is not supported yet"),
@@ -282,7 +321,34 @@ impl SheetParser<'_> {
                 ),
             }
         }
-        self.push_rule(selectors, declarations, layer);
+        self.push_rule(selectors, declarations, layer, media);
+    }
+
+    /// An `@media` rule's block, and the query lists that apply inside it.
+    /// A query Chromium would read as `not all` or unknown, or that Div does
+    /// not evaluate yet, is an error.
+    fn media_rule(
+        &mut self,
+        whole: Range<usize>,
+        prelude: Range<usize>,
+        block: Option<Range<usize>>,
+        media: &[MediaQueryList],
+    ) -> Option<(Range<usize>, Vec<MediaQueryList>)> {
+        let Some(block) = block else {
+            self.error("`@media` needs a block", whole);
+            return None;
+        };
+        let parsed = parse_media_query_list(&self.text[prelude.clone()]);
+        if !parsed.problems.is_empty() {
+            let source = trimmed_range(self.text, prelude);
+            for problem in parsed.problems {
+                self.error(format!("`@media`: {problem}"), source.clone());
+            }
+            return None;
+        }
+        let mut lists = media.to_vec();
+        lists.push(parsed.list);
+        Some((block, lists))
     }
 
     fn push_rule(
@@ -290,6 +356,7 @@ impl SheetParser<'_> {
         selectors: &[Selector],
         declarations: Vec<BlockDeclaration>,
         layer: Option<&str>,
+        media: &[MediaQueryList],
     ) {
         if declarations.is_empty() {
             return;
@@ -298,6 +365,7 @@ impl SheetParser<'_> {
             selectors: selectors.to_vec(),
             declarations,
             layer: layer.map(str::to_owned),
+            media: media.to_vec(),
         }));
     }
 
@@ -574,15 +642,68 @@ mod tests {
         assert_eq!(items.len(), 2);
     }
 
+    fn media(text: &str) -> MediaQueryList {
+        let parsed = parse_media_query_list(text);
+        assert!(parsed.problems.is_empty(), "{:?}", parsed.problems);
+        parsed.list
+    }
+
+    #[test]
+    fn media_rules_wrap_rules_at_every_level() {
+        let items = rules(
+            "@layer base; \
+             @media (min-width: 600px) { .a { color: red } @media print { .b { color: blue } } } \
+             @layer base { @media screen { .c { color: red } } } \
+             .d { color: red; @media (hover) { opacity: 0.5; .e { color: blue } } display: flex }",
+        );
+        let wide = media("(min-width: 600px)");
+        assert_eq!(rule(&items[1]).media, vec![wide.clone()]);
+        assert_eq!(rule(&items[1]).layer, None);
+        assert_eq!(rule(&items[2]).media, vec![wide, media("print")]);
+        assert_eq!(rule(&items[3]).media, vec![media("screen")]);
+        assert_eq!(rule(&items[3]).layer.as_deref(), Some("base"));
+        let parent = parse_selector_list(".d", None).unwrap();
+        let hover = media("(hover)");
+        // Declarations directly in a nested `@media` keep the parent's
+        // selectors, in source order around it.
+        assert_eq!(rule(&items[4]).selectors, parent);
+        assert!(rule(&items[4]).media.is_empty());
+        assert_eq!(rule(&items[5]).selectors, parent);
+        assert_eq!(rule(&items[5]).media, vec![hover.clone()]);
+        assert_eq!(
+            rule(&items[5]).declarations[0].property,
+            StyleProperty::Opacity
+        );
+        assert_eq!(
+            rule(&items[6]).selectors,
+            parse_selector_list(".e", Some(&parent)).unwrap()
+        );
+        assert_eq!(rule(&items[6]).media, vec![hover]);
+        assert_eq!(rule(&items[7]).selectors, parent);
+        assert!(rule(&items[7]).media.is_empty());
+        assert_eq!(items.len(), 8);
+    }
+
+    #[test]
+    fn media_queries_chromium_would_void_are_errors() {
+        assert!(message("@media screen and { }").contains("not a valid media query"));
+        assert!(message("@media (min-width: 100) { }").contains("not a valid media feature"));
+        assert!(message("@media (color) { }").contains("not supported yet"));
+        assert!(message("@media (foo: bar) { }").contains("not a valid media feature"));
+        assert!(message("@media tv { }").contains("not a media type"));
+        assert!(message("@media screen;").contains("needs a block"));
+        assert!(message("@media screen { @layer a { } }").contains("inside `@media`"));
+        assert!(message(".a { @supports (x: y) { } }").contains("inside a style rule"));
+    }
+
     #[test]
     fn unsupported_constructs_are_errors() {
-        assert!(message("@media (width > 1px) { .a { color: red } }").contains("0.5"));
         assert!(message("@supports (display: grid) { }").contains("@supports"));
         assert!(message("@font-face { font-family: x }").contains("@font-face"));
         assert!(message("@layer { .a { color: red } }").contains("anonymous"));
         assert!(message("@layer a { @layer b { } }").contains("sublayer"));
         assert!(message("@layer a.b;").contains("dotted"));
-        assert!(message(".a { @media print { } }").contains("inside a style rule"));
+        assert!(message(".a { @font-face { } }").contains("inside a style rule"));
         assert!(message("color: red;").contains("outside a style rule"));
         assert!(message(".a { color: red").contains("never closed"));
         assert!(message(".a { color: red } }").contains("no opening bracket"));
@@ -591,7 +712,7 @@ mod tests {
 
     #[test]
     fn every_error_is_reported() {
-        let errors = parse_stylesheet(".a { colr: red } @media print { } .b { opacity: x }")
+        let errors = parse_stylesheet(".a { colr: red } @supports x { } .b { opacity: x }")
             .expect_err("three errors");
         assert_eq!(errors.len(), 3);
     }

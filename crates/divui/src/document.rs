@@ -7,6 +7,7 @@ use crate::events::{
 };
 use crate::pointer::{PointerInput, PointerInputKind};
 use crate::style::{Bitmap, Error};
+use crate::ColorScheme;
 use div_compositor::SoftwareCompositor;
 use div_dom::{ElementTag, FormControlRole};
 use div_engine::{
@@ -826,6 +827,21 @@ impl Document {
     pub fn set_prefers_reduced_motion(&self, reduced: bool) -> Result<(), Error> {
         self.with_engine_mut(|engine| {
             engine.set_prefers_reduced_motion(reduced);
+            Ok(())
+        })
+    }
+
+    /// The color scheme `prefers-color-scheme` media queries see.
+    pub fn color_scheme(&self) -> Result<ColorScheme, Error> {
+        self.with_engine(Engine::color_scheme)
+    }
+
+    /// Set the color scheme `prefers-color-scheme` media queries see. The
+    /// default is light. Rules it switches on or off apply at the next
+    /// update.
+    pub fn set_color_scheme(&self, scheme: ColorScheme) -> Result<(), Error> {
+        self.with_engine_mut(|engine| {
+            engine.set_color_scheme(scheme);
             Ok(())
         })
     }

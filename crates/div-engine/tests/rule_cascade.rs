@@ -896,3 +896,86 @@ fn type_rules_select_an_element_by_its_created_name() {
     assert_eq!(engine.local_name(heading).unwrap(), Some("h1"));
     assert_eq!(engine.local_name(plain).unwrap(), Some("div"));
 }
+
+fn media(text: &str) -> div_style::media_query::MediaQueryList {
+    let parsed = div_style::media_query::parse_media_query_list(text);
+    assert!(parsed.problems.is_empty(), "{:?}", parsed.problems);
+    parsed.list
+}
+
+fn viewport(width: f64, height: f64, scale: f64) -> ViewportMetrics {
+    ViewportMetrics::from_logical_size(width, height, scale).unwrap()
+}
+
+#[test]
+fn media_rules_follow_the_viewport_scale_and_preferences() {
+    use div_style::media_query::ColorScheme;
+    let mut engine = engine();
+    let root = engine.root();
+    let target = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(target, "class", "a").unwrap();
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".a", opacity(0.1)))
+        .with_rule(rule(".a", opacity(0.2)).with_media(media("(min-width: 400px)")))
+        .with_rule(
+            rule(".a", opacity(0.3))
+                .with_media(media("(min-width: 400px)"))
+                .with_media(media("(min-resolution: 2dppx)")),
+        )
+        .with_rule(rule(".a", opacity(0.4)).with_media(media("(prefers-color-scheme: dark)")))
+        .with_rule(rule(".a", opacity(0.5)).with_media(media("(prefers-reduced-motion)")))
+        .with_rule(rule(".a", opacity(0.6)).with_media(media("print")));
+    engine.adopt_style_sheet(&sheet).unwrap();
+    // 200px wide at 1x: only the unconditional rule applies.
+    assert_eq!(opacity_of(&engine, target), 0.1);
+
+    engine.set_viewport(viewport(400.0, 300.0, 1.0)).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.2);
+    // Both nested lists must match.
+    engine.set_viewport(viewport(400.0, 300.0, 2.0)).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.3);
+    engine.set_viewport(viewport(399.0, 300.0, 2.0)).unwrap();
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.1);
+
+    engine.set_color_scheme(ColorScheme::Dark);
+    assert_eq!(engine.color_scheme(), ColorScheme::Dark);
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.4);
+    engine.set_prefers_reduced_motion(true);
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.5);
+    engine.set_color_scheme(ColorScheme::Light);
+    engine.set_prefers_reduced_motion(false);
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.1);
+}
+
+#[test]
+fn a_media_flip_restyles_like_a_fresh_cascade() {
+    let mut engine = engine();
+    let root = engine.root();
+    let parent = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(parent, "class", "p").unwrap();
+    let child = element(&mut engine, parent, ElementTag::Span);
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(
+            rule(".p", Style::default().color(Color::RED)).with_media(media("(max-width: 300px)")),
+        )
+        .with_rule(rule(".p span", opacity(0.7)).with_media(media("(orientation: landscape)")));
+    let mut id = engine.adopt_style_sheet(&sheet).unwrap();
+    let elements = [parent, child];
+    let before = snapshot(&engine, &elements);
+    engine.set_viewport(viewport(500.0, 200.0, 1.0)).unwrap();
+    engine.update().unwrap();
+    let incremental = snapshot(&engine, &elements);
+    assert_ne!(incremental, before);
+    full_cascade(&mut engine, &sheet, &mut id);
+    assert_eq!(incremental, snapshot(&engine, &elements));
+    // A change that flips no result keeps the styles.
+    engine.set_viewport(viewport(600.0, 200.0, 1.0)).unwrap();
+    engine.update().unwrap();
+    assert_eq!(incremental, snapshot(&engine, &elements));
+}
