@@ -22,7 +22,7 @@
 import {pathToFileURL} from 'node:url';
 
 const acornPath = process.argv[2];
-if (!acornPath) throw new Error('usage: translate.mjs ACORN_MJS < pages.json');
+if (!acornPath) throw new Error('usage: translate.mjs ACORN_MJS [--ast] < pages.json');
 const {parse} = await import(pathToFileURL(acornPath).href);
 
 let input = '';
@@ -375,4 +375,21 @@ function analyse(page) {
   return {file: page.file, subtests, page_surfaces: [...pageLevel.surfaces].sort()};
 }
 
-process.stdout.write(JSON.stringify(pages.map(analyse), null, 1) + '\n');
+// `--ast`: the parsed scripts themselves, one Program per inline script,
+// for tools/wpt_script/codegen.py. A BigInt or RegExp literal's value is
+// not JSON; codegen reads `raw` and reports them unsupported.
+function programs(page) {
+  try {
+    return {file: page.file, programs: page.scripts.map(script => parse(script.source, {
+      ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true,
+    }))};
+  } catch (error) {
+    return {file: page.file, parse_error: `${error.message}`, programs: []};
+  }
+}
+
+const json = (key, value) => (typeof value === 'bigint' || value instanceof RegExp)
+  ? String(value) : value;
+process.stdout.write(process.argv[3] === '--ast'
+  ? JSON.stringify(pages.map(programs), json) + '\n'
+  : JSON.stringify(pages.map(analyse), null, 1) + '\n');

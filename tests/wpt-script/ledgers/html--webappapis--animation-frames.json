@@ -7,6 +7,10 @@
   "blocked": 4,
   "translatable": 6
  },
+ "div": {
+  "PASS": 4,
+  "UNSUPPORTED": 2
+ },
  "blocked_by": {
   "gap:attribute-reflection": 1,
   "gap:child-documents": 1,
@@ -45,7 +49,9 @@
    "file": "html/webappapis/animation-frames/callback-handle.html",
    "name": "Check window.requestAnimationFrame can return a valid callback handle",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "UNSUPPORTED",
+   "div_message": "numeric-frame-handle"
   },
   {
    "file": "html/webappapis/animation-frames/callback-invoked.html",
@@ -60,13 +66,15 @@
    "file": "html/webappapis/animation-frames/callback-multicalls.html",
    "name": "Check that multiple calls to requestAnimationFrame with the same callback will result in multiple entries being in the list with that same callback.",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "PASS"
   },
   {
    "file": "html/webappapis/animation-frames/callback-timestamp.html",
    "name": "Check FrameRequestCallback has a DOMHighResTimeStamp argument",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "PASS"
   },
   {
    "file": "html/webappapis/animation-frames/cancel-handle-manual.html",
@@ -79,19 +87,23 @@
    "file": "html/webappapis/animation-frames/cancel-invoked.html",
    "name": "cancelAnimationFrame does nothing if there is no callback with the given handle",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "UNSUPPORTED",
+   "div_message": "numeric-frame-handle"
   },
   {
    "file": "html/webappapis/animation-frames/cancel-pending.html",
    "name": "cancelAnimationFrame cancels a pending animation frame callback",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "PASS"
   },
   {
    "file": "html/webappapis/animation-frames/same-dispatch-time.html",
    "name": "requestAnimationFrame will timestamp events in the same queue with the same time",
    "chromium": "PASS",
-   "status": "translatable"
+   "status": "translatable",
+   "div": "PASS"
   },
   {
    "file": "html/webappapis/animation-frames/spurious-frame-callbacks-optimization.html",

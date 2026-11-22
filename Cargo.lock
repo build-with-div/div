@@ -1049,6 +1049,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "div-wpt-script"
+version = "0.2.0"
+dependencies = [
+ "divui",
+]
+
+[[package]]
 name = "divui"
 version = "0.2.0"
 dependencies = [

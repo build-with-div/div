@@ -89,8 +89,9 @@ merges. The editor gaps below wait behind T3.
 
 | # | Item | State |
 | --- | --- | --- |
-| T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | In progress |
-| T3b | The `div-wpt-script` crate, its runtime and generated tests for animation-frames and resize-observer | Not started |
+| T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | Merged (#113) |
+| T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | In progress |
+| T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Not started |
 | T3c | `pointerevents` (`test_driver` actions to `TestApp` input) | Not started |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
 
@@ -112,6 +113,77 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 22 November 2026: T3b-1, generated tests for animation-frames (RFC 0005 step 3)
+
+Problem: T3a's ledgers name the translatable subtests, but none of them ran
+against Div.
+
+Change (`tests/wpt-script/` and `tools/wpt_script/`, CI; no `divui` change).
+It follows RFC 0005's Amendment 1 (a compiled subset on a value runtime, the
+PR's first commit), which the user accepted on 22 November 2026.
+
+- The new `div-wpt-script` crate holds the runtime the generated tests run
+  on (`src/runtime.rs`):
+  - JavaScript values, and variables as shared cells, so closures see each
+    other's writes. `let` and `const` keep their temporal dead zone.
+  - testharness.js: `test`, `async_test`, `step`, `step_func`,
+    `step_func_done`, `unreached_func`, `add_cleanup`, `step_timeout`, and
+    the `assert_*` functions with its semantics (`assert_equals` is
+    SameValue; `assert_true` needs `true`).
+  - A virtual clock: frame *n* runs at *n* × 1000/60 ms through
+    `TestApp::advance_frame`, timers due by then run first, and a test still
+    running after 10 s of virtual time times out.
+  - `requestAnimationFrame` and `cancelAnimationFrame` call
+    `Document::request_animation_frame` and `cancel_animation_frame`.
+  - What has no exact `divui` call stops the subtest as UNSUPPORTED with the
+    reason, never a near equivalent. For example, Div's frame handle is
+    opaque, so using it as a number reports `numeric-frame-handle`.
+  - JavaScript's conversions are exact or rejected: `Number::toString`,
+    `StringToNumber` (decimal only), `==` between primitives, sloppy-mode
+    `this`, and timers' WebIDL `long` delay are exact. `ToPrimitive`,
+    mapped `arguments` and timers the nesting clamp could raise are
+    rejected (Amendment 1's table lists each).
+- `codegen.py` compiles each page with a translatable subtest into a
+  `#[test]` (`tests/wpt-script/tests/<suite>.rs`):
+  - the page's markup, in document order, through `Element::create`;
+  - its inline scripts, from the pinned Acorn AST (`translate.mjs --ast`),
+    into Rust on the runtime.
+  - Constructs outside the accepted subset (`try`, `throw`, regular
+    expressions, optional chaining, async functions, spread, destructuring,
+    a block binding named outside its block, closures over a loop binding,
+    and others) compile to UNSUPPORTED with the construct's name.
+- Expectations: the generated test compares each translatable subtest with
+  `tests/wpt-script/expected/`. A regression fails, and so does a pass that
+  is not recorded yet.
+  - `DIV_WPT_SCRIPT_RECORD=<dir> cargo test -p div-wpt-script` writes the
+    results; `codegen.py --record <dir>` makes them the expectations.
+  - The ledgers gain a `div` column and counts.
+- CI runs `div-wpt-script` in the Linux and Windows workspace test steps, and
+  `test_codegen` and `codegen.py --check` in `python-accountability`.
+
+Results (Windows, this branch):
+
+| Suite | Translatable | Div pass | Div fail | Div unsupported |
+| --- | --- | --- | --- | --- |
+| `html/webappapis/animation-frames` | 6 | 4 | 0 | 2 (`numeric-frame-handle`: `callback-handle`, `cancel-invoked`) |
+
+The 2 unsupported subtests pass in Chromium; they are named gaps, counted
+apart from passes.
+
+Verification:
+
+- `cargo test -p div-wpt-script` (Windows): each of the 6 generated tests
+  matches its recorded outcome (4 pass, 0 fail, 2 unsupported), and the
+  runtime's 3 conversion tests pass.
+- Mutations: a no-op `cancelAnimationFrame` in the runtime fails
+  `cancel_pending`, and a PASS recorded as FAIL fails `callback_timestamp`.
+- `python -m unittest tools.wpt_script.test_ledger tools.wpt_script.test_codegen`:
+  33 tests pass.
+- `ledger.py --check` and `codegen.py --check` pass against a checkout with
+  only the two suites, as CI has.
+- `cargo fmt --all --check` passes; the generated file keeps
+  `#[rustfmt::skip]` on each test.
 
 ### 21 November 2026: T3a, the WPT script ledgers (RFC 0005 step 2)
 

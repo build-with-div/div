@@ -1,0 +1,11 @@
+[package]
+name = "div-wpt-script"
+description = "WPT testharness tests translated into Div tests (RFC 0005)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+divui = { version = "=0.2.0", path = "../../crates/divui", features = ["testing"] }

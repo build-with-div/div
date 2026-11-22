@@ -118,6 +118,7 @@ jobs:
           --package divui
           --package div-ffi
           --package div-cli
+          --package div-wpt-script
           --features "divui/async divui/http divui/testing"
 
   windows-msvc:
@@ -339,6 +340,7 @@ jobs:
           --package divui
           --package div-ffi
           --package div-cli
+          --package div-wpt-script
           --features divui/async
 
       - name: Confirm LF checkout bytes are unchanged
@@ -471,7 +473,8 @@ jobs:
             tools.test_skia_prebuilt \
             tools.ci.test_check_platform_scoped_tests \
             tools.ci.test_msvc_toolset \
-            tools.wpt_script.test_ledger
+            tools.wpt_script.test_ledger \
+            tools.wpt_script.test_codegen
 
       - name: Verify immutable closure ledgers
         run: |
@@ -479,6 +482,7 @@ jobs:
           python3 tools/accountability/restore_frozen_openui_archive.py --check
           python3 tools/qualification/generate_renderer_contract.py --check
           python3 tools/wpt_script/ledger.py --check
+          python3 tools/wpt_script/codegen.py --check
           python3 tools/wpt/generate_sp13r_multicol_closure.py --check
           python3 tools/wpt/generate_sp17_closure.py --check
           python3 tools/wpt/generate_sp18_closure.py --check
