@@ -46,6 +46,70 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 
+## 21 November 2026: the dialog oracle (H4, RFC 0015 PR 1)
+
+The components track builds platform-plan item H4, the top layer and
+`<dialog>`, as [RFC 0015](../../alpha/rfcs/0015-top-layer-and-dialog.md)
+proposes. This first PR changes no product code. It records Chromium's
+behavior before Div implements any of it.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| A capture script built on the keyboard scrolling oracle's browser, input and settling code: real XTEST keys and buttons to pinned Chrome-for-Testing 147.0.7727.50 on X11 in WSL, at scale 1. It records 23 scenarios on its own page (seven dialogs, three outside buttons and a non-focusable box). After each step it records the input, mouse and key events, `beforetoggle`, `cancel` and any exception in order, and `toggle` and `close` apart and sorted, since they race. It also records the focused element and each dialog's `open`, `:modal` and `returnValue`. A geometry pass records each dialog's box, its computed style and its `::backdrop`'s computed style at 480x400, 800x600 and 375x667, without input. The first move after the window appears sometimes misses under WSLg, so calibration is retried. | components (H4, for the engine lane, which owns `tools/qualification`) | `tools/qualification/capture_dialog_oracle.py` |
+| The capture: 23 scenarios and 15 geometry records, captured twice and identical (110 s). | components | `tests/fidelity/fixtures/dialog-v1/chromium-linux-x11.json` |
+| A replay test that checks the capture's provenance and shape. It lists every scenario as pending on the RFC 0015 PR that makes it replayable, and fails if a captured scenario is neither replayed nor pending. Later PRs replay scenarios and take them off the list. | components (H4, for the framework track, which owns `divui`) | `crates/divui/tests/dialog_oracle.rs` |
+
+### Measurement
+
+What Chromium does, from the capture, now part of RFC 0015:
+
+- **Opening.** `showModal()` and `show()` dispatch a cancelable
+  `beforetoggle`, then `toggle`. Focus goes to the autofocus element, else
+  the first focusable descendant. A dialog with nothing focusable takes
+  focus itself. A cancelled `beforetoggle` stops the open.
+- **Closing.** `close()` dispatches a non-cancelable `beforetoggle`, then
+  `toggle` and `close`, and restores focus to the opener. A non-modal
+  dialog does not restore focus once focus has left it.
+- **Escape and `requestClose()`.** Both dispatch a cancelable `cancel`
+  first. A cancelled `cancel` keeps the dialog open. A second Escape with
+  no click in between dispatches a non-cancelable `cancel` and closes the
+  dialog. A click inside the dialog makes the next `cancel` cancelable
+  again. A cancelled Escape `keydown` dispatches no `cancel`. Escape in a
+  text field closes the dialog. A non-modal dialog ignores Escape.
+  `requestClose()` can be cancelled every time.
+- **Tab.** Tab and Shift+Tab move within a modal dialog. A Tab past its
+  last element leaves the document for the browser's UI: the page loses
+  focus, so the capture stops there and the scenarios avoid it. RFC 0015
+  asks the user what Div does instead.
+- **Inertness.**
+  - A press on inert content, or on the backdrop, targets the topmost
+    modal dialog and focuses it.
+  - Script `focus()` on inert content does nothing.
+  - With two modal dialogs open, a press on the lower one targets the
+    upper one.
+  - Removing an open modal dialog from the document ends inertness.
+  - Removing only its `open` attribute leaves it `:modal` and the document
+    inert, with presses reaching the root.
+- **Exceptions.** `show()` on a modal dialog, `showModal()` on an open
+  non-modal dialog, and `showModal()` on a disconnected dialog each throw
+  `InvalidStateError`.
+- **Geometry.** A modal dialog is `position: fixed`, centered, with
+  `max-width` and `max-height` of `calc(100% - 30px)` at 12px (6px plus
+  2em). A taller or wider dialog is clamped and scrolls. A non-modal
+  dialog is `position: absolute` at the top, centered horizontally. The
+  `::backdrop` of a modal dialog is fixed with `inset: 0` and
+  `rgba(0, 0, 0, 0.1)`.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Capture | `python3 tools/qualification/capture_dialog_oracle.py --chrome <pinned chrome-linux64/chrome>` in WSL (WSLg) | 23 scenarios and 15 geometry records, both runs identical, 110 s |
+| Replay test | `cargo test --locked -p divui --test dialog_oracle` on Windows (CI Skia flags, VS 2022 Build Tools) | 2 passed |
+| Formatting | `cargo fmt --all --check` | clean |
+
 ## 17 November 2026: checkbox (C2 group 2, C3)
 
 ### Change
@@ -761,8 +825,11 @@ These are API requests for the framework track, not blockers.
    [RFC 0003](../../alpha/rfcs/0003-component-primitives.md), as a
    `primitives` module of `div-components`, on the public `divui` API and
    the RFC's interims. Roving focus, tabs, switch, input and checkbox
-   are built; dialog waits for the top layer (A3). Their `data-state`
-   styles are inline until typed style rules (A1) land.
+   are built. Dialog waits for the top layer, which this track builds as
+   H4 ([RFC 0015](../../alpha/rfcs/0015-top-layer-and-dialog.md)): the
+   Chromium oracle, then the WPT porter's dialog mutations, the engine
+   top layer, `::backdrop` and the UA rules, and the `divui` API. Their
+   `data-state` styles are inline until typed style rules (A1) land.
 3. Lucide icons in Div: every Lucide icon is an inline `svg` of stroked
    `<path>` data in `currentColor`, and Div's DOM has no SVG shapes yet.
    The checkbox, the first component with an icon, builds the outer `svg`
