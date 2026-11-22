@@ -869,7 +869,7 @@ impl Engine {
             let eligible: std::collections::HashSet<_> = candidates.iter().copied().collect();
             let mut document_order = Vec::new();
             self.collect_focus_document_order(
-                self.modal_root.unwrap_or_else(|| self.root()),
+                self.inert_scope().unwrap_or_else(|| self.root()),
                 &mut document_order,
             )?;
             // A node that is not in the order, as Blink's tabindex -1 start,
@@ -1850,22 +1850,13 @@ impl Engine {
         self.has_focus_semantics(handle) || self.is_focusable_scroller(handle)
     }
 
+    /// Outside the inert part of the document (`dialog.rs`).
     fn is_inside_modal(&self, handle: NodeHandle) -> bool {
-        let Some(modal) = self.modal_root else {
-            return true;
-        };
-        let mut current = Some(self.public_event_target(handle));
-        while let Some(node) = current {
-            if node == modal {
-                return true;
-            }
-            current = self.parent(node).ok().flatten();
-        }
-        false
+        !self.is_inert(handle)
     }
 
     fn focus_candidates(&self) -> Result<Vec<NodeHandle>, EngineError> {
-        let root = self.modal_root.unwrap_or_else(|| self.root());
+        let root = self.inert_scope().unwrap_or_else(|| self.root());
         let mut candidates = Vec::new();
         let mut order = 0usize;
         self.collect_focus_candidates(root, &mut order, &mut candidates)?;

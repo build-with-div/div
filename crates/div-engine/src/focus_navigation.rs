@@ -93,11 +93,12 @@ impl Engine {
     }
 
     /// Focusable for a reason other than scrolling: `tabindex`, a form
-    /// control or `summary`.
+    /// control, `summary` or `dialog`.
     pub fn has_focus_semantics(&self, handle: NodeHandle) -> bool {
         self.tabindex(handle).is_some()
             || self.controls.contains_key(&handle.index)
             || self.element_tag(handle) == Ok(ElementTag::Summary)
+            || self.is_dialog(handle).unwrap_or(false)
     }
 
     /// In the sequential focus order.
@@ -107,6 +108,12 @@ impl Engine {
         }
         if let Some(tabindex) = self.tabindex(handle) {
             return tabindex >= 0;
+        }
+        // A dialog takes focus from a click, script or its focusing steps,
+        // but is in the sequential order only with a `tabindex` (Blink's
+        // `HTMLDialogElement::IsKeyboardFocusableSlow`).
+        if self.is_dialog(handle).unwrap_or(false) {
+            return false;
         }
         self.has_focus_semantics(handle) || !self.has_keyboard_focusable_descendant(handle)
     }
@@ -272,7 +279,7 @@ impl Engine {
         }
     }
 
-    fn is_inclusive_ancestor(&self, ancestor: NodeHandle, node: NodeHandle) -> bool {
+    pub(crate) fn is_inclusive_ancestor(&self, ancestor: NodeHandle, node: NodeHandle) -> bool {
         let mut current = Some(node);
         while let Some(handle) = current {
             if handle == ancestor {

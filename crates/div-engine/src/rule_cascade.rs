@@ -139,7 +139,7 @@ pub(crate) struct RuleFlags {
 }
 
 /// The state pseudo-classes, each one bit of an element's selector state.
-const STATE_PSEUDO_CLASSES: [PseudoClass; 13] = [
+const STATE_PSEUDO_CLASSES: [PseudoClass; 15] = [
     PseudoClass::Hover,
     PseudoClass::Active,
     PseudoClass::Focus,
@@ -153,6 +153,8 @@ const STATE_PSEUDO_CLASSES: [PseudoClass; 13] = [
     PseudoClass::ReadOnly,
     PseudoClass::ReadWrite,
     PseudoClass::Required,
+    PseudoClass::Open,
+    PseudoClass::Modal,
 ];
 
 fn state_bit(pseudo: &PseudoClass) -> Option<usize> {
@@ -437,8 +439,6 @@ fn unsupported_pseudo_class(selector: &Selector) -> Option<&'static str> {
         if let SimpleSelector::PseudoClass(pseudo) = simple {
             let found = match pseudo {
                 PseudoClass::Invalid => Some("invalid"),
-                PseudoClass::Open => Some("open"),
-                PseudoClass::Modal => Some("modal"),
                 PseudoClass::Is(list) | PseudoClass::Where(list) | PseudoClass::Not(list) => {
                     list.iter().find_map(unsupported_pseudo_class)
                 }

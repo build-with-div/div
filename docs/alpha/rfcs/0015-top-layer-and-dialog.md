@@ -198,12 +198,31 @@ unless that is cancelled, calls `close` with no return value.
 One PR at a time. Each keeps `main` green and records its results in
 `docs/progress/tracks/components.md`.
 
+PR 3 was split on 22 November 2026 so that the engine work could land
+while the SVG lane's A1 changes `painter.rs`; the paint pass moved to 3b.
+The UA element rules and the `divui` tag moved from PR 4 to 3a, and the
+oracle's gates became field level. `remove_open_attribute` waits for a
+focus fixup in the engine (Chromium clears focus when the focused element
+stops being rendered), and the modal `max-width`/`max-height` for engine
+0.2 PR 2 (`calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and
+`%`).
+
+3a's sheet is not the specification's rules verbatim. Until their owners
+close them, these gaps remain:
+
+| Gap | Effect | Owner |
+| --- | --- | --- |
+| Logical insets: `left`, `right`, `top` and `bottom` stand for `inset-inline` and `inset-block` | A non-modal dialog in a vertical writing mode gets the wrong axis | Engine, platform-plan item S7 |
+| System colors: white and black stand for `Canvas` and `CanvasText` | A dialog in a dark color scheme keeps its light colors | Engine, with item S7's `color-scheme` and RFC 0014's `Document::set_color_scheme` |
+| The modal `max-width` and `max-height`, `calc(100% - 6px - 2em)`, are left out | A modal dialog larger than the viewport is not clamped | Engine 0.2 PR 2: `calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and `%` |
+
 | # | PR | Gate |
 | --- | --- | --- |
 | 1 | **Chromium dialog oracle** (no product code). Captured twice from real input at 1x, with a replay test that lists every scenario as pending. | Byte-stable capture; the replay test passes with its pending list |
 | 2 | **WPT porter mutations** (`showModal`, `show`, `close`), reviewed by the engine. | The porter's own tests; `generate_renderer_contract.py --check` |
-| 3 | **Engine top layer:** the tag, the top-layer list, inertness (the `set_modal_root` change), `:modal`, `:open`, the containing block, the paint pass and hit testing. | Ported reftests: `top-layer-*` (stacking, nesting, position, containing block, `display: none`, parent clip, opacity, transform and overflow), `removed-element-is-removed-from-top-layer`, `element-removed-from-top-layer-has-original-position`, `modal-dialog-sibling`; the oracle's geometry and click scenarios |
-| 4 | **`::backdrop` and the UA rules.** | `backdrop-*`, `modal-dialog-backdrop(-opacity)`, `dialogs-with-no-backdrop`, `green-dialog-and-backdrop`, `top-layer-backdrop-remove-add-ordering` |
+| 3a | **Engine top layer, without paint:** the tag (S6a's local name, and `dialog` in `divui`'s tag table, reviewed by the framework), the top-layer list, inertness (the `set_modal_root` change), `:modal`, `:open`, hit testing, the focusing steps, and the three UA element rules (`dialog`, `dialog:not([open])`, `dialog:modal`) adapted from the specification text, with the three named gaps below; the porter rejects `show()`/`close()` on receivers that are not elements. | The oracle replayed by the engine, field by field: ten no-paint click and focus scenarios (input events, focus and each dialog's `open`, `:modal` and `returnValue` exact) and all 15 geometry records (box, client and scroll sizes, computed style). Pending fields name their owner, and a pending field that matches fails the test: the toggle-family events (PR 5); `max-width`/`max-height` and the boxes they limit (engine 0.2 PR 2: `calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and `%`) |
+| 3b | **The top-layer paint pass and containing block**, after the SVG lane's A1 (which also changes `painter.rs`). | Ported reftests: `top-layer-*` (stacking, nesting, position, containing block, `display: none`, parent clip, opacity, transform and overflow), `removed-element-is-removed-from-top-layer`, `element-removed-from-top-layer-has-original-position`, `modal-dialog-sibling` |
+| 4 | **`::backdrop`** and its UA rule. | The oracle's 15 `::backdrop` records, `click_inert` and `nested` (with PR 5); `backdrop-*`, `modal-dialog-backdrop(-opacity)`, `dialogs-with-no-backdrop`, `green-dialog-and-backdrop`, `top-layer-backdrop-remove-add-ordering` |
 | 5 | **The `divui` API, events, Escape and focus.** | The oracle's pending list is empty. Rust translations name each WPT file and assert they reproduce: `dialog-showModal`, `-close`, `-close-event`, `-cancel-events`, `-cancel-preventDefault`, `-canceling`, `-return-value`, `-focusing-steps-*`, `focus-after-close`, `modal-dialog-ancestor-is-inert`, `remove-dialog-should-unblock-document`, `closed-`/`non-modal-dialog-does-not-block-mouse-events`, `inert-node-is-unfocusable` |
 
 When T3 (RFC 0005) lands, `the-dialog-element` is measured again through it

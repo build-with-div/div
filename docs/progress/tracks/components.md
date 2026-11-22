@@ -46,6 +46,85 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 
+## 22 November 2026: the engine top layer without paint (H4, RFC 0015 PR 3a)
+
+The engine learns `<dialog>`'s state, the top layer, inertness and the
+focusing steps, and replays the dialog oracle's no-paint scenarios. PR 3 is
+split: the top-layer paint pass waits for the SVG lane's A1, which also
+changes `painter.rs`, and becomes 3b; the UA element rules and the
+`divui` tag move from PR 4 into 3a (RFC 0015's Migration table is
+amended). The engine lane reviews this PR, and the framework the `divui`
+tag line.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| A dialog is a `Div` element named `dialog` through S6a's local name (agreed with the fidelity lane: no new `ElementTag`). `show()`, `showModal()` and `close(returnValue)` follow Blink 147's `HTMLDialogElement`: the `InvalidStateError` cases are named `EngineError::InvalidState`, `showModal()` (re)adds the dialog at the end of the top layer, `close()` restores focus to the opener when the dialog was modal or held focus, and removal from the document ends modality. The legacy focusing steps pick the autofocus element, else the first focusable one, skipping inside nested dialogs, else the dialog itself. A dialog is click and script focusable but sequentially focusable only with `tabindex`. | engine (H4, by components under RFC 0015) | `crates/div-engine/src/dialog.rs`, `focus_navigation.rs` |
+| Inertness: the scope is the topmost modal dialog, else the `set_modal_root` root. Inert content takes no focus, no hit and no Tab stop, and leaves the accessibility tree. `set_modal_root` now also makes content outside it inert to pointers. | engine | `dialog.rs`, `interaction.rs`, `lib.rs`, `accessibility.rs` |
+| `:open` (open `<details>` and `<dialog>`) and `:modal` match as state pseudo-classes. | engine | `selector_match.rs`, `rule_cascade.rs` |
+| An always-on user-agent sheet, adopted with the first dialog, holds the `dialog` element rules adapted from the specification (WHATWG HTML 15.3.3 "Flow content", CC BY 4.0, the copy fetched for RFC 0004, cited in the source; not Blink's `html.css`, and not the specification's rules verbatim): `dialog` (absolute, `left`/`right: 0`, `margin: auto`, fit-content size, a 3px solid `currentcolor` border, `1em` padding, black text on white), `dialog:not([open])` (`display: none`) and `dialog:modal` (fixed, `top`/`bottom: 0`, `overflow: auto`). The sheet fails loudly if it drops a declaration. `::backdrop` waits for PR 4. Three named gaps remain (below). | engine | `dialog.rs` |
+| `Element::create("dialog")` creates the engine's dialog (a `Div` named `dialog`); S6b's element table later names every element. | framework (reviewed), by components under RFC 0015 | `crates/divui/src/element.rs`, `crates/divui/tests/dialog_element.rs` |
+| The porter's IR records `show()`/`close()` only on element receivers. A receiver made with `new` (a `MessageChannel`'s port, a `BroadcastChannel`) is rejected as `non-element-receiver` with its constructor, and one the porter cannot follow as `unresolved-dialog-receiver` (the engine review of PR 2). | components (for the engine lane) | `tools/wpt/javascript_mutation_ir.mjs` |
+| The engine replays the oracle (below); `divui`'s ledger lists ten scenarios as replayed by the engine and the rest with what each waits for. | components | `crates/div-engine/tests/dialog_oracle.rs`, `crates/divui/tests/dialog_oracle.rs` |
+
+### Measurement
+
+Replayed exactly against `tests/fidelity/fixtures/dialog-v1/chromium-linux-x11.json`:
+
+- **Ten scenarios** (`modal_open_close`, `modal_tab`,
+  `click_dialog_content`, `script_focus_inert`, `autofocus`,
+  `no_focusable`, `non_modal_focus`, `non_modal_focus_outside`,
+  `non_modal_click_outside`, `remove_open_modal`): every input event's
+  type and target, the focused element and each dialog's `open`, `:modal`
+  and `returnValue` after every step. Their `beforetoggle`, `toggle`,
+  `cancel` and `close` events are `divui`'s: a pending field owned by PR 5.
+- **All 15 geometry records**, field by field at 480x400, 800x600 and
+  375x667: the border box, the client and scroll sizes and the 16
+  computed-style properties, with `auto` insets and margins resolved from
+  Div's layout. Pending on engine 0.2 PR 2 (`calc()` in `width`,
+  `height`, `min-*` and `max-*`, with `em` and `%`): `maxWidth`/`maxHeight` of the nine modal records, and the
+  box, sizes and top margin of the four the calc limits (and the left
+  margin of the two tall ones), 32 fields in all.
+
+A pending field that matches fails the test, so each comes off the list
+when it is fixed.
+
+Remaining, with owners:
+
+Gaps in the UA rules. The oracle's page is horizontal and light, so it
+exercises only the last:
+
+| Gap | Effect | Owner |
+| --- | --- | --- |
+| Logical insets: `left`, `right`, `top` and `bottom` stand for `inset-inline` and `inset-block` | A non-modal dialog in a vertical writing mode gets the wrong axis | Engine, platform-plan item S7 |
+| System colors: white and black stand for `Canvas` and `CanvasText` | A dialog in a dark color scheme keeps its light colors | Engine, with item S7's `color-scheme` and RFC 0014's `Document::set_color_scheme` |
+| The modal `max-width` and `max-height`, `calc(100% - 6px - 2em)`, are left out | A modal dialog larger than the viewport is not clamped | Engine 0.2 PR 2: `calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and `%` |
+
+| Scenario | Waits for |
+| --- | --- |
+| `click_inert` | PR 4: a press outside the modal dialog reaches its `::backdrop`; Div finds no target |
+| `nested` | PRs 4 and 5: the backdrop, then Escape |
+| `remove_open_attribute` | engine: Chromium clears focus when the focused element stops being rendered (focus fixup); Div keeps it, a general gap reported for its own PR |
+| the six `escape_*`, `return_value`, `request_close_prevented`, `invalid_state`, `beforetoggle_prevented` | PR 5: the `divui` API, events and Escape |
+
+### Verification
+
+On Windows, on this branch rebased on `main` at `24436b9` (which has #114
+and S6a, #117), with `CARGO_TARGET_DIR` under `out\` and the VS 2022 build
+tools:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Engine, framework and FFI suites, under the census lock | `cargo test --locked -p div-engine -p divui -p div-ffi -- --test-threads 4` | 128 test binaries: 1,071 passed, 0 failed, 11 ignored |
+| The dialog and selector tests inside that run | `div-engine`: `dialog_oracle`, `dialog`, `selector_matching`, `form_state_pseudo_classes`; `divui`: `dialog_oracle`, `dialog_element` | 3, 6, 4, 2, 2 and 1 passed |
+| Engine without dev features | `cargo check --locked -p div-engine -p divui` | builds (the UA selectors are values, not parsed at run time) |
+| Porter IR and contract tests | `python -m unittest tools.qualification.test_renderer_matrix` and `python -m unittest tools/wpt/test_renderer_generality.py`, with the pinned Acorn | 38 and 7 passed |
+| Renderer contract | `python tools/qualification/generate_renderer_contract.py --check` with the pinned Acorn and the WPT sources at `09d377d9` | no drift; `javascript=393` |
+| Formatting | `rustfmt --edition 2021 --check` on each changed Rust file | clean |
+| Harness check, on the previous base `662e366` | `click_inert` added to the engine replay temporarily | fails as expected (no backdrop: the press finds no target) |
+| Census and CSS Grid coverage (D4) | Base `24436b9` against this branch, under the census lock | **Not measured yet.** Required before this PR is queued |
+
 ## 22 November 2026: the WPT porter's dialog mutations (H4, RFC 0015 PR 2)
 
 The WPT porter's static script reader learns `HTMLDialogElement`'s

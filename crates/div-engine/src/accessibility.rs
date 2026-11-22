@@ -591,6 +591,15 @@ impl Engine {
             .presentation_children(handle)?
             .into_iter()
             .filter(|child| {
+                // Inert content leaves the tree; its ancestors of the modal
+                // dialog stay, to hold it (RFC 0015, Proposal 4).
+                if self.is_inert(*child)
+                    && !self
+                        .inert_scope()
+                        .is_some_and(|scope| self.is_inclusive_ancestor(*child, scope))
+                {
+                    return false;
+                }
                 if !closed_details {
                     return true;
                 }
@@ -688,7 +697,7 @@ impl Engine {
         if self.document.attribute(dom_id, "readonly").is_some() {
             node.set_read_only();
         }
-        if self.modal_root == Some(handle) {
+        if self.modal_root == Some(handle) || self.top_layer().contains(&handle) {
             node.set_modal();
         }
         if let Some(bounds) = self.accessibility_bounds(dom_id) {

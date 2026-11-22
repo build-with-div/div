@@ -60,7 +60,7 @@ impl Element {
     /// name that is not a valid element name, for `html` and `body` (the
     /// document has its own), and for elements whose behavior Div does not
     /// have yet: `script`, `style`, `template`, `head`, `title`, `meta`,
-    /// `link`, `base`, `area`, `datalist`, `noscript` and `dialog`.
+    /// `link`, `base`, `area`, `datalist` and `noscript`.
     ///
     /// `foreignObject` creates an SVG viewport for native UI children; like
     /// `div`, it has container kind [`ElementTag::Div`]. No document scripts
@@ -1336,11 +1336,14 @@ fn tag_definition(name: &str) -> Result<(ElementTag, Option<Display>), Error> {
         "optgroup" => (T::OptGroup, None),
         "form" => (T::Form, None),
         "embed" => (T::Embed, None),
+        // A dialog is a `Div` the engine knows by its local name (RFC 0015):
+        // its state, the top layer and its UA rules.
+        "dialog" => (T::Div, None),
         // The HTML Standard hides these by default (15.3.1 "Hidden elements")
         // and gives them behavior Div does not have yet; they stay rejected
         // rather than become inert look-alikes.
         "area" | "base" | "datalist" | "head" | "link" | "meta" | "script" | "style"
-        | "template" | "title" | "noscript" | "dialog" => {
+        | "template" | "title" | "noscript" => {
             return Err(Error::UnknownTag(name.to_owned()))
         }
         // The document's own root and body. Layout and paint treat every
@@ -1516,7 +1519,7 @@ mod tests {
         // have yet, and the document's own root and body.
         for tag in [
             "", "1x", "a b", "a/b", "x>", "x\0", "_x!", "_x y", "-x", "script", "style",
-            "template", "head", "dialog", "html", "body",
+            "template", "head", "html", "body",
         ] {
             assert!(
                 matches!(Element::create(&document, tag), Err(Error::UnknownTag(_))),
