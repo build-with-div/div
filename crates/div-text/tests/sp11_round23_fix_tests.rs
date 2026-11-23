@@ -72,6 +72,7 @@ fn make_shape_result_with_clusters(
         runs: vec![ShapeResultRun {
             font_data,
             glyphs: vec![1; num_glyphs],
+            advance_units: ShapeResultRun::units_from_px(&advances),
             advances,
             offsets: vec![(0.0, 0.0); num_glyphs],
             clusters,
@@ -99,6 +100,7 @@ fn glyph_range_duplicate_clusters_includes_all_glyphs() {
     let run = ShapeResultRun {
         font_data,
         glyphs: vec![100, 101, 200],
+        advance_units: ShapeResultRun::units_from_px(&vec![8.0, 4.0, 10.0]),
         advances: vec![8.0, 4.0, 10.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 0, 1], // g0 and g1 share cluster 0
@@ -121,6 +123,7 @@ fn glyph_range_duplicate_clusters_second_cluster() {
     let run = ShapeResultRun {
         font_data,
         glyphs: vec![100, 200, 201],
+        advance_units: ShapeResultRun::units_from_px(&vec![10.0, 6.0, 4.0]),
         advances: vec![10.0, 6.0, 4.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 1, 1], // g1 and g2 share cluster 1
@@ -143,6 +146,7 @@ fn glyph_range_duplicate_clusters_not_zero_width() {
     let run = ShapeResultRun {
         font_data,
         glyphs: vec![10, 11, 20],
+        advance_units: ShapeResultRun::units_from_px(&vec![5.0, 5.0, 10.0]),
         advances: vec![5.0, 5.0, 10.0],
         offsets: vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
         clusters: vec![0, 0, 1],

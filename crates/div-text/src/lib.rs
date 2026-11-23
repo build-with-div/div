@@ -9,7 +9,7 @@
 //! - Font metrics extraction from `SkFontMetrics`
 //! - Font caching and fallback chains
 //! - Simple text measurement via `SkFont::measure_str`
-//! - HarfBuzz-based text shaping via Skia's `SkShaper`
+//! - Text shaping with HarfBuzz, called directly as Blink does (RFC 0013)
 //! - Bidirectional text analysis (UAX#9) via `unicode-bidi`
 //! - Text transform (uppercase, lowercase, capitalize, full-width)
 

@@ -811,12 +811,6 @@ fn inline_layout_unit_ceil(v: f32) -> i64 {
     (v as f64 * 65536.0).ceil() as i64
 }
 
-/// A glyph advance as the shaper's `TextRunLayoutUnit`. Div's advances are
-/// floats (T8 makes them HarfBuzz's 16.16 values).
-fn advance_units(v: f32) -> i64 {
-    (v as f64 * 65536.0).round() as i64
-}
-
 /// `ShapeResult::ComputeInkBounds` for a horizontal result, with
 /// `GlyphBoundsAccumulator` and `SkFontGetBoundsForGlyphs`.
 fn compute_ink_bounds(result: &ShapeResult) -> RectF {
@@ -855,10 +849,11 @@ fn compute_ink_bounds(result: &ShapeResult) -> RectF {
                     max_y = max_y.max(bottom);
                 }
             }
-            origin += advance_units(run.advances.get(i).copied().unwrap_or(0.0));
+            origin += run.advance_units.get(i).copied().map_or(0, i64::from);
         }
         ink.union(&RectF::new(min_x, min_y, max_x - min_x, max_y - min_y));
-        run_advance += run.advances.iter().sum::<f32>();
+        // `run->width_`: the run's units converted once.
+        run_advance += run.width_units() as f32 / 65536.0;
     }
     ink
 }
@@ -1066,17 +1061,14 @@ pub(crate) fn segment(text: &str, direction: TextDirection) -> (Vec<Segment>, bo
 
 impl TextItem {
     /// One item of `PlainTextNode::Shape`: shapes `segment` with `shape`,
-    /// whose font carries the spacing. Chromium adds no word spacing to a
-    /// space at the start of the text (`ShapeResultSpacing::ComputeSpacing`).
+    /// whose font carries the spacing. The last argument says the segment
+    /// starts the text, where Chromium adds no word spacing to a space
+    /// (`ShapeResultSpacing::ComputeSpacing`).
     pub fn shape(
         segment: Segment,
-        word_spacing: f32,
-        shape: impl FnOnce(&str, TextDirection) -> ShapeResult,
+        shape: impl FnOnce(&str, TextDirection, bool) -> ShapeResult,
     ) -> Self {
-        let mut result = shape(&segment.text, segment.direction);
-        if segment.start == 0 && word_spacing != 0.0 && segment.text.starts_with(' ') {
-            remove_leading_word_spacing(&mut result, word_spacing);
-        }
+        let result = shape(&segment.text, segment.direction, segment.start == 0);
         let mut ink_bounds = compute_ink_bounds(&result);
         if result.width < 0.0 {
             // Negative spacing can move glyphs left of the origin.
@@ -1158,27 +1150,13 @@ fn clone_run(run: &ShapeResultRun) -> ShapeResultRun {
         font_data: run.font_data.clone(),
         glyphs: run.glyphs.clone(),
         advances: run.advances.clone(),
+        advance_units: run.advance_units.clone(),
         offsets: run.offsets.clone(),
         clusters: run.clusters.clone(),
         start_index: run.start_index,
         num_characters: run.num_characters,
         num_glyphs: run.num_glyphs,
         direction: run.direction,
-    }
-}
-
-/// Takes the word spacing back off a space at the start of the text
-/// (`ShapeResultSpacing::ComputeSpacing` adds it only past index 0).
-fn remove_leading_word_spacing(result: &mut ShapeResult, word_spacing: f32) {
-    for run in &mut result.runs {
-        if run.start_index != 0 {
-            continue;
-        }
-        if let Some(i) = run.clusters.iter().rposition(|&c| c == 0) {
-            run.advances[i] -= word_spacing;
-            result.width -= word_spacing;
-            return;
-        }
     }
 }
 

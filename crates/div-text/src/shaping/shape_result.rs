@@ -407,8 +407,11 @@ pub struct ShapeResultRun {
     pub font_data: Arc<FontPlatformData>,
     /// Glyph IDs from the font.
     pub glyphs: Vec<u16>,
-    /// Advance width for each glyph.
+    /// Advance width for each glyph, in px: `advance_units` converted.
     pub advances: Vec<f32>,
+    /// Advance of each glyph in 1/65536 px, HarfBuzz's 16.16 fixed point, as
+    /// Blink's `TextRunLayoutUnit` keeps it. Widths sum these exactly.
+    pub advance_units: Vec<i32>,
     /// X/Y offset for each glyph (for combining marks, kerning adjustments).
     pub offsets: Vec<(f32, f32)>,
     /// Per-glyph cluster mapping: character index (relative to run start) each glyph belongs to.
@@ -421,6 +424,63 @@ pub struct ShapeResultRun {
     pub num_glyphs: usize,
     /// Direction of this run.
     pub direction: TextDirection,
+}
+
+/// HarfBuzz positions per px: advances are 16.16 fixed point.
+const UNITS_PER_PX: f32 = 65536.0;
+
+/// Blink's `TextRunLayoutUnit(float)`: `px * 65536` truncated toward zero,
+/// saturating (NaN becomes 0), as Rust's float to integer cast does.
+#[inline]
+pub(crate) fn px_to_units(px: f32) -> i32 {
+    (px * UNITS_PER_PX) as i32
+}
+
+/// Blink's `FixedPoint::ToFloat`: the raw value converted to `f32`, then
+/// divided by 65536.
+#[inline]
+pub(crate) fn units_to_px(units: i64) -> f32 {
+    units as f32 / UNITS_PER_PX
+}
+
+/// The units of an advance already held in px, rounded to the nearest unit
+/// (exact for any advance that came from units).
+#[inline]
+fn px_to_nearest_units(px: f32) -> i64 {
+    (f64::from(px) * f64::from(UNITS_PER_PX)).round() as i64
+}
+
+impl ShapeResultRun {
+    /// Each advance in 1/65536 px (`TextRunLayoutUnit(float)`), for a run
+    /// built from px advances.
+    pub fn units_from_px(advances: &[f32]) -> Vec<i32> {
+        advances
+            .iter()
+            .map(|&advance| px_to_units(advance))
+            .collect()
+    }
+
+    /// The run's width in 1/65536 px: the `i64` sum of its advances
+    /// (Blink's `InlineLayoutUnit`).
+    pub fn width_units(&self) -> i64 {
+        self.advance_units
+            .iter()
+            .map(|&units| i64::from(units))
+            .sum()
+    }
+
+    /// Add `units` to glyph `index`'s advance, saturating, as Blink's
+    /// `HarfBuzzRunGlyphData::AddAdvance` does, and keep `advances` in step.
+    pub(crate) fn add_advance_units(&mut self, index: usize, units: i32) {
+        let total = self.advance_units[index].saturating_add(units);
+        self.set_advance_units(index, total);
+    }
+
+    /// Set glyph `index`'s advance in 1/65536 px, and its px value with it.
+    pub(crate) fn set_advance_units(&mut self, index: usize, units: i32) {
+        self.advance_units[index] = units;
+        self.advances[index] = units_to_px(i64::from(units));
+    }
 }
 
 /// Per-character metadata for cursor positioning and line breaking.
@@ -452,6 +512,25 @@ impl ShapeResult {
     #[inline]
     pub fn width(&self) -> f32 {
         self.width
+    }
+
+    /// The width of `runs`: the `i64` sum of every glyph's units, converted
+    /// once. Blink instead keeps each run's width as a float and adds those
+    /// (`ShapeResult::InsertRun`, `ApplySpacingOrExpansion`), so a result of
+    /// several runs past 256 px can differ by a rounding step. Named gap in
+    /// `docs/progress/t8-harfbuzz-units-2026-11-19.md`.
+    pub(crate) fn width_from_runs(runs: &[ShapeResultRun]) -> f32 {
+        units_to_px(runs.iter().map(ShapeResultRun::width_units).sum())
+    }
+
+    /// Each character's `x_position` from a running sum in 1/65536 px of the
+    /// character advances.
+    fn rebuild_x_positions(&mut self) {
+        let mut x = 0i64;
+        for i in 0..self.num_characters.min(self.character_data.len()) {
+            self.character_data[i].x_position = units_to_px(x);
+            x += px_to_nearest_units(self.char_advance_for(i));
+        }
     }
 
     /// Number of glyphs across all runs.
@@ -598,6 +677,7 @@ impl ShapeResult {
             sub_runs.push(ShapeResultRun {
                 font_data: Arc::clone(&run.font_data),
                 glyphs: run.glyphs[glyph_start..glyph_end].to_vec(),
+                advance_units: run.advance_units[glyph_start..glyph_end].to_vec(),
                 advances: run.advances[glyph_start..glyph_end].to_vec(),
                 offsets: run.offsets[glyph_start..glyph_end].to_vec(),
                 clusters: if !run.clusters.is_empty() {
@@ -926,8 +1006,7 @@ impl ShapeResult {
             }
         }
 
-        let mut total_extra = 0.0f32;
-
+        let extra_units = px_to_units(extra_per_space);
         for run in &mut self.runs {
             let run_start = run.start_index;
             for gi in 0..run.num_glyphs {
@@ -942,22 +1021,17 @@ impl ShapeResult {
 
                 if char_idx < chars.len() && chars[char_idx] == ' ' {
                     if !trailing_space_indices.contains(&char_idx) {
-                        run.advances[gi] += extra_per_space;
-                        total_extra += extra_per_space;
+                        run.add_advance_units(gi, extra_units);
                     }
                 }
             }
         }
 
-        self.width += total_extra;
+        self.width = Self::width_from_runs(&self.runs);
 
         // Rebuild character_data x_positions to reflect adjusted advances.
         if !self.character_data.is_empty() && !chars.is_empty() {
-            let mut x = 0.0f32;
-            for i in 0..self.num_characters.min(self.character_data.len()) {
-                self.character_data[i].x_position = x;
-                x += self.char_advance_for(i);
-            }
+            self.rebuild_x_positions();
         }
     }
 
@@ -975,7 +1049,7 @@ impl ShapeResult {
             return;
         }
 
-        let mut total_extra = 0.0f32;
+        let extra_units = px_to_units(extra_per_gap);
         let total_chars = self.num_characters;
         // We need to expand gaps between every adjacent pair of characters
         // across the entire result. That's (total_chars - 1) gaps total.
@@ -1037,9 +1111,8 @@ impl ShapeResult {
                     }
 
                     if gaps > 0 {
-                        let extra = extra_per_gap * gaps as f32;
-                        run.advances[gi] += extra;
-                        total_extra += extra;
+                        let gaps = i32::try_from(gaps).unwrap_or(i32::MAX);
+                        run.add_advance_units(gi, extra_units.saturating_mul(gaps));
                     }
                 }
             } else if run.num_glyphs == run.num_characters {
@@ -1047,8 +1120,7 @@ impl ShapeResult {
                 for gi in 0..run.num_glyphs {
                     let char_idx = run_start + gi;
                     if char_idx < total_chars - 1 {
-                        run.advances[gi] += extra_per_gap;
-                        total_extra += extra_per_gap;
+                        run.add_advance_units(gi, extra_units);
                     }
                 }
             } else {
@@ -1061,23 +1133,19 @@ impl ShapeResult {
                 };
                 if gaps_in_run > 0 && run.num_glyphs > 0 {
                     let per_glyph = (extra_per_gap * gaps_in_run as f32) / run.num_glyphs as f32;
+                    let per_glyph = px_to_units(per_glyph);
                     for gi in 0..run.num_glyphs {
-                        run.advances[gi] += per_glyph;
-                        total_extra += per_glyph;
+                        run.add_advance_units(gi, per_glyph);
                     }
                 }
             }
         }
 
-        self.width += total_extra;
+        self.width = Self::width_from_runs(&self.runs);
 
         // Rebuild character_data x_positions.
         if !self.character_data.is_empty() {
-            let mut x = 0.0f32;
-            for i in 0..self.num_characters.min(self.character_data.len()) {
-                self.character_data[i].x_position = x;
-                x += self.char_advance_for(i);
-            }
+            self.rebuild_x_positions();
         }
     }
 

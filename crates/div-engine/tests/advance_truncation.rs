@@ -1,9 +1,10 @@
-//! Div lays out long single-font texts at pinned Chromium 147's widths (T3).
+//! Div lays out long single-font texts at pinned Chromium 147's widths (T3,
+//! T8).
 //!
 //! Blink hands HarfBuzz each glyph advance truncated to 1/65536 px
-//! (`SkiaScalarToHarfBuzzPosition`); SkShaper's font funcs round it, and
-//! `div_text`'s shaper takes the difference back out. One glyph moves by at
-//! most 1/65536 px, so each case repeats a short text until those units add
+//! (`SkiaScalarToHarfBuzzPosition`) and sums a run's advances in fixed point;
+//! `div_text` shapes with HarfBuzz the same way (RFC 0013). One glyph moves by
+//! at most 1/65536 px, so each case repeats a short text until those units add
 //! up to layout units.
 //!
 //! Oracle: `tests/fidelity/fixtures/advance-truncation-v1/chromium-windows.json`,
@@ -13,8 +14,7 @@
 //! advances sit on 1/64 px, and the oracle is Windows Chrome's.
 //!
 //! `known-gaps.txt` beside the oracle lists the cases that still differ, with
-//! Div's width: T8, a long run whose float glyph positions lose precision and
-//! whose advances add up in f32, and one loss T3 caused on that drift.
+//! Div's width; since T8 it lists none.
 
 #![cfg(windows)]
 

@@ -1,23 +1,24 @@
-//! TextShaper — HarfBuzz-based text shaping via Skia's SkShaper.
+//! TextShaper — text shaping with HarfBuzz, as Blink's `HarfBuzzShaper`
+//! (`platform/fonts/shaping/harfbuzz_shaper.h`) does.
 //!
-//! Mirrors Blink's `HarfBuzzShaper` (`platform/fonts/shaping/harfbuzz_shaper.h`).
-//! Uses Skia's `SkShaper` (which wraps HarfBuzz) to convert text + font into
-//! positioned glyphs with cluster information for cursor placement and hit testing.
+//! `harfbuzz.rs` calls HarfBuzz directly (RFC 0013) to convert text + font into
+//! positioned glyphs with cluster information for cursor placement and hit
+//! testing; advances stay in HarfBuzz's 16.16 units.
 
 use std::sync::Arc;
 
-use skia_safe::{
-    shaper::{self, run_handler, RunHandler as SkRunHandler},
-    Font as SkFont, GlyphId, Point, Shaper, Vector,
-};
+use skia_safe::GlyphId;
 use unicode_script::{Script, UnicodeScript};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::font::features::{collect_font_features, to_skia_features};
+use crate::font::features::{collect_font_features, tag_to_u32};
 use crate::font::{Font, FontPlatformData};
 use div_style::{FontFeature, FontOrientation, TextAutospace, TextSpacingTrim};
 
-use super::shape_result::{ShapeResult, ShapeResultCharacterData, ShapeResultRun, TextDirection};
+use super::harfbuzz;
+use super::shape_result::{
+    px_to_units, units_to_px, ShapeResult, ShapeResultCharacterData, ShapeResultRun, TextDirection,
+};
 
 /// Whether a Unicode script requires complex shaping (joining, reordering,
 /// or contextual forms) that makes cluster-boundary breaks unsafe.
@@ -105,78 +106,45 @@ fn shaping_language(description: &crate::font::FontDescription) -> String {
         .to_string()
 }
 
-/// Collects shaping output from Skia's SkShaper callbacks.
-///
-/// Implements Skia's `RunHandler` trait to receive glyph data during shaping.
+/// Collects HarfBuzz's runs for one shaping call.
 struct ShapeCollector {
     /// The font platform data for associating with runs.
     font_data: Arc<FontPlatformData>,
     /// Text direction.
     direction: TextDirection,
-    /// Collected runs.
+    /// Collected runs, in visual order.
     runs: Vec<CollectedRun>,
-    /// Storage for the current run being filled by the shaper.
-    current_glyphs: Vec<GlyphId>,
-    current_positions: Vec<Point>,
-    current_offsets: Vec<Point>,
-    current_clusters: Vec<u32>,
 }
 
 /// A fully collected glyph run.
 struct CollectedRun {
     glyphs: Vec<GlyphId>,
-    positions: Vec<Point>,
-    offsets: Vec<Point>,
+    /// HarfBuzz's `x_advance` per glyph, in 1/65536 px.
+    advance_units: Vec<i32>,
+    offsets: Vec<(f32, f32)>,
     clusters: Vec<u32>,
-    /// Per glyph, whether Blink's HarfBuzz advance is 1/65536 px below
-    /// SkShaper's (`advance_truncates_below_skshaper`).
-    truncated: Vec<bool>,
     utf8_range: std::ops::Range<usize>,
-    advance: Vector,
-}
-
-/// One HarfBuzz position unit: HarfBuzz positions are 16.16 fixed point.
-const HARFBUZZ_POSITION_UNIT: f32 = 1.0 / 65536.0;
-
-/// Per glyph, whether Blink hands HarfBuzz an advance 1/65536 px smaller
-/// than SkShaper does.
-///
-/// Both read the advance from `SkFont::getWidths` (rounded to whole pixels
-/// for a font without subpixel positioning, which converts exactly) and convert it to 16.16 fixed
-/// point. Blink truncates (`SkiaScalarToHarfBuzzPosition`,
-/// `ClampTo<int>(value * 65536)`, in `skia_text_metrics.cc`); SkShaper rounds
-/// half up (`skhb_position`, `SkScalarRoundToInt(value * 65536)`). The scaling
-/// by 65536 is exact in f32, so they differ by one unit exactly when the
-/// scaled advance has a fraction of one half or more.
-fn advance_truncates_below_skshaper(font: &SkFont, glyphs: &[GlyphId]) -> Vec<bool> {
-    if glyphs.is_empty() {
-        return Vec::new();
-    }
-    // Whole-pixel advances convert to whole units either way.
-    if !font.is_subpixel() {
-        return vec![false; glyphs.len()];
-    }
-    let mut widths = vec![0.0f32; glyphs.len()];
-    font.get_widths(glyphs, &mut widths);
-    widths
-        .into_iter()
-        .map(|width| {
-            let fixed = f64::from(width * 65536.0);
-            fixed.trunc() != (fixed + 0.5).floor()
-        })
-        .collect()
 }
 
 impl ShapeCollector {
-    fn new(font_data: Arc<FontPlatformData>, direction: TextDirection) -> Self {
+    fn new(
+        font_data: Arc<FontPlatformData>,
+        direction: TextDirection,
+        runs: Vec<harfbuzz::ShapedRun>,
+    ) -> Self {
         Self {
             font_data,
             direction,
-            runs: Vec::new(),
-            current_glyphs: Vec::new(),
-            current_positions: Vec::new(),
-            current_offsets: Vec::new(),
-            current_clusters: Vec::new(),
+            runs: runs
+                .into_iter()
+                .map(|run| CollectedRun {
+                    glyphs: run.glyphs,
+                    advance_units: run.advance_units,
+                    offsets: run.offsets,
+                    clusters: run.clusters,
+                    utf8_range: run.utf8_range,
+                })
+                .collect(),
         }
     }
 
@@ -188,17 +156,17 @@ impl ShapeCollector {
         }
 
         let mut result_runs = Vec::new();
-        let mut total_width = 0.0f32;
 
         // Build a byte-offset-to-char-index table for cluster mapping.
         let byte_to_char: Vec<usize> = Self::build_byte_to_char_map(text);
         let chars: Vec<char> = text.chars().collect();
 
-        // Per-character advance accumulator.
-        let mut char_advances = vec![0.0f32; num_characters];
+        // Per-character advance accumulator, in 1/65536 px.
+        let mut char_units = vec![0i64; num_characters];
 
         for collected in &self.runs {
             let mut run_glyphs = Vec::with_capacity(collected.glyphs.len());
+            let mut run_advance_units = Vec::with_capacity(collected.glyphs.len());
             let mut run_advances = Vec::with_capacity(collected.glyphs.len());
             let mut run_offsets = Vec::with_capacity(collected.glyphs.len());
             let mut run_clusters = Vec::with_capacity(collected.glyphs.len());
@@ -206,18 +174,7 @@ impl ShapeCollector {
             for i in 0..collected.glyphs.len() {
                 run_glyphs.push(collected.glyphs[i]);
 
-                // Compute advance from position differences.
-                let mut advance = if i + 1 < collected.positions.len() {
-                    collected.positions[i + 1].x - collected.positions[i].x
-                } else {
-                    // Last glyph: use the run's total advance minus position.
-                    collected.advance.x - collected.positions[i].x + collected.positions[0].x
-                };
-                // HarfBuzz zeroes the advance of a mark after taking it from
-                // the font funcs, so a zero advance owes nothing to them.
-                if advance != 0.0 && collected.truncated.get(i).copied().unwrap_or(false) {
-                    advance -= HARFBUZZ_POSITION_UNIT;
-                }
+                let mut units = collected.advance_units[i];
                 if !collected.clusters.is_empty() {
                     let cluster_byte = collected.clusters[i] as usize;
                     if cluster_byte < byte_to_char.len()
@@ -225,17 +182,12 @@ impl ShapeCollector {
                             .get(byte_to_char[cluster_byte])
                             .is_some_and(|ch| is_bidi_embedding_control(*ch))
                     {
-                        advance = 0.0;
+                        units = 0;
                     }
                 }
-                run_advances.push(advance);
-
-                let offset = if !collected.offsets.is_empty() {
-                    (collected.offsets[i].x, collected.offsets[i].y)
-                } else {
-                    (0.0, 0.0)
-                };
-                run_offsets.push(offset);
+                run_advance_units.push(units);
+                run_advances.push(units_to_px(i64::from(units)));
+                run_offsets.push(collected.offsets[i]);
 
                 // Map this glyph's cluster (byte offset) to a character index
                 // and distribute the advance to that character.
@@ -244,7 +196,7 @@ impl ShapeCollector {
                     if cluster_byte < byte_to_char.len() {
                         let char_idx = byte_to_char[cluster_byte];
                         if char_idx < num_characters {
-                            char_advances[char_idx] += advance;
+                            char_units[char_idx] += i64::from(units);
                         }
                     }
                 }
@@ -285,11 +237,10 @@ impl ShapeCollector {
             let run_num_chars = end_char.saturating_sub(start_char);
             let run_num_glyphs = run_glyphs.len();
 
-            total_width += run_advances.iter().sum::<f32>();
-
             result_runs.push(ShapeResultRun {
                 font_data: Arc::clone(&self.font_data),
                 glyphs: run_glyphs,
+                advance_units: run_advance_units,
                 advances: run_advances,
                 offsets: run_offsets,
                 clusters: run_clusters,
@@ -300,34 +251,36 @@ impl ShapeCollector {
             });
         }
 
+        let total_units: i64 = result_runs.iter().map(ShapeResultRun::width_units).sum();
+
         // If no runs collected advances (e.g., no cluster data), distribute
         // width evenly as fallback.
-        if char_advances.iter().all(|a| *a == 0.0) && total_width > 0.0 && num_characters > 0 {
-            let per_char = total_width / num_characters as f32;
-            for a in &mut char_advances {
+        if char_units.iter().all(|a| *a == 0) && total_units > 0 && num_characters > 0 {
+            let per_char = total_units / num_characters as i64;
+            for a in &mut char_units {
                 *a = per_char;
             }
         }
 
         // Build character data from accumulated advances.
         let mut character_data = Vec::with_capacity(num_characters);
-        let mut x = 0.0f32;
+        let mut x = 0i64;
         // Determine cluster bases from cluster info.
         let cluster_bases = Self::compute_cluster_bases(text, &self.runs, &byte_to_char);
         let safe_breaks = Self::compute_safe_breaks(&self.runs, &chars, &byte_to_char);
 
         for i in 0..num_characters {
             character_data.push(ShapeResultCharacterData {
-                x_position: x,
+                x_position: units_to_px(x),
                 is_cluster_base: cluster_bases.get(i).copied().unwrap_or(true),
                 safe_to_break_before: safe_breaks.get(i).copied().unwrap_or(true),
             });
-            x += char_advances[i];
+            x += char_units[i];
         }
 
         ShapeResult {
+            width: units_to_px(total_units),
             runs: result_runs,
-            width: total_width,
             num_characters,
             direction: self.direction,
             character_data,
@@ -412,8 +365,8 @@ impl ShapeCollector {
     /// A character position is safe to break before if reshaping the text
     /// from that point onward would produce the same glyphs.
     ///
-    /// Since SkShaper doesn't expose HarfBuzz's `HB_GLYPH_FLAG_UNSAFE_TO_BREAK`,
-    /// we use a conservative, script-aware heuristic:
+    /// Div does not read HarfBuzz's `HB_GLYPH_FLAG_UNSAFE_TO_BREAK` yet, so it
+    /// uses a conservative, script-aware heuristic:
     /// - Always safe: start of text, whitespace, positions adjacent to whitespace.
     /// - Simple scripts (Latin, CJK, etc.): safe at cluster boundaries.
     /// - Complex scripts (Arabic, Indic, Thai, etc.): cluster boundaries are
@@ -464,77 +417,21 @@ impl ShapeCollector {
     }
 }
 
-impl SkRunHandler for ShapeCollector {
-    fn begin_line(&mut self) {
-        // Single-line shaping — nothing to do.
-    }
-
-    fn run_info(&mut self, _info: &run_handler::RunInfo) {
-        // SkShaper reports metadata for every run before it calls
-        // `run_buffer` for any run. Do not retain a single `RunInfo` here:
-        // mixed-script lines can have different glyph counts and the last
-        // reported count does not necessarily belong to the next buffer.
-    }
-
-    fn commit_run_info(&mut self) {
-        // Buffer allocation is intentionally deferred until `run_buffer`,
-        // whose `RunInfo` identifies the exact run Skia is about to fill.
-    }
-
-    fn run_buffer(&mut self, info: &run_handler::RunInfo) -> run_handler::Buffer<'_> {
-        let n = info.glyph_count;
-        self.current_glyphs.clear();
-        self.current_glyphs.resize(n, 0);
-        self.current_positions.clear();
-        self.current_positions.resize(n, Point::default());
-        self.current_offsets.clear();
-        self.current_offsets.resize(n, Point::default());
-        self.current_clusters.clear();
-        self.current_clusters.resize(n, 0);
-        run_handler::Buffer {
-            glyphs: &mut self.current_glyphs,
-            positions: &mut self.current_positions,
-            offsets: Some(&mut self.current_offsets),
-            clusters: Some(&mut self.current_clusters),
-            point: Point::default(),
-        }
-    }
-
-    fn commit_run_buffer(&mut self, info: &run_handler::RunInfo) {
-        // Save the completed run.
-        self.runs.push(CollectedRun {
-            glyphs: self.current_glyphs.clone(),
-            positions: self.current_positions.clone(),
-            offsets: self.current_offsets.clone(),
-            clusters: self.current_clusters.clone(),
-            truncated: advance_truncates_below_skshaper(info.font, &self.current_glyphs),
-            utf8_range: info.utf8_range.clone(),
-            advance: info.advance,
-        });
-    }
-
-    fn commit_line(&mut self) {
-        // Single-line shaping — nothing to do.
-    }
-}
-
-/// Text shaper — shapes text using HarfBuzz via Skia's SkShaper.
+/// Text shaper — shapes text with HarfBuzz, as Blink's `HarfBuzzShaper` does.
 ///
 /// Mirrors Blink's `HarfBuzzShaper` (`platform/fonts/shaping/harfbuzz_shaper.h`).
 pub struct TextShaper {
-    shaper: Shaper,
+    _private: (),
 }
 
 impl TextShaper {
-    /// Create a new TextShaper with the default Skia shaper (HarfBuzz backend).
+    /// Create a new TextShaper.
     pub fn new() -> Self {
         crate::initialize_skia();
-        Self {
-            shaper: Shaper::new(None),
-        }
+        Self { _private: () }
     }
 
-    /// Shape text using HarfBuzz via Skia's SkShaper.
+    /// Shape text with HarfBuzz.
     ///
     /// This is the main entry point for text shaping. Takes text and a Font,
     /// runs HarfBuzz shaping, and returns a ShapeResult with positioned glyphs.
@@ -546,6 +443,28 @@ impl TextShaper {
     ///
     /// Blink: `HarfBuzzShaper::Shape` in `harfbuzz_shaper.cc`.
     pub fn shape(&self, text: &str, font: &Font, direction: TextDirection) -> ShapeResult {
+        self.shape_spaced(text, font, direction, true)
+    }
+
+    /// [`Self::shape`] for text whose first character starts a
+    /// `ShapeResultSpacing` context that does not allow word spacing
+    /// anywhere: a space at index 0 gets none (`ComputeSpacing`).
+    pub fn shape_at_text_start(
+        &self,
+        text: &str,
+        font: &Font,
+        direction: TextDirection,
+    ) -> ShapeResult {
+        self.shape_spaced(text, font, direction, false)
+    }
+
+    fn shape_spaced(
+        &self,
+        text: &str,
+        font: &Font,
+        direction: TextDirection,
+        word_spacing_at_start: bool,
+    ) -> ShapeResult {
         if text.is_empty() {
             return ShapeResult::empty(direction);
         }
@@ -571,79 +490,8 @@ impl TextShaper {
             None => return ShapeResult::empty(direction),
         };
 
-        let sk_font = font_data.shaping_font();
-        let left_to_right = direction.is_ltr();
-
-        let mut collector = ShapeCollector::new(Arc::clone(&font_data), direction);
-
-        // Face defaults come first. Variant properties and explicit CSS
-        // feature settings follow, so later values win for duplicate tags.
-        let mut font_features: Vec<FontFeature> = font_data
-            .feature_defaults()
-            .iter()
-            .map(|feature| FontFeature {
-                tag: feature.tag,
-                value: feature.value,
-            })
-            .collect();
-        font_features.extend(collect_font_features(font.description()));
-        if matches!(
-            font.description().orientation,
-            FontOrientation::VerticalMixed | FontOrientation::VerticalUpright
-        ) {
-            // Upright vertical runs use the font's vertical alternates. The
-            // layout model continues to expose their logical inline advance
-            // through `ShapeResult::width`; paint maps that advance onto the
-            // physical vertical axis without rotating the glyph outlines.
-            font_features.push(FontFeature {
-                tag: *b"vert",
-                value: 1,
-            });
-            font_features.push(FontFeature {
-                tag: *b"vrt2",
-                value: 1,
-            });
-        }
-        let skia_features = to_skia_features(&font_features, text.len());
-
-        // The full iterator API is used even with no explicit features. This
-        // supplies HarfBuzz with Unicode script runs, UAX#9 bidi levels, and
-        // the document's BCP47 language instead of the old `script=0`/`und`
-        // placeholders.
-        let mut font_iter = shaper::Shaper::new_trivial_font_run_iterator(sk_font, text.len());
-        let bidi_level = if left_to_right { 0 } else { 1 };
-        let mut script_iter = shaper::Shaper::new_hb_icu_script_run_iterator(text);
-        let language = shaping_language(font.description());
-        let mut lang_iter =
-            shaper::Shaper::new_trivial_language_run_iterator(&language, text.len());
-        if let Some(mut bidi_iter) = shaper::Shaper::new_icu_bidi_run_iterator(text, bidi_level) {
-            self.shaper.shape_with_iterators_and_features(
-                text,
-                &mut font_iter,
-                &mut bidi_iter,
-                &mut script_iter,
-                &mut lang_iter,
-                &skia_features,
-                f32::INFINITY,
-                &mut collector,
-            );
-        } else {
-            #[allow(deprecated)]
-            let mut bidi_iter =
-                shaper::Shaper::new_trivial_bidi_run_iterator(bidi_level, text.len());
-            self.shaper.shape_with_iterators_and_features(
-                text,
-                &mut font_iter,
-                &mut bidi_iter,
-                &mut script_iter,
-                &mut lang_iter,
-                &skia_features,
-                f32::INFINITY,
-                &mut collector,
-            );
-        }
-
-        let mut result = collector.into_shape_result(text);
+        let mut result =
+            self.shape_with_font_data(text, Arc::clone(&font_data), font.description(), direction);
 
         // ── Font fallback for missing glyphs ────────────────────────────
         // Scan for runs with glyph_id == 0 (.notdef) and attempt to
@@ -651,7 +499,7 @@ impl TextShaper {
         self.apply_font_fallback(&mut result, text, font, direction);
 
         // Apply letter spacing and word spacing from the font description.
-        Self::apply_spacing(&mut result, font, text);
+        Self::apply_spacing(&mut result, font, text, word_spacing_at_start);
 
         result
     }
@@ -663,7 +511,6 @@ impl TextShaper {
         description: &crate::font::FontDescription,
         direction: TextDirection,
     ) -> ShapeResult {
-        let mut collector = ShapeCollector::new(Arc::clone(&font_data), direction);
         let mut features: Vec<FontFeature> = font_data
             .feature_defaults()
             .iter()
@@ -686,41 +533,24 @@ impl TextShaper {
                 value: 1,
             });
         }
-        let skia_features = to_skia_features(&features, text.len());
-        let mut font_iter =
-            shaper::Shaper::new_trivial_font_run_iterator(font_data.shaping_font(), text.len());
+        let features: Vec<harfbuzz::Feature> = features
+            .iter()
+            .map(|feature| harfbuzz::Feature {
+                tag: tag_to_u32(&feature.tag),
+                value: feature.value,
+            })
+            .collect();
         let bidi_level = if direction.is_ltr() { 0 } else { 1 };
-        let mut script_iter = shaper::Shaper::new_hb_icu_script_run_iterator(text);
         let language = shaping_language(description);
-        let mut language_iter =
-            shaper::Shaper::new_trivial_language_run_iterator(&language, text.len());
-        if let Some(mut bidi_iter) = shaper::Shaper::new_icu_bidi_run_iterator(text, bidi_level) {
-            self.shaper.shape_with_iterators_and_features(
-                text,
-                &mut font_iter,
-                &mut bidi_iter,
-                &mut script_iter,
-                &mut language_iter,
-                &skia_features,
-                f32::INFINITY,
-                &mut collector,
-            );
-        } else {
-            #[allow(deprecated)]
-            let mut bidi_iter =
-                shaper::Shaper::new_trivial_bidi_run_iterator(bidi_level, text.len());
-            self.shaper.shape_with_iterators_and_features(
-                text,
-                &mut font_iter,
-                &mut bidi_iter,
-                &mut script_iter,
-                &mut language_iter,
-                &skia_features,
-                f32::INFINITY,
-                &mut collector,
-            );
-        }
-        collector.into_shape_result(text)
+        let runs = harfbuzz::shape(
+            text,
+            font_data.shaping_font(),
+            description.specified_size,
+            bidi_level,
+            &language,
+            &features,
+        );
+        ShapeCollector::new(Arc::clone(&font_data), direction, runs).into_shape_result(text)
     }
 
     /// Re-shape character ranges that have missing glyphs (glyph_id == 0)
@@ -1032,6 +862,7 @@ impl TextShaper {
                 new_runs.push(ShapeResultRun {
                     font_data: Arc::clone(&run.font_data),
                     glyphs: run.glyphs.clone(),
+                    advance_units: run.advance_units.clone(),
                     advances: run.advances.clone(),
                     offsets: run.offsets.clone(),
                     clusters: run.clusters.clone(),
@@ -1055,6 +886,7 @@ impl TextShaper {
                     new_runs.push(ShapeResultRun {
                         font_data: Arc::clone(&run.font_data),
                         glyphs: run.glyphs[gs..ge].to_vec(),
+                        advance_units: run.advance_units[gs..ge].to_vec(),
                         advances: run.advances[gs..ge].to_vec(),
                         offsets: run.offsets[gs..ge].to_vec(),
                         clusters: run.clusters[gs..ge].to_vec(),
@@ -1079,6 +911,7 @@ impl TextShaper {
                     new_runs.push(ShapeResultRun {
                         font_data: Arc::clone(&run.font_data),
                         glyphs: run.glyphs[gs..ge].to_vec(),
+                        advance_units: run.advance_units[gs..ge].to_vec(),
                         advances: run.advances[gs..ge].to_vec(),
                         offsets: run.offsets[gs..ge].to_vec(),
                         clusters: run.clusters[gs..ge]
@@ -1099,6 +932,7 @@ impl TextShaper {
             new_runs.push(ShapeResultRun {
                 font_data: Arc::clone(&fb_font_data),
                 glyphs: fb_run.glyphs,
+                advance_units: fb_run.advance_units,
                 advances: fb_run.advances,
                 offsets: fb_run.offsets,
                 clusters: fb_run.clusters,
@@ -1283,6 +1117,7 @@ impl TextShaper {
                 runs.push(ShapeResultRun {
                     font_data: Arc::clone(&r.font_data),
                     glyphs: r.glyphs[gs..ge].to_vec(),
+                    advance_units: r.advance_units[gs..ge].to_vec(),
                     advances: r.advances[gs..ge].to_vec(),
                     offsets: r.offsets[gs..ge].to_vec(),
                     clusters: r.clusters[gs..ge]
@@ -1308,13 +1143,10 @@ impl TextShaper {
     /// Rebuild width and character_data from the current runs.
     fn rebuild_character_data(result: &mut ShapeResult, text: &str) {
         let num_characters = text.chars().count();
-        let mut char_advances = vec![0.0f32; num_characters];
+        let mut char_units = vec![0i64; num_characters];
 
-        let mut total_width = 0.0f32;
         for run in &result.runs {
-            let mut run_width = 0.0f32;
-            for (gi, &advance) in run.advances.iter().enumerate() {
-                run_width += advance;
+            for (gi, &units) in run.advance_units.iter().enumerate() {
                 // Map glyph to character.
                 let local_char = if gi < run.clusters.len() {
                     run.clusters[gi]
@@ -1325,13 +1157,12 @@ impl TextShaper {
                 };
                 let char_idx = run.start_index + local_char;
                 if char_idx < num_characters {
-                    char_advances[char_idx] += advance;
+                    char_units[char_idx] += i64::from(units);
                 }
             }
-            total_width += run_width;
         }
 
-        result.width = total_width;
+        result.width = ShapeResult::width_from_runs(&result.runs);
         result.num_characters = num_characters;
 
         // Recompute cluster-base flags from actual run cluster data.
@@ -1392,14 +1223,14 @@ impl TextShaper {
         }
 
         let mut character_data = Vec::with_capacity(num_characters);
-        let mut x = 0.0f32;
+        let mut x = 0i64;
         for i in 0..num_characters {
             character_data.push(ShapeResultCharacterData {
-                x_position: x,
+                x_position: units_to_px(x),
                 is_cluster_base: is_cluster_base[i],
                 safe_to_break_before: safe_to_break[i],
             });
-            x += char_advances[i];
+            x += char_units[i];
         }
         result.character_data = character_data;
     }
@@ -1407,7 +1238,12 @@ impl TextShaper {
     /// Apply letter spacing and word spacing after shaping.
     ///
     /// Blink: `ShapeResult::ApplySpacing` in `shape_result.cc`.
-    fn apply_spacing(result: &mut ShapeResult, font: &Font, text: &str) {
+    fn apply_spacing(
+        result: &mut ShapeResult,
+        font: &Font,
+        text: &str,
+        word_spacing_at_start: bool,
+    ) {
         let desc = font.description();
         let letter_spacing = desc.letter_spacing;
         let word_spacing = desc.word_spacing;
@@ -1426,16 +1262,23 @@ impl TextShaper {
             return;
         }
 
-        // Build a map from glyph-run positions back to character indices.
-        let mut extra_advance_per_char = vec![0.0f32; num_chars];
+        // The extra advance of each character in 1/65536 px. Blink converts
+        // the spacing once (`TextRunLayoutUnit(float)`, truncating) and adds
+        // it to the glyph advances in units (`ShapeResultSpacing::SetSpacing`,
+        // `HarfBuzzRunGlyphData::AddAdvance`).
+        let letter_spacing = px_to_units(letter_spacing);
+        let word_spacing = px_to_units(word_spacing);
+        let mut extra_advance_per_char = vec![0i32; num_chars];
 
         for (char_idx, &ch) in chars.iter().enumerate() {
             // Letter spacing: applied to every character.
-            extra_advance_per_char[char_idx] += letter_spacing;
+            extra_advance_per_char[char_idx] =
+                extra_advance_per_char[char_idx].saturating_add(letter_spacing);
 
             // Word spacing: applied only to space characters (U+0020).
-            if ch == ' ' {
-                extra_advance_per_char[char_idx] += word_spacing;
+            if ch == ' ' && (char_idx > 0 || word_spacing_at_start) {
+                extra_advance_per_char[char_idx] =
+                    extra_advance_per_char[char_idx].saturating_add(word_spacing);
             }
         }
 
@@ -1444,7 +1287,7 @@ impl TextShaper {
         // preceding cluster so line breaking, caret geometry, and painting
         // all consume the same advance.
         if desc.text_autospace == TextAutospace::Normal {
-            let autospace = desc.size / 8.0;
+            let autospace = px_to_units(desc.size / 8.0);
             for index in 0..chars.len().saturating_sub(1) {
                 let left_ideographic = is_autospace_ideographic(chars[index]);
                 let right_ideographic = is_autospace_ideographic(chars[index + 1]);
@@ -1453,7 +1296,8 @@ impl TextShaper {
                 if (left_ideographic && right_alphanumeric)
                     || (left_alphanumeric && right_ideographic)
                 {
-                    extra_advance_per_char[index] += autospace;
+                    extra_advance_per_char[index] =
+                        extra_advance_per_char[index].saturating_add(autospace);
                 }
             }
         }
@@ -1470,12 +1314,14 @@ impl TextShaper {
         } else {
             0.0
         };
-        if leading_trim > 0.0 {
-            extra_advance_per_char[0] -= leading_trim;
+        let leading_trim_units = px_to_units(leading_trim);
+        let leading_trim = units_to_px(i64::from(leading_trim_units));
+        if leading_trim_units > 0 {
+            extra_advance_per_char[0] =
+                extra_advance_per_char[0].saturating_sub(leading_trim_units);
         }
 
         // Distribute the extra advance to glyph runs.
-        let mut total_extra = 0.0f32;
         for run in &mut result.runs {
             let run_start = run.start_index;
             let run_chars = run.num_characters;
@@ -1492,8 +1338,7 @@ impl TextShaper {
                         run_start + i
                     };
                     if char_idx < num_chars {
-                        run.advances[i] += extra_advance_per_char[char_idx];
-                        total_extra += extra_advance_per_char[char_idx];
+                        run.add_advance_units(i, extra_advance_per_char[char_idx]);
                     }
                 }
             } else {
@@ -1502,7 +1347,7 @@ impl TextShaper {
                 // it covers, determined by cluster boundaries. This avoids
                 // piling all spacing on the last glyph, which would create
                 // a visually uneven gap after the final glyph.
-                let mut per_glyph_extra = vec![0.0f32; run.num_glyphs];
+                let mut per_glyph_extra = vec![0i32; run.num_glyphs];
 
                 // Sort glyph indices by ascending cluster value so we can
                 // determine each glyph's character range regardless of
@@ -1525,17 +1370,15 @@ impl TextShaper {
                     for ci_local in cluster..next_cluster {
                         let ci = run_start + ci_local;
                         if ci < num_chars {
-                            per_glyph_extra[gi] += extra_advance_per_char[ci];
+                            per_glyph_extra[gi] =
+                                per_glyph_extra[gi].saturating_add(extra_advance_per_char[ci]);
                         }
                     }
                 }
 
-                let mut run_extra = 0.0f32;
                 for gi in 0..run.num_glyphs {
-                    run.advances[gi] += per_glyph_extra[gi];
-                    run_extra += per_glyph_extra[gi];
+                    run.add_advance_units(gi, per_glyph_extra[gi]);
                 }
-                total_extra += run_extra;
             }
         }
 
@@ -1553,16 +1396,17 @@ impl TextShaper {
             }
         }
 
-        result.width += total_extra;
+        result.width = ShapeResult::width_from_runs(&result.runs);
 
-        // Rebuild character data x_positions with spacing applied.
+        // Rebuild character data x_positions with spacing applied, from a
+        // running sum in 1/65536 px.
         if !result.character_data.is_empty() {
-            let mut x = 0.0f32;
+            let mut x = 0i64;
             for i in 0..num_chars {
-                result.character_data[i].x_position = x;
+                result.character_data[i].x_position = units_to_px(x);
                 // Compute per-character advance from runs.
                 let char_width = Self::char_advance_from_runs(&result.runs, i);
-                x += char_width;
+                x += (f64::from(char_width) * 65536.0).round() as i64;
             }
         }
     }
@@ -1690,9 +1534,9 @@ mod tests {
 
     #[test]
     fn glyph_advances_are_skia_widths_truncated_to_harfbuzz_units() {
-        // Blink hands HarfBuzz each Skia width truncated to 1/65536 px;
-        // SkShaper's own font funcs round it. A lone glyph has no kerning,
-        // so its advance is that width alone.
+        // Blink hands HarfBuzz each Skia width truncated to 1/65536 px, and
+        // so do Div's font funcs. A lone glyph has no kerning, so its
+        // advance is that width alone.
         let shaper = TextShaper::new();
         let mut truncated = 0;
         for size in [11.37, 13.33, 15.3, 16.0, 17.71] {
@@ -1957,6 +1801,7 @@ mod tests {
             runs: vec![ShapeResultRun {
                 font_data: Arc::clone(&font_data),
                 glyphs: vec![100, 200, 300, 400],
+                advance_units: ShapeResultRun::units_from_px(&vec![10.0, 20.0, 10.0, 10.0]),
                 advances: vec![10.0, 20.0, 10.0, 10.0],
                 offsets: vec![(0.0, 0.0); 4],
                 clusters: vec![0, 1, 4, 5],
@@ -1981,7 +1826,7 @@ mod tests {
         desc.letter_spacing = 5.0;
         let spaced_font = Font::new(desc);
 
-        TextShaper::apply_spacing(&mut result, &spaced_font, "office");
+        TextShaper::apply_spacing(&mut result, &spaced_font, "office", true);
 
         // Glyph 0 (cluster 0, covers char 0): should get 1 × 5.0 = 5.0
         let eps = 0.01;
@@ -2057,6 +1902,7 @@ mod tests {
         let runs = vec![ShapeResultRun {
             font_data,
             glyphs: vec![1, 2, 3],
+            advance_units: ShapeResultRun::units_from_px(&vec![8.0, 4.0, 10.0]),
             advances: vec![8.0, 4.0, 10.0],
             offsets: vec![(0.0, 0.0); 3],
             clusters: vec![0, 0, 1],
@@ -2092,6 +1938,7 @@ mod tests {
         let runs = vec![ShapeResultRun {
             font_data,
             glyphs: vec![1, 2, 3, 4],
+            advance_units: ShapeResultRun::units_from_px(&vec![5.0, 3.0, 2.0, 8.0]),
             advances: vec![5.0, 3.0, 2.0, 8.0],
             offsets: vec![(0.0, 0.0); 4],
             clusters: vec![0, 0, 0, 2],
@@ -2132,6 +1979,7 @@ mod tests {
         let runs = vec![ShapeResultRun {
             font_data,
             glyphs: vec![1, 2, 3],
+            advance_units: ShapeResultRun::units_from_px(&vec![10.0, 20.0, 30.0]),
             advances: vec![10.0, 20.0, 30.0],
             offsets: vec![(0.0, 0.0); 3],
             clusters: vec![0, 1, 2],
