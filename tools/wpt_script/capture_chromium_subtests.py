@@ -18,6 +18,19 @@ wptrunner does. Files that need wptserve features (`.sub.` substitution,
 generated `.any.js`/`.window.js` wrappers, `.headers`) or a person
 (`-manual`) are recorded as excluded with their reason, not run.
 
+A suite that needs real input (`INPUT_SUITES`) runs with the test driver
+Chromium's own web test server serves (`DRIVER_FILES`, from the same
+checkout). Its vendor file sends pointer actions through
+`chrome.gpuBenchmarking.pointerActionSequence`, so the browser starts with
+`--enable-gpu-benchmarking`. `--wpt-root` must then sit in a tree that keeps
+Chromium's paths.
+
+This isn't content_shell, so such a run counts as Chromium's result only
+where it reproduces Chromium's own pinned record. Each run gets an `oracle`:
+`agrees`, or `disputed` with the reason (a `TestExpectations` entry, results
+that change between repeats, a keyboard action the vendor file needs
+`eventSender` for, or a mismatch with the `-expected.txt` baseline).
+
 Usage (Linux; the pinned build from `run_all_pixel_comparisons.py`):
 
     python3 tools/wpt_script/capture_chromium_subtests.py \
@@ -29,11 +42,13 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
 import http.server
 import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -60,6 +75,45 @@ add_completion_callback(function (tests, status) {
   };
 });
 """
+
+# wpt/config.tmpl.json's aliases, with wptserve.py's vendor override.
+DRIVER_FILES = {
+    "/resources/testdriver.js": (
+        "third_party/wpt_tools/wpt/resources/testdriver.js",
+        "a74f264b3bafe6db9ad1e6b1f0ca2a2269a7d61b25a59df8e2ccf9f01c5fdf31"),
+    "/resources/testdriver-actions.js": (
+        "third_party/wpt_tools/wpt/resources/testdriver-actions.js",
+        "e2db9153f3850983f423383d004042845b87d2a3a4d388b3f4846c915f571027"),
+    "/resources/testdriver-vendor.js": (
+        "third_party/blink/web_tests/resources/testdriver-vendor.js",
+        "d84f8fcdaf4a2d3fbfd2f6951268345a2fb813637fe733a56421e282b370edf0"),
+}
+INPUT_SUITES = {"pointerevents"}
+# The switches of content/web_test's runner that decide these tests' results,
+# so a run can be compared with Chromium's pinned baselines. The vendor file
+# also stands down under WebDriver (`navigator.webdriver`), which a debugging
+# port sets and content_shell, its usual host, doesn't.
+REAL_INPUT_FLAGS = ["--enable-gpu-benchmarking",
+                    "--enable-experimental-web-platform-features",
+                    "--enable-blink-test-features",
+                    "--touch-events=enabled",
+                    "--force-device-scale-factor=1",
+                    "--disable-blink-features=AutomationControlled",
+                    # An 800x600 viewport, as content_shell has: the headless
+                    # window's size includes 143 px of browser UI.
+                    "--window-size=800,743"]
+
+VARIANT = re.compile(r"""<meta\s+name=["']?variant["']?\s+content=["']([^"']*)["']""", re.I)
+
+EXPECTATIONS = ("third_party/blink/web_tests/TestExpectations",
+                "180c921c3ec73b32cc35d44c7755b92ac97ed4e73c8e65baf0e7cea51fc9ca84")
+EXPECTATION = re.compile(r"(?:^|\s)external/wpt/(\S+)\s+\[ ([^\]]+) \]")
+EXPECTATION_TAGS = re.compile(r"\[ ([^\]]+) \]\s+external/wpt/")
+OTHER_PLATFORMS = ("Android", "Fuchsia", "Mac", "Win", "iOS")
+BASELINE_ROW = re.compile(r"\[(FAIL|TIMEOUT|NOTRUN|PRECONDITION_FAILED)\] (.*)")
+KEYBOARD_DRIVER = ("No eventSender", "We do not support keydown")
+# A run that changes between these repeats can't stand for Chromium's result.
+INPUT_REPEATS = 3
 
 TEST_STATUS = {0: "PASS", 1: "FAIL", 2: "TIMEOUT", 3: "NOTRUN", 4: "PRECONDITION_FAILED"}
 HARNESS_STATUS = {0: "OK", 1: "ERROR", 2: "TIMEOUT", 3: "PRECONDITION_FAILED"}
@@ -89,19 +143,124 @@ def exclusion(relative: str) -> str | None:
     return None
 
 
+def page_variants(path: Path) -> list[str]:
+    """The page's `<meta name=variant>` queries, or the bare page; wptrunner
+    runs each as its own test."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return VARIANT.findall(text) or [""]
+
+
 def is_testharness(path: Path) -> bool:
     text = path.read_text(encoding="utf-8", errors="replace")
     return "/resources/testharness.js" in text
 
 
+def driver_files(wpt_root: Path) -> dict[str, bytes]:
+    """The pinned test driver, by URL path."""
+    checkout = wpt_root.parents[4]
+    files = {}
+    for url, (relative, digest) in DRIVER_FILES.items():
+        path = checkout / relative
+        if not path.is_file():
+            raise SystemExit(f"{path} is missing: extract it from the pinned checkout")
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise SystemExit(f"{relative} is not the pinned file")
+        files[url] = data
+    return files
+
+
+def parse_expectations(text: str, suite: str) -> dict[str, str]:
+    """`TestExpectations` entries for `suite` that apply on Linux."""
+    entries: dict[str, str] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        match = EXPECTATION.search(line)
+        if line.startswith("#") or not match or not match.group(1).startswith(suite + "/"):
+            continue
+        tags = EXPECTATION_TAGS.search(line)
+        names = tags.group(1).split() if tags else []
+        if "Linux" not in names and any(name.startswith(OTHER_PLATFORMS) for name in names):
+            continue
+        values = set(match.group(2).split()) - {"Pass", "Slow"}
+        if values:
+            entries[match.group(1)] = " ".join(sorted(values))
+    return entries
+
+
+def expectation_for(key: str, entries: dict[str, str]) -> str | None:
+    """The entry for a run: its URL, its page, or a directory wildcard."""
+    for name in (key, key.split("?", 1)[0]):
+        if name in entries:
+            return entries[name]
+    for name, value in entries.items():
+        if name.endswith("*") and key.startswith(name[:-1]):
+            return value
+    return None
+
+
+def parse_baseline(text: str) -> tuple[dict[str, str], bool]:
+    """A `-expected.txt`'s non-passing subtests and whether it has a harness error."""
+    rows, harness_error = {}, False
+    for line in text.splitlines():
+        match = BASELINE_ROW.match(line)
+        if match:
+            rows[match.group(2)] = match.group(1)
+        elif line.startswith("Harness Error."):
+            harness_error = True
+    return rows, harness_error
+
+
+def baseline_path(wpt_root: Path, key: str) -> Path:
+    """`page.html?a=b&c` has the baseline `page_a=b_c-expected.txt`."""
+    path, _, query = key.partition("?")
+    stem = path.rsplit(".", 1)[0]
+    if query:
+        stem += "_" + query.replace("&", "_")
+    return wpt_root / (stem + "-expected.txt")
+
+
+def oracle_status(result: dict, baseline: tuple[dict[str, str], bool] | None,
+                  expectation: str | None) -> dict:
+    """Whether this run reproduces Chromium's own pinned record of the test."""
+    if expectation:
+        return {"status": "disputed", "reason": f"test-expectations:{expectation}"}
+    if result.get("unstable"):
+        return {"status": "disputed", "reason": "unstable"}
+    rows, harness_error = baseline or ({}, False)
+    observed = {row["name"]: row["status"] for row in result["subtests"]}
+    agrees = (all(status == rows.get(name, "PASS") for name, status in observed.items())
+              and set(rows) <= set(observed)
+              and (result["harness"] != "OK") == harness_error)
+    if agrees:
+        return {"status": "agrees"}
+    messages = [result.get("message") or ""]
+    messages += [row.get("message") or "" for row in result["subtests"]]
+    if any(text in message for message in messages for text in KEYBOARD_DRIVER):
+        return {"status": "disputed", "reason": "driver:keyboard"}
+    return {"status": "disputed", "reason": "baseline-mismatch"}
+
+
+def same_result(one: dict, two: dict) -> bool:
+    def outcome(result):
+        return result["harness"], [(row["name"], row["status"]) for row in result["subtests"]]
+    return outcome(one) == outcome(two)
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, scripts: dict[str, bytes] | None = None, **kwargs):
+        # The base class serves the request from its constructor.
+        self.scripts = {"/resources/testharnessreport.js": REPORTER, **(scripts or {})}
+        super().__init__(*args, **kwargs)
+
     def do_GET(self):  # noqa: N802 (stdlib name)
-        if self.path.split("?", 1)[0] == "/resources/testharnessreport.js":
+        script = self.scripts.get(self.path.split("?", 1)[0])
+        if script is not None:
             self.send_response(200)
             self.send_header("Content-Type", "text/javascript")
-            self.send_header("Content-Length", str(len(REPORTER)))
+            self.send_header("Content-Length", str(len(script)))
             self.end_headers()
-            self.wfile.write(REPORTER)
+            self.wfile.write(script)
             return
         super().do_GET()
 
@@ -117,7 +276,8 @@ def harness():
 
 
 class Browser:
-    def __init__(self, chrome: str, chrome_dir: str | None):
+    def __init__(self, chrome: str, chrome_dir: str | None, real_input: bool = False,
+                 extra_args: list[str] | None = None):
         self.h = harness()
         self.profile = tempfile.mkdtemp(prefix="div-wpt-script-")
         self.process = subprocess.Popen(
@@ -125,6 +285,7 @@ class Browser:
              "--remote-debugging-port=0", f"--user-data-dir={self.profile}",
              "--window-size=800,600", "--disable-background-timer-throttling",
              "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows",
+             *(REAL_INPUT_FLAGS if real_input else []), *(extra_args or []),
              "about:blank"],
             env=self.h.chrome_environment(chrome_dir),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -134,6 +295,11 @@ class Browser:
         if CHROMIUM_VERSION not in product:
             raise SystemExit(f"unexpected browser version: {product}")
         self.client.command("Page.enable")
+        if real_input:
+            viewport = self.evaluate('innerWidth + "x" + innerHeight')
+            if viewport != "800x600":
+                self.close()
+                raise SystemExit(f"the viewport is {viewport}, not 800x600")
 
     def evaluate(self, expression: str):
         result = self.client.command("Runtime.evaluate", {
@@ -186,7 +352,7 @@ def suite_files(wpt_root: Path, suite: str) -> list[str]:
 
 
 def capture(wpt_root: Path, suite: str, chrome: str, chrome_dir: str | None,
-            only: list[str] | None = None) -> dict:
+            only: list[str] | None = None, extra_args: list[str] | None = None) -> dict:
     files: dict[str, dict] = {}
     to_run = []
     for relative in suite_files(wpt_root, suite):
@@ -200,16 +366,34 @@ def capture(wpt_root: Path, suite: str, chrome: str, chrome_dir: str | None,
             continue
         if only and relative not in only:
             continue
-        to_run.append(relative)
-    handler = functools.partial(Handler, directory=str(wpt_root))
+        to_run.extend(relative + variant for variant in page_variants(wpt_root / relative))
+    real_input = suite in INPUT_SUITES
+    scripts = driver_files(wpt_root) if real_input else {}
+    entries: dict[str, str] = {}
+    if real_input:
+        path = wpt_root.parents[4] / EXPECTATIONS[0]
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != EXPECTATIONS[1]:
+            raise SystemExit(f"{path} is not the pinned TestExpectations")
+        entries = parse_expectations(path.read_text(encoding="utf-8"), suite)
+    handler = functools.partial(Handler, directory=str(wpt_root), scripts=scripts)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    browser = Browser(chrome, chrome_dir)
+    browser = Browser(chrome, chrome_dir, real_input, extra_args)
     try:
         for relative in to_run:
             url = f"http://127.0.0.1:{server.server_address[1]}/{relative}"
             files[relative] = record(browser.run(url))
+            if real_input:
+                result = files[relative]
+                for _ in range(INPUT_REPEATS - 1):
+                    if not same_result(result, record(browser.run(url))):
+                        result["unstable"] = True
+                        break
+                file = baseline_path(wpt_root, relative)
+                baseline = parse_baseline(file.read_text(encoding="utf-8")) if file.is_file() else None
+                result["oracle"] = oracle_status(result, baseline,
+                                                 expectation_for(relative, entries))
             print(f"{relative}: {files[relative]['harness']}, "
                   f"{len(files[relative]['subtests'])} subtests", file=sys.stderr)
     finally:
@@ -235,6 +419,8 @@ def main() -> int:
     parser.add_argument("--only", action="append",
                         help="run only this file (repeatable); for investigation")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--chrome-arg", action="append",
+                        help="an extra browser flag (repeatable); for investigation")
     parser.add_argument("--chrome", type=Path,
                         help="the pinned chrome binary (default: the pixel harness's)")
     args = parser.parse_args()
@@ -245,7 +431,8 @@ def main() -> int:
         chrome, chrome_dir = h.find_chrome()
     if chrome is None:
         raise SystemExit("the pinned Chromium was not found")
-    result = capture(args.wpt_root.resolve(), args.suite, chrome, chrome_dir, args.only)
+    result = capture(args.wpt_root.resolve(), args.suite, chrome, chrome_dir, args.only,
+                     args.chrome_arg)
     output = args.output or fixture_path(args.suite)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

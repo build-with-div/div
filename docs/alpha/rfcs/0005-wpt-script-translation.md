@@ -442,6 +442,30 @@ it isn't translatable, whatever surfaces it uses:
   a `translatable` row recorded `NOTRUN`, or an `unreachable` row recorded
   with any other result.
 
+### Real input in the Chromium recording
+
+Most `pointerevents` pages need `test_driver` actions, and WPT's own
+`testdriver-vendor.js` is empty. `capture_chromium_subtests.py` therefore
+runs them with the driver Chromium's web test server serves
+(`config.tmpl.json`, pinned by sha256). Its vendor file sends pointer actions
+through `chrome.gpuBenchmarking.pointerActionSequence`. The browser takes the
+switches of `content/web_test`'s runner that decide these results, and an
+800x600 viewport. Each page's `<meta name=variant>` is its own run.
+
+This is pinned Chrome for Testing, not `content_shell`, so a run counts as
+Chromium's result only where it reproduces Chromium's own record. Each run is
+repeated three times and gets an `oracle`:
+
+- `agrees`: stable, no `TestExpectations` entry applies on Linux, and every
+  subtest and the harness status match the `-expected.txt` baseline (or
+  pass, without one).
+- `disputed`, with the reason: `test-expectations:<values>`, `unstable`,
+  `driver:keyboard` (the vendor file needs `eventSender`) or
+  `baseline-mismatch`.
+
+A disputed run's subtests have the ledger status `disputed`. They stay in the
+denominator, are never generated, and are never counted as a Chromium pass.
+
 ### Affected tracks
 
 The framework track owns it, and no other track is affected:

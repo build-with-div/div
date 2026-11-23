@@ -97,6 +97,102 @@ a:hover { COLOR: red; background: url(x:y) }
         self.assertEqual(surfaces, ["css:background", "css:color", "css:width", "markup:<style>"])
 
 
+class RealInputOracleTest(unittest.TestCase):
+    capture = ledger.capture
+
+    def result(self, *rows, harness="OK", **extra):
+        return {"harness": harness, "subtests": [
+            {"name": name, "status": status, **({"message": message} if message else {})}
+            for name, status, message in rows], **extra}
+
+    def test_each_variant_is_a_run(self):
+        directory = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, directory)
+        page = directory / "p.html"
+        page.write_text("""<meta name="variant" content="?mouse">
+<meta name=variant content='?a=b&c'>""")
+        self.assertEqual(self.capture.page_variants(page), ["?mouse", "?a=b&c"])
+        page.write_text("<title>none</title>")
+        self.assertEqual(self.capture.page_variants(page), [""])
+
+    def test_expectations_keep_what_applies_on_linux(self):
+        text = """# external/wpt/s/comment.html [ Failure ]
+crbug.com/1 [ Win ] external/wpt/s/win.html [ Failure ]
+[ Mac14 ] external/wpt/s/mac.html [ Timeout ]
+[ Linux ] external/wpt/s/linux.html?x [ Failure Pass ]
+[ Release ] external/wpt/s/release.html [ Timeout ]
+virtual/v/external/wpt/s/virtual.html [ Failure ]
+external/wpt/s/pass.html [ Pass ]
+external/wpt/other/o.html [ Failure ]
+external/wpt/s/dir/* [ Timeout ]
+"""
+        self.assertEqual(self.capture.parse_expectations(text, "s"), {
+            "s/linux.html?x": "Failure", "s/release.html": "Timeout", "s/dir/*": "Timeout"})
+
+    def test_an_expectation_matches_the_run_its_page_or_a_wildcard(self):
+        entries = {"s/a.html?x": "Failure", "s/b.html": "Timeout", "s/dir/*": "Crash"}
+        find = self.capture.expectation_for
+        self.assertEqual(find("s/a.html?x", entries), "Failure")
+        self.assertIsNone(find("s/a.html?y", entries))
+        self.assertEqual(find("s/b.html?y", entries), "Timeout")
+        self.assertEqual(find("s/dir/c.html", entries), "Crash")
+
+    def test_a_baseline_lists_non_passing_subtests_and_harness_errors(self):
+        text = """This is a testharness.js-based test.
+[FAIL] one
+  assert_true
+[TIMEOUT] two
+Harness: the test ran to completion.
+"""
+        self.assertEqual(self.capture.parse_baseline(text),
+                         ({"one": "FAIL", "two": "TIMEOUT"}, False))
+        self.assertTrue(self.capture.parse_baseline(
+            "Harness Error. harness_status.status = 1 , harness_status.message = x")[1])
+
+    def test_a_variants_baseline_is_named_after_its_query(self):
+        root = Path("wpt")
+        self.assertEqual(self.capture.baseline_path(root, "s/p.html?a=b&c"),
+                         root / "s/p_a=b_c-expected.txt")
+        self.assertEqual(self.capture.baseline_path(root, "s/p.https.html"),
+                         root / "s/p.https-expected.txt")
+
+    def test_a_run_agrees_only_when_it_reproduces_the_record(self):
+        status = self.capture.oracle_status
+        agrees = {"status": "agrees"}
+        self.assertEqual(status(self.result(("a", "PASS", None)), None, None), agrees)
+        self.assertEqual(status(self.result(("a", "FAIL", "m")), ({"a": "FAIL"}, False), None),
+                         agrees)
+        self.assertEqual(status(self.result(("a", "PASS", None), harness="ERROR"),
+                                ({}, True), None), agrees)
+        mismatch = {"status": "disputed", "reason": "baseline-mismatch"}
+        # A failure Chromium doesn't record, a pass it records as failing, a
+        # recorded subtest that's missing, and a harness error on either side.
+        self.assertEqual(status(self.result(("a", "FAIL", "m")), None, None), mismatch)
+        self.assertEqual(status(self.result(("a", "PASS", None)), ({"a": "FAIL"}, False), None),
+                         mismatch)
+        self.assertEqual(status(self.result(("a", "PASS", None)), ({"b": "FAIL"}, False), None),
+                         mismatch)
+        self.assertEqual(status(self.result(("a", "PASS", None), harness="TIMEOUT"), None, None),
+                         mismatch)
+        self.assertEqual(status(self.result(("a", "PASS", None)), ({}, True), None), mismatch)
+
+    def test_a_disputed_run_names_its_reason(self):
+        status = self.capture.oracle_status
+        self.assertEqual(status(self.result(("a", "PASS", None)), None, "Failure")["reason"],
+                         "test-expectations:Failure")
+        self.assertEqual(status(self.result(("a", "PASS", None), unstable=True), None,
+                                None)["reason"], "unstable")
+        self.assertEqual(status(self.result(("a", "FAIL", "Error: No eventSender")), None,
+                                None)["reason"], "driver:keyboard")
+
+    def test_repeats_compare_names_and_statuses_not_messages(self):
+        same = self.capture.same_result
+        one = self.result(("a", "FAIL", "at 10"))
+        self.assertTrue(same(one, self.result(("a", "FAIL", "at 11"))))
+        self.assertFalse(same(one, self.result(("a", "PASS", None))))
+        self.assertFalse(same(one, self.result(("a", "FAIL", "at 10"), harness="ERROR")))
+
+
 class CssCapabilityTest(unittest.TestCase):
     def test_the_property_names_come_from_from_css_name(self):
         source = """fn other() { "skipped" => Some(Self::Skipped), }

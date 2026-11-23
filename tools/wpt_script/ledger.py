@@ -17,7 +17,12 @@ Chromium 147 reports them (`capture_chromium_subtests.py`), with:
     nothing yet (`unmapped`);
   - `untranslatable`: the script needs something a straight-line Rust test
     cannot express (`reasons`);
+  - `disputed`: the capture doesn't reproduce Chromium's own pinned record
+    of this run (`reason`), so it can't stand for Chromium's result;
   - `excluded`: the file is not run (manual, reference, wptserve features).
+
+A page with `<meta name=variant>` has one recorded run per variant, and its
+rows name the run (`page.html?mouse`).
 
 The front end (`translate.mjs`, pinned Acorn) lists each page's subtest
 declarations and their surfaces. Helper libraries are intrinsics, known by
@@ -60,7 +65,7 @@ CHROMIUM = ROOT / "tests/wpt-script/chromium"
 LEDGERS = ROOT / "tests/wpt-script/ledgers"
 # Div's recorded results for the generated tests (codegen.py --record).
 EXPECTED = ROOT / "tests/wpt-script/expected"
-SUITES = ("html/webappapis/animation-frames", "resize-observer")
+SUITES = ("html/webappapis/animation-frames", "resize-observer", "pointerevents")
 ACORN_SHA256 = "402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93"
 
 # `<script>`, including XHTML/SVG forms such as `<h:script src="..."/>`.
@@ -71,7 +76,8 @@ TITLE = re.compile(r"<title\b[^>]*>(.*?)</title\s*>", re.I | re.S)
 CDATA = re.compile(r"^\s*(?://)?\s*<!\[CDATA\[(.*?)(?://)?\s*\]\]>\s*$", re.S)
 EXPECTED_LINE = re.compile(r"^\[(PASS|FAIL|TIMEOUT|NOTRUN|PRECONDITION_FAILED)\] (.*)$")
 # The harness itself: no web surface, nothing to resolve.
-HARNESS_SCRIPTS = {"/resources/testharness.js", "/resources/testharnessreport.js"}
+HARNESS_SCRIPTS = {"/resources/testharness.js", "/resources/testharnessreport.js",
+                   "/resources/testdriver-vendor.js"}
 
 
 def load_json(path: Path):
@@ -99,6 +105,14 @@ def resolve(src: str, page: str) -> str:
     return "/".join(parts)
 
 
+def helper_file(wpt_root: Path, path: str, intrinsic: dict) -> Path:
+    """A helper's file. Chromium serves the test driver from outside the WPT
+    root (`config.tmpl.json`), so its entry names the path in the checkout."""
+    if "checkout" in intrinsic:
+        return wpt_root.parents[4] / intrinsic["checkout"]
+    return wpt_root / path
+
+
 def read_page(wpt_root: Path, relative: str, intrinsics: dict) -> dict:
     """The page's title, inline scripts and resolved helpers."""
     text = (wpt_root / relative).read_text(encoding="utf-8")
@@ -116,7 +130,8 @@ def read_page(wpt_root: Path, relative: str, intrinsics: dict) -> dict:
             intrinsic = intrinsics.get(path)
             if intrinsic is None:
                 problems.append(f"unrecognised-helper:{path}")
-            elif not (wpt_root / path).is_file() or sha256(wpt_root / path) != intrinsic["sha256"]:
+            elif not helper_file(wpt_root, path, intrinsic).is_file() or sha256(
+                    helper_file(wpt_root, path, intrinsic)) != intrinsic["sha256"]:
                 problems.append(f"changed-helper:{path}")
             else:
                 helpers.append(path)
@@ -187,8 +202,7 @@ def front_end(pages: list[dict], intrinsics: dict, acorn: str) -> dict:
 
 def expected_baseline(wpt_root: Path, relative: str) -> dict[str, str] | None:
     """Chromium's `-expected.txt` baseline for a page, if it has one."""
-    stem = relative.rsplit(".", 1)[0]
-    path = wpt_root / f"{stem}-expected.txt"
+    path = capture.baseline_path(wpt_root, relative)
     if not path.is_file():
         return None
     results = {}
@@ -301,13 +315,15 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
     # revision; a page it lacks would drop out of the denominator.
     on_disk = {relative for relative in capture.suite_files(wpt_root, suite)
                if capture.exclusion(relative) != "helper"}
-    if on_disk != set(files):
-        missing = sorted(on_disk - set(files))[:5]
-        extra = sorted(set(files) - on_disk)[:5]
+    recorded = {key.split("?", 1)[0] for key in files}
+    if on_disk != recorded:
+        missing = sorted(on_disk - recorded)[:5]
+        extra = sorted(recorded - on_disk)[:5]
         raise SystemExit(f"{suite}: the Chromium recording is stale "
                          f"(not recorded: {missing}; not on disk: {extra})")
-    pages = {relative: read_page(wpt_root, relative, intrinsics)
-             for relative, entry in files.items() if "excluded" not in entry}
+    pages = {path: read_page(wpt_root, path, intrinsics)
+             for path in sorted({key.split("?", 1)[0] for key, entry in files.items()
+                                 if "excluded" not in entry})}
     analysed = front_end(list(pages.values()), intrinsics, acorn) if pages else {}
     expected_path = EXPECTED / (suite.replace("/", "--") + ".json")
     div = load_json(expected_path) if expected_path.is_file() else {}
@@ -317,7 +333,9 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
             rows.append({"file": relative, "name": None, "chromium": None,
                          "status": "excluded", "reason": entry["excluded"]})
             continue
-        page, record = pages[relative], analysed[relative]
+        path = relative.split("?", 1)[0]
+        page, record = pages[path], analysed[path]
+        oracle = entry.get("oracle", {"status": "agrees"})
         declared = {}
         for subtest in record["subtests"]:
             if subtest["name_known"]:
@@ -333,7 +351,9 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
             elif baseline is None and observed["status"] != "PASS":
                 row["chromium_baseline"] = "PASS"
             subtest = declared.get(name)
-            if page["problems"]:
+            if oracle["status"] == "disputed":
+                row.update(status="disputed", reason=oracle["reason"])
+            elif page["problems"]:
                 row.update(status="untranslatable", reasons=sorted(page["problems"]))
             elif "parse_error" in record:
                 row.update(status="untranslatable", reasons=["parse-error"])
