@@ -79,6 +79,71 @@
   "analyse": true,
   "provides": {}
  },
+ "web-animations/animation-model/animation-types/property-list.js": {
+  "sha256": "daefe5400b426b53e88108d383f64b9013dfb44c07c907c3253d025debad630b",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/animation-model/animation-types/property-types.js": {
+  "sha256": "aabc68cf6e6fe5598513ce0c262cd9f3bf6bc49a332e26fd98bad0ba94a75c94",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/animation-model/animation-types/property-utils.js": {
+  "sha256": "763a15888c311d871d9fee5b61e65a8cec627e11822e00cc1fb31188c2ac30c6",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/easing-tests.js": {
+  "sha256": "bf68dc8f4e01916f45468ecaf2970fed63bbf09ce901307113a07a70937f185d",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/effect-tests.js": {
+  "sha256": "820df470a302fae2d3a8569487ed367907d4ac778631e0676a3831b748dc4950",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/keyframe-tests.js": {
+  "sha256": "beec77f61f6cd7a5792c597c04a9898e928d5cf7fb6f5606c5e593e2979b604e",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/keyframe-utils.js": {
+  "sha256": "eaf6884804f88a89c3b066753f3d49ac7c36c5048a0591443b5128be7156da96",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/timing-override.js": {
+  "sha256": "6cd1cd6d0bd38ae82fe5b4223b2d7d5c503c689bb94198bf7684497e512dbff4",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/timing-tests.js": {
+  "sha256": "ac7f8bdbd4b1f395b33d98c582673d07bc96bc2fa26607143e2cafb90dcd97ff",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/resources/timing-utils.js": {
+  "sha256": "f0af8ddc94371ff8e3548d036a052e76785e9178294a62994aae250b10341e7f",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/responsive/responsive-test.js": {
+  "sha256": "89be5012872281d1c6f8504a5bd862aedb733a16861cb186450dae74a0236866",
+  "analyse": true,
+  "provides": {}
+ },
+ "scroll-animations/scroll-timelines/testcommon.js": {
+  "sha256": "45935334cc376e7350fd82180f1a595e981a87db14f49b0c7650510e7e6aecd9",
+  "analyse": true,
+  "provides": {}
+ },
+ "common/get-host-info.sub.js": {
+  "sha256": "c75cbb701a8bf5f725eddae3edafdf27a067c9ff22643949d9dc3bf8237669c9",
+  "analyse": true,
+  "provides": {}
+ },
  "web-animations/testcommon.js": {
   "sha256": "ebfbb655baf9a55d92a4f15bfdcb1db18ab1a56501f446f5204d0df7ecb69c48",
   "analyse": true,

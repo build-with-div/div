@@ -89,7 +89,8 @@ DRIVER_FILES = {
         "third_party/blink/web_tests/resources/testdriver-vendor.js",
         "d84f8fcdaf4a2d3fbfd2f6951268345a2fb813637fe733a56421e282b370edf0"),
 }
-ORACLE_SUITES = {"pointerevents", "css/css-transitions", "css/css-animations", "css/css-easing"}
+ORACLE_SUITES = {"pointerevents", "css/css-transitions", "css/css-animations", "css/css-easing",
+                 "web-animations"}
 # The switches of content/web_test's runner that decide these tests' results,
 # so a run can be compared with Chromium's pinned baselines. The vendor file
 # also stands down under WebDriver (`navigator.webdriver`), which a debugging

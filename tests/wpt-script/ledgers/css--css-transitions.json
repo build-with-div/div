@@ -12,7 +12,7 @@
  "blocked_by": {
   "A1": 2265,
   "A2": 704,
-  "A3": 2243,
+  "A3": 2256,
   "T3:helper-intrinsic": 2575,
   "editor-27": 1,
   "gap:child-documents": 2,
@@ -28,7 +28,7 @@
   "gap:script-exceptions": 1,
   "gap:shadow-dom": 1,
   "gap:window-events": 5,
-  "unmapped": 1787
+  "unmapped": 1786
  },
  "rows": [
   {
@@ -300,7 +300,6 @@
    "unmapped": [
     ".localTime",
     ".marginLeft",
-    ".playbackRate=",
     ".style.marginLeft="
    ]
   },
@@ -1025,7 +1024,6 @@
    ],
    "unmapped": [
     ".entries()",
-    ".pseudoElement",
     ".splice()",
     ".style.opacity="
    ],
@@ -1045,7 +1043,6 @@
    ],
    "unmapped": [
     ".entries()",
-    ".pseudoElement",
     ".splice()",
     ".style.opacity="
    ],
@@ -1414,10 +1411,6 @@
     "T3:helper-intrinsic",
     "gap:computed-style",
     "gap:cssom-rules"
-   ],
-   "unmapped": [
-    "document.timeline",
-    "new Animation()"
    ]
   },
   {
@@ -14575,7 +14568,6 @@
    "unmapped": [
     ".marginLeft",
     ".style.marginLeft=",
-    "document.timeline",
     "harness:EventWatcher",
     "harness:t.wait_for"
    ]
@@ -14690,6 +14682,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14740,6 +14733,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14790,6 +14784,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14806,6 +14801,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14822,6 +14818,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14838,6 +14835,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14871,6 +14869,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14904,6 +14903,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14920,6 +14920,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14936,6 +14937,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14952,6 +14954,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14968,6 +14971,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],
@@ -14984,6 +14988,7 @@
    "status": "blocked",
    "features": [
     "A1",
+    "A3",
     "T3:helper-intrinsic",
     "gap:computed-style"
    ],

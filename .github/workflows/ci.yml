@@ -442,6 +442,7 @@ jobs:
             third_party/blink/web_tests/external/wpt/css/css-easing \
             third_party/blink/web_tests/external/wpt/css/support \
             third_party/blink/web_tests/external/wpt/web-animations \
+            third_party/blink/web_tests/external/wpt/scroll-animations/scroll-timelines \
             third_party/blink/web_tests/external/wpt/common \
             third_party/blink/web_tests/external/wpt/resources \
             third_party/wpt_tools/wpt/resources
@@ -453,6 +454,7 @@ jobs:
           test -f "$script_root/pointerevents/pointerevent_support.js"
           test -f "$script_root/css/css-transitions/support/helper.js"
           test -f "$script_root/web-animations/testcommon.js"
+          test -f "$script_root/scroll-animations/scroll-timelines/testcommon.js"
           test -f "$script_src/third_party/wpt_tools/wpt/resources/testdriver-actions.js"
           printf 'WPT_SCRIPT_ROOT=%s\n' "$script_root" >> "$GITHUB_ENV"
 

@@ -94,7 +94,10 @@ merges. The editor gaps below wait behind T3.
 | T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Merged (#119) |
 | T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | Merged (#124) |
 | T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | Merged (#127) |
-| T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset (empty today) | In progress |
+| T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset (empty today) | Merged (#128) |
+| T3e | `web-animations` ledger, the last suite of RFC 0005 step 2 and the measurement for A3 | In progress |
+| T3f | Canvas generator (RFC 0005 step 5): T3f-1 recording and ledger, T3f-2 runtime host and tests (waits on C1 step 5b), T3f-3 reftests | Not started |
+| Later | Interpolation-table generator (step 4), once A1–A3 exist; O2 and O3 suites (step 6), as each lands | Not started |
 
 ## After Tier 0
 
@@ -114,6 +117,71 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 23 November 2026: T3e, the web-animations ledger (RFC 0005 step 2)
+
+Problem: T3d measured the CSS motion suites, but nothing measured
+`web-animations`, the suite for A3 and the last one in RFC 0005 step 2.
+
+Change (`tools/wpt_script/`, `tests/wpt-script/`, CI's sparse checkout; no
+`divui` or engine change):
+
+- The recorder runs `web-animations` with Chromium's web test switches and
+  three repeats, and checks each run against Chromium's own record.
+- 13 more helper libraries are pinned by sha256 and analysed from source.
+  Analysis can't make a row translatable.
+- 19 Web Animations names join the capability table as A3, with no `divui`
+  call.
+- CI's sparse checkout adds `scroll-animations/scroll-timelines`, because one
+  page loads its helper.
+
+Ledger. **No subtest in this suite is translatable yet, so T3e generates no
+tests.**
+
+| Suite | Runs (agree, disputed) | Files excluded | Subtests | Translatable | Blocked | Disputed | Untranslatable |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| web-animations | 133 (127, 6) | 55 | 3,979 | 0 | 3,922 | 53 | 4 |
+
+Div results for the suite: **0 pass, 0 fail, 0 unsupported, 0 not run.**
+
+What the 3,922 blocked rows may need. A row can need several, and member names
+can match more than one interface, so these are upper bounds:
+
+| Need | Rows |
+| --- | --- |
+| A3, Web Animations API | 3,918 |
+| A helper the runtime doesn't implement (`T3:helper-intrinsic`) | 3,826 |
+| `getComputedStyle` and its values (`gap:computed-style`, S21) | 3,068 |
+| Script exceptions (`gap:script-exceptions`) | 491 |
+| Attribute reflection (`gap:attribute-reflection`) | 186 |
+| A1, CSS Transitions from style rules | 173 |
+| Child documents (`gap:child-documents`) | 154 |
+| A2, CSS Animations | 45 |
+| A surface with no table entry yet | 3,851 |
+
+The last row also counts helper constants and members of test data, so it is
+not a list of missing web APIs.
+
+- The 53 disputed rows are six pages. `TestExpectations` lists four as
+  failing. Two differ from Chromium's baseline on subtests about child
+  documents (`animate-no-browsing-context.html`, `timelines.html`). Their
+  cause isn't diagnosed, and they stay disputed.
+- The 4 untranslatable rows are `keyframe-exceptions.html` (3), whose script
+  tag names a file the pinned checkout doesn't have, and
+  `applying-interpolated-transform.html` (1), whose subtest has no declaration
+  on the page.
+- Existing ledgers: no status, count or Div result changes. The new A3 names
+  add A3 to 59 blocked rows (46 in `css-animations`, 13 in `css-transitions`).
+
+Verification:
+
+- Two full recordings agree on every status. The only difference is a
+  wall-clock number in one failure message, on a page `TestExpectations`
+  lists as failing.
+- `python -m unittest discover -s tools/wpt_script -p "test_*.py"`: 68 tests
+  pass.
+- `ledger.py --check` and `codegen.py --check` pass against a checkout with
+  only the paths CI's sparse checkout fetches.
 
 ### 22 November 2026: T3d, the transitions, animations and easing ledgers (RFC 0005 steps 2 and 3)
 
