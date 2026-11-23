@@ -851,8 +851,7 @@
         "crates/div-layout/src/intrinsic_sizing.rs",
         "crates/div-layout/src/resolved_table_borders.rs",
         "crates/div-layout/src/table.rs",
-        "crates/div-paint/src/painter.rs",
-        "crates/div-engine/src/table_spans.rs"
+        "crates/div-paint/src/painter.rs"
       ],
       "css_name": "column-span",
       "field": "column_span",
