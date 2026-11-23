@@ -27,6 +27,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-no-stdlib"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7bb162ec39d46ab1ca8c77bf72e890535becd1751bb45f64c597edb4c8c6b3"
+
+[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -59,6 +65,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 
 [[package]]
+name = "brotli-decompressor"
+version = "5.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a32acac15fe1967bc3986b2a6347dffc965602354ea6f450ad07e8bfd253583"
+dependencies = [
+ "alloc-no-stdlib",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.25.0"
 dependencies = [
@@ -73,6 +88,12 @@ dependencies = [
  "quote",
  "syn 2.0.119",
 ]
+
+[[package]]
+name = "bytes"
+version = "1.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
@@ -119,6 +140,147 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "div-compositor"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-layout",
+ "div-paint",
+ "skia-safe",
+]
+
+[[package]]
+name = "div-dom"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style",
+ "div-text",
+]
+
+[[package]]
+name = "div-engine"
+version = "0.2.0"
+dependencies = [
+ "accesskit",
+ "div-compositor",
+ "div-dom",
+ "div-geometry",
+ "div-layout",
+ "div-paint",
+ "div-style",
+ "div-text",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-ffi"
+version = "0.2.0"
+dependencies = [
+ "div-compositor",
+ "div-dom",
+ "div-engine",
+ "div-geometry",
+ "div-style",
+ "divui",
+]
+
+[[package]]
+name = "div-fuzz"
+version = "0.0.0"
+dependencies = [
+ "div-dom",
+ "div-engine",
+ "div-ffi",
+ "div-style",
+ "libfuzzer-sys",
+]
+
+[[package]]
+name = "div-geometry"
+version = "0.2.0"
+
+[[package]]
+name = "div-layout"
+version = "0.2.0"
+dependencies = [
+ "div-dom",
+ "div-geometry",
+ "div-style",
+ "div-text",
+ "unicode-linebreak",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-macros"
+version = "0.2.0"
+dependencies = [
+ "div-style",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "div-paint"
+version = "0.2.0"
+dependencies = [
+ "div-dom",
+ "div-geometry",
+ "div-layout",
+ "div-style",
+ "div-text",
+ "skia-safe",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-style"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style-derive",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "div-style-derive"
+version = "0.2.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "div-text"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style",
+ "skia-safe",
+ "skrifa",
+ "unicode-bidi",
+ "unicode-script",
+ "unicode-segmentation",
+ "wuff",
+]
+
+[[package]]
+name = "divui"
+version = "0.2.0"
+dependencies = [
+ "div-compositor",
+ "div-dom",
+ "div-engine",
+ "div-macros",
+ "div-style",
+ "div-text",
 ]
 
 [[package]]
@@ -309,146 +471,6 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "divui"
-version = "0.2.0"
-dependencies = [
- "div-compositor",
- "div-dom",
- "div-engine",
- "div-macros",
- "div-style",
- "div-text",
-]
-
-[[package]]
-name = "div-compositor"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-layout",
- "div-paint",
- "skia-safe",
-]
-
-[[package]]
-name = "div-dom"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style",
- "div-text",
-]
-
-[[package]]
-name = "div-engine"
-version = "0.2.0"
-dependencies = [
- "accesskit",
- "div-compositor",
- "div-dom",
- "div-geometry",
- "div-layout",
- "div-paint",
- "div-style",
- "div-text",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-ffi"
-version = "0.2.0"
-dependencies = [
- "divui",
- "div-compositor",
- "div-dom",
- "div-engine",
- "div-geometry",
- "div-style",
-]
-
-[[package]]
-name = "div-fuzz"
-version = "0.0.0"
-dependencies = [
- "libfuzzer-sys",
- "div-dom",
- "div-engine",
- "div-ffi",
- "div-style",
-]
-
-[[package]]
-name = "div-geometry"
-version = "0.2.0"
-
-[[package]]
-name = "div-layout"
-version = "0.2.0"
-dependencies = [
- "div-dom",
- "div-geometry",
- "div-style",
- "div-text",
- "unicode-linebreak",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-macros"
-version = "0.2.0"
-dependencies = [
- "div-style",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "div-paint"
-version = "0.2.0"
-dependencies = [
- "div-dom",
- "div-geometry",
- "div-layout",
- "div-style",
- "div-text",
- "skia-safe",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-style"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style-derive",
- "proc-macro2",
- "quote",
-]
-
-[[package]]
-name = "div-style-derive"
-version = "0.2.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "div-text"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style",
- "skia-safe",
- "skrifa",
- "unicode-bidi",
- "unicode-script",
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -777,6 +799,17 @@ name = "winnow"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
+
+[[package]]
+name = "wuff"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "200a7b806377b65f1ff9a985874332f15357c87e5dd7855f35f06dade95b8b3d"
+dependencies = [
+ "brotli-decompressor",
+ "bytes",
+ "flate2",
+]
 
 [[package]]
 name = "xattr"

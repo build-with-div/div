@@ -27,6 +27,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-no-stdlib"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7bb162ec39d46ab1ca8c77bf72e890535becd1751bb45f64c597edb4c8c6b3"
+
+[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -53,6 +59,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
+name = "brotli-decompressor"
+version = "5.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a32acac15fe1967bc3986b2a6347dffc965602354ea6f450ad07e8bfd253583"
+dependencies = [
+ "alloc-no-stdlib",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.25.0"
 dependencies = [
@@ -67,6 +82,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "bytes"
+version = "1.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
@@ -111,6 +132,124 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "div-compositor"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-layout",
+ "div-paint",
+ "skia-safe",
+]
+
+[[package]]
+name = "div-dom"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style",
+ "div-text",
+]
+
+[[package]]
+name = "div-engine"
+version = "0.2.0"
+dependencies = [
+ "accesskit",
+ "div-compositor",
+ "div-dom",
+ "div-geometry",
+ "div-layout",
+ "div-paint",
+ "div-style",
+ "div-text",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-geometry"
+version = "0.2.0"
+
+[[package]]
+name = "div-layout"
+version = "0.2.0"
+dependencies = [
+ "div-dom",
+ "div-geometry",
+ "div-style",
+ "div-text",
+ "unicode-linebreak",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-macros"
+version = "0.2.0"
+dependencies = [
+ "div-style",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "div-paint"
+version = "0.2.0"
+dependencies = [
+ "div-dom",
+ "div-geometry",
+ "div-layout",
+ "div-style",
+ "div-text",
+ "skia-safe",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "div-style"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style-derive",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "div-style-derive"
+version = "0.2.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "div-text"
+version = "0.2.0"
+dependencies = [
+ "div-geometry",
+ "div-style",
+ "skia-safe",
+ "skrifa",
+ "unicode-bidi",
+ "unicode-script",
+ "unicode-segmentation",
+ "wuff",
+]
+
+[[package]]
+name = "divui"
+version = "0.2.0"
+dependencies = [
+ "div-compositor",
+ "div-dom",
+ "div-engine",
+ "div-macros",
+ "div-style",
+ "div-text",
 ]
 
 [[package]]
@@ -285,129 +424,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "openui"
-version = "0.2.0"
-dependencies = [
- "div-compositor",
- "div-dom",
- "div-engine",
- "div-macros",
- "div-style",
- "div-text",
-]
-
-[[package]]
-name = "div-compositor"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-layout",
- "div-paint",
- "skia-safe",
-]
-
-[[package]]
-name = "div-dom"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style",
- "div-text",
-]
-
-[[package]]
-name = "div-engine"
-version = "0.2.0"
-dependencies = [
- "accesskit",
- "div-compositor",
- "div-dom",
- "div-geometry",
- "div-layout",
- "div-paint",
- "div-style",
- "div-text",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-geometry"
-version = "0.2.0"
-
-[[package]]
-name = "div-layout"
-version = "0.2.0"
-dependencies = [
- "div-dom",
- "div-geometry",
- "div-style",
- "div-text",
- "unicode-linebreak",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-macros"
-version = "0.2.0"
-dependencies = [
- "div-style",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "openui-native-collapsed-table"
 version = "0.1.0"
 dependencies = [
- "openui",
  "div-text",
+ "divui",
  "serde_json",
-]
-
-[[package]]
-name = "div-paint"
-version = "0.2.0"
-dependencies = [
- "div-dom",
- "div-geometry",
- "div-layout",
- "div-style",
- "div-text",
- "skia-safe",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "div-style"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style-derive",
- "proc-macro2",
- "quote",
-]
-
-[[package]]
-name = "div-style-derive"
-version = "0.2.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "div-text"
-version = "0.2.0"
-dependencies = [
- "div-geometry",
- "div-style",
- "skia-safe",
- "skrifa",
- "unicode-bidi",
- "unicode-script",
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -792,6 +814,17 @@ name = "winnow"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
+
+[[package]]
+name = "wuff"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "200a7b806377b65f1ff9a985874332f15357c87e5dd7855f35f06dade95b8b3d"
+dependencies = [
+ "brotli-decompressor",
+ "bytes",
+ "flate2",
+]
 
 [[package]]
 name = "xattr"
