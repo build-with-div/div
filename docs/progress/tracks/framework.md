@@ -92,7 +92,7 @@ merges. The editor gaps below wait behind T3.
 | T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | Merged (#113) |
 | T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | Merged (#116) |
 | T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Merged (#119) |
-| T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | In progress |
+| T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | Merged (#124) |
 | T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | In progress |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
 
@@ -161,11 +161,12 @@ doesn't have: `divui`'s pointer dispatch returns `StaleHandle` when a
 `pointerdown` listener removes its own target. The rows carry it as
 `div_harness_error`. animation-frames and resize-observer are unchanged.
 
-What blocks the rest: 75 pages link `pointerevent_styles.css`, which needs the
-`background` shorthand and `touch-action` (S15). Counting every event and
-input surface `divui` has as mapped, 19 more runs (29 rows) would need only
-those two properties. `<h1>` and `<button>` have no user-agent style in Div
-yet, so pages using them stay blocked (`markup:h1`, `markup:button`).
+What blocks the rest: 75 runs link `pointerevent_styles.css`, which needs the
+`background` shorthand and `touch-action` (S15). At most 19 more runs (29
+rows) would need only those two properties. That upper bound assumes every
+event and input surface `divui` has is mapped, and also heading, list, `br`,
+`button` and `onload` markup. The ledger doesn't map that markup yet, so pages
+using it stay blocked (for example `markup:h1`, `markup:button`).
 
 Verification:
 
