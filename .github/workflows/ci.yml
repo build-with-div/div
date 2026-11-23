@@ -437,6 +437,13 @@ jobs:
             third_party/blink/web_tests/external/wpt/html/webappapis/animation-frames \
             third_party/blink/web_tests/external/wpt/resize-observer \
             third_party/blink/web_tests/external/wpt/pointerevents \
+            third_party/blink/web_tests/external/wpt/css/css-transitions \
+            third_party/blink/web_tests/external/wpt/css/css-animations \
+            third_party/blink/web_tests/external/wpt/css/css-easing \
+            third_party/blink/web_tests/external/wpt/css/support \
+            third_party/blink/web_tests/external/wpt/web-animations \
+            third_party/blink/web_tests/external/wpt/common \
+            third_party/blink/web_tests/external/wpt/resources \
             third_party/wpt_tools/wpt/resources
           git -C "$script_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
           git -C "$script_src" checkout --detach --quiet FETCH_HEAD
@@ -444,6 +451,8 @@ jobs:
           script_root="$script_src/third_party/blink/web_tests/external/wpt"
           test -f "$script_root/resize-observer/resources/resizeTestHelper.js"
           test -f "$script_root/pointerevents/pointerevent_support.js"
+          test -f "$script_root/css/css-transitions/support/helper.js"
+          test -f "$script_root/web-animations/testcommon.js"
           test -f "$script_src/third_party/wpt_tools/wpt/resources/testdriver-actions.js"
           printf 'WPT_SCRIPT_ROOT=%s\n' "$script_root" >> "$GITHUB_ENV"
 

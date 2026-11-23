@@ -28,7 +28,7 @@
 import {pathToFileURL} from 'node:url';
 
 const acornPath = process.argv[2];
-if (!acornPath) throw new Error('usage: translate.mjs ACORN_MJS [--ast] < pages.json');
+if (!acornPath) throw new Error('usage: translate.mjs ACORN_MJS [--ast|--helpers] < pages.json');
 const {parse} = await import(pathToFileURL(acornPath).href);
 
 let input = '';
@@ -509,8 +509,105 @@ function programs(page) {
   }
 }
 
+// `--helpers`: what a helper library's functions use, for intrinsics marked
+// `analyse`. Input: [{file, source}]. A function's surfaces include the
+// functions it calls in the same file. The body of an immediately invoked
+// wrapper counts as top-level code, and what it assigns to the global object
+// (`window.f = ...`, or `root.f` for a wrapper called with `this`) is exposed
+// under that name. `page` is what the file runs when it loads.
+function analyseHelper({file, source}) {
+  const program = parse(source, {
+    ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true,
+  });
+  const locals = declaredNames(program);
+  const none = new Set();
+  const isFunction = node => ['FunctionExpression', 'ArrowFunctionExpression'].includes(node?.type);
+  const globals = new Set(['window', 'self', 'globalThis']);
+  const flatten = statements => statements.flatMap(statement => {
+    const expression = statement.type === 'ExpressionStatement' ? statement.expression : null;
+    const call = expression?.type === 'UnaryExpression' ? expression.argument : expression;
+    if (call?.type !== 'CallExpression' || !isFunction(call.callee)
+        || call.callee.body.type !== 'BlockStatement') {
+      return [statement];
+    }
+    call.callee.params.forEach((param, index) => {
+      const argument = call.arguments[index];
+      if (param.type === 'Identifier' && (argument?.type === 'ThisExpression'
+          || (argument?.type === 'Identifier' && globals.has(argument.name)))) {
+        globals.add(param.name);
+      }
+    });
+    return flatten(call.callee.body.body);
+  });
+  const functions = new Map();
+  const exposed = new Map();
+  const top = [];
+  for (const statement of flatten(program.body)) {
+    const assignment = statement.type === 'ExpressionStatement'
+      && statement.expression.type === 'AssignmentExpression' ? statement.expression : null;
+    const target = assignment?.left;
+    if (statement.type === 'FunctionDeclaration' && statement.id) {
+      functions.set(statement.id.name, statement);
+    } else if (statement.type === 'VariableDeclaration'
+               && statement.declarations.every(d => isFunction(d.init))) {
+      for (const d of statement.declarations) functions.set(d.id.name, d.init);
+    } else if (target?.type === 'MemberExpression' && !target.computed
+               && target.object.type === 'Identifier' && globals.has(target.object.name)) {
+      const name = target.property.name;
+      if (isFunction(assignment.right)) {
+        functions.set(name, assignment.right);
+      } else if (assignment.right.type === 'Identifier') {
+        exposed.set(name, assignment.right.name);
+      } else {
+        exposed.set(name, null);
+        top.push({type: 'ExpressionStatement', expression: assignment.right});
+      }
+    } else {
+      top.push(statement);
+    }
+  }
+  const directlyDeclares = node => ((node.type === 'CallExpression'
+    && node.callee.type === 'Identifier' && HARNESS_DECLARATIONS.has(node.callee.name)
+    && !functions.has(node.callee.name))
+    || [...children(node)].some(([child]) => directlyDeclares(child)));
+  const own = new Map([...functions].map(([name, node]) => [name, surfacesOf(node, locals, none)]));
+  const reachOf = start => {
+    const surfaces = new Set(start.surfaces);
+    const reasons = new Set(start.reasons);
+    const seen = new Set();
+    const queue = [...start.calls];
+    while (queue.length) {
+      const name = queue.shift();
+      if (seen.has(name) || !own.has(name)) continue;
+      seen.add(name);
+      own.get(name).surfaces.forEach(s => surfaces.add(s));
+      own.get(name).reasons.forEach(r => reasons.add(r));
+      queue.push(...own.get(name).calls);
+    }
+    return {surfaces: [...surfaces].sort(), reasons: [...reasons].sort(), seen};
+  };
+  const describe = name => {
+    const reached = reachOf(own.get(name));
+    return {surfaces: reached.surfaces, reasons: reached.reasons,
+      declares: [name, ...reached.seen].some(n => functions.has(n)
+        && directlyDeclares(functions.get(n)))};
+  };
+  const result = {};
+  for (const name of own.keys()) result[name] = describe(name);
+  for (const [name, alias] of exposed) {
+    result[name] = alias !== null && own.has(alias) ? describe(alias)
+      : {surfaces: [], reasons: [], declares: false};
+  }
+  const pageLevel = reachOf(surfacesOf({type: 'Program', body: top}, locals, none));
+  return {file, functions: result, page: {surfaces: pageLevel.surfaces, reasons: pageLevel.reasons},
+    page_declares: top.some(directlyDeclares)};
+}
+
 const json = (key, value) => (typeof value === 'bigint' || value instanceof RegExp)
   ? String(value) : value;
-process.stdout.write(process.argv[3] === '--ast'
+const mode = process.argv[3];
+process.stdout.write(mode === '--ast'
   ? JSON.stringify(pages.map(programs), json) + '\n'
-  : JSON.stringify(pages.map(analyse), null, 1) + '\n');
+  : mode === '--helpers'
+    ? JSON.stringify(pages.map(analyseHelper)) + '\n'
+    : JSON.stringify(pages.map(analyse), null, 1) + '\n');

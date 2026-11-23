@@ -4,23 +4,27 @@
  "wpt_revision": "09d377d9",
  "subtests": 2273,
  "counts": {
-  "blocked": 2002,
+  "blocked": 2019,
   "disputed": 228,
   "translatable": 3,
-  "untranslatable": 40
+  "untranslatable": 23
  },
  "div": {
   "PASS": 3
  },
  "blocked_by": {
+  "A3": 95,
+  "T3:helper-intrinsic": 17,
   "V1": 31,
   "gap:background-shorthand": 129,
   "gap:child-documents": 598,
+  "gap:computed-style": 62,
+  "gap:css-supports": 6,
   "gap:load-event": 17,
   "gap:query-selector": 152,
   "gap:shadow-dom": 17,
   "gap:window-events": 600,
-  "unmapped": 2002
+  "unmapped": 2001
  },
  "rows": [
   {
@@ -233,8 +237,6 @@
     ".id=",
     ".innerHTML=",
     "Event",
-    "css:background-color",
-    "css:float",
     "markup:button",
     "markup:h1",
     "test_driver.click()"
@@ -253,8 +255,6 @@
     ".id=",
     ".innerHTML=",
     "Event",
-    "css:background-color",
-    "css:float",
     "markup:button",
     "markup:h1",
     "test_driver.click()"
@@ -273,8 +273,6 @@
     ".id=",
     ".innerHTML=",
     "Event",
-    "css:background-color",
-    "css:float",
     "markup:button",
     "markup:h1",
     "test_driver.click()"
@@ -293,8 +291,6 @@
     ".id=",
     ".innerHTML=",
     "Event",
-    "css:background-color",
-    "css:float",
     "markup:button",
     "markup:h1",
     "test_driver.click()"
@@ -313,8 +309,6 @@
     ".preventDefault()",
     "arePointerEventsBeforeCompatMouseEvents()",
     "clickInTarget()",
-    "css:background-color",
-    "css:display",
     "isMouseEvent",
     "isPointerEvent",
     "markup:button",
@@ -338,8 +332,6 @@
     ".preventDefault()",
     "arePointerEventsBeforeCompatMouseEvents()",
     "clickInTarget()",
-    "css:background-color",
-    "css:display",
     "isMouseEvent",
     "isPointerEvent",
     "markup:button",
@@ -396,7 +388,6 @@
     ".filter()",
     ".preventDefault()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -413,7 +404,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -431,7 +421,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -449,7 +438,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -467,7 +455,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -485,7 +472,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -503,7 +489,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -521,7 +506,6 @@
     ".preventDefault()",
     ".removeEventListener()",
     "arePointerEventsBeforeCompatMouseEvents()",
-    "css:background-color",
     "css:user-select",
     "isMouseEvent",
     "isPointerEvent"
@@ -536,8 +520,6 @@
    "features": [],
    "unmapped": [
     ".getBoundingClientRect()",
-    "css:background-color",
-    "css:float",
     "markup:h1",
     "resolveWhen()"
    ]
@@ -785,13 +767,13 @@
    "name": "dblclick fires after cancelled pointerdown (mouse)",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".detail",
     ".includes()",
-    ".pause()",
     ".preventDefault()",
-    "css:background-color",
     "css:user-select",
     "location.search.length"
    ],
@@ -802,13 +784,13 @@
    "name": "dblclick fires after cancelled pointerdown (touch)",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".detail",
     ".includes()",
-    ".pause()",
     ".preventDefault()",
-    "css:background-color",
     "css:user-select",
     "location.search.length"
    ],
@@ -820,6 +802,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -832,8 +815,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -843,6 +825,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -855,8 +838,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -866,6 +848,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -878,8 +861,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -889,6 +871,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -901,8 +884,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -949,19 +931,23 @@
    "file": "pointerevents/inheritance.html",
    "name": "Property touch-action has initial value auto",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/inheritance-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/inheritance.html",
    "name": "Property touch-action does not inherit",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/inheritance-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/mouse-pointer-boundary-events-for-shadowdom.html",
@@ -989,136 +975,172 @@
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'auto'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'none'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'manipulation'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'pan-x'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'pan-y'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-computed.html",
    "name": "Property touch-action value 'pan-x pan-y'",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/computed-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style",
+    "gap:css-supports"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-invalid.html",
    "name": "e.style['touch-action'] = \"auto none\" should not set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-invalid.html",
    "name": "e.style['touch-action'] = \"manipulation pan-x\" should not set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-invalid.html",
    "name": "e.style['touch-action'] = \"pan-y pan-x pan-y\" should not set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"auto\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"none\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"manipulation\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"pan-x\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"pan-y\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/parsing/touch-action-valid.html",
    "name": "e.style['touch-action'] = \"pan-y pan-x\" should set the property value",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "unrecognised-helper:css/support/parsing-testcommon.js"
-   ]
+   "status": "blocked",
+   "features": [
+    "T3:helper-intrinsic",
+    "gap:computed-style"
+   ],
+   "computed_name": true
   },
   {
    "file": "pointerevents/persistentDeviceId/get-persistendeviceid-from-pointer-event.tentative.html",
@@ -1306,9 +1328,6 @@
    "features": [
     "gap:query-selector",
     "gap:window-events"
-   ],
-   "unmapped": [
-    "css:content"
    ]
   },
   {
@@ -1828,7 +1847,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -1851,7 +1869,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -1874,7 +1891,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -1897,7 +1913,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -1920,7 +1935,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -1943,7 +1957,6 @@
     ".restorer",
     ".slice()",
     ".slot=",
-    "css:display",
     "markup:slot",
     "markup:template"
    ],
@@ -18293,8 +18306,6 @@
    "status": "blocked",
    "features": [],
    "unmapped": [
-    "css:background-color",
-    "css:display",
     "markup:button",
     "test_driver.click()"
    ]
@@ -18454,7 +18465,6 @@
     ".pointerType",
     ".style.touchAction",
     ".style.touchAction=",
-    "css:color",
     "css:overflow-x",
     "css:overflow-y",
     "css:touch-action",
@@ -18483,7 +18493,6 @@
     ".pointerType",
     ".style.touchAction",
     ".style.touchAction=",
-    "css:color",
     "css:overflow-x",
     "css:overflow-y",
     "css:touch-action",
@@ -18750,6 +18759,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18769,7 +18779,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18785,6 +18794,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18806,7 +18816,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18822,6 +18831,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18844,7 +18854,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18862,6 +18871,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18884,7 +18894,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18902,6 +18911,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18924,7 +18934,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18942,6 +18951,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -18964,7 +18974,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -18982,6 +18991,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19004,7 +19014,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19022,6 +19031,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19044,7 +19054,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19062,6 +19071,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19084,7 +19094,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19102,6 +19111,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19124,7 +19134,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19142,6 +19151,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19164,7 +19174,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19182,6 +19191,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19204,7 +19214,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19222,6 +19231,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19244,7 +19254,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19262,6 +19271,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19284,7 +19294,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19302,6 +19311,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19321,7 +19331,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19337,6 +19346,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19358,7 +19368,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19374,6 +19383,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19396,7 +19406,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19414,6 +19423,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19436,7 +19446,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19454,6 +19463,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19476,7 +19486,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19494,6 +19503,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19516,7 +19526,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19534,6 +19543,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19556,7 +19566,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19574,6 +19583,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19596,7 +19606,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19614,6 +19623,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19636,7 +19646,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19654,6 +19663,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19676,7 +19686,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19694,6 +19703,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19713,7 +19723,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19729,6 +19738,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19750,7 +19760,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19766,6 +19775,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19788,7 +19798,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19806,6 +19815,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19828,7 +19838,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19846,6 +19855,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19868,7 +19878,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19886,6 +19895,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19908,7 +19918,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19926,6 +19935,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19948,7 +19958,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -19966,6 +19975,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -19988,7 +19998,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20006,6 +20015,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20028,7 +20038,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20046,6 +20055,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20068,7 +20078,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20086,6 +20095,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20108,7 +20118,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20126,6 +20135,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20148,7 +20158,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20166,6 +20175,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20188,7 +20198,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20206,6 +20215,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20228,7 +20238,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20246,6 +20255,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20268,7 +20278,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20286,6 +20295,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20308,7 +20318,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20326,6 +20335,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20348,7 +20358,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20366,6 +20375,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20388,7 +20398,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20406,6 +20415,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20425,7 +20435,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20441,6 +20450,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20462,7 +20472,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20478,6 +20487,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20500,7 +20510,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20518,6 +20527,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20540,7 +20550,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20558,6 +20567,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20580,7 +20590,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20598,6 +20607,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20620,7 +20630,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20638,6 +20647,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20660,7 +20670,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20678,6 +20687,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20700,7 +20710,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20718,6 +20727,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20740,7 +20750,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20758,6 +20767,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20780,7 +20790,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20798,6 +20807,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20820,7 +20830,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20838,6 +20847,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20860,7 +20870,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20878,6 +20887,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20900,7 +20910,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20918,6 +20927,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20940,7 +20950,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20958,6 +20967,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -20977,7 +20987,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -20993,6 +21002,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21014,7 +21024,6 @@
     ".localName",
     ".map()",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21030,6 +21039,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21052,7 +21062,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21070,6 +21079,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21092,7 +21102,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21110,6 +21119,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21132,7 +21142,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21150,6 +21159,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21172,7 +21182,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21190,6 +21199,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21212,7 +21222,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21230,6 +21239,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21252,7 +21262,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21270,6 +21279,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21292,7 +21302,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21310,6 +21319,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21332,7 +21342,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21350,6 +21359,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21372,7 +21382,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21390,6 +21399,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents",
     "gap:query-selector",
@@ -21412,7 +21422,6 @@
     ".map()",
     ".name",
     ".nodeType",
-    ".pause()",
     ".pointerId",
     ".preventDefault()",
     ".releasePointerCapture()",
@@ -21974,13 +21983,13 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:window-events"
    ],
    "unmapped": [
     ".RIGHT",
     ".composed",
     ".constructor",
-    ".pause()",
     ".pointerId",
     ".pointerType",
     ".preventDefault()",
@@ -21997,13 +22006,13 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:window-events"
    ],
    "unmapped": [
     ".RIGHT",
     ".composed",
     ".constructor",
-    ".pause()",
     ".pointerId",
     ".pointerType",
     ".preventDefault()",
@@ -22187,8 +22196,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -22222,8 +22229,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -22257,8 +22262,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -22292,8 +22295,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -22327,8 +22328,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -22362,8 +22361,6 @@
     ".pageY",
     ".x",
     ".y",
-    "css:margin-left",
-    "css:margin-top",
     "expectedPointerType",
     "markup:h1",
     "markup:h2",
@@ -44202,7 +44199,6 @@
     ".getElementById()",
     ".pointerId",
     ".setPointerCapture()",
-    "css:background-color",
     "document.addEventListener()",
     "document.createTextNode()",
     "markup:br",
@@ -44231,7 +44227,6 @@
     ".getElementById()",
     ".pointerId",
     ".setPointerCapture()",
-    "css:background-color",
     "document.addEventListener()",
     "document.createTextNode()",
     "markup:br",
@@ -44258,7 +44253,6 @@
     ".pointerType",
     ".value=",
     "All_Pointer_Events",
-    "css:color",
     "harness:add_completion_callback",
     "markup:br",
     "markup:h1",
@@ -45596,7 +45590,6 @@
     ".x",
     ".y",
     "HTMLElement",
-    "css:background-color",
     "customElements",
     "document.createTextNode()",
     "markup:em",
@@ -45628,7 +45621,6 @@
     ".setPointerCapture()",
     ".x",
     ".y",
-    "css:background-color",
     "document.createTextNode()",
     "markup:em",
     "markup:h4",
@@ -45709,6 +45701,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45717,7 +45710,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45741,6 +45733,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45749,7 +45742,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45773,6 +45765,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45781,7 +45774,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45805,6 +45797,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45813,7 +45806,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45837,6 +45829,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45845,7 +45838,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45869,6 +45861,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45877,7 +45870,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45944,6 +45936,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45952,7 +45945,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -45976,6 +45968,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -45984,7 +45977,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -46008,6 +46000,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -46016,7 +46009,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -46040,6 +46032,7 @@
    "chromium": "FAIL",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -46048,7 +46041,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -46072,6 +46064,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -46080,7 +46073,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -46104,6 +46096,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:child-documents"
    ],
@@ -46112,7 +46105,6 @@
     ".document",
     ".hasPointerCapture()",
     ".id",
-    ".pause()",
     ".pointerId",
     ".releasePointerCapture()",
     ".setPointerCapture()",
@@ -46378,8 +46370,6 @@
    "status": "blocked",
    "features": [],
    "unmapped": [
-    "css:display",
-    "css:z-index",
     "test_driver.click()"
    ]
   },
@@ -46392,8 +46382,6 @@
     "gap:query-selector"
    ],
    "unmapped": [
-    "css:display",
-    "css:z-index",
     "test_driver.click()"
    ]
   },
@@ -46515,12 +46503,13 @@
    "name": "Horizontal drag on a horizontal slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46543,12 +46532,13 @@
    "name": "Vertical drag on a horizontal slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46571,12 +46561,13 @@
    "name": "Vertical drag on a horizontal slider with touch-action:none.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46599,13 +46590,14 @@
    "name": "Vertical drag on a vertical slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".clientHeight",
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46628,13 +46620,14 @@
    "name": "Horizontal drag on a vertical slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".clientHeight",
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46657,12 +46650,13 @@
    "name": "Horizontal drag on a horizontal slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46685,12 +46679,13 @@
    "name": "Vertical drag on a horizontal slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46713,12 +46708,13 @@
    "name": "Vertical drag on a horizontal slider with touch-action:none.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46741,13 +46737,14 @@
    "name": "Vertical drag on a vertical slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".clientHeight",
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -46770,13 +46767,14 @@
    "name": "Horizontal drag on a vertical slider.",
    "chromium": "PASS",
    "status": "blocked",
-   "features": [],
+   "features": [
+    "A3"
+   ],
    "unmapped": [
     ".clientHeight",
     ".getBoundingClientRect()",
     ".offsetLeft",
     ".offsetTop",
-    ".pause()",
     ".removeEventListener()",
     ".scale",
     ".value",
@@ -47978,7 +47976,6 @@
    ],
    "unmapped": [
     ".pointerType",
-    "css:color",
     "harness:add_completion_callback",
     "isPointerCapture",
     "markup:h1",
@@ -48004,7 +48001,6 @@
    ],
    "unmapped": [
     ".pointerType",
-    "css:color",
     "harness:add_completion_callback",
     "harness:done",
     "markup:br",
@@ -48033,7 +48029,6 @@
     ".pointerId",
     ".pointerType",
     ".releasePointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "harness:done",
     "markup:br",
@@ -48062,7 +48057,6 @@
     ".pointerId",
     ".pointerType",
     ".releasePointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "harness:done",
     "markup:br",
@@ -48092,7 +48086,6 @@
     ".pointerType",
     ".preventDefault()",
     ".releasePointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "markup:h1",
     "markup:h4",
@@ -48223,7 +48216,6 @@
     ".startsWith()",
     "All_Pointer_Events",
     "clickInTarget()",
-    "css:background-color",
     "markup:h1",
     "markup:h2",
     "markup:h4",
@@ -48260,7 +48252,6 @@
     ".startsWith()",
     "All_Pointer_Events",
     "clickInTarget()",
-    "css:background-color",
     "markup:h1",
     "markup:h2",
     "markup:h4",
@@ -48297,7 +48288,6 @@
     ".startsWith()",
     "All_Pointer_Events",
     "clickInTarget()",
-    "css:background-color",
     "markup:h1",
     "markup:h2",
     "markup:h4",
@@ -48352,7 +48342,6 @@
     ".pointerId",
     ".pointerType",
     ".setPointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "harness:done",
     "markup:h1",
@@ -48471,7 +48460,6 @@
     ".pointerId",
     ".pointerType",
     ".setPointerCapture()",
-    "css:color",
     "event",
     "harness:add_completion_callback",
     "harness:done",
@@ -48499,7 +48487,6 @@
     ".pointerId",
     ".pointerType",
     ".setPointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "harness:done",
     "markup:br",
@@ -48519,16 +48506,15 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "A3",
     "gap:background-shorthand",
     "gap:load-event"
    ],
    "unmapped": [
-    ".pause()",
     ".pointerId",
     ".pointerType",
     ".preventDefault()",
     ".setPointerCapture()",
-    "css:color",
     "harness:add_completion_callback",
     "markup:h1",
     "markup:h4",
@@ -49326,7 +49312,6 @@
     ".getElementById()",
     ".id",
     "HTMLElement",
-    "css:display",
     "customElements",
     "markup:my-elem",
     "markup:slot",
@@ -49351,7 +49336,6 @@
     ".getElementById()",
     ".id",
     "HTMLElement",
-    "css:display",
     "customElements",
     "markup:my-elem",
     "markup:slot",
@@ -49376,7 +49360,6 @@
     ".getElementById()",
     ".id",
     "HTMLElement",
-    "css:display",
     "customElements",
     "markup:my-elem",
     "markup:slot",
@@ -49445,13 +49428,12 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "gap:background-shorthand"
+    "gap:background-shorthand",
+    "gap:computed-style"
    ],
    "unmapped": [
     ".touchAction",
-    "css:margin-top",
     "css:touch-action",
-    "getComputedStyle()",
     "harness:add_completion_callback",
     "harness:done",
     "markup:h1",
@@ -49467,13 +49449,12 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "gap:background-shorthand"
+    "gap:background-shorthand",
+    "gap:computed-style"
    ],
    "unmapped": [
     ".touchAction",
-    "css:margin-top",
     "css:touch-action",
-    "getComputedStyle()",
     "harness:add_completion_callback",
     "harness:done",
     "markup:h1",
@@ -49489,13 +49470,12 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "gap:background-shorthand"
+    "gap:background-shorthand",
+    "gap:computed-style"
    ],
    "unmapped": [
     ".touchAction",
-    "css:margin-top",
     "css:touch-action",
-    "getComputedStyle()",
     "harness:add_completion_callback",
     "harness:done",
     "markup:h1",
@@ -49637,6 +49617,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:load-event"
    ],
    "unmapped": [
@@ -49645,7 +49626,6 @@
     ".touchAction",
     "clickInTarget()",
     "css:touch-action",
-    "getComputedStyle()",
     "markup:h1",
     "markup:input",
     "markup:stylesheet:pointerevents/pointerevent_styles.css",
@@ -49676,7 +49656,6 @@
    "features": [],
    "unmapped": [
     ".contains()",
-    "css:background-color",
     "css:touch-action",
     "css:user-select",
     "document.body.addEventListener()",
@@ -49933,7 +49912,6 @@
     ".scrollLeft",
     ".scrollTop",
     "clickInTarget()",
-    "css:font-size",
     "css:overflow-y",
     "css:touch-action",
     "harness:add_completion_callback",
@@ -49996,7 +49974,6 @@
     ".scrollTop",
     "cell3",
     "clickInTarget()",
-    "css:color",
     "css:overflow-y",
     "css:touch-action",
     "failOnScroll",
@@ -50034,7 +50011,6 @@
     ".scrollTop",
     "cell3",
     "clickInTarget()",
-    "css:color",
     "css:overflow-y",
     "css:touch-action",
     "failOnScroll",
@@ -50064,6 +50040,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50076,8 +50053,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50087,6 +50063,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50099,8 +50076,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50110,6 +50086,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50122,8 +50099,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50133,6 +50109,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50145,8 +50122,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50156,6 +50132,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50168,8 +50145,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50179,6 +50155,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50191,8 +50168,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50202,6 +50178,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50214,8 +50191,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50225,6 +50201,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50237,8 +50214,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50248,6 +50224,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50260,8 +50237,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50271,6 +50247,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50283,8 +50260,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50294,6 +50270,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50306,8 +50283,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50317,6 +50293,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50329,8 +50306,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50340,6 +50316,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50352,8 +50329,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50363,6 +50339,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50375,8 +50352,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50386,6 +50362,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50398,8 +50375,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50409,6 +50385,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50421,8 +50398,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50432,6 +50408,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50444,8 +50421,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50455,6 +50431,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50467,8 +50444,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50478,6 +50454,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50490,8 +50467,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50501,6 +50477,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50513,8 +50490,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50524,6 +50500,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50536,8 +50513,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50547,6 +50523,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50559,8 +50536,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50570,6 +50546,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50582,8 +50559,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50593,6 +50569,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50605,8 +50582,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50616,6 +50592,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50628,8 +50605,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50639,6 +50615,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50651,8 +50628,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50662,6 +50638,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50674,8 +50651,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50685,6 +50661,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50697,8 +50674,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50708,6 +50684,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50720,8 +50697,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50731,6 +50707,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50743,8 +50720,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50754,6 +50730,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50766,8 +50743,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50777,6 +50753,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50789,8 +50766,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50800,6 +50776,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50812,8 +50789,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50823,6 +50799,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50835,8 +50812,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50846,6 +50822,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50858,8 +50835,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50869,6 +50845,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50881,8 +50858,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },
@@ -50892,6 +50868,7 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
+    "gap:computed-style",
     "gap:query-selector"
    ],
    "unmapped": [
@@ -50904,8 +50881,7 @@
     "markup:h2",
     "markup:h4",
     "markup:onload",
-    "markup:stylesheet:pointerevents/pointerevent_styles.css",
-    "window.getComputedStyle()"
+    "markup:stylesheet:pointerevents/pointerevent_styles.css"
    ],
    "computed_name": true
   },

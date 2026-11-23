@@ -38,5 +38,100 @@
   "sha256": "e2db9153f3850983f423383d004042845b87d2a3a4d388b3f4846c915f571027",
   "checkout": "third_party/wpt_tools/wpt/resources/testdriver-actions.js",
   "provides": {}
+ },
+ "css/css-transitions/support/helper.js": {
+  "sha256": "8386aba0cd5f0248dad9c4200b748c938d57bf1c547a8f09bee472b016a7bc0b",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-transitions/support/vendorPrefix.js": {
+  "sha256": "a1c1c38d944f3f561a875194d26963b0c43409197be47c24a12575e375168643",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-transitions/support/properties.js": {
+  "sha256": "5cb651165bf0fb2d46afa7910e74477f2f2aadd838dc5ce98b03ad82e78e4bdb",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-transitions/support/generalParallelTest.js": {
+  "sha256": "c74069b17e7454f5edb96ce2ca65ced67ec9821ac721006d10db3c447373ce8d",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-transitions/support/runParallelAsyncHarness.js": {
+  "sha256": "4b0b9c130745a3408924955a6d5c20c92356b99ddfcaad5fc0a04b5c4bca4f87",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-animations/support/testcommon.js": {
+  "sha256": "270347124ba12410e17cc18e0c351bff85fcba32cdda2e5ca0dbfa202073526e",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-animations/animationevent-interface.js": {
+  "sha256": "cd25e31045b67a74a651a7ec2fec9bff6294c781f0f2efd463cb9d58b1bc70a4",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/css-easing/testcommon.js": {
+  "sha256": "ee0a1d7c814104d2152f50d8a536ae62abaad2b076470c9d1a74b07508d18652",
+  "analyse": true,
+  "provides": {}
+ },
+ "web-animations/testcommon.js": {
+  "sha256": "ebfbb655baf9a55d92a4f15bfdcb1db18ab1a56501f446f5204d0df7ecb69c48",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/parsing-testcommon.js": {
+  "sha256": "75df9e3143fae40a060e7a1439d13454e822477c18a5390b268ef381c80adfc6",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/computed-testcommon.js": {
+  "sha256": "20bd767e8a8bd9e4857a29aecfd52cad305ed4af1cf73a5064916a8a1d38ab01",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/interpolation-testcommon.js": {
+  "sha256": "57188ada9c1321720cdab74e3bf79768e79a9bb40ee822279f014b4a63eb25cb",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/color-testcommon.js": {
+  "sha256": "eac4aabc101b8ca71c2759c6298a126b7d217610c704324516f5312c5ca41796",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/shorthand-testcommon.js": {
+  "sha256": "fa4fcb5e79cb6d1ea9bacc5d3ca11c7b80b52f4049f7f3c201ca5a1f690aea67",
+  "analyse": true,
+  "provides": {}
+ },
+ "css/support/inheritance-testcommon.js": {
+  "sha256": "d7bd7077f9da8cd143ef12883ad41ad7e5b66117fd04ad10c04e5de2356b5485",
+  "analyse": true,
+  "provides": {}
+ },
+ "resources/check-layout-th.js": {
+  "sha256": "b15666105c99548df947b3b9182e78cbadc2871e53f51e26c7c7aa27cf0bef1c",
+  "analyse": true,
+  "provides": {}
+ },
+ "common/rendering-utils.js": {
+  "sha256": "d80fe78291976deb1e50bab4dc8d630f186f4bbabf421d06b7b965c66374940f",
+  "analyse": true,
+  "provides": {}
+ },
+ "common/gc.js": {
+  "sha256": "186144288438fb6d520defdc16a6a86fff193184a30fe04e901fe93febe3f8c4",
+  "analyse": true,
+  "provides": {}
+ },
+ "common/reftest-wait.js": {
+  "sha256": "15585c302b29f3cc7e41e0555fa732b64a6aa091a25cf4927ed15fdacde1d67a",
+  "analyse": true,
+  "provides": {}
  }
 }

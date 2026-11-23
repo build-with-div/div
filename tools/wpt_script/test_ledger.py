@@ -25,6 +25,8 @@ class ExclusionTest(unittest.TestCase):
         self.assertEqual(capture.exclusion("a/x.sub.html"), "wptserve-substitution")
         self.assertEqual(capture.exclusion("a/x.https.html"), "https")
         self.assertEqual(capture.exclusion("a/idlharness.window.js"), "wptserve-generated-wrapper")
+        self.assertEqual(capture.exclusion("a/idlharness.html"), "idlharness")
+        self.assertEqual(capture.exclusion("a/idlharness-2.html"), "idlharness")
         self.assertEqual(capture.exclusion("a/resources/helper.js"), "helper")
         self.assertEqual(capture.exclusion("a/resources/iframe.html"), "helper")
         self.assertEqual(capture.exclusion("a/x-expected.txt"), "helper")
@@ -104,6 +106,13 @@ a:hover { COLOR: red; background: url(x:y) }
 @layer base { b { width: 1px } }
 </style>""", "s/p.html")
         self.assertEqual(surfaces, ["css:background", "css:color", "css:width", "markup:<style>"])
+
+    def test_animation_at_rules_are_surfaces(self):
+        surfaces = ledger.markup_surfaces("""<style>
+/* @starting-style in a comment */
+@KEYFRAMES spin { from { width: 1px } }
+</style>""", "s/p.html")
+        self.assertEqual(surfaces, ["css:width", "markup:<style>", "markup:@keyframes"])
 
 
 class RealInputOracleTest(unittest.TestCase):
@@ -463,6 +472,76 @@ a().then(() => b(), () => b());""")
     def test_a_parse_error_is_reported(self):
         record = self.analyse("test(() => {, 'x');")
         self.assertIn("parse_error", record)
+
+
+@unittest.skipUnless(ACORN, "CHROMIUM_ACORN is not set")
+class HelperAnalysisTest(unittest.TestCase):
+    def expand(self, files, capabilities=None, wrong_hash=()):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root)
+        intrinsics = {}
+        for name, source in files.items():
+            (root / name).write_bytes(source.encode("utf-8"))
+            digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+            intrinsics[name] = {"sha256": "0" * 64 if name in wrong_hash else digest,
+                                "analyse": True, "provides": {}}
+        capabilities = capabilities if capabilities is not None else {
+            "getComputedStyle()": {"feature": "gap:computed-style", "divui": None}}
+        ledger.expand_intrinsics(intrinsics, capabilities, root, ACORN)
+        return intrinsics, capabilities
+
+    def test_a_wrapped_helper_exposes_functions_with_their_named_surfaces(self):
+        intrinsics, capabilities = self.expand({"a.js": """(function (root) {
+  function hidden() { return getComputedStyle(document.body); }
+  root.exposed = function () { hidden(); };
+  root.alias = hidden;
+  root.declaring = function () { test(() => {}, "made"); };
+})(window);"""})
+        entry = intrinsics["a.js"]
+        self.assertEqual(entry["provides"]["exposed"], ["getComputedStyle()"])
+        self.assertEqual(entry["provides"]["alias"], ["getComputedStyle()"])
+        self.assertEqual(entry["declares"], ["declaring"])
+        self.assertFalse(entry["page_declares"])
+        self.assertEqual(entry["page"], ["helper:a.js"])
+        self.assertEqual(capabilities["helper:a.js"]["feature"], "T3:helper-intrinsic")
+        self.assertIsNone(capabilities["harness:exposed"]["divui"])
+
+    def test_a_call_into_another_helper_takes_its_surfaces(self):
+        intrinsics, _ = self.expand({
+            "a.js": "function first() { return getComputedStyle(document.body); }",
+            "b.js": "function second(el) { first(); return el.privateField; }"})
+        self.assertEqual(intrinsics["b.js"]["provides"]["second"], ["getComputedStyle()"])
+
+    def test_a_helper_that_declares_subtests_when_it_loads_counts(self):
+        intrinsics, _ = self.expand({"a.js": 'test(() => {}, "on load");'})
+        self.assertTrue(intrinsics["a.js"]["page_declares"])
+        record = {"whole_page": {"surfaces": []}}
+        self.assertTrue(ledger.helper_declared(record, {"helpers": ["a.js"]}, intrinsics))
+
+    def test_a_page_calling_a_declaring_helper_function_counts(self):
+        intrinsics, _ = self.expand({"a.js": 'function make() { test(() => {}, "x"); }'})
+        page = {"helpers": ["a.js"]}
+        self.assertTrue(ledger.helper_declared(
+            {"whole_page": {"surfaces": ["harness:make"]}}, page, intrinsics))
+        self.assertFalse(ledger.helper_declared(
+            {"whole_page": {"surfaces": []}}, page, intrinsics))
+
+    def test_a_helper_page_stays_blocked_on_the_intrinsic(self):
+        intrinsics, capabilities = self.expand({"a.js": "function plain() {}"})
+        page = {"helpers": ["a.js"]}
+        surfaces = ledger.subtest_surfaces(
+            {"surfaces": ["harness:plain"], "declared_by": "harness:test"}, page, intrinsics)
+        capabilities["harness:test"] = {"feature": "T3", "divui": "runtime"}
+        row = ledger.classify(surfaces, capabilities)
+        self.assertEqual(row, {"status": "blocked", "features": ["T3:helper-intrinsic"]})
+
+    def test_a_helper_using_dynamic_code_needs_review(self):
+        with self.assertRaisesRegex(SystemExit, "review this helper"):
+            self.expand({"a.js": "function run() { eval('1'); }"})
+
+    def test_a_helper_with_another_hash_is_not_analysed(self):
+        intrinsics, _ = self.expand({"a.js": "function plain() {}"}, wrong_hash={"a.js"})
+        self.assertNotIn("page", intrinsics["a.js"])
 
 
 class RecordingTest(unittest.TestCase):
