@@ -20,9 +20,11 @@ RFC 0004's API, in `divui` (`style_preset.rs`, `Document::set_style_preset`):
 
 - `UserAgentStyle { None, Browser }` and `StylePreset { user_agent }`, with
   `StylePreset::NONE` (the default) and `StylePreset::BROWSER`.
-- `StylePreset` is `#[non_exhaustive]`. RFC 0004's author-origin `base` sheets
-  come with the components preset; adopting them before every other sheet
-  needs an engine insertion point that does not exist yet.
+- Both types are `#[non_exhaustive]`. `StylePreset` has no `Eq` or `Hash`,
+  because RFC 0004's `base` field holds style sheets, which have neither.
+- RFC 0004's author-origin `base` sheets come with the components preset;
+  adopting them before every other sheet needs an engine insertion point that
+  does not exist yet.
 
 `BROWSER` adopts one sheet in the user-agent origin. The engine already
 ranked that origin (R0, `rule_cascade.rs`): below presentational hints,
@@ -30,8 +32,9 @@ author rules, the `style` attribute and element styles, with user-agent
 `!important` above all of them. So S5a changes no engine file.
 
 **The sheet, part 0.** `crates/divui/src/user_agent/html.css` is written from
-the HTML Standard's rendering section (fetched 22 November 2026, CC BY 4.0,
-credited in the file's header). It holds:
+the HTML Standard's rendering section (fetched 22 November 2026). Its header
+carries the CC BY 4.0 credit and the full BSD 3-Clause terms for portions of
+the Standard in source code. It holds:
 
 - "Hidden elements" (15.3.1);
 - "The page" (15.3.2): `html, body { display: block }`.
@@ -53,25 +56,51 @@ Of the hidden-elements list, S6b already hides `rp`, `basefont`, `noembed`,
 rest. So today the list's rule only restates that. The `html, body` rule
 applies once S6c builds the document's root through the engine.
 
-**Verification** (WSL, CI Skia flags, at `fc40a32` on main `4e69bdf`):
+The section's `@namespace` rule limits `[hidden]` to HTML elements, and Div's
+selectors have no namespaces. So the sheet excludes `svg` by name: Chromium 147
+keeps `<svg hidden>` displayed.
+
+**Named gaps, all owned by the engine:**
+
+- `<foreignObject hidden>` computes `none` under `BROWSER`, where Chromium 147
+  computes `block`. A selector cannot exclude it, because its local name is
+  `div`. `gap_hidden_foreign_object_computes_none` pins this, and the engine's
+  fix removes the pin.
+- RFC 0004 says `revert` rolls back to the preset's value. Div does not
+  implement it: `style="display: revert"` is dropped
+  (`crates/div-style/src/inline_style.rs:298`), so an author
+  `[hidden] { display: flex }` stays `Flex` where it should be `None`.
+- Plain `<svg>` and `<embed>` compute `InlineBlock` in Div and `inline` in
+  Chromium 147, under either preset. The replaced-elements part of the sheet,
+  or the constructor defaults, should settle this.
+
+**Verification** (WSL, CI Skia flags, at `28580bb` on main `4e69bdf`):
 
 - Format of the 4 changed `.rs` files, one at a time on stdin, comparing
   rustfmt's output with the file: clean. `rustfmt --check` is not used here
   because rustfmt 1.8.0 exits 0 on stdin even when it prints a diff.
 - `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components
   -p div-engine -p div-dom` with `divui/async divui/http divui/testing`:
-  132 test binaries, 1,026 passed, 0 failed, 15 ignored.
+  132 test binaries, 1,028 passed, 0 failed, 15 ignored.
   - `tests/style_preset.rs` covers: `NONE` adds nothing; `BROWSER` hides
-    `[hidden]` and `input[type=hidden i]`, and leaves `hidden=until-found`
-    and a hidden `embed` displayed; author rules, the `style` attribute and element styles
-    outrank the sheet; user-agent `!important` outranks author `!important`;
-    switching back to `NONE` removes the rules.
+    `[hidden]` and `input[type=hidden i]`, and leaves `hidden=until-found`,
+    a hidden `embed` and a hidden `svg` displayed; author rules, the `style`
+    attribute and element styles outrank the sheet; user-agent `!important`
+    outranks author `!important`; switching back to `NONE` removes the rules.
 - Census and coverage were not run: `pixel-compare` does not depend on
   `divui`, so this change cannot reach them.
 
-RFC 0004 asks for the WHATWG attribution in `NOTICE`, and for a legal check
-before the preset ships. Both are the user's decision. Until then the preset
-is opt-in and `NONE` stays the default.
+**Licensing is open, and this PR must not be queued until it is settled.**
+RFC 0004 asks for the WHATWG attribution in `NOTICE` and a legal check before
+the preset ships. Both are the user's decision.
+
+- The repository is public and the sheet compiles into every `divui` build, so
+  merging publishes the adapted rules even though `NONE` stays the default.
+- The repository has no `NOTICE` file. BSD 3-Clause requires binary
+  distributions to reproduce the notice in their documentation or other
+  materials, which the source header alone does not do.
+- The fetched section page holds no licence text. The terms above come from
+  RFC 0004, so the legal check should confirm them against the Standard.
 
 ## 22 November 2026: HTML element names (S6a and S6b)
 
