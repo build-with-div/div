@@ -8,7 +8,7 @@
 /// Compile-time Skia options, as in CI's `SKIA_GN_ARGS`.
 pub const GN_ARGS: &str = concat!(
     r#"extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "#,
-    r#""-DSK_ENABLE_LEGACY_SHADERCONTEXT", "#,
+    r#""-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "#,
     r#""-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "#,
     r#""-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]"#,
 );
