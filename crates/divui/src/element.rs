@@ -1343,9 +1343,7 @@ fn tag_definition(name: &str) -> Result<(ElementTag, Option<Display>), Error> {
         // and gives them behavior Div does not have yet; they stay rejected
         // rather than become inert look-alikes.
         "area" | "base" | "datalist" | "head" | "link" | "meta" | "script" | "style"
-        | "template" | "title" | "noscript" => {
-            return Err(Error::UnknownTag(name.to_owned()))
-        }
+        | "template" | "title" | "noscript" => return Err(Error::UnknownTag(name.to_owned())),
         // The document's own root and body. Layout and paint treat every
         // `Html` and `Body` node as the document's, so content cannot create
         // another one.
