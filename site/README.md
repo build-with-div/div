@@ -108,7 +108,7 @@ Rust source, so they list exactly what `main` supports.
 | File | Written by | Checked |
 | --- | --- | --- |
 | `src/data/elements.json` (tags, kinds, default display, roles, input types) | `npm run reference` (`scripts/gen-reference.mjs`, which reads `divui` and `div-engine` source) | In CI, by `npm run check-reference`, which also fails if a tag in `tag_definition` produces no row (`npm test` covers the parser) |
-| `src/data/properties.json` (258 style properties, their literal grammar, Rust types and setters) | `site/tools/style-table`, which runs `div-style`'s parser | Locally: rerun it and commit when `div-style` changes, since site CI builds no Rust |
+| `src/data/properties.json` (250 style properties, their literal grammar, Rust types and setters) | `site/tools/style-table`, which runs `div-style`'s parser | Locally: rerun it and commit when `div-style` changes, since site CI builds no Rust |
 
 ```sh
 cargo build --release --locked --manifest-path site/tools/style-table/Cargo.toml

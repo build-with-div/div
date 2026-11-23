@@ -1,18 +1,26 @@
-//! Probe `div_style::parse_literal` for every property in PROPERTY_METADATA,
-//! for the website's styling reference (see generate.py next to Cargo.toml).
+//! Probe `div_style::parse_literal` for every property in PROPERTY_METADATA
+//! except the internal rows, for the website's styling reference (see
+//! generate.py next to Cargo.toml).
 //! Usage: div-style-table meta            -> TSV of metadata
 //!        div-style-table probe <file>    -> reads `css-name\tcandidate` lines,
 //!                                         prints `css\tcandidate\tok\tapplies\tvalue`
 use div_style::{
-    parse_literal, value_matches_property, Color, Edges, LengthValue, StyleColor, StyleProperty,
-    StyleValue, PROPERTY_METADATA,
+    parse_literal, value_matches_property, Color, Edges, LengthValue, PropertyMetadata, StyleColor,
+    StyleProperty, StyleValue, INTERNAL_CSS_NAMES, PROPERTY_METADATA,
 };
+
+/// The schema's rows without the internal ones, which are not CSS properties.
+fn css_properties() -> impl Iterator<Item = &'static PropertyMetadata> {
+    PROPERTY_METADATA
+        .iter()
+        .filter(|m| !INTERNAL_CSS_NAMES.contains(&m.css_name))
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
         Some("meta") => {
-            for m in PROPERTY_METADATA {
+            for m in css_properties() {
                 println!(
                     "{}\t{}\t{:?}\t{}\t{:?}\t{}\t{}\t{:?}\t{:?}",
                     m.property as u16,
@@ -67,7 +75,7 @@ fn main() {
                 ("StyleColor", StyleColor::Resolved(Color::BLACK).into()),
                 ("StyleColor::CurrentColor", StyleColor::CurrentColor.into()),
             ];
-            for m in PROPERTY_METADATA {
+            for m in css_properties() {
                 for (name, value) in &canned {
                     println!(
                         "{}	{}	{}",

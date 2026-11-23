@@ -82,7 +82,7 @@ Every method returns `Result<_, div::Error>`. The main groups:
 | Attributes | `set_attribute`, `get_attribute`, `remove_attribute`, `set_id`, `set_class`, `add_class`, `remove_class`, `has_class` |
 | Text | `set_text`, `text_content`, `append_text_node`, `create_text_child` |
 | Tree | `append_child`, `insert_before`, `remove_child`, `remove`, `detach`, `clone_subtree`, `parent`, `first_child`, `next_sibling`, `remove_all_children` |
-| Style | `set_<property>` for each of the 258 properties (for example `set_width`, `set_color`), `set_property`, `remove_property`, `apply_style`, `computed_style`, `set_pseudo_style` |
+| Style | 258 `set_<property>` setters, one for each of the 250 properties (for example `set_width`, `set_color`) and eight for the corner radius axes (for example `set_border_top_left_radius_x`), `set_property`, `remove_property`, `apply_style`, `computed_style`, `set_pseudo_style` |
 | Geometry | `bounding_rect`, `client_rects`, `width`, `height`, `client_width`, `scroll_width`, `scroll_metrics` |
 | Scrolling | `scroll_to`, `scroll_by`, `scroll_left`, `scroll_top`, `scroll_into_view`, `smooth_scroll_to` |
 | Controls | `control_value`, `set_control_value`, `is_checked`, `set_checked`, `set_indeterminate`, `is_open`, `set_open`, `is_selected`, `selection`, `set_selection_range`, `edit_text` |
