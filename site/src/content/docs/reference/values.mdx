@@ -96,6 +96,9 @@ and `not-allowed`.
 A few structured values that CSS writes inside one property are separate
 properties in Div, set from code: `filter-blur` and
 `filter-grayscale` for `filter`, `background-linear-gradient` and
-`background-layers` for backgrounds, `clip-path-inset` for `clip-path`,
-and the `-x` and `-y` radius axes. Each is in the properties reference
-with its setter.
+`background-layers` for backgrounds, and `clip-path-inset` for `clip-path`.
+Each is in the properties reference with its setter.
+
+The `-x` and `-y` corner radius axes have setters, such as
+`set_border_top_left_radius_x`, but no CSS name, so they are not in the
+properties reference.

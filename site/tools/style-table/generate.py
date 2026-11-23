@@ -23,7 +23,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-RUST = ROOT / "bindings" / "rust"
+RUST = ROOT / "crates"
 STYLE = RUST / "div-style" / "src"
 PROPERTY_RS = STYLE / "property.rs"
 GENERATED_RS = STYLE / "generated_properties.rs"

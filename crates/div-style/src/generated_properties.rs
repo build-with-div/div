@@ -2345,14 +2345,6 @@ impl StyleProperty {
             "scroll-snap-align-block" => Some(Self::ScrollSnapAlignBlock),
             "scroll-snap-align-inline" => Some(Self::ScrollSnapAlignInline),
             "-webkit-text-fill-color" => Some(Self::WebkitTextFillColor),
-            "border-top-left-radius-x" => Some(Self::BorderTopLeftRadiusX),
-            "border-top-left-radius-y" => Some(Self::BorderTopLeftRadiusY),
-            "border-top-right-radius-x" => Some(Self::BorderTopRightRadiusX),
-            "border-top-right-radius-y" => Some(Self::BorderTopRightRadiusY),
-            "border-bottom-right-radius-x" => Some(Self::BorderBottomRightRadiusX),
-            "border-bottom-right-radius-y" => Some(Self::BorderBottomRightRadiusY),
-            "border-bottom-left-radius-x" => Some(Self::BorderBottomLeftRadiusX),
-            "border-bottom-left-radius-y" => Some(Self::BorderBottomLeftRadiusY),
             _ => None,
         }
     }
@@ -4943,6 +4935,19 @@ pub const PROPERTY_METADATA: &[PropertyMetadata] = &[
         invalidation: InvalidationClass::Paint,
         interpolation: InterpolationKind::Length,
     },
+];
+
+/// Schema names that are not CSS properties. [`StyleProperty::from_css_name`]
+/// returns `None` for them; use their typed constants.
+pub const INTERNAL_CSS_NAMES: &[&str] = &[
+    "border-top-left-radius-x",
+    "border-top-left-radius-y",
+    "border-top-right-radius-x",
+    "border-top-right-radius-y",
+    "border-bottom-right-radius-x",
+    "border-bottom-right-radius-y",
+    "border-bottom-left-radius-x",
+    "border-bottom-left-radius-y",
 ];
 
 /// Compile contract for every schema-generated Rust property builder.

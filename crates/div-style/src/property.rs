@@ -3530,11 +3530,17 @@ mod tests {
         for (index, metadata) in PROPERTY_METADATA.iter().enumerate() {
             let id = u16::try_from(index + 1).unwrap();
             assert_eq!(StyleProperty::from_u16(id), Some(metadata.property));
-            assert_eq!(
-                StyleProperty::from_css_name(metadata.css_name),
-                Some(metadata.property)
-            );
+            let lookup =
+                (!INTERNAL_CSS_NAMES.contains(&metadata.css_name)).then_some(metadata.property);
+            assert_eq!(StyleProperty::from_css_name(metadata.css_name), lookup);
             assert_eq!(metadata.property.metadata(), metadata);
+        }
+        for name in INTERNAL_CSS_NAMES {
+            assert!(PROPERTY_METADATA.iter().any(|row| row.css_name == *name));
+            assert_eq!(StyleProperty::from_css_name(name), None);
+            let parsed = crate::parse_style_attribute(&format!("{name}: 8px"));
+            assert!(parsed.declarations.is_empty(), "{name}");
+            assert_eq!(parsed.dropped.len(), 1, "{name}");
         }
         assert_eq!(StyleProperty::from_u16(0), None);
         assert_eq!(StyleProperty::from_u16(259), None);

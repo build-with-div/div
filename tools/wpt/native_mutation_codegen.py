@@ -19,8 +19,12 @@ import re
 import subprocess
 
 try:
+    from tools.style.generate_properties import INTERNAL_CSS_NAMES
     from tools.wpt import port_wpt as porter
 except ModuleNotFoundError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "style"))
+    from generate_properties import INTERNAL_CSS_NAMES
     import port_wpt as porter
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -152,7 +156,8 @@ class ReplayCompiler:
         self.lines = []
         self.operations = []
         self.properties = {row["css_name"]: row["rust_name"]
-                           for row in csv.DictReader(SCHEMA.read_text().splitlines())}
+                           for row in csv.DictReader(SCHEMA.read_text().splitlines())
+                           if row["css_name"] not in INTERNAL_CSS_NAMES}
         for node in walk(self.parser.root):
             if set(node.attrs) - {'id', 'class', 'style'}:
                 raise ValueError("unhandled authored element attribute")

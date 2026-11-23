@@ -25,6 +25,21 @@ DOC_OUT = ROOT / "docs/v02/generated/style-properties.md"
 FRAMEWORK_OUT = ROOT / "crates/divui/src/generated_style_setters.rs"
 AUTHORED_OUT = ROOT / "crates/div-style/src/generated_authored_fields.rs"
 
+# Schema rows whose names are not CSS properties: Chromium rejects them in
+# `CSS.supports`, `setProperty`, a style attribute and a stylesheet. They keep
+# their typed `StyleProperty` and C constant, and have no name lookup, so no
+# parser or tool can reach them from CSS text.
+INTERNAL_CSS_NAMES = (
+    "border-top-left-radius-x",
+    "border-top-left-radius-y",
+    "border-top-right-radius-x",
+    "border-top-right-radius-y",
+    "border-bottom-right-radius-x",
+    "border-bottom-right-radius-y",
+    "border-bottom-left-radius-x",
+    "border-bottom-left-radius-y",
+)
+
 # Frozen from Chromium 147.0.7727.24's css_properties.json5 after excluding
 # descriptors, SVG-only properties, and non-stable runtime flags. Keeping the
 # set here makes a missing public typography property a generator/CI failure.
@@ -155,6 +170,9 @@ def rows() -> list[dict[str, str]]:
         raise SystemExit("style schema IDs and names must be unique and ordered")
     if ids != list(range(1, len(ids) + 1)):
         raise SystemExit("style schema IDs must be contiguous")
+    unknown_internal = sorted(set(INTERNAL_CSS_NAMES) - set(names))
+    if unknown_internal:
+        raise SystemExit("internal CSS names not in the style schema: " + ", ".join(unknown_internal))
     mapped = [field for row in parsed for field in field_names(row)]
     duplicates = sorted(field for field, count in Counter(mapped).items() if count > 1)
     if duplicates:
@@ -208,8 +226,11 @@ def rust_output(schema: list[dict[str, str]]) -> bytes:
         for row in schema
     )
     lookups = "\n".join(
-        f'            "{row["css_name"]}" => Some(Self::{row["rust_name"]}),' for row in schema
+        f'            "{row["css_name"]}" => Some(Self::{row["rust_name"]}),'
+        for row in schema
+        if row["css_name"] not in INTERNAL_CSS_NAMES
     )
+    internal_names = "\n".join(f'    "{name}",' for name in INTERNAL_CSS_NAMES)
     # Renderer fixtures and engine-internal typed setters use the exact
     # computed-field type, while the stable public builders retain their
     # higher-level author value types (for example LengthValue). Every row in
@@ -597,6 +618,12 @@ impl StyleProperty {{
 
 pub const PROPERTY_METADATA: &[PropertyMetadata] = &[
 {metadata}
+];
+
+/// Schema names that are not CSS properties. [`StyleProperty::from_css_name`]
+/// returns `None` for them; use their typed constants.
+pub const INTERNAL_CSS_NAMES: &[&str] = &[
+{internal_names}
 ];
 
 /// Compile contract for every schema-generated Rust property builder.

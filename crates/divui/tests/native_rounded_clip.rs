@@ -37,6 +37,30 @@ const WIDTH: f64 = 160.0;
 const HEIGHT: f64 = 140.0;
 const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 
+/// The typed axis properties of a corner radius. They are internal and have
+/// no CSS name.
+fn radius_axes(name: &str) -> Option<[StyleProperty; 2]> {
+    Some(match name {
+        "border-top-left-radius" => [
+            StyleProperty::BorderTopLeftRadiusX,
+            StyleProperty::BorderTopLeftRadiusY,
+        ],
+        "border-top-right-radius" => [
+            StyleProperty::BorderTopRightRadiusX,
+            StyleProperty::BorderTopRightRadiusY,
+        ],
+        "border-bottom-right-radius" => [
+            StyleProperty::BorderBottomRightRadiusX,
+            StyleProperty::BorderBottomRightRadiusY,
+        ],
+        "border-bottom-left-radius" => [
+            StyleProperty::BorderBottomLeftRadiusX,
+            StyleProperty::BorderBottomLeftRadiusY,
+        ],
+        _ => return None,
+    })
+}
+
 // Frames that are not exact: (page, scale, differing pixels).
 //
 // - `rrect` at 1.25x: all 23 pixels lie in the bottom-left corner, where
@@ -149,9 +173,8 @@ fn style(element: &Element, declarations: &str) {
             continue;
         }
         // A corner radius is set per axis, in px.
-        if name.starts_with("border-") && name.ends_with("-radius") {
-            for axis in ["x", "y"] {
-                let property = StyleProperty::from_css_name(&format!("{name}-{axis}")).unwrap();
+        if let Some(axes) = radius_axes(name) {
+            for property in axes {
                 element
                     .set_property(property, parse_literal(property, value).unwrap())
                     .unwrap();
