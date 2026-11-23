@@ -115,22 +115,27 @@ exercises only the last:
 
 ### Verification
 
-On Windows, on this branch rebased on `main` at `24436b9` (which has #114
-and S6a, #117), with `CARGO_TARGET_DIR` under `out\` and the VS 2022 build
-tools:
+The D4 pair measured `77d254d`, on `main` at `4e69bdf` (which has S6b,
+#122). The branch was then rebased on `main` at `18ba530`. That only brings in
+#128 and #130 (WPT-script ledgers and tools, the CI workflow and progress
+notes), and outside those paths the tree is the same as `77d254d`. Each row
+names the commit it measured. The local Rust rows ran on Windows with the
+VS 2022 build tools. That suite was not run again after the move fix: CI is the
+test evidence for the later commits.
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Engine, framework and FFI suites, under the census lock | `cargo test --locked -p div-engine -p divui -p div-ffi -- --test-threads 4` | 128 test binaries: 1,071 passed, 0 failed, 11 ignored |
-| The dialog and selector tests inside that run | `div-engine`: `dialog_oracle`, `dialog`, `selector_matching`, `form_state_pseudo_classes`; `divui`: `dialog_oracle`, `dialog_element` | 3, 6, 4, 2, 2 and 1 passed |
-| Engine without dev features | `cargo check --locked -p div-engine -p divui` | builds (the UA selectors are values, not parsed at run time) |
-| Porter IR and contract tests | `python -m unittest tools.qualification.test_renderer_matrix` and `python -m unittest tools/wpt/test_renderer_generality.py`, with the pinned Acorn | 38 and 7 passed |
-| Renderer contract | `python tools/qualification/generate_renderer_contract.py --check` with the pinned Acorn and the WPT sources at `09d377d9` | no drift; `javascript=393` |
-| Formatting | `rustfmt --edition 2021 --check` on each changed Rust file | clean |
-| Oracle capture, whole page again | `python3 tools/qualification/capture_dialog_oracle.py --chrome <pinned chrome-linux64/chrome>` in WSL (WSLg) | 27 scenarios and 15 geometry records, both runs identical, 125 s. The 23 earlier scenarios and the geometry are unchanged; 4 scenarios and 5 actions are added |
-| Site, as CI builds it | in `site/`: `npm ci`, `npm run check-reference`, `npm run build`, `npm run build:cover`, with Node 22.18 locally (CI pins 24.22.1) | all pass; 45 pages, including `/elements/dialog/` |
+| CI at `77d254d` | GitHub Actions | 12 passed, 6 skipped |
+| Engine, framework and FFI suites at `862805f`, before the move fix, under the census lock | `cargo test --locked -p div-engine -p divui -p div-ffi -- --test-threads 4` | 128 test binaries: 1,071 passed, 0 failed, 11 ignored |
+| The dialog and selector tests inside that `862805f` run | `div-engine`: `dialog_oracle`, `dialog`, `selector_matching`, `form_state_pseudo_classes`; `divui`: `dialog_oracle`, `dialog_element` | 3, 6, 4, 2, 2 and 1 passed |
+| Engine without dev features at `862805f` | `cargo check --locked -p div-engine -p divui` | builds (the UA selectors are values, not parsed at run time) |
+| Porter IR and contract tests at `862805f` | `python -m unittest tools.qualification.test_renderer_matrix` and `python -m unittest tools/wpt/test_renderer_generality.py`, with the pinned Acorn | 38 and 7 passed |
+| Renderer contract at `862805f` | `python tools/qualification/generate_renderer_contract.py --check` with the pinned Acorn and the WPT sources at `09d377d9` | no drift; `javascript=393` |
+| Formatting at `77d254d` | For each changed Rust file, under a memory cap: `rustfmt --edition 2021 --emit stdout < file.rs \| cmp - file.rs` | all 14 match |
+| Oracle capture, whole page again, at `a4c365f` | `python3 tools/qualification/capture_dialog_oracle.py --chrome <pinned chrome-linux64/chrome>` in WSL (WSLg) | 27 scenarios and 15 geometry records, both runs identical, 125 s. The 23 earlier scenarios and the geometry are unchanged; 4 scenarios and 5 actions are added |
+| Site, as CI builds it, at `4f96bd1` | in `site/`: `npm ci`, `npm run check-reference`, `npm run build`, `npm run build:cover`, with Node 22.18 locally (CI pins 24.22.1) | all pass; 45 pages, including `/elements/dialog/` |
 | Harness check, on the previous base `662e366` | `click_inert` added to the engine replay temporarily | fails as expected (no backdrop: the press finds no target) |
-| Census and CSS Grid coverage (D4) | Base `24436b9` against this branch, under the census lock | **Not measured yet.** Required before this PR is queued |
+| Census and CSS Grid coverage (D4), under the census lock | `4e69bdf` against `77d254d`, compared image by image | No image changed in status, mismatched pixels, diff signature or Div or Chromium hash. Census: 23,728 images on both (16,297 exact, 7,431 different, 0 errors). Coverage: 4,204 images on both (1,473 exact, 2,575 different, 156 errors, all `Div render failed`) |
 
 ## 22 November 2026: the WPT porter's dialog mutations (H4, RFC 0015 PR 2)
 
