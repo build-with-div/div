@@ -278,8 +278,13 @@ impl ShapeCollector {
             x += char_units[i];
         }
 
+        // Blink shapes a text's segments in logical order.
+        let mut inserted: Vec<&ShapeResultRun> = result_runs.iter().collect();
+        inserted.sort_by_key(|run| run.start_index);
+        let width = ShapeResult::width_of_inserted_runs(inserted.into_iter());
+
         ShapeResult {
-            width: units_to_px(total_units),
+            width,
             runs: result_runs,
             num_characters,
             direction: self.direction,
@@ -612,6 +617,22 @@ impl TextShaper {
             return;
         }
 
+        // The shaped segments, and the fonts in the order Blink tries them:
+        // the result's width depends on the order the runs are inserted.
+        let mut shaped_segments: Vec<(usize, usize)> = result
+            .runs
+            .iter()
+            .map(|run| (run.start_index, run.start_index + run.num_characters))
+            .collect();
+        shaped_segments.sort_unstable();
+        let mut font_passes: Vec<Arc<FontPlatformData>> = result
+            .runs
+            .first()
+            .map(|run| Arc::clone(&run.font_data))
+            .into_iter()
+            .chain((1..fallback_list.len()).filter_map(|i| fallback_list.get(i).map(Arc::clone)))
+            .collect();
+
         // A missing scalar expands to its complete extended grapheme cluster.
         // This keeps combining sequences, emoji ZWJ sequences, Indic
         // conjuncts, and variation selectors on one face.
@@ -798,6 +819,7 @@ impl TextShaper {
                         Some(d) => d,
                         None => break, // No more platform fonts available.
                     };
+                    font_passes.push(Arc::clone(&fb_data));
 
                     let fb_data_clone = Arc::clone(&fb_data);
                     let segment_text_owned = segment_text.to_string();
@@ -838,6 +860,41 @@ impl TextShaper {
 
         // Rebuild total width and character_data from the updated runs.
         Self::rebuild_character_data(result, text);
+        result.width = Self::width_after_fallback(result, &shaped_segments, &font_passes);
+    }
+
+    /// A result's width after font fallback. Blink inserts a segment's runs
+    /// font by font, each font's in buffer (visual) order, before the next
+    /// segment's (`HarfBuzzShaper::ShapeSegment`, `ExtractShapeResults`).
+    fn width_after_fallback(
+        result: &ShapeResult,
+        segments: &[(usize, usize)],
+        font_passes: &[Arc<FontPlatformData>],
+    ) -> f32 {
+        let mut order: Vec<(usize, usize, i64, usize)> = result
+            .runs
+            .iter()
+            .enumerate()
+            .map(|(index, run)| {
+                let segment = segments
+                    .iter()
+                    .position(|&(start, end)| start <= run.start_index && run.start_index < end)
+                    .unwrap_or(segments.len());
+                let pass = font_passes
+                    .iter()
+                    .position(|font| Arc::ptr_eq(font, &run.font_data))
+                    .unwrap_or(font_passes.len());
+                let start = run.start_index as i64;
+                let scan = if run.direction == TextDirection::Rtl {
+                    -start
+                } else {
+                    start
+                };
+                (segment, pass, scan, index)
+            })
+            .collect();
+        order.sort_unstable();
+        ShapeResult::width_of_inserted_runs(order.iter().map(|&(.., index)| &result.runs[index]))
     }
 
     /// Splice fallback-shaped runs into the result, replacing the original
