@@ -67,7 +67,7 @@ fn pointerup_after_pointerdown_target_removed_mouse() {
         rt.checkpoint();
     });
     expect_names("pointerevents/pointerup_after_pointerdown_target_removed.html?mouse", &result, &["pointerup event from mouse fired after pointerdown target is removed"]);
-    expect("pointerevents/pointerup_after_pointerdown_target_removed.html?mouse", &result, Some("Div: pointer input failed (Engine(StaleHandle))"), None, &[
+    expect("pointerevents/pointerup_after_pointerdown_target_removed.html?mouse", &result, None, None, &[
         ("pointerup event from mouse fired after pointerdown target is removed", Expected::Pass),
     ]);
 }
@@ -135,7 +135,7 @@ fn pointerup_after_pointerdown_target_removed_pen() {
         rt.checkpoint();
     });
     expect_names("pointerevents/pointerup_after_pointerdown_target_removed.html?pen", &result, &["pointerup event from pen fired after pointerdown target is removed"]);
-    expect("pointerevents/pointerup_after_pointerdown_target_removed.html?pen", &result, Some("Div: pointer input failed (Engine(StaleHandle))"), None, &[
+    expect("pointerevents/pointerup_after_pointerdown_target_removed.html?pen", &result, None, None, &[
         ("pointerup event from pen fired after pointerdown target is removed", Expected::Pass),
     ]);
 }

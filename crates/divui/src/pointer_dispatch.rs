@@ -160,6 +160,8 @@ impl Document {
             PointerInputKind::Cancel => "pointercancel",
             _ => "pointermove",
         };
+        // A listener can remove the target, so its path is read first.
+        let path = self.target_path(target)?;
         let event = self.pointer_event(&step, name, target, step.changed, step.is_primary)?;
         self.dispatch_to(target, &event)?;
         let mut prevented = event.default_prevented();
@@ -175,13 +177,14 @@ impl Document {
                 PointerInputKind::Cancel | PointerInputKind::Leave => None,
             };
             if let Some(mouse_name) = mouse_name {
-                let mouse = self.mouse_event(&step, mouse_name, target, step.changed)?;
-                self.dispatch_to(target, &mouse)?;
+                let mouse_target = self.surviving_target(&path)?;
+                let mouse = self.mouse_event(&step, mouse_name, mouse_target, step.changed)?;
+                self.dispatch_to(mouse_target, &mouse)?;
                 prevented |= mouse.default_prevented();
                 // Focus is `mousedown`'s default action: a cancelled or
                 // suppressed `mousedown` leaves it (sample-canvas gap 16).
                 if input.kind == PointerInputKind::Down && !mouse.default_prevented() {
-                    self.press_focus(target, step.x, step.y)?;
+                    self.press_focus(self.surviving_target(&path)?, step.x, step.y)?;
                 }
             }
         }
@@ -190,8 +193,10 @@ impl Document {
             && input.kind == PointerInputKind::Down
             && step.changed == Some(MouseButton::Secondary)
         {
-            let menu = self.pointer_event(&step, "contextmenu", target, step.changed, false)?;
-            self.dispatch_to(target, &menu)?;
+            let menu_target = self.surviving_target(&path)?;
+            let menu =
+                self.pointer_event(&step, "contextmenu", menu_target, step.changed, false)?;
+            self.dispatch_to(menu_target, &menu)?;
         }
         if !prevented {
             if let Some((range, fraction)) = update.range_value {
@@ -203,7 +208,40 @@ impl Document {
                 }
             }
         }
+        let target = self.surviving_target(&path)?;
         self.finish_pointer(&step, input.kind, Some(target), &update)
+    }
+
+    /// Whether `node` is live and connected. A removed node's handle is stale.
+    fn is_in_document(&self, node: NodeHandle) -> Result<bool, Error> {
+        self.with_engine(|engine| engine.is_connected(node).unwrap_or(false))
+    }
+
+    /// `target` and its ancestors, innermost first.
+    fn target_path(&self, target: NodeHandle) -> Result<Vec<NodeHandle>, Error> {
+        self.with_engine(|engine| {
+            let mut path = vec![target];
+            let mut node = target;
+            while let Some(parent) = engine.parent(node)? {
+                path.push(parent);
+                node = parent;
+            }
+            Ok::<_, div_engine::EngineError>(path)
+        })?
+        .map_err(Into::into)
+    }
+
+    /// The innermost node of `path` still in the document, where Chromium
+    /// sends the rest of a pointer step after a listener removes its target
+    /// (`PointerEventManager::SendMousePointerEvent`,
+    /// `MouseEventManager::HandleRemoveSubtree`).
+    fn surviving_target(&self, path: &[NodeHandle]) -> Result<NodeHandle, Error> {
+        self.with_engine(|engine| {
+            path.iter()
+                .copied()
+                .find(|&node| engine.is_connected(node).unwrap_or(false))
+                .unwrap_or_else(|| engine.root())
+        })
     }
 
     /// Update the pointer's buttons for `input` and describe the step.
@@ -366,12 +404,18 @@ impl Document {
         }
         let touch = step.pointer_type == PointerType::Touch;
         if kind == PointerInputKind::Up && !touch {
-            if let (Some(target), Some(button), Some(_)) = (target, step.changed, update.pressed) {
-                // Which element `click` targets is I2's: a mouse release
-                // clicks the released node, or the pressed one when they
-                // match and it can be activated.
-                let click_target = update.activation.unwrap_or(target);
-                self.dispatch_release_clicks(step, button, click_target)?;
+            if let (Some(target), Some(button), Some(pressed)) =
+                (target, step.changed, update.pressed)
+            {
+                // Chromium sends no click once the pressed element has left
+                // the document (`MouseEventManager::HandleRemoveSubtree`).
+                if self.is_in_document(pressed)? {
+                    // Which element `click` targets is I2's: a mouse release
+                    // clicks the released node, or the pressed one when they
+                    // match and it can be activated.
+                    let click_target = update.activation.unwrap_or(target);
+                    self.dispatch_release_clicks(step, button, click_target)?;
+                }
             }
         }
         if kind == PointerInputKind::Up && !touch && capture_ended {
@@ -423,7 +467,13 @@ impl Document {
                     detail: count,
                     ..*step
                 };
-                self.dispatch_tap(&tap, update.activation, suppressed)?;
+                // A tap whose pressed element left the document still clicks
+                // what remains under the finger, as pinned Chromium 147 does.
+                let activation = match update.pressed {
+                    Some(pressed) if self.is_in_document(pressed)? => update.activation,
+                    _ => target,
+                };
+                self.dispatch_tap(&tap, activation, suppressed)?;
             }
         }
         if ends && !touch {
