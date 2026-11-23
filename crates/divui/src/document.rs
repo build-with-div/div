@@ -669,9 +669,11 @@ impl Document {
     /// Set the document's starting style (RFC 0004). A document starts with
     /// [`StylePreset::NONE`](crate::StylePreset::NONE).
     /// [`StylePreset::BROWSER`](crate::StylePreset::BROWSER) adds the browser's
-    /// user-agent style sheet for HTML elements, below every author rule,
-    /// element style and `style` attribute. Setting another preset restyles
-    /// the document; on error the previous preset stays.
+    /// user-agent style sheet for HTML elements. Its normal declarations rank
+    /// below every author rule, element style and `style` attribute, and its
+    /// `!important` declarations rank above them, including author
+    /// `!important`. Setting another preset restyles the document; on error
+    /// the previous preset stays.
     pub fn set_style_preset(&self, preset: crate::StylePreset) -> Result<(), Error> {
         if self.inner.style_preset.get() == preset {
             return Ok(());

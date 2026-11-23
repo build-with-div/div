@@ -4,8 +4,9 @@
 //! initial values and their kind's native `display`. [`StylePreset::BROWSER`]
 //! adds Div's user-agent style sheet for HTML elements, written from the HTML
 //! Standard's rendering section and checked against Chromium 147. Its rules
-//! rank in the user-agent origin, below every author rule, element style and
-//! `style` attribute.
+//! rank in the user-agent origin: normal declarations rank below every author
+//! rule, element style and `style` attribute, and `!important` declarations
+//! rank above them, including author `!important`.
 //!
 //! The sheet comes in parts (`docs/architecture/user-agent-stylesheet.md`).
 //! This part hides the elements and attributes the standard hides and
@@ -17,6 +18,7 @@ use div_style::stylesheet::{CascadeOrigin, StyleSheet};
 
 /// Which user-agent style sheet a document uses.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum UserAgentStyle {
     /// No user-agent sheet: initial values and native `display` defaults.
     #[default]
@@ -30,7 +32,7 @@ pub enum UserAgentStyle {
 /// RFC 0004 also gives a preset author-origin base sheets, adopted before any
 /// other sheet. They come with the components preset; until then a preset is
 /// its user-agent sheet only.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 #[non_exhaustive]
 pub struct StylePreset {
     /// The user-agent sheet.
