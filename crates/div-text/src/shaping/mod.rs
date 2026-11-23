@@ -14,6 +14,9 @@ mod shape_result;
 mod shaper;
 mod web_font_outlines;
 
+pub(crate) use harfbuzz::release_parent_fonts;
+#[doc(hidden)]
+pub use harfbuzz::retained_parent_font_count;
 pub use segmenter::{RunSegment, RunSegmenter, Script};
 pub use shape_result::{
     ShapeResult, ShapeResultCharacterData, ShapeResultRun, TextDirection, TextRasterPolicy,
