@@ -811,12 +811,6 @@ fn inline_layout_unit_ceil(v: f32) -> i64 {
     (v as f64 * 65536.0).ceil() as i64
 }
 
-/// A glyph advance as the shaper's `TextRunLayoutUnit`. Div's advances are
-/// floats (T8 makes them HarfBuzz's 16.16 values).
-fn advance_units(v: f32) -> i64 {
-    (v as f64 * 65536.0).round() as i64
-}
-
 /// `ShapeResult::ComputeInkBounds` for a horizontal result, with
 /// `GlyphBoundsAccumulator` and `SkFontGetBoundsForGlyphs`.
 fn compute_ink_bounds(result: &ShapeResult) -> RectF {
@@ -855,7 +849,7 @@ fn compute_ink_bounds(result: &ShapeResult) -> RectF {
                     max_y = max_y.max(bottom);
                 }
             }
-            origin += advance_units(run.advances.get(i).copied().unwrap_or(0.0));
+            origin += run.advance_units.get(i).copied().map_or(0, i64::from);
         }
         ink.union(&RectF::new(min_x, min_y, max_x - min_x, max_y - min_y));
         run_advance += run.advances.iter().sum::<f32>();
@@ -1158,6 +1152,7 @@ fn clone_run(run: &ShapeResultRun) -> ShapeResultRun {
         font_data: run.font_data.clone(),
         glyphs: run.glyphs.clone(),
         advances: run.advances.clone(),
+        advance_units: run.advance_units.clone(),
         offsets: run.offsets.clone(),
         clusters: run.clusters.clone(),
         start_index: run.start_index,
@@ -1170,15 +1165,15 @@ fn clone_run(run: &ShapeResultRun) -> ShapeResultRun {
 /// Takes the word spacing back off a space at the start of the text
 /// (`ShapeResultSpacing::ComputeSpacing` adds it only past index 0).
 fn remove_leading_word_spacing(result: &mut ShapeResult, word_spacing: f32) {
-    for run in &mut result.runs {
+    let leading = result.runs.iter().enumerate().find_map(|(index, run)| {
         if run.start_index != 0 {
-            continue;
+            return None;
         }
-        if let Some(i) = run.clusters.iter().rposition(|&c| c == 0) {
-            run.advances[i] -= word_spacing;
-            result.width -= word_spacing;
-            return;
-        }
+        let glyph = run.clusters.iter().rposition(|&c| c == 0)?;
+        Some((index, glyph))
+    });
+    if let Some((run, glyph)) = leading {
+        result.add_glyph_advance(run, glyph, -word_spacing);
     }
 }
 

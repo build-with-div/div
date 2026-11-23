@@ -520,6 +520,17 @@ impl ShapeResult {
         units_to_px(runs.iter().map(ShapeResultRun::width_units).sum())
     }
 
+    /// Add `px` to one glyph's advance as the shaper adds spacing, converted
+    /// once by `TextRunLayoutUnit(float)`, and keep the result's width and
+    /// character positions in step.
+    pub fn add_glyph_advance(&mut self, run: usize, glyph: usize, px: f32) {
+        self.runs[run].add_advance_units(glyph, px_to_units(px));
+        self.width = Self::width_from_runs(&self.runs);
+        if !self.character_data.is_empty() {
+            self.rebuild_x_positions();
+        }
+    }
+
     /// Each character's `x_position` from a running sum in 1/65536 px of the
     /// character advances.
     fn rebuild_x_positions(&mut self) {
