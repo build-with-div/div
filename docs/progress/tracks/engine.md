@@ -15,7 +15,7 @@ Results here are from this branch's tests unless marked otherwise.
 | A3 top layer and dialog | Not started |
 | A5 performance baseline | First internal baseline taken 9 November on one shared Windows host, outside the repository; not publishable. Finding: each dashboard relayout costs about 205 ms, all in layout; not yet profiled |
 | A6 real-font baseline | Not measured; fonts are the components track's C4 files (PR #94). WOFF2 decoding on every platform merged, PR #97 (`c4b2e42e`; [record](https://github.com/zhuowcui/open-ui/blob/29104c1575a21d9818ea60db238cf16ff125f03e/docs/progress/woff2-decode-2026-11-09.md)) |
-| RFC 0008 Canvas 2D | RFC merged (build-with-div/div#43). Step 2, core state and paths in `div-canvas`: 54 of 54 trace canvases and 108 of 108 observations exact against Chromium; [record](../canvas-core-2026-11-15.md). Step 3, text: 68 of 68 canvases and 201 of 201 observations exact on Windows, 67 of 68 and 201 of 201 on Linux (one named gap); [record](../canvas-text-2026-11-21.md). Readback: 74 of 75 canvases and 258 of 258 observations exact on Linux (the same gap), Windows checked by CI; [record](../canvas-readback-2026-11-22.md) |
+| RFC 0008 Canvas 2D | RFC merged (build-with-div/div#43). Step 2, core state and paths in `div-canvas`: 54 of 54 trace canvases and 108 of 108 observations exact against Chromium; [record](../canvas-core-2026-11-15.md). Step 3, text: 68 of 68 canvases and 201 of 201 observations exact on Windows, 67 of 68 and 201 of 201 on Linux (one named gap); [record](../canvas-text-2026-11-21.md). Readback: 74 of 75 canvases and 258 of 258 observations exact on Linux (the same gap), Windows checked by CI; [record](../canvas-readback-2026-11-22.md). Gradients: 176 of 177 canvases and 381 of 381 observations exact on Linux (the same gap), Windows checked by CI; [record](../canvas-gradients-2026-11-22.md) |
 
 ## Findings while writing RFC 0001
 
@@ -138,6 +138,12 @@ on branch `components/c4-assets` and the shared findings note.
   canvases are, with transformed web-font text a named gap. div-text's
   `is_web_font` becomes public; no existing crate's output changes.
   [Record](../canvas-text-2026-11-21.md).
+- 22 November 2026: `div-canvas` gains gradients (RFC 0008 §7 step 4):
+  `CanvasGradient` with linear, radial and conic constructors, as fill and
+  stroke styles. Replaying 47 traces against Chromium 147.0.7727.50 on Linux,
+  all 381 observations and 176 of 177 canvases are exact, the one left being
+  the text gap above. Windows is checked by the `windows-msvc` CI job. No
+  other crate changes. [Record](../canvas-gradients-2026-11-22.md).
 - 22 November 2026: `div-canvas` gains readback (RFC 0008 §5): `ImageData`,
   `createImageData`, `getImageData` and `putImageData`. Replaying 38 traces
   against Chromium 147.0.7727.50 on Linux, all 258 observations and 74 of 75

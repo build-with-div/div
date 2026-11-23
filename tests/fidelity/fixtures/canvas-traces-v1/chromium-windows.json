@@ -426,6 +426,1195 @@
    },
    "observations": []
   },
+  "gradient-composite": {
+   "canvases": {
+    "alpha-0": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "alpha-0.25": {
+     "height": 32,
+     "sha256": "bfb2387792bf0a52f37a126742758891568be2b8a310a6face3c96d8cb6d10ea",
+     "width": 48
+    },
+    "alpha-0.5": {
+     "height": 32,
+     "sha256": "90e97f05bf0cff7445c309aa2f6628025bf86775c4ddef9b4a8f794a3c05a8b5",
+     "width": 48
+    },
+    "alpha-1": {
+     "height": 32,
+     "sha256": "3af2db3a48476f536052a22fc1db64a99a32f3afea05bcb902a64898565e560a",
+     "width": 48
+    },
+    "clear": {
+     "height": 16,
+     "sha256": "62074861147f2227ee43d6b6fc5d1c5474773e52ae9786990909e5c12aa27d27",
+     "width": 24
+    },
+    "color": {
+     "height": 16,
+     "sha256": "8cc2bcbbdd67053b37f00a9c76b8713bd4fcbc312920bfbbf05dc9dd26caf919",
+     "width": 24
+    },
+    "color-burn": {
+     "height": 16,
+     "sha256": "7f898dcf93a23ee02784125f4a2113138d2ad717dac8ba2584d6e72317a95724",
+     "width": 24
+    },
+    "color-dodge": {
+     "height": 16,
+     "sha256": "1f008aea012f2a2a2390b52fd9b5c6f27f5c31dc07b702ad58bc5511965b6db7",
+     "width": 24
+    },
+    "copy": {
+     "height": 16,
+     "sha256": "7d93f4e2795e9500311a1c3a96a2c4dd187f20044090964cd076ef862d6a5fac",
+     "width": 24
+    },
+    "darken": {
+     "height": 16,
+     "sha256": "7c436567d8e5789869c92f831df28cd08bad011b85a9263377119df1140bd5dc",
+     "width": 24
+    },
+    "destination-atop": {
+     "height": 16,
+     "sha256": "fa38a07388216f6e256244425b623a37c5e26dea7a37dc710c522a530415f9a3",
+     "width": 24
+    },
+    "destination-in": {
+     "height": 16,
+     "sha256": "cbcc6492bf99592f5f2952615a14ee934556c7d0c1049964acb93c38ccff3c34",
+     "width": 24
+    },
+    "destination-out": {
+     "height": 16,
+     "sha256": "ea0ae075c7a23ee7ee486fd27c569c604b4e29f05f8fd8e066d10aa3a9d8b64e",
+     "width": 24
+    },
+    "destination-over": {
+     "height": 16,
+     "sha256": "dd88e39eac1a5ec8977f6897ddf4739eb032676f1c13a974afc9a45b69662cc4",
+     "width": 24
+    },
+    "difference": {
+     "height": 16,
+     "sha256": "3f472244c2bb790f6f8fad6eb23552ced44e77211324ea71b3eba1ebd73d2846",
+     "width": 24
+    },
+    "exclusion": {
+     "height": 16,
+     "sha256": "aa7244a878e3e13f85fb07f757c2045f34368f858a049316dac5892e083b2a31",
+     "width": 24
+    },
+    "hard-light": {
+     "height": 16,
+     "sha256": "bd38532c285fd64f00dff0ffff4df276acab0f70ba77c57428354273ba7f6f5d",
+     "width": 24
+    },
+    "hue": {
+     "height": 16,
+     "sha256": "edba391b2823f477368bd9cc07be0607dcd86c6c26a54ab66f189bdb94fc0f54",
+     "width": 24
+    },
+    "lighten": {
+     "height": 16,
+     "sha256": "83b581b5b7adf8c65c410cad70f47d3839ff993dcd15ffa5b0b9e0e01e6bf33d",
+     "width": 24
+    },
+    "lighter": {
+     "height": 16,
+     "sha256": "4aef2ec76c14dd41311988901e52a23a0015874933d7c4a69d8ce5253041a039",
+     "width": 24
+    },
+    "luminosity": {
+     "height": 16,
+     "sha256": "0f91aa99f53a709386db6e29af2327dd5afdcde49e1870506be57683157b608b",
+     "width": 24
+    },
+    "multiply": {
+     "height": 16,
+     "sha256": "97eceb882d74784ed0ea0cf3140be3a283cd60238bb4f8269883f721c05901a2",
+     "width": 24
+    },
+    "overlay": {
+     "height": 16,
+     "sha256": "58470f5b05e3532ea5b3b462c8b421d2d64932fbe65aedfdad1985c22f994078",
+     "width": 24
+    },
+    "saturation": {
+     "height": 16,
+     "sha256": "bd94aff0f75e528aeffe569f2eb0a053a9c8e546300bc50294e13f67668c6db8",
+     "width": 24
+    },
+    "screen": {
+     "height": 16,
+     "sha256": "91d8f3674c43a13edf619fdea5ef85321e7226c0f5248471f0230a3bd021c45d",
+     "width": 24
+    },
+    "soft-light": {
+     "height": 16,
+     "sha256": "26a57a047a39d55fcf8a50a68c47336bdce4b035dfd69817360bd178b6dc29a6",
+     "width": 24
+    },
+    "source-atop": {
+     "height": 16,
+     "sha256": "85b3b6c85f8d9f43b89c122793efb6b6e18d1ce05763ba3742dbefe1c7b8ac85",
+     "width": 24
+    },
+    "source-in": {
+     "height": 16,
+     "sha256": "fbdee804d13f11ce9ac9d38de4c3f71058fc516fe998812426efa3982e0a7b21",
+     "width": 24
+    },
+    "source-out": {
+     "height": 16,
+     "sha256": "57d7cf6929c64411b9d63ded8082b852a6620f90cf9b3815b9658c4c11e2a8c3",
+     "width": 24
+    },
+    "source-over": {
+     "height": 16,
+     "sha256": "dd59f7695be8391226cdeff3ebbbc0a8a574fb3f4815d663373505eb175b5978",
+     "width": 24
+    },
+    "xor": {
+     "height": 16,
+     "sha256": "cfc0c46be2da781ab8f601f33c2dac249532dc758979fe693511eddf25d5ce49",
+     "width": 24
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "source-over",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "source-in",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "source-out",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "source-atop",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "destination-over",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "destination-in",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "destination-out",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "destination-atop",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "xor",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "lighter",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "copy",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "clear",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "multiply",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "screen",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "overlay",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "darken",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "lighten",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "color-dodge",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "color-burn",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "hard-light",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "soft-light",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "difference",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "exclusion",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "hue",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "saturation",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "color",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "luminosity",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "alpha-0",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "alpha-0.25",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "alpha-0.5",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "alpha-1",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-conic": {
+   "canvases": {
+    "alpha": {
+     "height": 32,
+     "sha256": "9771611462e547364005a43306b56f806585f0f4a4bb4651b0a95bd2f81982b0",
+     "width": 48
+    },
+    "fractional-center": {
+     "height": 32,
+     "sha256": "0ff8e8298bba5a609dcbeb5360bcc4f637be3b05c5b13e12d922973aef051874",
+     "width": 48
+    },
+    "hard-stops": {
+     "height": 32,
+     "sha256": "7802a0fbb075346f03429acff16c794c491782f2f18260e98c3776b20adf82d4",
+     "width": 48
+    },
+    "inner-stops": {
+     "height": 32,
+     "sha256": "c41f2d0c36ce1dbf1f03902c1165202d9f01decbc264748cf0af836ae89327db",
+     "width": 48
+    },
+    "large-angle": {
+     "height": 32,
+     "sha256": "08edb60f8a012279548fa4d438e0be33d150f5ffb895c6a746ee175ebccf66f9",
+     "width": 48
+    },
+    "negative": {
+     "height": 32,
+     "sha256": "4c77f2d02e2be7a551f83f5b0f5667faca4e4380891d4945796ae603a1866d1a",
+     "width": 48
+    },
+    "no-stops": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "off-canvas": {
+     "height": 32,
+     "sha256": "9ecae2189e548c96805280bc974b77acb7b0bd43318b8cf6f3377e92236681d1",
+     "width": 48
+    },
+    "one-stop": {
+     "height": 32,
+     "sha256": "434fb2062c6e221f90c866a72cff48d6f56e3acb2659e48470ea149babd1d99a",
+     "width": 48
+    },
+    "quarter": {
+     "height": 32,
+     "sha256": "6a342af547ca347a6a082d0c0b7e4d313a945459d8783c82420e43dd318aa935",
+     "width": 48
+    },
+    "start-zero": {
+     "height": 32,
+     "sha256": "c278eeeaf5937c4e67f4e33277e51161098ba02779f1cbf749decfc06156ef9d",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createConicGradient",
+     "canvas": "start-zero",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "quarter",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "negative",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "large-angle",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "off-canvas",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "fractional-center",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "hard-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "inner-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "alpha",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "no-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "one-stop",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-errors": {
+   "canvases": {
+    "factories": {
+     "height": 32,
+     "sha256": "fd9243e1ba57263ed469c3bdbd7ade6ec5254e7ed924a9f5737fa44749933cc0",
+     "width": 48
+    },
+    "stops": {
+     "height": 32,
+     "sha256": "fd9243e1ba57263ed469c3bdbd7ade6ec5254e7ed924a9f5737fa44749933cc0",
+     "width": 48
+    },
+    "valid-stops": {
+     "height": 32,
+     "sha256": "2137b94a6a3d47bca602550de221c2ccdb7594901b79ffc653c7c7322ac3e36d",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "SyntaxError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "SyntaxError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "SyntaxError"
+    },
+    {
+     "call": "addColorStop",
+     "gradient": "g1",
+     "throws": "SyntaxError"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "valid-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "factories",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "factories",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "factories",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "factories",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "factories",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-linear": {
+   "canvases": {
+    "alpha": {
+     "height": 32,
+     "sha256": "3af2db3a48476f536052a22fc1db64a99a32f3afea05bcb902a64898565e560a",
+     "width": 48
+    },
+    "degenerate": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "diagonal": {
+     "height": 32,
+     "sha256": "d091b6a17d4c7f7cd3ffa3bdc387026a684600e4ab93ae18e08e11e87b4bb06e",
+     "width": 48
+    },
+    "hard-edge": {
+     "height": 32,
+     "sha256": "21907ef4361bf1145a67b391858078cb3395267254fe21e9fd932cd7cd2f2769",
+     "width": 48
+    },
+    "horizontal": {
+     "height": 32,
+     "sha256": "290504e7c7dbf920cb3688d6b6993b0f81e611d5eae8ab64eadb502c58e7c02a",
+     "width": 48
+    },
+    "huge": {
+     "height": 32,
+     "sha256": "8681e454c3b3b75b9acb2fc5b07f32f1b84b332c17d4459cdd89cadf9d5bd677",
+     "width": 48
+    },
+    "inner-stops": {
+     "height": 32,
+     "sha256": "329d83d705e51cc7c3557cd5ccd587a724469971cc9a8d922d228a1c221d05a2",
+     "width": 48
+    },
+    "many-stops": {
+     "height": 32,
+     "sha256": "15b101cc23d953e329a790b14bc1c0929ae405e2235b4873a4a3a99913dc348c",
+     "width": 48
+    },
+    "near-degenerate": {
+     "height": 32,
+     "sha256": "8213ad1b110fa2340bbb199186df97ba66c90ad4bf3f172593563f7e9bb2e1be",
+     "width": 48
+    },
+    "no-stops": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "one-stop": {
+     "height": 32,
+     "sha256": "64c413b8456c52879a1c92e2fe43c8c3bab9321d38c80a67f08963cb9f961817",
+     "width": 48
+    },
+    "reversed": {
+     "height": 32,
+     "sha256": "c29407a72dee8ae4fa8b96b7393c054d8ef5126de343f411a8299650f1b0fdf9",
+     "width": 48
+    },
+    "same-offset": {
+     "height": 32,
+     "sha256": "21907ef4361bf1145a67b391858078cb3395267254fe21e9fd932cd7cd2f2769",
+     "width": 48
+    },
+    "stop-near-ends": {
+     "height": 32,
+     "sha256": "290504e7c7dbf920cb3688d6b6993b0f81e611d5eae8ab64eadb502c58e7c02a",
+     "width": 48
+    },
+    "unsorted": {
+     "height": 32,
+     "sha256": "3755b64ae51787c648f5dc9e974dc6d733c4ebffc02ba1ea73005235d467fe53",
+     "width": 48
+    },
+    "vertical": {
+     "height": 32,
+     "sha256": "3b411d88aab4ee63070ecb36ab13b8972b6e1556f35c01ce5d0b4376cfee20e9",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "horizontal",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "vertical",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "diagonal",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "reversed",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "unsorted",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "hard-edge",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "same-offset",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "inner-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "no-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "one-stop",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "alpha",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "degenerate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "near-degenerate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "huge",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "stop-near-ends",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "many-stops",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-radial": {
+   "canvases": {
+    "alpha": {
+     "height": 32,
+     "sha256": "07df59d49e1469253c0cb8b6778d723a65d822a383fb38510c786d3d31b406b8",
+     "width": 48
+    },
+    "concentric": {
+     "height": 32,
+     "sha256": "713ad2f29bd6d06fec7a40ad289ec0d179db94a0b6ccc74d9c75b97082bfa87f",
+     "width": 48
+    },
+    "cone-reversed": {
+     "height": 32,
+     "sha256": "65e85917409dc38328530141e4a85b7c4ba244f3322a918ab70c633de6c6a2e3",
+     "width": 48
+    },
+    "degenerate": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "equal-radii": {
+     "height": 32,
+     "sha256": "b205131b9ad72526421ba1cd9d76aefa47600dc363dfb973ca1d63ceffb72aa7",
+     "width": 48
+    },
+    "focal-inside": {
+     "height": 32,
+     "sha256": "7b24a091cbd6ea6443a42bd5795fce521bac48ecd9dbbfeb3b4a0fe3abb89369",
+     "width": 48
+    },
+    "focal-outside": {
+     "height": 32,
+     "sha256": "e317792068f9d70a446f0d8527d51e8ab07b7d4ebd83e6eb4359ddfa6292c32a",
+     "width": 48
+    },
+    "fractional": {
+     "height": 32,
+     "sha256": "7da1d89d4490f871acfb122e40595191b4240b08bd3ef214d6db9e35623208b5",
+     "width": 48
+    },
+    "huge-radius": {
+     "height": 32,
+     "sha256": "392a7d0251b57715cc98e9a5587ab92097e929506bee283aef27db339aa3e29e",
+     "width": 48
+    },
+    "inner-radius": {
+     "height": 32,
+     "sha256": "8d5beb8653e6dd86aff55dd2ed38c82665d15b44038ffce66f8c5bf7beffd032",
+     "width": 48
+    },
+    "inner-stops": {
+     "height": 32,
+     "sha256": "95649c0fe1063448febac835355a9d4273d7e7ff0f0329b62bba683f52e48136",
+     "width": 48
+    },
+    "no-stops": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "shrinking": {
+     "height": 32,
+     "sha256": "d51687398439447a6b00097ed8501c4f51001b67cf92846f61b9620c4097c79e",
+     "width": 48
+    },
+    "touching": {
+     "height": 32,
+     "sha256": "fd03b8c37ad59c11e9b244a80e762358fd4a58655a5cbf640fc2a4a21fce5c2f",
+     "width": 48
+    },
+    "zero-radii": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createRadialGradient",
+     "canvas": "concentric",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "inner-radius",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "focal-inside",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "focal-outside",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "cone-reversed",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "equal-radii",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "touching",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "degenerate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "zero-radii",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "shrinking",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "alpha",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "inner-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "no-stops",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "huge-radius",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "fractional",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-shapes": {
+   "canvases": {
+    "arc": {
+     "height": 32,
+     "sha256": "68b531983414cbfa734d2f64f2ade55b16216363e7bcd0349be917aa2e74162f",
+     "width": 48
+    },
+    "evenodd": {
+     "height": 32,
+     "sha256": "12ab0aadc83fe68d193a80a4077ac9f33ae692781bceb6f01df0632b555ba22c",
+     "width": 48
+    },
+    "fill-and-stroke": {
+     "height": 32,
+     "sha256": "0e2adcd75b7f0c156392abd0f2592febbd175def6c1ed115ee4a9ba66f69c96e",
+     "width": 48
+    },
+    "path": {
+     "height": 32,
+     "sha256": "6d09db60114585383f4c71dea4cd728d392d104e67efaf0d90ce49b709810a05",
+     "width": 48
+    },
+    "round-rect-clip": {
+     "height": 32,
+     "sha256": "4f7cc2d4d3ce37854ff5ffe28a02a4e15283d0ea15f09ba88384f1b7c298026b",
+     "width": 48
+    },
+    "stroke-dash": {
+     "height": 32,
+     "sha256": "4ef269c2632dca2d6659c1506fd62cc2554cdbde0a5ecd4f9bef21b634e18750",
+     "width": 48
+    },
+    "stroke-line": {
+     "height": 32,
+     "sha256": "a841398c7828c99ae34685930a62bcc7d54a8a6736d41e26d3d67b170aa5db04",
+     "width": 48
+    },
+    "stroke-path": {
+     "height": 32,
+     "sha256": "505e85a1d8e7106472d66b2319091b2b82bba3d0ed78f97ee1dccf1fec086935",
+     "width": 48
+    },
+    "stroke-rect": {
+     "height": 32,
+     "sha256": "13b3462ad7179863ac58c03604f5c383fd79243c3bbb4d2f1c11eafc27ee2b1a",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "path",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "evenodd",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "arc",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "round-rect-clip",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "stroke-path",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "stroke-line",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "stroke-dash",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "stroke-rect",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "fill-and-stroke",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "fill-and-stroke",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-state": {
+   "canvases": {
+    "back-to-color": {
+     "height": 32,
+     "sha256": "a4d8173a1cd045c1451eb0451ab8af1be5f5b25ed7af9dfd0ab71f0802684c0a",
+     "width": 48
+    },
+    "identity": {
+     "height": 32,
+     "sha256": "51288ebf5572bf9b404f57688a91676f1b08ec03fcc03a0aaa0a8de35c270ddc",
+     "width": 48
+    },
+    "live": {
+     "height": 32,
+     "sha256": "4b39a5b104824871983922c25bc40e55bd0bf78dac4cc16ade6bdcffa4827e60",
+     "width": 48
+    },
+    "live-other": {
+     "height": 32,
+     "sha256": "6a5fa6fa72ada39c23baf2a4862231cfa00ad4dc47bea7349aed55b5601dfc16",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "identity",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "identity",
+     "return": "CanvasGradient"
+    },
+    {
+     "canvas": "identity",
+     "get": "fillStyle",
+     "value": "#000000"
+    },
+    {
+     "canvas": "identity",
+     "get": "fillStyle",
+     "value": {
+      "gradient": "g1"
+     }
+    },
+    {
+     "canvas": "identity",
+     "get": "strokeStyle",
+     "value": {
+      "gradient": "g2"
+     }
+    },
+    {
+     "canvas": "identity",
+     "get": "fillStyle",
+     "value": {
+      "gradient": "g1"
+     }
+    },
+    {
+     "canvas": "identity",
+     "get": "fillStyle",
+     "value": "#0a0b0c"
+    },
+    {
+     "canvas": "identity",
+     "get": "fillStyle",
+     "value": {
+      "gradient": "g1"
+     }
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "live",
+     "return": "CanvasGradient"
+    },
+    {
+     "canvas": "live-other",
+     "get": "fillStyle",
+     "value": {
+      "gradient": "g3"
+     }
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "back-to-color",
+     "return": "CanvasGradient"
+    },
+    {
+     "canvas": "back-to-color",
+     "get": "fillStyle",
+     "value": "rgba(10, 200, 30, 0.5)"
+    }
+   ]
+  },
+  "gradient-text": {
+   "canvases": {
+    "alpha": {
+     "height": 32,
+     "sha256": "697e4c4b742695f417b7bc5a02e64ef8f7738007d5621594dff513fbad2a749e",
+     "width": 96
+    },
+    "fill": {
+     "height": 32,
+     "sha256": "12983acef18650ef82cede6e5b7059dd3894f0afa1da0fe83a15d043324b9976",
+     "width": 96
+    },
+    "stroke": {
+     "height": 32,
+     "sha256": "20ad9d1525484b979ddd18dc60fbaf39a588c9fdb442e8d3d139f3f54b158001",
+     "width": 96
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "fill",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "stroke",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "alpha",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
+  "gradient-transform": {
+   "canvases": {
+    "conic-rotate": {
+     "height": 32,
+     "sha256": "eef20210ab631cc00041ed9312ca3ca44f08e5e08b61f34f766166c2fc4c35bb",
+     "width": 48
+    },
+    "conic-scale": {
+     "height": 32,
+     "sha256": "caca561ac1749e22245b569cda5e072c785d07844ea88a9211a57adced37e358",
+     "width": 48
+    },
+    "conic-skew": {
+     "height": 32,
+     "sha256": "8252efa914db695ed06172af820c8e429041c95e96942c5aa02948a2e76d729d",
+     "width": 48
+    },
+    "linear-rotate": {
+     "height": 32,
+     "sha256": "2e2a110b18872a6a8aa4f8a24950f3e670d2a29fff4f4bd8d1c88aa5208e55c7",
+     "width": 48
+    },
+    "linear-scale": {
+     "height": 32,
+     "sha256": "f090188a44182fe96554cd7565d8ad34488b0def764dc5f365f328a5066c1f35",
+     "width": 48
+    },
+    "linear-skew": {
+     "height": 32,
+     "sha256": "dd3c41f5e36328d8345cb904813a81fc1d270397302df8cd60711c8f882d1190",
+     "width": 48
+    },
+    "non-invertible": {
+     "height": 32,
+     "sha256": "005631b7890fcba683c42d27fc02c034ef0e671fd9a9728d37558265b8aef908",
+     "width": 48
+    },
+    "radial-rotate": {
+     "height": 32,
+     "sha256": "0bc0f8bd1b580a0dfcf847fc05aab95f960e70e92387e10baf8d31e5d3bdeea0",
+     "width": 48
+    },
+    "radial-scale": {
+     "height": 32,
+     "sha256": "ad4417d94e278889e896538c90397a35c5d98e545d0386587e763d739349ca07",
+     "width": 48
+    },
+    "radial-skew": {
+     "height": 32,
+     "sha256": "280e680975c3f1256ea86144e02e94cf433fbf55b51b7f70e0ab06591869bff1",
+     "width": 48
+    }
+   },
+   "observations": [
+    {
+     "call": "createLinearGradient",
+     "canvas": "linear-scale",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "linear-rotate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "linear-skew",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "radial-scale",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "radial-rotate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createRadialGradient",
+     "canvas": "radial-skew",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "conic-scale",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "conic-rotate",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createConicGradient",
+     "canvas": "conic-skew",
+     "return": "CanvasGradient"
+    },
+    {
+     "call": "createLinearGradient",
+     "canvas": "non-invertible",
+     "return": "CanvasGradient"
+    }
+   ]
+  },
   "huge-values": {
    "canvases": {
     "c": {

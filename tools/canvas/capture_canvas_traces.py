@@ -85,6 +85,7 @@ async (lines) => {
     if (Array.isArray(a)) return a.map(arg);
     if (a !== null && typeof a === "object") {
       if ("imageData" in a) return images.get(a.imageData);
+      if ("gradient" in a) return gradients.get(a.gradient);
       const p = {};
       for (const k of Object.keys(a)) p[k] = num(a[k]);
       return p;
@@ -95,8 +96,18 @@ async (lines) => {
     width: d.width, height: d.height,
     data: Array.from(d.data, (b) => b.toString(16).padStart(2, "0")).join(""),
   });
+  // A gradient read back is listed by the name it was stored under, which
+  // also checks that the same object came back.
+  const readValue = (v) => {
+    if (v instanceof CanvasGradient) {
+      for (const [name, g] of gradients) if (g === v) return {gradient: name};
+      return {gradient: null};
+    }
+    return enc(v);
+  };
   const contexts = new Map();
   const images = new Map();
+  const gradients = new Map();
   const order = [];
   const observations = [];
   // Faces a previous replay added.
@@ -127,6 +138,14 @@ async (lines) => {
       }
       continue;
     }
+    if ("gradient" in e) {
+      try {
+        gradients.get(e.gradient).addColorStop(num(e.addColorStop[0]), e.addColorStop[1]);
+      } catch (err) {
+        observations.push({gradient: e.gradient, call: "addColorStop", throws: err.name});
+      }
+      continue;
+    }
     if ("width" in e) {
       const c = document.createElement("canvas");
       c.width = e.width;
@@ -151,6 +170,9 @@ async (lines) => {
         } else if (r instanceof ImageData) {
           observations.push({canvas: e.canvas, call: e.call, return: imageValue(r)});
           if ("store" in e) images.set(e.store, r);
+        } else if (r instanceof CanvasGradient) {
+          observations.push({canvas: e.canvas, call: e.call, return: "CanvasGradient"});
+          if ("store" in e) gradients.set(e.store, r);
         } else if (r !== undefined) {
           observations.push({canvas: e.canvas, call: e.call,
                              return: Array.isArray(r) ? r.map(enc) : enc(r)});
@@ -159,9 +181,9 @@ async (lines) => {
         observations.push({canvas: e.canvas, call: e.call, throws: err.name});
       }
     } else if ("set" in e) {
-      ctx[e.set] = num(e.value);
+      ctx[e.set] = arg(e.value);
     } else if ("get" in e) {
-      observations.push({canvas: e.canvas, get: e.get, value: enc(ctx[e.get])});
+      observations.push({canvas: e.canvas, get: e.get, value: readValue(ctx[e.get])});
     }
   }
   const canvases = {};

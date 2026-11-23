@@ -19,6 +19,14 @@
 //! its result, and `{"imageData": name}` as an argument passes a kept one. A
 //! returned `ImageData` is observed as its width, height and bytes in hex.
 //!
+//! A `createLinearGradient`, `createRadialGradient` or `createConicGradient`
+//! call may add `"store": name` to keep the gradient, observed as the string
+//! `"CanvasGradient"`. `{"gradient": name, "addColorStop": [offset, color]}`
+//! adds a stop, observed only if it throws. `{"gradient": name}` as the value
+//! of `fillStyle` or `strokeStyle` assigns a kept gradient, and a read of
+//! either attribute that yields a gradient observes it by that name, so an
+//! observation also checks the object's identity.
+//!
 //! Numbers that JSON cannot carry are strings: `"NaN"`, `"Infinity"`,
 //! `"-Infinity"` and `"-0"`. Replaying a trace yields its observations (every
 //! read, every return value and every exception, in order) and each canvas's
@@ -34,7 +42,8 @@ use div_text::{FontAxisRange, FontCollection, FontFaceDescriptor, FontStyleRange
 use serde_json::{json, Map, Number, Value};
 
 use crate::{
-    CanvasError, CanvasRenderingContext2D, FillRule, ImageData, RoundRectRadius, TextMetrics,
+    CanvasError, CanvasGradient, CanvasRenderingContext2D, CanvasStyleValue, FillRule, ImageData,
+    RoundRectRadius, TextMetrics,
 };
 
 /// One canvas's final state after a replay.
@@ -118,6 +127,7 @@ pub fn replay_with_fonts(
     let fonts = FontCollection::system();
     let mut canvases: BTreeMap<String, CanvasRenderingContext2D> = BTreeMap::new();
     let mut images: BTreeMap<String, ImageData> = BTreeMap::new();
+    let mut gradients: BTreeMap<String, CanvasGradient> = BTreeMap::new();
     let mut observations = Vec::new();
     for (index, line) in trace.lines().enumerate() {
         let line_no = index + 1;
@@ -141,6 +151,14 @@ pub fn replay_with_fonts(
                     images.insert(image_name.to_string(), image);
                 }
                 Err(e) => observations.push(json!({"imageData": image_name, "throws": e.name()})),
+            }
+            continue;
+        }
+        if let Some(gradient_name) = entry.get("gradient").and_then(Value::as_str) {
+            if let Err(e) = add_color_stop(&entry, gradient_name, &gradients).map_err(err)? {
+                observations.push(
+                    json!({"gradient": gradient_name, "call": "addColorStop", "throws": e.name()}),
+                );
             }
             continue;
         }
@@ -180,15 +198,24 @@ pub fn replay_with_fonts(
                         images.insert(store.to_string(), image);
                     }
                 }
+                CallResult::Gradient(gradient) => {
+                    let value = gradient.as_ref().map(|_| "CanvasGradient");
+                    observations.push(json!({"canvas": id, "call": name, "return": value}));
+                    if let (Some(gradient), Some(store)) =
+                        (gradient, entry.get("store").and_then(Value::as_str))
+                    {
+                        gradients.insert(store.to_string(), gradient);
+                    }
+                }
                 CallResult::Throw(e) => {
                     observations.push(json!({"canvas": id, "call": name, "throws": e.name()}))
                 }
             }
         } else if let Some(prop) = entry.get("set").and_then(Value::as_str) {
             let value = entry.get("value").cloned().unwrap_or(Value::Null);
-            set(ctx, prop, &value).map_err(err)?;
+            set(ctx, prop, &value, &gradients).map_err(err)?;
         } else if let Some(prop) = entry.get("get").and_then(Value::as_str) {
-            let value = get(ctx, prop).map_err(err)?;
+            let value = get(ctx, prop, &gradients).map_err(err)?;
             observations.push(json!({"canvas": id, "get": prop, "value": value}));
         } else {
             return Err(err("line has no call, set or get".into()));
@@ -239,6 +266,49 @@ fn add_font_face(
         .register(Arc::from(bytes), descriptor)
         .map_err(|e| format!("fontFace {family}: {e}"))?;
     Ok(())
+}
+
+/// A `gradient` line's `addColorStop`. The outer error is a bad trace line,
+/// the inner one what the call throws. The offset is a restricted `double`,
+/// so a non-finite one would be a `TypeError` from the bindings, which the
+/// Rust API cannot receive: a trace may not contain one.
+fn add_color_stop(
+    entry: &Map<String, Value>,
+    name: &str,
+    gradients: &BTreeMap<String, CanvasGradient>,
+) -> Result<Result<(), CanvasError>, String> {
+    let gradient = gradients
+        .get(name)
+        .ok_or_else(|| format!("unknown gradient {name}"))?;
+    let stop = entry
+        .get("addColorStop")
+        .and_then(Value::as_array)
+        .ok_or("gradient line has no addColorStop")?;
+    let offset = stop
+        .first()
+        .and_then(number)
+        .filter(|v| v.is_finite())
+        .ok_or("addColorStop: offset is not a finite number")?;
+    let color = stop
+        .get(1)
+        .and_then(Value::as_str)
+        .ok_or("addColorStop: color is not a string")?;
+    Ok(gradient.add_color_stop(offset, color))
+}
+
+/// A `fillStyle` or `strokeStyle` read. A gradient is listed by the name it
+/// was stored under.
+fn style_value(style: CanvasStyleValue, gradients: &BTreeMap<String, CanvasGradient>) -> Value {
+    match style {
+        CanvasStyleValue::Gradient(gradient) => {
+            let name = gradients
+                .iter()
+                .find(|(_, kept)| **kept == gradient)
+                .map(|(name, _)| name.as_str());
+            json!({"gradient": name})
+        }
+        CanvasStyleValue::Color(color) => json!(color),
+    }
 }
 
 /// An `imageData` line's `ImageData`. The outer error is a bad trace line, the
@@ -307,6 +377,7 @@ enum CallResult {
     Void,
     Return(Value),
     Image(ImageData),
+    Gradient(Option<CanvasGradient>),
     Throw(CanvasError),
 }
 
@@ -352,6 +423,17 @@ fn call(
             .and_then(Value::as_str)
             .and_then(|key| images.get(key))
             .ok_or_else(|| format!("{name}: argument {i} is not a stored ImageData"))
+    };
+    // A restricted `double`: as for `long`, a non-finite value would be a
+    // TypeError from the bindings.
+    let finite = |i: usize| -> Result<f64, String> {
+        n(i).and_then(|v| {
+            if v.is_finite() {
+                Ok(v)
+            } else {
+                Err(format!("{name}: argument {i} is not finite"))
+            }
+        })
     };
     let flag = |i: usize| -> bool { args.get(i).and_then(Value::as_bool).unwrap_or(false) };
     let string = |i: usize| -> Result<&str, String> {
@@ -522,6 +604,26 @@ fn call(
             }
             CallResult::Void
         }
+        "createLinearGradient" => CallResult::Gradient(ctx.create_linear_gradient(
+            finite(0)?,
+            finite(1)?,
+            finite(2)?,
+            finite(3)?,
+        )),
+        "createRadialGradient" => match ctx.create_radial_gradient(
+            finite(0)?,
+            finite(1)?,
+            finite(2)?,
+            finite(3)?,
+            finite(4)?,
+            finite(5)?,
+        ) {
+            Ok(gradient) => CallResult::Gradient(gradient),
+            Err(e) => CallResult::Throw(e),
+        },
+        "createConicGradient" => {
+            CallResult::Gradient(ctx.create_conic_gradient(finite(0)?, finite(1)?, finite(2)?))
+        }
         other => return Err(format!("unsupported call {other}")),
     })
 }
@@ -544,16 +646,36 @@ fn round_rect_radii(value: Option<&Value>) -> Option<Vec<RoundRectRadius>> {
     }
 }
 
-fn set(ctx: &mut CanvasRenderingContext2D, prop: &str, value: &Value) -> Result<(), String> {
+fn set(
+    ctx: &mut CanvasRenderingContext2D,
+    prop: &str,
+    value: &Value,
+    gradients: &BTreeMap<String, CanvasGradient>,
+) -> Result<(), String> {
     let num = || number(value).ok_or_else(|| format!("{prop}: value is not a number"));
     let text = || {
         value
             .as_str()
             .ok_or_else(|| format!("{prop}: value is not a string"))
     };
+    let gradient = || -> Result<Option<&CanvasGradient>, String> {
+        let Some(name) = value.get("gradient") else {
+            return Ok(None);
+        };
+        name.as_str()
+            .and_then(|name| gradients.get(name))
+            .map(Some)
+            .ok_or_else(|| format!("{prop}: unknown gradient {name}"))
+    };
     match prop {
-        "fillStyle" => ctx.set_fill_style(text()?),
-        "strokeStyle" => ctx.set_stroke_style(text()?),
+        "fillStyle" => match gradient()? {
+            Some(gradient) => ctx.set_fill_gradient(gradient),
+            None => ctx.set_fill_style(text()?),
+        },
+        "strokeStyle" => match gradient()? {
+            Some(gradient) => ctx.set_stroke_gradient(gradient),
+            None => ctx.set_stroke_style(text()?),
+        },
         "lineWidth" => ctx.set_line_width(num()?),
         "lineCap" => ctx.set_line_cap(text()?),
         "lineJoin" => ctx.set_line_join(text()?),
@@ -577,10 +699,14 @@ fn set(ctx: &mut CanvasRenderingContext2D, prop: &str, value: &Value) -> Result<
     Ok(())
 }
 
-fn get(ctx: &CanvasRenderingContext2D, prop: &str) -> Result<Value, String> {
+fn get(
+    ctx: &CanvasRenderingContext2D,
+    prop: &str,
+    gradients: &BTreeMap<String, CanvasGradient>,
+) -> Result<Value, String> {
     Ok(match prop {
-        "fillStyle" => json!(ctx.fill_style()),
-        "strokeStyle" => json!(ctx.stroke_style()),
+        "fillStyle" => style_value(ctx.fill_style(), gradients),
+        "strokeStyle" => style_value(ctx.stroke_style(), gradients),
         "lineWidth" => encode_number(ctx.line_width()),
         "lineCap" => json!(ctx.line_cap()),
         "lineJoin" => json!(ctx.line_join()),

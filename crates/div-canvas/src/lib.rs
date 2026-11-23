@@ -15,8 +15,9 @@
 //! point-in-path tests. Step 3 adds text: `font` and the other text
 //! attributes, `fillText`, `strokeText` and `measureText`, shaped and
 //! rasterized by div-text. Readback adds `ImageData`, `createImageData`,
-//! `getImageData` and `putImageData`. Gradients, patterns, images, shadows
-//! and filters come in later steps of RFC 0008's migration.
+//! `getImageData` and `putImageData`. Gradients add `CanvasGradient` and its
+//! linear, radial and conic constructors as fill and stroke styles. Patterns,
+//! images, shadows and filters come in later steps of RFC 0008's migration.
 
 mod affine;
 mod context;
@@ -25,6 +26,7 @@ mod math;
 mod path;
 mod shape_cache;
 mod state;
+mod style;
 mod text;
 pub mod trace;
 
@@ -33,6 +35,7 @@ pub use context::{CanvasRenderingContext2D, FillRule};
 pub use image_data::ImageData;
 pub use path::{CanvasPath, RoundRectRadius};
 pub use state::{LineCap, LineJoin};
+pub use style::{CanvasGradient, CanvasStyleValue};
 pub use text::{
     CanvasDirection, CanvasFontKerning, CanvasFontStretch, CanvasFontVariantCaps,
     CanvasTextRendering, TextAlign, TextBaseline, TextMetrics,
@@ -51,6 +54,8 @@ pub enum CanvasError {
     NotSupported,
     /// `SecurityError` (reading a canvas that is not origin-clean).
     Security,
+    /// `SyntaxError` (a gradient stop's colour that does not parse).
+    Syntax,
 }
 
 impl CanvasError {
@@ -62,6 +67,7 @@ impl CanvasError {
             Self::InvalidState => "InvalidStateError",
             Self::NotSupported => "NotSupportedError",
             Self::Security => "SecurityError",
+            Self::Syntax => "SyntaxError",
         }
     }
 }
