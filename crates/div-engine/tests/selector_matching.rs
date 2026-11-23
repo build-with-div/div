@@ -8,7 +8,7 @@
 //! `Engine::matches_selector` selects the same elements in document order.
 
 use div_dom::ElementTag;
-use div_engine::{Engine, NodeHandle, SelectorMatchError, ViewportMetrics};
+use div_engine::{Engine, NodeHandle, ViewportMetrics};
 use div_style::selector_parser::parse_selector_list;
 use serde_json::Value;
 
@@ -102,14 +102,17 @@ fn matching_follows_chromium() {
 }
 
 #[test]
-fn dialog_state_pseudo_classes_are_not_matched_silently() {
+fn dialog_state_pseudo_classes_match_only_open_details_and_dialogs() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let (engine, elements) = fixture(&oracle);
-    let list = parse_selector_list(".box:open", None).unwrap();
-    assert_eq!(
-        engine.matches_selector_list(elements[2].0, &list),
-        Err(SelectorMatchError::UnsupportedPseudoClass("open"))
-    );
+    // `dialog.rs` tests the matches; a plain box is never open or modal.
+    for text in [".box:open", ".box:modal"] {
+        let list = parse_selector_list(text, None).unwrap();
+        assert_eq!(
+            engine.matches_selector_list(elements[2].0, &list),
+            Ok(false)
+        );
+    }
 }
 
 #[test]

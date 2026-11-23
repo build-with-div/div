@@ -116,6 +116,14 @@ function isGlobalReceiver(value) {
   return value.kind === 'binding' && GLOBAL_RECEIVERS.has(value.name);
 }
 
+// The binding a receiver starts from: `port` in `port.close()`, `channel` in
+// `channel.port1.close()`.
+function rootBinding(value) {
+  if (value.kind === 'binding') return value.name;
+  if (value.kind === 'member') return rootBinding(value.object);
+  return null;
+}
+
 function hasDynamicTarget(value) {
   if (!value || typeof value !== 'object') return false;
   if (value.kind === 'dom-query' && !value.constant) return true;
@@ -343,6 +351,18 @@ function analyzeScript(script, scriptIndex, state) {
       }
       return;
     }
+    if ((node.type === 'VariableDeclarator' && node.id.type === 'Identifier')
+        || (node.type === 'AssignmentExpression' && node.left.type === 'Identifier')) {
+      // A binding to `new X()` is not an element: its show() or close() is
+      // X's (RFC 0015 PR 3a).
+      const [name, value] = node.type === 'VariableDeclarator'
+        ? [node.id.name, node.init] : [node.left.name, node.right];
+      if (value?.type === 'NewExpression') {
+        state.constructed.set(name, calleeName(value.callee) ?? 'an object');
+      } else {
+        state.constructed.delete(name);
+      }
+    }
     if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier') {
       const value = target(node.init);
       if (['dom-query', 'member'].includes(value.kind)) {
@@ -500,7 +520,23 @@ function analyzeScript(script, scriptIndex, state) {
       } else if (DIALOG_METHODS.has(name) && object && !isGlobalReceiver(target(object))) {
         // HTMLDialogElement's showModal(), show() and close(returnValue)
         // (RFC 0015). window.close() and document.close() are not dialogs.
-        const fields = {target: target(object)};
+        // The receiver must be an element: a query, a created element or a
+        // binding the porter resolves (an element bound from a query, or one
+        // named by its id). An object made with `new` (a WebSocket, a
+        // MessagePort's channel, an EventSource) is rejected by name, and a
+        // receiver the porter cannot follow is rejected too.
+        const receiver = object.type === 'NewExpression'
+          ? {kind: 'constructed', name: calleeName(object.callee) ?? 'an object'}
+          : target(object);
+        const root = rootBinding(receiver);
+        if (receiver.kind === 'constructed') {
+          reject('non-element-receiver', node, `${receiver.name}.${name}()`);
+        } else if (root !== null && state.constructed.has(root)) {
+          reject('non-element-receiver', node, `${state.constructed.get(root)}.${name}()`);
+        } else if (!['dom-query', 'created-node', 'binding'].includes(receiver.kind)) {
+          reject('unresolved-dialog-receiver', node, `${receiver.kind}.${name}()`);
+        }
+        const fields = {target: receiver};
         if (name === 'close') {
           const argument = node.arguments[0];
           fields.return_value = null;
@@ -571,7 +607,7 @@ function analyzeScript(script, scriptIndex, state) {
 
 const results = documents.map(document => {
   const state = {
-    operations: [], rejections: [], functions: new Map(),
+    operations: [], rejections: [], functions: new Map(), constructed: new Map(),
     deferred: [], activeFunctions: new Set(),
   };
   if (document.external_scripts?.length) {

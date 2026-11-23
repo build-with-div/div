@@ -9,10 +9,10 @@
 //!
 //! `:hover`, `:active`, `:focus`, `:focus-visible` and `:focus-within` read
 //! the engine's interaction state, and the form pseudo-classes read control
-//! state as Blink's `SelectorChecker` does. `:invalid`, `:open` and `:modal`
-//! are not matched yet; they return
-//! [`SelectorMatchError::UnsupportedPseudoClass`] rather than a silent
-//! non-match.
+//! state as Blink's `SelectorChecker` does. `:open` and `:modal` read the
+//! `open` attribute and the top layer (`dialog.rs`). `:invalid` is not
+//! matched yet; it returns [`SelectorMatchError::UnsupportedPseudoClass`]
+//! rather than a silent non-match.
 
 use div_dom::ElementTag;
 use div_style::selector::{
@@ -262,8 +262,15 @@ impl Engine {
             PseudoClass::ReadWrite => self.is_read_write(element)?,
             PseudoClass::Required => self.is_required(element)?,
             PseudoClass::Invalid => return unsupported("invalid"),
-            PseudoClass::Open => return unsupported("open"),
-            PseudoClass::Modal => return unsupported("modal"),
+            // HTML's `:open`: a `details` or `dialog` with `open`. Div's
+            // `select` has no picker that opens.
+            PseudoClass::Open => {
+                (self.element_tag(element)? == ElementTag::Details || self.is_dialog(element)?)
+                    && self.attribute(element, "open")?.is_some()
+            }
+            // A modal dialog (`dialog.rs`). The modal root of
+            // `set_modal_root` is not one.
+            PseudoClass::Modal => self.is_modal_dialog(element)?,
         })
     }
 

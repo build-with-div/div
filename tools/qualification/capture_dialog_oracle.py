@@ -22,6 +22,8 @@ implements any of it:
 - clicks on inert content and on the backdrop while a modal dialog is
   open, nested modal dialogs, script focus of inert content, and the
   exceptions `show()` and `showModal()` throw;
+- moving a modal dialog, or an ancestor of it, with `appendChild` and
+  `insertBefore`;
 - the dialog's box and its computed `::backdrop` style at three viewport
   sizes (no input), for a small, a tall and a wide dialog, modal and not.
 
@@ -170,6 +172,14 @@ ACTIONS = {
     "remove-open-d1": "D('d1').removeAttribute('open')",
     "focus-outside": act("D('outside').focus()"),
     "detached-show-modal-d2": act("{ const d = D('d2'); d.remove(); d.showModal(); }"),
+    # A wrapper made by script, so the page and every other scenario's
+    # dialog list stay as they were.
+    "wrap-d1": act("{ const h = document.createElement('div'); h.id = 'holder'; "
+                   "D('d1').before(h); h.append(D('d1')); }"),
+    "append-d1": act("D('body').appendChild(D('d1'))"),
+    "insert-d1": act("D('body').insertBefore(D('d1'), D('after'))"),
+    "append-holder": act("D('body').appendChild(D('holder'))"),
+    "insert-holder": act("D('body').insertBefore(D('holder'), D('after'))"),
 }
 
 keys = base.keys
@@ -237,6 +247,15 @@ SCENARIOS = {
     "invalid_state": click("opener") + do("show-d1", "show-modal-d1", "close-d1",
                                           "show-modal-d1", "show-d1", "detached-show-modal-d2"),
     "beforetoggle_prevented": click("opener") + do("prevent-beforetoggle-d1", "show-modal-d1"),
+    # A move is a removal and an insertion: the dialog stays open but is no
+    # longer modal, so the click reaches the content outside it.
+    "move_dialog_append": click("opener") + do("show-modal-d1", "append-d1") + click("outside"),
+    "move_dialog_insert_before": click("opener") + do("show-modal-d1", "insert-d1")
+    + click("outside"),
+    "move_ancestor_append": click("opener") + do("wrap-d1", "show-modal-d1", "append-holder")
+    + click("outside"),
+    "move_ancestor_insert_before": click("opener")
+    + do("wrap-d1", "show-modal-d1", "insert-holder") + click("outside"),
 }
 
 # The box geometry: (viewport, dialog, modal) without input.

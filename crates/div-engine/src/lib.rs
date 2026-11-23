@@ -7,6 +7,7 @@ mod authored_source;
 mod client_geometry;
 mod compositor_scene;
 mod control_geometry;
+mod dialog;
 mod element_dimensions;
 mod focus_navigation;
 mod forms;
@@ -189,6 +190,9 @@ pub enum EngineError {
     /// `setPointerCapture` on a node that is not connected (the DOM's
     /// `InvalidStateError`).
     PointerCaptureDisconnected,
+    /// A dialog cannot open in its current state (the DOM's
+    /// `InvalidStateError`), with Blink's message.
+    InvalidState(&'static str),
     Render(String),
     Font(FontCollectionError),
     Hyphenation(HyphenationRegistryError),
@@ -220,6 +224,7 @@ impl std::fmt::Display for EngineError {
             Self::PointerCaptureDisconnected => {
                 f.write_str("pointer capture needs a connected node")
             }
+            Self::InvalidState(message) => f.write_str(message),
             Self::Render(value) => write!(f, "render failed: {value}"),
             Self::Font(value) => write!(f, "font registration failed: {value}"),
             Self::Hyphenation(value) => write!(f, "hyphenation dictionary failed: {value}"),
@@ -414,6 +419,8 @@ pub struct Engine {
     had_keyboard_event: bool,
     modal_root: Option<NodeHandle>,
     focus_before_modal: Option<NodeHandle>,
+    /// The top layer and its dialogs (`dialog.rs`).
+    top_layer: dialog::TopLayer,
     animation_time_ms: f64,
     animations: BTreeMap<AnimationId, animation::AnimationInstance>,
     animation_events: Vec<AnimationEvent>,
@@ -518,6 +525,7 @@ impl Engine {
             had_keyboard_event: false,
             modal_root: None,
             focus_before_modal: None,
+            top_layer: dialog::TopLayer::default(),
             animation_time_ms: 0.0,
             animations: BTreeMap::new(),
             animation_events: Vec::new(),
@@ -877,6 +885,9 @@ impl Engine {
         if data.tag.default_local_name() != Some(name) {
             data.created_name = Some(div_dom::LocalName::new(name));
         }
+        if name == "dialog" {
+            self.note_dialog_created()?;
+        }
         Ok(())
     }
 
@@ -1091,6 +1102,7 @@ impl Engine {
         let parent_node = self.resolve(parent)?;
         let child_node = self.resolve(child)?;
         let former_parent = self.document.node(child_node).parent;
+        self.note_top_layer_move(child);
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         self.document.append_child(parent_node, child_node);
@@ -1124,6 +1136,7 @@ impl Engine {
             before_node
         };
         let former_parent = self.document.node(child_node).parent;
+        self.note_top_layer_move(child);
         self.document.detach(child_node);
         self.remove_radio_subtree(child_node)?;
         if insertion_point.is_none() {
@@ -1381,6 +1394,7 @@ impl Engine {
         {
             self.modal_root = None;
         }
+        self.note_top_layer_removal(handles);
     }
 
     pub fn remove(&mut self, handle: NodeHandle) -> Result<(), EngineError> {
@@ -1406,6 +1420,7 @@ impl Engine {
                 self.controls.remove(&index);
                 self.radio_associations.remove(&index);
                 self.semantics.remove(&index);
+                self.forget_dialog_state(index);
                 let slot = &mut self.slots[index as usize];
                 slot.node = None;
                 slot.native_source = NativeStyleSource::Defaults(ComputedStyle::initial());
@@ -3087,6 +3102,13 @@ impl Engine {
             if rounded_rect_contains(local_x, local_y, entry.width, entry.height, [(0.0, 0.0); 4])
                 && entry.clips.iter().all(|clip| clip.contains(x, y))
             {
+                // Inert content is not hit: the press goes to what is under
+                // it (RFC 0015, Proposal 4).
+                if let Some(index) = self.node_slots.get(&entry.node) {
+                    if self.is_inert(self.handle_for_slot(*index)) {
+                        continue;
+                    }
+                }
                 if let Some(index) = self.node_slots.get(&entry.node) {
                     return Ok(Some(self.handle_for_slot(*index)));
                 }

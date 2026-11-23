@@ -725,6 +725,37 @@ class RendererMatrixTests(unittest.TestCase):
                     "code": "d.close(String(Date.now()));",
                 }],
             },
+            {
+                "test_id": "dialog-non-element",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": (
+                        "const channel = new MessageChannel(); channel.port1.close(); "
+                        "let source = new BroadcastChannel('x'); source.close(); "
+                        "new MessageChannel().port2.close();"
+                    ),
+                }],
+            },
+            {
+                "test_id": "dialog-rebound",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": (
+                        "let d = new MessageChannel(); "
+                        "d = document.getElementById('d'); d.show();"
+                    ),
+                }],
+            },
+            {
+                "test_id": "dialog-unresolved",
+                "external_scripts": [],
+                "scripts": [{
+                    "origin": "inline",
+                    "code": "document.body.firstElementChild.show();",
+                }],
+            },
         ]
         completed = subprocess.run(
             ["node", ROOT / "tools/wpt/javascript_mutation_ir.mjs", acorn],
@@ -787,6 +818,31 @@ class RendererMatrixTests(unittest.TestCase):
         self.assertIn(
             "runtime-dependent-mutation-input",
             results["dialog-runtime-return-value"]["rejection_reasons"],
+        )
+        # A show() or close() that is not an element's is rejected by name,
+        # not recorded as a dialog operation.
+        non_element = results["dialog-non-element"]
+        self.assertFalse(non_element["lowerable"])
+        self.assertEqual(
+            [
+                (rejection["reason"], rejection["detail"])
+                for rejection in non_element["rejections"]
+            ],
+            [
+                ("non-element-receiver", "MessageChannel.close()"),
+                ("non-element-receiver", "BroadcastChannel.close()"),
+                ("unresolved-dialog-receiver", "member.close()"),
+            ],
+        )
+        rebound = results["dialog-rebound"]
+        self.assertTrue(rebound["lowerable"])
+        self.assertEqual(
+            [operation["kind"] for operation in rebound["operations"]],
+            ["bind-target", "dialog-show"],
+        )
+        self.assertEqual(
+            results["dialog-unresolved"]["rejection_reasons"],
+            ["unresolved-dialog-receiver"],
         )
 
 

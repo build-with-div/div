@@ -147,14 +147,21 @@ fn form_states_follow_chromium() {
 }
 
 #[test]
-fn validity_and_dialog_states_are_not_matched_silently() {
+fn validity_is_not_matched_silently_and_dialog_states_match_only_dialogs() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let (engine, elements) = fixture(&oracle);
-    for name in ["invalid", "open", "modal"] {
+    let list = parse_selector_list(":invalid", None).unwrap();
+    assert_eq!(
+        engine.matches_selector_list(elements[3].0, &list),
+        Err(SelectorMatchError::UnsupportedPseudoClass("invalid"))
+    );
+    // `:open` and `:modal` match open `<details>` and `<dialog>` elements
+    // (`dialog.rs`), not this control.
+    for name in ["open", "modal"] {
         let list = parse_selector_list(&format!(":{name}"), None).unwrap();
         assert_eq!(
             engine.matches_selector_list(elements[3].0, &list),
-            Err(SelectorMatchError::UnsupportedPseudoClass(name))
+            Ok(false)
         );
     }
 }
