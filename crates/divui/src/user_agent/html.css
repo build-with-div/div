@@ -8,8 +8,11 @@
  * Where Chromium differs, the rule follows Chromium and cites the Chromium
  * source beside it. No text is taken from Chromium's html.css.
  *
- * Every element in a Div document is an HTML element, so the section's
- * `@namespace` rule is left out.
+ * The section's `@namespace` rule limits its rules to HTML elements. Div's
+ * selectors have no namespaces, so that rule is left out and rules that would
+ * reach an SVG element exclude it by name. `foreignObject` cannot be excluded
+ * yet, because its local name is `div`: `hidden` on it computes `display: none`
+ * where Chromium keeps `block`. That is a named gap, owned by the engine.
  *
  * The parts follow docs/architecture/user-agent-stylesheet.md: this first
  * part is the section's "Hidden elements" (15.3.1) and "The page" (15.3.2).
@@ -54,7 +57,7 @@ noframes, param, rp, script, style, template, title {
   display: none;
 }
 
-[hidden]:not([hidden=until-found i]):not(embed) {
+[hidden]:not([hidden=until-found i]):not(embed):not(svg) {
   display: none;
 }
 

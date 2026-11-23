@@ -97,3 +97,31 @@ fn author_styles_outrank_the_preset() {
         .unwrap();
     assert_eq!(display(&input), Display::None);
 }
+
+#[test]
+fn hidden_does_not_reach_an_svg_element() {
+    let document = document();
+    let svg = child(&document, "svg");
+    let unstyled = display(&svg);
+    assert_ne!(unstyled, Display::None);
+    svg.set_attribute("hidden", "").unwrap();
+    document.set_style_preset(StylePreset::BROWSER).unwrap();
+    // Chromium 147 keeps `<svg hidden>` displayed: the standard's rule applies
+    // to HTML elements only.
+    assert_eq!(display(&svg), unstyled);
+}
+
+/// Named gap, owned by the engine. Chromium 147 keeps `<foreignObject hidden>`
+/// at `block`, but its local name here is `div`, so the sheet cannot exclude
+/// it. The engine's fix removes this pin.
+#[test]
+fn gap_hidden_foreign_object_computes_none() {
+    let document = document();
+    let svg = child(&document, "svg");
+    let foreign = Element::create(&document, "foreignObject").unwrap();
+    svg.append_child(&foreign).unwrap();
+    assert_eq!(display(&foreign), Display::Block);
+    foreign.set_attribute("hidden", "").unwrap();
+    document.set_style_preset(StylePreset::BROWSER).unwrap();
+    assert_eq!(display(&foreign), Display::None);
+}
