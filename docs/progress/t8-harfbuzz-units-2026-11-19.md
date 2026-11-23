@@ -64,34 +64,44 @@ fetched for this change), and from Div's own Skia (BSD) and HarfBuzz
 - `TextShaper::shape` and the fallback path now share one shaping function.
 - **Canvas text** (`div-canvas/src/text.rs`), which merged while this PR
   was in review, now reads the exact units: it copies `advance_units`
-  with each run, takes glyph origins for ink bounds from them, and
-  removes a leading space's word spacing through the new
-  `ShapeResult::add_glyph_advance`, which keeps the units, the `f32`
-  advance, the width and the character positions in step.
+  with each run and takes ink origins from them, within a run and for
+  each later run (`run->width_`, the run's units converted once). A
+  space at the start of canvas text gets no word spacing, through the
+  new `TextShaper::shape_at_text_start` (`ShapeResultSpacing::ComputeSpacing`).
+  Canvas used to add the spacing and subtract it, which loses the
+  space's advance once the add saturates at 32768 px.
 
 ## Verification
 
 The census and the Windows suites ran at `dccc14e`, on `main` `090406b`.
-This PR was then rebased onto `main` `2f8af21`, which added canvas text
-(#118), `div-wpt-script` work (#119) and site changes (#121), and gained
-the canvas commit above, at `ec51bbf`.
+This PR was then rebased onto `main` `3b6ec37`, which added canvas text
+(#118), canvas readback (#123), `div-wpt-script` work (#119, #124) and
+site changes (#121), and gained the canvas commits above. Its code is
+final at `ea1ede4`.
 
 | Check | Command | Commit | Result |
 | --- | --- | --- | --- |
 | Advance oracle, Windows | `cargo test -p div-engine --test advance_truncation` | `dccc14e` | 160 of 160 exact (T3: 59). Ledger emptied |
 | Windows suites: `div-style`, `div-text`, `div-layout`, `div-paint`, `div-svg`, `div-engine`, `divui`, `div-wpt-script` | `cargo test --locked --no-fail-fast -j 4` under the shared lock | `dccc14e` | 9,517 passed, 0 failed, 18 ignored |
 | Generators and ledgers (Windows) | `check_platform_scoped_tests.py`, the renderer contract, v0.2, property and FFI generators and the SP13-R, SP17, SP18 and SP20 closures with `--check`; `cargo fmt --all --check`; `fidelity_data.py verify` | `dccc14e` | All pass, no drift |
-| Linux suites, CI's package list and features, including `div-canvas`'s Chromium traces (WSL, CI's Skia flags) | as CI | `ec51bbf` | 9,781 passed, 0 failed, 17 ignored |
-| SVG text corpus, Linux | `cargo test -p div-svg --test text_corpus` | `ec51bbf` | Position and pixel tests pass; 264 of 290 captures exact, as on `main` |
+| Linux suites, CI's package list and features, including `div-canvas`'s Chromium traces (WSL, CI's Skia flags) | as CI | `ea1ede4` | 9,781 passed, 0 failed, 17 ignored |
+| SVG text corpus, Linux | `cargo test -p div-svg --test text_corpus` | `ea1ede4` | Position and pixel tests pass; 264 of 290 captures exact, as on `main` |
 | Expanded census, all four profiles, against `main` `090406b` | `div-census.sh` (1x run) and `div-census-zoom.sh` (real-zoom oracle above scale 1) under the shared lock | `dccc14e` | 16,297 of 23,728 exact (1x run) and 10,404 of 17,796 (real zoom), before and after. 0 gains, 0 losses, 0 errors; 0 Div images changed |
 | CSS Grid coverage | The same runs | `dccc14e` | 1,473 of 4,204 exact (1x run) and 894 of 3,153 (real zoom), before and after. 0 statuses or images changed |
 
-The census was not run again at `ec51bbf`. Between the two commits, the
-only changes to code the census binaries link are one `pub` on
-`FontFaceSourceInfo::is_web_font` and the new `add_glyph_advance`, which
-only `div-canvas` calls. No crate depends on `div-canvas` or
-`div-wpt-script`. Canvas text with T8 was not run locally on Windows,
-because that build needs the shared lock; CI's Windows job runs it.
+The census was not run again at `ea1ede4`, because nothing the census
+binaries run differs from `dccc14e`. Outside `div-canvas`, the only crate
+that changes is `div-text`: one `pub` on
+`FontFaceSourceInfo::is_web_font`, one comment, and
+`TextShaper::shape_at_text_start`. `TextShaper::shape` passes
+`word_spacing_at_start = true`, which leaves the condition in
+`apply_spacing` as it was for page text. The new entry point's only
+caller is `div-canvas/src/context/text_methods.rs`, and the ink-bounds
+change is private to `div-canvas`. No crate depends on `div-canvas` or
+`div-wpt-script` (`cargo metadata --no-deps`), and `Cargo.lock` only adds
+`div-geometry`, which has no features, to `div-canvas`. Canvas text with
+T8 was not run locally on Windows, because that build needs the shared
+lock; CI's Windows job runs it.
 
 The evidence is div-fidelity-data `4628f28e`
 (`docs/progress/evidence/t8-harfbuzz-units-div-census-v1.json`, and
@@ -118,5 +128,14 @@ and each left as SkShaper had it so this change moves only the units:
   (`HB_DIRECTION_TTB`), and **8-bit text forced to Latin** script.
 - `ShapeResult::sub_range` takes its width from `x_position` differences,
   not from the sub-range's units (Blink's `SubRange`).
-- Canvas ink bounds still add each run's `f32` advances to find the next
-  run's origin. Glyph origins within a run use the exact units.
+- **Width of a multi-run result.** `ShapeResult::width` sums all runs'
+  units and converts once. Blink adds each run's float width
+  (`shape_result.cc`, `InsertRun` while shaping and
+  `ApplySpacingOrExpansion` afterward), and clamps a negative run to zero
+  while shaping. In a throwaway sweep of 70 multi-run canvas words on
+  Linux, 14 widths still differ from Chromium; `main` had 34. The fix
+  needs Blink's run order for right-to-left and fallback text and its
+  own census pair, so it is a follow-up PR owned by the engine track.
+- **No-break spaces get no word spacing** in `apply_spacing`; Blink's
+  `ComputeSpacing` adds it, also at index 0. Measured in canvas text on
+  Linux, on `main` and with this change alike. Page text is unmeasured.

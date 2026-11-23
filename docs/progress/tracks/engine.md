@@ -266,7 +266,7 @@ on branch `components/c4-assets` and the shared findings note.
   directly and keeps each advance in exact 16.16 units, so all 160 cases
   of the long-text advance oracle match Chromium and its gap ledger is
   empty. Canvas text reads the same units. Windows 9,517 tests pass at
-  `dccc14e`, and Linux 9,781 at `ec51bbf` on `main` `2f8af21`. The census
+  `dccc14e`, and Linux 9,781 at `ea1ede4` on `main` `3b6ec37`. The census
   and CSS Grid coverage are unchanged at all four profiles against `main`
   `090406b` (evidence `4628f28e`).
   [Record](../t8-harfbuzz-units-2026-11-19.md).
