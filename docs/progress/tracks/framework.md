@@ -92,8 +92,8 @@ merges. The editor gaps below wait behind T3.
 | T3a | Front end, intrinsics, capability table and ledgers for animation-frames and resize-observer, with `--check` in CI | Merged (#113) |
 | T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | Merged (#116) |
 | T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Merged (#119) |
-| T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | In progress |
-| T3c-2 | `pointerevents`: `test_driver` actions to `TestApp` input, and the generated tests | Not started |
+| T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | Merged (#124) |
+| T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | In progress |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
 
 ## After Tier 0
@@ -114,6 +114,68 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 22 November 2026: T3c-2, computed subtest names and the first pointerevents tests (RFC 0005 step 3)
+
+Problem: 1,813 pointerevents rows (and resize-observer's 5 `fragments.html`
+rows) were `untranslatable` only because the page computes the subtest's
+name while it runs, and no pointerevents page could run in Div.
+
+Change (`tools/wpt_script/`, `tests/wpt-script/`; no `divui` change):
+
+- RFC 0005 "Computed subtest names" replaces `runtime-subtest-name`: such a
+  row is translatable only if every surface on its whole page maps to
+  `divui`, and the run must report exactly the names Chromium recorded
+  (`expect_names`, `codegen.py --record`, `ledger.py --check`). A name that
+  differs between Chromium's three repeats leaves the run `disputed`
+  (`unstable`). The ledger marks these rows `computed_name`.
+- The front end now counts markup event handlers (`<body onload="run()">`)
+  and functions passed by name as page code, and the ledger reads `style`
+  attributes' properties. Both used to under-report what a page needs.
+- The runtime adds `addEventListener` (a function callback, `once` only),
+  the `Event` members `type`, `eventPhase` and `target`, `location.search`,
+  `String.prototype.substring`, `Array.prototype.push` and `toString`,
+  `getEvent`, and `test_driver.Actions` with one pointer: `addPointer`,
+  `pointerMove` (viewport or element origin), `pointerDown`, `pointerUp` and
+  `send`. Each action is a tick, one per frame, with coordinates resolved at
+  `send()` as Chromium's vendor file does. Anything else stops the subtest.
+
+Ledger, before and after. Reclassified rows count as translatable, not as
+passing, until they run:
+
+| Suite | Before | After |
+| --- | --- | --- |
+| pointerevents (2,273) | 0 translatable, 192 blocked, 228 disputed, 1,853 untranslatable | 3 translatable, 2,002 blocked, 228 disputed, 40 untranslatable |
+| resize-observer (82) | 5 translatable, 11 unreachable, 61 blocked, 5 untranslatable | 5 translatable, 11 unreachable, 66 blocked |
+| animation-frames (10) | 6 translatable, 4 blocked | unchanged |
+
+Of the 1,813 reclassified pointerevents rows, 3 are translatable and 1,810
+blocked; the 5 `fragments.html` rows are blocked (`gap:background-shorthand`,
+`gap:class-name`, `gap:outline-shorthand`). The 40 untranslatable rows are
+`undeclared-subtest` (23) and `unrecognised-helper` (17).
+
+Div results for pointerevents: **3 pass, 0 fail, 0 unsupported, 0 not run**
+(`pointerup_after_pointerdown_target_removed.html` `?mouse`, `?pen` and
+`?touch`). The mouse and pen runs also record a Div error that Chromium
+doesn't have: `divui`'s pointer dispatch returns `StaleHandle` when a
+`pointerdown` listener removes its own target. The rows carry it as
+`div_harness_error`. animation-frames and resize-observer are unchanged.
+
+What blocks the rest: 75 runs link `pointerevent_styles.css`, which needs the
+`background` shorthand and `touch-action` (S15). At most 19 more runs (29
+rows) would need only those two properties. That upper bound assumes every
+event and input surface `divui` has is mapped, and also heading, list, `br`,
+`button` and `onload` markup. The ledger doesn't map that markup yet, so pages
+using it stay blocked (for example `markup:h1`, `markup:button`).
+
+Verification:
+
+- `python -m unittest discover -s tools/wpt_script -p "test_*.py"`: 60 tests
+  pass, including the whole-page rule, exact names and renamed repeats.
+- `ledger.py --check` and `codegen.py --check` pass against the CI-like
+  sparse checkout.
+- `cargo test -p div-wpt-script` (WSL, debug): all tests pass, including the
+  runtime's name, builtin and tick tests.
 
 ### 22 November 2026: T3c-1, the pointerevents recording and ledger (RFC 0005 step 2)
 

@@ -51,6 +51,9 @@ impl Rt {
         let element = element.clone();
         match key {
             "style" => Ok(Value::Host(Host::Style(element))),
+            "addEventListener" => Ok(Value::function("addEventListener", move |rt, _, args| {
+                rt.add_event_listener(&element, args)
+            })),
             "remove" => Ok(Value::function("remove", move |_, _, _| {
                 element
                     .remove()

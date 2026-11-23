@@ -42,6 +42,7 @@ EXPECTED = ROOT / "tests/wpt-script/expected"
 GENERATED = {
     "html/webappapis/animation-frames": "animation_frames",
     "resize-observer": "resize_observer",
+    "pointerevents": "pointerevents",
 }
 # The ledger statuses that have a generated expectation: a subtest the page
 # reaches, and one it does not (expected NOTRUN, so running it fails).
@@ -845,7 +846,8 @@ class Markup(html.parser.HTMLParser):
 # ----- pages -----
 
 def test_name(relative: str, suite: str, used: set[str]) -> str:
-    stem = relative[len(suite) + 1:].rsplit(".", 1)[0]
+    path, _, variant = relative.partition("?")
+    stem = path[len(suite) + 1:].rsplit(".", 1)[0] + (f"_{variant}" if variant else "")
     name = re.sub(r"[^0-9a-zA-Z]+", "_", stem).strip("_").lower()
     if not name or name[0].isdigit():
         name = "page_" + name
@@ -859,8 +861,10 @@ def test_name(relative: str, suite: str, used: set[str]) -> str:
 def page_test(relative: str, title: str | None, text: str, programs: list[dict],
               names: list[str], expected: dict | None, compiler: Compiler,
               intrinsics: dict | None = None, stem: str = "page",
-              styles: dict[str, str] | None = None) -> list[str]:
-    markup = Markup(relative, intrinsics)
+              styles: dict[str, str] | None = None,
+              oracle_names: list[str] | None = None) -> list[str]:
+    path, query, variant = relative.partition("?")
+    markup = Markup(path, intrinsics)
     markup.feed(text)
     markup.close()
     if markup.scripts != len(programs):
@@ -923,9 +927,13 @@ def page_test(relative: str, title: str | None, text: str, programs: list[dict],
     stopped = (expected or {}).get("stopped")
     return [
         f"    let rt = Rt::new({'Some(' + rust_string(title) + ')' if title is not None else 'None'});",
+        *([f"    rt.set_search({rust_string(query + variant)});"] if query else []),
         "    let result = rt.run_page(|rt| {",
         *indent(lines, 2),
         "    });",
+        *([f"    expect_names({rust_string(relative)}, &result, &["
+           + ", ".join(rust_string(name) for name in oracle_names) + "]);"]
+          if oracle_names is not None else []),
         f"    expect({rust_string(relative)}, &result, "
         f"{'None' if harness is None else 'Some(' + rust_string(harness) + ')'}, "
         f"{'None' if stopped is None else 'Some(' + rust_string(stopped) + ')'}, &[",
@@ -965,8 +973,10 @@ def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: di
     for row in current["rows"]:
         if row["status"] in GENERATED_ROWS:
             translatable.setdefault(row["file"], []).append(row["name"])
+    exact = exact_names(current)
     files = sorted(translatable)
-    pages = [ledger.read_page(wpt_root, relative, intrinsics) for relative in files]
+    pages = [{**ledger.read_page(wpt_root, relative.split("?", 1)[0], intrinsics),
+              "file": relative} for relative in files]
     payload = [{"file": p["file"], "title": p["title"], "scripts": p["scripts"],
                 "helpers": []} for p in pages]
     result = subprocess.run(
@@ -986,7 +996,7 @@ def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: di
         for name in translatable[relative]:
             if (page_expected or {}).get("subtests", {}).get(name) is None:
                 missing.append(f"{relative}: {name}")
-        text = (wpt_root / relative).read_text(encoding="utf-8")
+        text = (wpt_root / relative.split("?", 1)[0]).read_text(encoding="utf-8")
         out.append("")
         out.append("#[test]")
         out.append("#[rustfmt::skip]")
@@ -994,9 +1004,20 @@ def generate(suite: str, module: str, wpt_root: Path, acorn: str, intrinsics: di
         out.append(f"fn {function}() {{")
         out += page_test(relative, page["title"], text, parsed[relative]["programs"],
                          translatable[relative], page_expected, compiler, intrinsics,
-                         f"{module}-{function}", styles)
+                         f"{module}-{function}", styles, exact.get(relative))
         out.append("}")
     return "\n".join(out) + "\n", missing, styles
+
+
+def exact_names(current: dict) -> dict[str, list[str]]:
+    """Each run with a computed subtest name, and all the names Chromium
+    recorded for it: the run must report exactly these."""
+    runs = {row["file"] for row in current["rows"] if row.get("computed_name")}
+    names: dict[str, list[str]] = {run: [] for run in runs}
+    for row in current["rows"]:
+        if row["file"] in runs and row["name"] is not None:
+            names[row["file"]].append(row["name"])
+    return names
 
 
 def expected_path(suite: str) -> Path:
@@ -1017,6 +1038,7 @@ def record(suite: str, directory: Path, expected: dict) -> dict:
     for path in sorted(directory.glob("*.json")):
         data = json.loads(path.read_text(encoding="utf-8"))
         results[data["page"]] = data
+    exact = exact_names(current)
     updated = {}
     for relative, names in sorted(translatable.items()):
         data = results.get(relative)
@@ -1025,6 +1047,12 @@ def record(suite: str, directory: Path, expected: dict) -> dict:
                 updated[relative] = expected[relative]
             continue
         observed = {row["name"]: row for row in data["subtests"]}
+        if relative in exact:
+            problem = ledger.name_problem([row["name"] for row in data["subtests"]],
+                                          exact[relative],
+                                          bool(data.get("unsupported") or data.get("stopped")))
+            if problem:
+                raise SystemExit(f"{relative}: {problem}")
         subtests = {}
         for name in names:
             row = observed.get(name)

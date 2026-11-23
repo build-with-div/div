@@ -138,14 +138,16 @@ def read_page(wpt_root: Path, relative: str, intrinsics: dict) -> dict:
             continue
         cdata = CDATA.match(body)
         scripts.append({"source": cdata.group(1) if cdata else body, "offset": match.start(2)})
-    return {"file": relative, "title": title, "scripts": scripts,
-            "helpers": helpers, "problems": problems, "markup": markup_surfaces(text, relative)}
+    return {"file": relative, "title": title, "scripts": scripts, "helpers": helpers,
+            "problems": problems, "markup": markup_surfaces(text, relative),
+            "handlers": markup_handlers(text)}
 
 
 STYLE_ELEMENT = re.compile(r"<(?:[\w-]+:)?style\b[^>]*>.*?</(?:[\w-]+:)?style\s*>", re.I | re.S)
 COMMENT = re.compile(r"<!--.*?-->", re.S)
 TAG = re.compile(r"<([a-zA-Z][\w:.-]*)\b([^>]*)>")
-STYLE_ATTRIBUTE = re.compile(r"\sstyle\s*=", re.I)
+STYLE_ATTRIBUTE = re.compile(r"""\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""", re.I)
+HANDLER = re.compile(r"""\s(on[a-z]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""", re.I)
 REL_STYLESHEET = re.compile(r"""\brel\s*=\s*["']?stylesheet""", re.I)
 CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 CSS_BLOCK = re.compile(r"\{([^{}]*)\}")
@@ -154,6 +156,27 @@ PROPERTY_TABLE = ROOT / "crates/div-style/src/generated_properties.rs"
 PROPERTY_ARM = re.compile(r'^\s*"([a-z-]+)" => Some\(Self::\w+\),$', re.M)
 # Document structure the generated test does not build: `TestApp` provides it.
 STRUCTURE = {"html", "head", "body", "title", "meta", "link", "script", "style", "?xml"}
+
+
+def name_problem(observed: list[str], oracle: list[str], interrupted: bool) -> str | None:
+    """How a computed-name page's subtests differ from Chromium's record.
+
+    The names must match exactly. A run the translation stopped may have
+    declared fewer of them, never another.
+    """
+    extra = sorted(set(observed) - set(oracle))
+    if extra:
+        return f"subtests Chromium did not record: {extra}"
+    if not interrupted and sorted(observed) != sorted(oracle):
+        return f"subtests differ from Chromium's record: {sorted(observed)} != {sorted(oracle)}"
+    return None
+
+
+def markup_handlers(text: str) -> list[str]:
+    """The source of each event handler attribute (`<body onload="run()">`)."""
+    body = STYLE_ELEMENT.sub("", SCRIPT.sub("", COMMENT.sub("", text)))
+    return [html.unescape(next(group for group in match.groups()[1:] if group is not None))
+            for tag in TAG.finditer(body) for match in HANDLER.finditer(tag.group(2))]
 
 
 def markup_surfaces(text: str, relative: str) -> list[str]:
@@ -179,11 +202,17 @@ def markup_surfaces(text: str, relative: str) -> list[str]:
             if href:
                 value = next(group for group in href.groups() if group is not None)
                 surfaces.add(f"markup:stylesheet:{resolve(value, relative)}")
+        surfaces.update(f"markup:{match.group(1).lower()}" for match in HANDLER.finditer(attributes))
         if tag in STRUCTURE:
             continue
         surfaces.add(f"markup:{tag}")
-        if STYLE_ATTRIBUTE.search(attributes):
+        style = STYLE_ATTRIBUTE.search(attributes)
+        if style:
             surfaces.add("markup:style-attribute")
+            value = next((group for group in style.groups() if group is not None), "")
+            for declaration in html.unescape(value).split(";"):
+                if ":" in declaration:
+                    surfaces.add("css:" + declaration.split(":", 1)[0].strip().lower())
     return sorted(surfaces)
 
 
@@ -193,7 +222,8 @@ def front_end(pages: list[dict], intrinsics: dict, acorn: str) -> dict:
         names = sorted({name for helper in page["helpers"]
                         for name in intrinsics[helper]["provides"]})
         payload.append({"file": page["file"], "title": page["title"],
-                        "scripts": page["scripts"], "helpers": names})
+                        "scripts": page["scripts"], "handlers": page["handlers"],
+                        "helpers": names})
     result = subprocess.run(
         ["node", str(TOOL / "translate.mjs"), acorn],
         input=json.dumps(payload), capture_output=True, text=True, encoding="utf-8", check=True)
@@ -253,6 +283,28 @@ def subtest_surfaces(record: dict, page: dict, intrinsics: dict) -> list[str]:
         else:
             found.add(surface)
     return sorted(found)
+
+
+def classify_computed(record: dict, dynamic: list[dict], page: dict, intrinsics: dict,
+                      capabilities: dict) -> dict:
+    """A subtest whose name the page computes while it runs.
+
+    It can't be tied to one declaration, so it needs the whole page: every
+    script surface and all the markup must map to `divui`, and nothing on the
+    page may be outside the subset. A name no declaration on the page can
+    produce stays `undeclared-subtest`.
+    """
+    if not dynamic:
+        return {"status": "untranslatable", "reasons": ["undeclared-subtest"]}
+    whole = record["whole_page"]
+    reasons = set(whole["reasons"]) | {reason for subtest in dynamic
+                                       for reason in subtest.get("untranslatable", [])
+                                       if reason != "runtime-subtest-name"}
+    if reasons:
+        return {"status": "untranslatable", "reasons": sorted(reasons)}
+    surfaces = subtest_surfaces({"surfaces": whole["surfaces"], "declared_by": "harness:page"},
+                                page, intrinsics)
+    return classify(sorted(set(surfaces) | set(page["markup"])), capabilities)
 
 
 def chain_stops(record: dict, page: dict, intrinsics: dict, capabilities: dict) -> dict[str, str]:
@@ -343,6 +395,11 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
         dynamic = [s for s in record["subtests"] if not s["name_known"]]
         baseline = expected_baseline(wpt_root, relative)
         stops = chain_stops(record, page, intrinsics, capabilities)
+        unrecorded = set(div.get(relative, {}).get("subtests", {})) - {
+            observed["name"] for observed in entry["subtests"]}
+        if unrecorded:
+            raise SystemExit(f"{relative}: Div recorded subtests Chromium did not: "
+                             f"{sorted(unrecorded)}")
         for observed in entry["subtests"]:
             name = observed["name"]
             row = {"file": relative, "name": name, "chromium": observed["status"]}
@@ -358,9 +415,9 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
             elif "parse_error" in record:
                 row.update(status="untranslatable", reasons=["parse-error"])
             elif subtest is None:
-                reasons = sorted({r for s in dynamic for r in s.get("untranslatable", [])}
-                                 or {"undeclared-subtest"})
-                row.update(status="untranslatable", reasons=reasons)
+                row.update(classify_computed(record, dynamic, page, intrinsics, capabilities))
+                if dynamic:
+                    row["computed_name"] = True
             elif subtest.get("untranslatable"):
                 row.update(status="untranslatable", reasons=subtest["untranslatable"])
             else:
@@ -379,6 +436,9 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
                 row["div"] = result["status"]
                 if "message" in result:
                     row["div_message"] = result["message"]
+                # Chromium's harness finished this run; Div's reported an error.
+                if div[relative].get("harness_error") and entry["harness"] == "OK":
+                    row["div_harness_error"] = div[relative]["harness_error"]
             rows.append(row)
         if entry["harness"] != "OK":
             rows.append({"file": relative, "name": None, "chromium": entry["harness"],

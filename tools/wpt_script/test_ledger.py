@@ -83,8 +83,17 @@ class PageTest(unittest.TestCase):
 <!-- <section> in a comment --><div style="width: 1px"><span>x</span></div>
 <svg><circle r="1"/></svg><script>let s = "<table>";</script></body></html>""")
         self.assertEqual(page["markup"], [
-            "css:color", "markup:<style>", "markup:circle", "markup:div", "markup:span",
-            "markup:style-attribute", "markup:stylesheet:fonts/ahem.css", "markup:svg"])
+            "css:color", "css:width", "markup:<style>", "markup:circle", "markup:div",
+            "markup:span", "markup:style-attribute", "markup:stylesheet:fonts/ahem.css",
+            "markup:svg"])
+
+    def test_style_attributes_and_event_handler_attributes_are_page_surfaces(self):
+        text = """<body onload="run()"><div style='background: red; Width:1px'
+onclick="go(&quot;x&quot;)"></div></body>"""
+        self.assertEqual(ledger.markup_surfaces(text, "p.html"), [
+            "css:background", "css:width", "markup:div", "markup:onclick", "markup:onload",
+            "markup:style-attribute"])
+        self.assertEqual(ledger.markup_handlers(text), ["run()", 'go("x")'])
 
 
 class CssSurfaceTest(unittest.TestCase):
@@ -192,6 +201,15 @@ Harness: the test ran to completion.
         self.assertFalse(same(one, self.result(("a", "PASS", None))))
         self.assertFalse(same(one, self.result(("a", "FAIL", "at 10"), harness="ERROR")))
 
+    def test_a_name_computed_differently_in_a_repeat_makes_the_run_disputed(self):
+        # RFC 0005: a computed name must be the same in all three repeats, or
+        # the run is disputed as `unstable` and none of its rows is generated.
+        first = self.result(("case at 16ms", "PASS", None))
+        renamed = self.result(("case at 17ms", "PASS", None))
+        self.assertFalse(self.capture.same_result(first, renamed))
+        self.assertEqual(self.capture.oracle_status({**first, "unstable": True}, None, None),
+                         {"status": "disputed", "reason": "unstable"})
+
 
 class CssCapabilityTest(unittest.TestCase):
     def test_the_property_names_come_from_from_css_name(self):
@@ -279,6 +297,42 @@ class ClassifyTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "translatable but its recorded"):
             ledger.check_reachability("p", "a", "translatable", "NOTRUN")
 
+    def test_a_computed_name_needs_every_surface_on_its_page(self):
+        page = {"helpers": [], "markup": ["markup:div"]}
+        capabilities = {**self.CAPABILITIES, "markup:div": {"feature": "DOM", "divui": "x"}}
+        dynamic = [{"name": None, "untranslatable": ["runtime-subtest-name"]}]
+        whole = {"surfaces": ["harness:test", "requestAnimationFrame()"], "reasons": []}
+        self.assertEqual(ledger.classify_computed({"whole_page": whole}, dynamic, page, {},
+                                                  capabilities), {"status": "translatable"})
+        # One surface anywhere on the page that has no call blocks it.
+        whole = {"surfaces": [*whole["surfaces"], "new IntersectionObserver()"], "reasons": []}
+        self.assertEqual(ledger.classify_computed({"whole_page": whole}, dynamic, page, {},
+                                                  capabilities),
+                         {"status": "blocked", "features": ["O2"]})
+        # So does the markup.
+        self.assertEqual(ledger.classify_computed(
+            {"whole_page": {"surfaces": [], "reasons": []}}, dynamic,
+            {**page, "markup": ["markup:svg"]}, {}, capabilities)["unmapped"], ["markup:svg"])
+        # Anything outside the subset on the page makes it untranslatable.
+        self.assertEqual(ledger.classify_computed(
+            {"whole_page": {"surfaces": [], "reasons": ["dynamic-code"]}}, dynamic, page, {},
+            capabilities), {"status": "untranslatable", "reasons": ["dynamic-code"]})
+        # A name no declaration on the page can produce.
+        self.assertEqual(ledger.classify_computed({"whole_page": whole}, [], page, {},
+                                                  capabilities),
+                         {"status": "untranslatable", "reasons": ["undeclared-subtest"]})
+
+    def test_a_computed_name_page_reports_exactly_the_recorded_names(self):
+        problem = ledger.name_problem
+        self.assertIsNone(problem(["b", "a"], ["a", "b"], False))
+        self.assertRegex(problem(["a", "b", "c"], ["a", "b"], False), "did not record: \\['c'\\]")
+        self.assertRegex(problem(["a"], ["a", "b"], False), "differ")
+        self.assertRegex(problem(["a", "x"], ["a", "b"], False), "did not record")
+        self.assertRegex(problem(["a", "a"], ["a"], False), "differ")
+        # A run the translation stopped may declare fewer, never another.
+        self.assertIsNone(problem(["a"], ["a", "b"], True))
+        self.assertRegex(problem(["x"], ["a", "b"], True), "did not record")
+
     def test_an_unreachable_row_needs_the_runs_stop_reason(self):
         ledger.check_stopped("p", "a", "unreachable", "surface:Image")
         ledger.check_stopped("p", "a", "translatable", None)
@@ -315,6 +369,22 @@ test(() => {});""")
         self.assertEqual(self.names(record), [("Page title", True)])
         self.assertEqual(record["subtests"][0]["declared_by"], "harness:single-page")
         self.assertIn("requestAnimationFrame()", record["subtests"][0]["surfaces"])
+
+    def test_the_whole_page_includes_handlers_and_functions_passed_by_name(self):
+        payload = [{"file": "p.html", "title": "t", "helpers": [], "handlers": ["run()"],
+                    "scripts": [{"source": """
+var t = async_test("named");
+function run() { requestAnimationFrame(later); }
+function later() { new IntersectionObserver(); t.done(); }
+for (const n of [1]) test(() => {}, `case ${n}`);""", "offset": 0}]}]
+        result = subprocess.run(["node", str(ledger.TOOL / "translate.mjs"), ACORN],
+                                input=json.dumps(payload), capture_output=True, text=True,
+                                encoding="utf-8", check=True)
+        record = json.loads(result.stdout)[0]
+        # `<body onload="run()">` runs `run`, which passes `later` by name.
+        self.assertIn("new IntersectionObserver()", record["subtests"][0]["surfaces"])
+        self.assertIn("new IntersectionObserver()", record["whole_page"]["surfaces"])
+        self.assertEqual(record["whole_page"]["reasons"], [])
 
     def test_names_built_at_run_time_are_untranslatable(self):
         record = self.analyse("""

@@ -1,0 +1,26 @@
+{
+ "pointerevents/pointerup_after_pointerdown_target_removed.html?mouse": {
+  "harness_error": "Div: pointer input failed (Engine(StaleHandle))",
+  "subtests": {
+   "pointerup event from mouse fired after pointerdown target is removed": {
+    "status": "PASS"
+   }
+  }
+ },
+ "pointerevents/pointerup_after_pointerdown_target_removed.html?pen": {
+  "harness_error": "Div: pointer input failed (Engine(StaleHandle))",
+  "subtests": {
+   "pointerup event from pen fired after pointerdown target is removed": {
+    "status": "PASS"
+   }
+  }
+ },
+ "pointerevents/pointerup_after_pointerdown_target_removed.html?touch": {
+  "harness_error": null,
+  "subtests": {
+   "pointerup event from touch fired after pointerdown target is removed": {
+    "status": "PASS"
+   }
+  }
+ }
+}

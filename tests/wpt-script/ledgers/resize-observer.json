@@ -4,10 +4,9 @@
  "wpt_revision": "09d377d9",
  "subtests": 82,
  "counts": {
-  "blocked": 61,
+  "blocked": 66,
   "translatable": 5,
-  "unreachable": 11,
-  "untranslatable": 5
+  "unreachable": 11
  },
  "div": {
   "NOTRUN": 11,
@@ -20,8 +19,9 @@
   "V2": 20,
   "editor-27": 1,
   "gap:attribute-reflection": 1,
-  "gap:background-shorthand": 2,
+  "gap:background-shorthand": 7,
   "gap:child-documents": 2,
+  "gap:class-name": 5,
   "gap:css-supports": 2,
   "gap:css-zoom": 3,
   "gap:document-element": 1,
@@ -31,10 +31,12 @@
   "gap:load-event": 3,
   "gap:logical-sizes": 2,
   "gap:named-element-access": 1,
+  "gap:outline-shorthand": 5,
   "gap:query-selector": 36,
   "gap:script-exceptions": 1,
   "gap:shadow-dom": 2,
-  "gap:window-events": 1
+  "gap:window-events": 1,
+  "unmapped": 29
  },
  "rows": [
   {
@@ -153,46 +155,61 @@
    "file": "resize-observer/fragments.html",
    "name": "Single fragment",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "runtime-subtest-name"
-   ]
+   "status": "blocked",
+   "features": [
+    "gap:background-shorthand",
+    "gap:class-name",
+    "gap:outline-shorthand"
+   ],
+   "computed_name": true
   },
   {
    "file": "resize-observer/fragments.html",
    "name": "Adding 2nd fragment",
    "chromium": "FAIL",
-   "status": "untranslatable",
-   "reasons": [
-    "runtime-subtest-name"
-   ]
+   "status": "blocked",
+   "features": [
+    "gap:background-shorthand",
+    "gap:class-name",
+    "gap:outline-shorthand"
+   ],
+   "computed_name": true
   },
   {
    "file": "resize-observer/fragments.html",
    "name": "Resizing 2nd fragment",
    "chromium": "FAIL",
-   "status": "untranslatable",
-   "reasons": [
-    "runtime-subtest-name"
-   ]
+   "status": "blocked",
+   "features": [
+    "gap:background-shorthand",
+    "gap:class-name",
+    "gap:outline-shorthand"
+   ],
+   "computed_name": true
   },
   {
    "file": "resize-observer/fragments.html",
    "name": "Resizing all fragments",
    "chromium": "FAIL",
-   "status": "untranslatable",
-   "reasons": [
-    "runtime-subtest-name"
-   ]
+   "status": "blocked",
+   "features": [
+    "gap:background-shorthand",
+    "gap:class-name",
+    "gap:outline-shorthand"
+   ],
+   "computed_name": true
   },
   {
    "file": "resize-observer/fragments.html",
    "name": "Removing 2nd fragment",
    "chromium": "PASS",
-   "status": "untranslatable",
-   "reasons": [
-    "runtime-subtest-name"
-   ]
+   "status": "blocked",
+   "features": [
+    "gap:background-shorthand",
+    "gap:class-name",
+    "gap:outline-shorthand"
+   ],
+   "computed_name": true
   },
   {
    "file": "resize-observer/idlharness.window.js",
@@ -598,6 +615,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -607,6 +629,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -616,6 +643,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -625,6 +657,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -634,6 +671,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -643,6 +685,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -652,6 +699,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -661,6 +713,11 @@
    "status": "blocked",
    "features": [
     "V1"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -672,6 +729,11 @@
     "V1",
     "V2",
     "gap:font-loading"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -683,6 +745,11 @@
     "V1",
     "V2",
     "gap:font-loading"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -695,6 +762,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -707,6 +779,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -719,6 +796,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -731,6 +813,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -743,6 +830,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -755,6 +847,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -767,6 +864,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -779,6 +881,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -791,6 +898,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -803,6 +915,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -815,6 +932,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -826,6 +948,11 @@
     "V1",
     "V2",
     "gap:font-loading"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -838,6 +965,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -850,6 +982,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -862,6 +999,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -874,6 +1016,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -886,6 +1033,11 @@
     "V2",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -900,6 +1052,11 @@
     "gap:css-zoom",
     "gap:font-loading",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:fill",
+    "css:stroke",
+    "css:stroke-width"
    ]
   },
   {
@@ -911,6 +1068,9 @@
     "R3",
     "gap:css-zoom",
     "gap:query-selector"
+   ],
+   "unmapped": [
+    "css:zoom"
    ]
   }
  ]
