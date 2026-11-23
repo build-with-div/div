@@ -276,3 +276,10 @@ on branch `components/c4-assets` and the shared findings note.
   pair changes 0 of 23,728 images, but its machine has no AVX-512, so it
   cannot show the effect there. Windows on Intel was not compared.
   [Record](../skia-no-avx512-2026-11-22.md).
+- 23 November 2026: the eight corner radius axis names are no longer CSS
+  names; their typed constants and setters stay. The site reference drops
+  from 258 to 250 properties. The census and CSS Grid coverage are unchanged
+  at all four profiles, measured at `4e69bdf` against `5bbcfff`, before #132
+  and #120 (evidence `5d5ef0fb`). The rebased code patch has the same
+  patch ID. Linux 1,154 tests pass at `d62d081` on `main` `8fbf18e`.
+  [Record](../internal-css-names-2026-11-23.md).
