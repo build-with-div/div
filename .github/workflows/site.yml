@@ -72,6 +72,10 @@ jobs:
         working-directory: site
         run: npm ci --no-audit --no-fund
 
+      - name: Test the element table parser
+        working-directory: site
+        run: npm test
+
       - name: Check the element table against the Rust source
         working-directory: site
         run: npm run check-reference

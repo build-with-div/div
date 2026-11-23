@@ -15,6 +15,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseTagTable } from './tag-table.mjs';
 
 const site = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = join(site, '..');
@@ -33,14 +34,7 @@ function functionBody(source, signature) {
 }
 
 function elements() {
-  const tags = functionBody(read('crates/divui/src/element.rs'), 'fn tag_definition(');
-  const rows = [];
-  // Arms look like `"a" | "b" => (T::Kind, None | Some(Display::X)),`.
-  const armPattern = /((?:"[a-z0-9]+"\s*\|?\s*)+)=>\s*\(T::(\w+),\s*(None|Some\(Display::(\w+)\))\)/g;
-  for (const m of tags.matchAll(armPattern)) {
-    const names = [...m[1].matchAll(/"([a-z0-9]+)"/g)].map((x) => x[1]);
-    for (const tag of names) rows.push({ tag, kind: m[2], displayOverride: m[4] ?? null });
-  }
+  const rows = parseTagTable(functionBody(read('crates/divui/src/element.rs'), 'fn tag_definition('));
 
   const engine = read('crates/div-engine/src/lib.rs');
   const ctor = functionBody(engine, 'pub fn create_native_element(');

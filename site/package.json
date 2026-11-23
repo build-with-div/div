@@ -8,6 +8,7 @@
     "check-assets": "node scripts/sync-assets.mjs --check",
     "reference": "node scripts/gen-reference.mjs",
     "check-reference": "node scripts/gen-reference.mjs --check",
+    "test": "node --test scripts/tag-table.test.mjs",
     "predev": "node scripts/sync-assets.mjs",
     "dev": "astro dev",
     "prebuild": "node scripts/sync-assets.mjs",
