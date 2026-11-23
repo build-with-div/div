@@ -1,0 +1,6160 @@
+{
+ "chromium": "147.0.7727.50",
+ "wpt_revision": "09d377d9",
+ "suite": "css/css-animations",
+ "files": {
+  "css/css-animations/AnimationEffect-getComputedTiming.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "delay of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Negative delay of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Positive delay of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "endDelay of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "fill of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "iterationStart of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "iterations of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "iterations of a finitely repeating animation",
+     "status": "PASS"
+    },
+    {
+     "name": "iterations of an infinitely repeating animation",
+     "status": "PASS"
+    },
+    {
+     "name": "duration of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "direction of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "easing of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "endTime of an new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "endTime of an animation with a negative delay",
+     "status": "PASS"
+    },
+    {
+     "name": "endTime of an infinitely repeating animation",
+     "status": "PASS"
+    },
+    {
+     "name": "endTime of an infinitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "endTime of an animation that finishes before its startTime",
+     "status": "PASS"
+    },
+    {
+     "name": "activeDuration of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "activeDuration of an infinitely repeating animation",
+     "status": "PASS"
+    },
+    {
+     "name": "activeDuration of an infinitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "activeDuration of an animation with zero iterations",
+     "status": "PASS"
+    },
+    {
+     "name": "localTime of a new animation",
+     "status": "PASS"
+    },
+    {
+     "name": "localTime of an animation is always equal to currentTime",
+     "status": "PASS"
+    },
+    {
+     "name": "localTime reflects playbackRate immediately",
+     "status": "PASS"
+    },
+    {
+     "name": "localTime of an AnimationEffect without an Animation",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of an animation with different fill modes",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of an integral repeating animation with normal direction",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of an infinitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a finitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a non-integral repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Progress of a non-integral repeating zero-duration animation with reversing direction",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a non-integral repeating animation with alternate direction",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a non-integral repeating animation with alternate-reversing direction",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a non-integral repeating zero-duration animation with alternate direction",
+     "status": "PASS"
+    },
+    {
+     "name": "progress of a non-integral repeating zero-duration animation with alternate-reverse direction",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of a new animation with no backwards fill is unresolved in before phase",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of a new animation is zero",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of an infinitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of a finitely repeating zero-duration animation",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of an animation with a non-integral iteration count",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of an animation with an integral iteration count",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of an animation with a default iteration count",
+     "status": "PASS"
+    },
+    {
+     "name": "currentIteration of an AnimationEffect without an Animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/AnimationEffect-updateTiming.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "AnimationEffect.updateTiming({ duration }) causes changes to the animation-duration to be ignored",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEffect.updateTiming({ iterations, direction }) causes changes to the animation-iteration-count and animation-direction to be ignored",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEffect.updateTiming({ delay, fill }) causes changes to the animation-delay and animation-fill-mode to be ignored",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEffect.updateTiming() does override to changes from animation-* properties if there is an error",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEffect properties that do not map to animation-* properties should not be changed when animation-* style is updated",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-animationName.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animation name makes keyframe rule",
+     "status": "PASS"
+    },
+    {
+     "name": "Escaped animation name",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation name with hex-escape",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-canceling.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animated style is cleared after canceling a running CSS animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Animated style is cleared after canceling a filling CSS animation",
+     "status": "PASS"
+    },
+    {
+     "name": "After canceling an animation, it can still be seeked",
+     "status": "PASS"
+    },
+    {
+     "name": "After canceling an animation, it can still be re-used",
+     "status": "PASS"
+    },
+    {
+     "name": "After canceling an animation, updating animation properties doesn't make it live again",
+     "status": "PASS"
+    },
+    {
+     "name": "After canceling an animation, updating animation-play-state doesn't make it live again",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting animation-name to 'none' cancels the animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting display:none on an element cancel its animations",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting display:none on an ancestor element cancels animations on descendants",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-compositeOrder.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animations are composited by their order in the animation-name property.",
+     "status": "FAIL",
+     "message": "assert_equals: expected \"100px\" but got \"50px\""
+    },
+    {
+     "name": "Web-animation replaces CSS animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-effect.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Setting a null effect on a running animation fires an animationend event",
+     "status": "PASS"
+    },
+    {
+     "name": "Replacing an animation's effect with an effect that targets a different property should update both properties",
+     "status": "PASS"
+    },
+    {
+     "name": "Replacing an animation's effect with a shorter one that should have already finished, the animation finishes immediately",
+     "status": "PASS"
+    },
+    {
+     "name": "A play-pending animation's effect whose effect is replaced still exits the pending state",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS animation events are dispatched at the original element even after setting an effect with a different target element",
+     "status": "PASS"
+    },
+    {
+     "name": "After replacing a finished animation's effect with a longer one it fires an animationstart event",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting animation-composition sets the composite property on the effect",
+     "status": "PASS"
+    },
+    {
+     "name": "Replacing the effect of a CSSAnimation causes subsequent changes to corresponding animation-* properties to be ignored",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-finished.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "finished promise is rejected when an animation is canceled by resetting the animation property",
+     "status": "PASS"
+    },
+    {
+     "name": "finished promise is rejected when an animation is canceled by changing the animation property",
+     "status": "PASS"
+    },
+    {
+     "name": "finished promise is not reset when animationPlayState is set to running",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-getCurrentTime.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "currentTime can be used to seek a CSS animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting currentTime to null on a CSS animation throws",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-getKeyframes-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/CSSAnimation-id.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animation.id for CSS Animations",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-pausing.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "play() overrides animation-play-state",
+     "status": "PASS"
+    },
+    {
+     "name": "play() does NOT override the animation-play-state if there was an error",
+     "status": "PASS"
+    },
+    {
+     "name": "pause() overrides animation-play-state",
+     "status": "PASS"
+    },
+    {
+     "name": "reverse() overrides animation-play-state when it starts playing the animation",
+     "status": "PASS"
+    },
+    {
+     "name": "reverse() does NOT override animation-play-state if the animation is already running",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting the startTime to null overrides animation-play-state if the animation is already running",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting the startTime to non-null overrides animation-play-state if the animation is paused",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting the startTime to non-null does NOT override the animation-play-state if the animation is already running",
+     "status": "PASS"
+    },
+    {
+     "name": "Setting the current time completes a pending pause",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-playState.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "A new CSS animation is initially play-pending",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation returns correct playState when paused",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation.playState updates when paused by script",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation.playState updates when resumed by setting style",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation returns correct playState when canceled",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-ready.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "A new ready promise is created when setting animation-play-state: running",
+     "status": "PASS"
+    },
+    {
+     "name": "ready promise is rejected when an animation is canceled by resetting the animation property",
+     "status": "PASS"
+    },
+    {
+     "name": "ready promise is rejected when an animation is canceled by updating the animation property",
+     "status": "PASS"
+    },
+    {
+     "name": "A new ready promise is created when setting animation-play-state: paused",
+     "status": "PASS"
+    },
+    {
+     "name": "Pausing twice re-uses the same Promise",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/CSSAnimation-startTime.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "The start time of a CSS animation can be set",
+     "status": "PASS"
+    },
+    {
+     "name": "The start time can be set to seek a CSS animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Seeking a CSS animation using the start time dispatches animation events",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/Document-getAnimations.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "getAnimations for non-animated content",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - within an element unaffected by start time",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - within an element",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - across elements",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - across and within elements",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - markup-bound vs free animations",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - free animation vs CSS Transitions",
+     "status": "PASS"
+    },
+    {
+     "name": "Order of CSS Animations - free animations",
+     "status": "FAIL",
+     "message": "assert_equals: Free animations are returned in the order they are started expected \"animTop\" but got \"animLeft\""
+    },
+    {
+     "name": "Order of CSS Animations and CSS Transitions",
+     "status": "PASS"
+    },
+    {
+     "name": "Finished but filling CSS Animations are returned",
+     "status": "PASS"
+    },
+    {
+     "name": "Finished but not filling CSS Animations are not returned",
+     "status": "PASS"
+    },
+    {
+     "name": "Yet-to-start CSS Animations are returned",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations canceled via the API are not returned",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations canceled and restarted via the API are returned",
+     "status": "PASS"
+    },
+    {
+     "name": "pseudo element with replaced target does not affect animation ordering",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations targetting (pseudo-)elements should have correct order after sorting",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations targetting (pseudo-)elements should have correct order after sorting (::marker)",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/Element-getAnimations-dynamic-changes.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animations preserve their startTime when changed",
+     "status": "PASS"
+    },
+    {
+     "name": "Updated Animations maintain their order in the list",
+     "status": "PASS"
+    },
+    {
+     "name": "Only the startTimes of existing animations are preserved",
+     "status": "FAIL",
+     "message": "assert_true: New Animation is prepended to start of list expected true got false"
+    },
+    {
+     "name": "Animations are removed from the start of the list while preserving the state of existing Animations",
+     "status": "FAIL",
+     "message": "assert_equals: Remaining Animation is the second one in the list expected object \"[object CSSAnimation]\" but got object \"[object CSSAnimation]\""
+    },
+    {
+     "name": "Animation state is preserved when interleaving animations in list",
+     "status": "FAIL",
+     "message": "assert_not_equals: New Animations are added to start of the list got disallowed value object \"[object CSSAnimation]\""
+    }
+   ],
+   "oracle": {
+    "status": "disputed",
+    "reason": "test-expectations:Failure"
+   }
+  },
+  "css/css-animations/Element-getAnimations.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "getAnimations for non-animated content",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations returns CSSAnimation objects for CSS Animations",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for multi-property animations",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for both CSS Animations and CSS Transitions at once",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations that have finished",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations that have finished but are forwards filling",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations with animation-name: none",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations with animation-name: missing",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations where the @keyframes rule is added later",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations with duplicated animation-name",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations with empty keyframes rule",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS animations in delay phase",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for zero-duration CSS Animations",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations returns objects with the same identity",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations that are canceled",
+     "status": "PASS"
+    },
+    {
+     "name": "getAnimations for CSS Animations follows animation-name order",
+     "status": "PASS"
+    },
+    {
+     "name": "{ subtree: false } on a leaf element returns the element's animations and ignore pseudo-elements",
+     "status": "PASS"
+    },
+    {
+     "name": "{ subtree: true } on a leaf element returns the element's animations and its pseudo-elements' animations",
+     "status": "PASS"
+    },
+    {
+     "name": "{ subtree: false } on an element with a child returns only the element's animations",
+     "status": "PASS"
+    },
+    {
+     "name": "{ subtree: true } on an element with a child returns animations from the element, its pseudo-elements, its child and its child pseudo-elements",
+     "status": "PASS"
+    },
+    {
+     "name": "{ subtree: true } on an element with many descendants returns animations from all the descendants",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/KeyframeEffect-getKeyframes.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "KeyframeEffect.getKeyframes() returns no frames for various kinds of empty animations",
+     "status": "FAIL",
+     "message": "assert_equals: number of frames when @keyframes has empty keyframes expected 0 but got 2"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for a simple animation",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected easing values, when the easing comes from animation-timing-function on the element",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected easing values, when the easing is specified on each keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected easing values, when the easing is specified on some keyframes",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns animation-wide easing for var() keyframe easing",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected composite values, when the composite is set on the effect using animation-composition on the element",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected composite values, when the composite is specified on each keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns frames with expected composite values, when the composite is specified on some keyframes",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for a simple animation that specifies a single shorthand property",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with a 0% keyframe and no 100% keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with a 100% keyframe and no 0% keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with no 0% or 100% keyframe but with a 50% keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with a partially complete 100% keyframe (because the !important rule is ignored)",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with different properties on different keyframes, all with the same easing function",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with different properties on different keyframes, with a different easing function on each",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with multiple keyframes for the same time, and all with the same easing function",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with multiple keyframes for the same time and with different easing functions",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with multiple keyframes for the same time and with different but equivalent easing functions",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with multiple keyframes for the same time and with different composite operations",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for an animation with multiple keyframes for the same time and with different easing functions and composite operations",
+     "status": "FAIL",
+     "message": "assert_array_equals: properties on Keyframe #1 should match lengths differ, expected array [\"composite\", \"computedOffset\", \"easing\", \"marginTop\", \"offset\", \"paddingLeft\"] length 6, got [\"composite\", \"computedOffset\", \"easing\", \"fontSize\", \"offset\"] length 5"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected frames for overlapping keyframes",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with filter properties and missing keyframes",
+     "status": "FAIL",
+     "message": "assert_equals: value for 'filter' on Keyframe #1 should match expected \"blur(5px) sepia(60%) saturate(30%)\" but got \"blur(5px) sepia(0.6) saturate(0.3)\""
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animation with drop-shadow of filter property",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with text-shadow properties and missing keyframes",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with background-size properties and missing keyframes",
+     "status": "FAIL",
+     "message": "assert_equals: value for 'backgroundSize' on ComputedKeyframe #1 should match expected \"50% auto, 6px auto, contain\" but got \"50%, 6px, contain\""
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with CSS variables as keyframe values",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with CSS variables as keyframe values in a shorthand property",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with a CSS variable which is overriden by the value in keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with only custom property in a keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() reflects changes to @keyframes rules",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.getKeyframes() returns expected values for animations with implicit values and a non-default timingfunction specified for 0% and 100%",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/KeyframeEffect-setKeyframes.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "KeyframeEffect.setKeyframes() causes subsequent changes to @keyframes rules to be ignored",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.setKeyframes() causes subsequent changes to animation-timing-function to be ignored",
+     "status": "PASS"
+    },
+    {
+     "name": "KeyframeEffect.setKeyframes() should NOT cause subsequent changes to @keyframes rules to be ignored if it threw",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/KeyframeEffect-target.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Returned CSS animations have the correct effect target",
+     "status": "PASS"
+    },
+    {
+     "name": "effect.target should return the same CSSPseudoElement object each time",
+     "status": "PASS"
+    },
+    {
+     "name": "effect.target from the script-generated animation should return the same CSSPseudoElement object as that from the CSS generated animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animate-font-size-with-margin-override-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animate-font-size-with-margin-override.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animate-with-background-color-hsla-to-legacy-rgb-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animate-with-background-color-hsla-to-legacy-rgb.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animate-with-background-color-oklch-001-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animate-with-background-color-oklch-001.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animate-with-background-color-oklch-002.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animate from legacy rgb to oklch",
+     "status": "FAIL",
+     "message": "assert_true: Actual value rgb(255, 0, 0) not recognized as an oklab color expected true got false"
+    },
+    {
+     "name": "Animate from legacy rgb to color-mix oklch",
+     "status": "FAIL",
+     "message": "assert_true: Actual value rgb(255, 0, 0) not recognized as an oklab color expected true got false"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animate-with-color-mix.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animate from neutral keyframe with color-mix to legacy rgb",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from legacy rgb to neutral keyframe with color-mix",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from neutral keyframe with color-mix to srgb",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from srgb to neutral keyframe with color-mix",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from color-mix with transparency to legacy rgba",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from legacy rgba to color-mix with transparency",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animate-with-relative-color.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animate from absolute oklch to relative oklch",
+     "status": "PASS"
+    },
+    {
+     "name": "Animate from color keyword to relative rgb",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-base-response-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "em units respond to font-size animation",
+     "status": "PASS"
+    },
+    {
+     "name": "ex units respond to font-size animation",
+     "status": "PASS"
+    },
+    {
+     "name": "var() references respond to custom property animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-base-response-002.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animated font-size on root affects rem units",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-base-response-003.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Identical elements are all responsive to font-size animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-base-response-004.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Base is responsive to font-affecting appearing via setKeyframes",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-before-initial-box-construction-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "animations started before initial-containing-block creation properly function",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-change-underlying-value-changed-in-flight.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Changing the underlying value of an animated property with an implicit 0% keyframe",
+     "status": "PASS"
+    },
+    {
+     "name": "Changing the underlying value of an animated property with an implicit 100% keyframe",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-common-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-composition-keyframes.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "animation-composition: replace of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: add of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: accumulate of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: replace of property width",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: add of property width",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: accumulate of property width",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-composition.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "animation-composition: replace of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: add of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: accumulate of property filter",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: replace of property width",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: add of property width",
+     "status": "PASS"
+    },
+    {
+     "name": "animation-composition: accumulate of property width",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-css-variable-dependent-property.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Dependent property updates correctly",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-css-variable-in-keyframe-adjusted.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animations reflect changes to variables on element",
+     "status": "PASS"
+    },
+    {
+     "name": "Animations reflect changes to variables on parent element",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-delay-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-007-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-delay-008.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-delay-009.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-delay-010.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-delay-011.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-direction-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-direction-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-direction-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-direction-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-direction-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-direction-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-display-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-007-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-008-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-duration-infinite-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-duration-infinite.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-fill-mode-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-fill-mode-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-fill-mode-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-fill-mode-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-fill-mode-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-fill-mode-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-important-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Interpolated value is observable",
+     "status": "PASS"
+    },
+    {
+     "name": "Important rules override animations",
+     "status": "PASS"
+    },
+    {
+     "name": "Non-overriden interpolations are observable",
+     "status": "PASS"
+    },
+    {
+     "name": "Important rules override animations (::before)",
+     "status": "PASS"
+    },
+    {
+     "name": "Important rules do not override animations on :visited as seen from JS",
+     "status": "PASS"
+    },
+    {
+     "name": "Standard property animations appearing via setKeyframes do not override important declarations",
+     "status": "PASS"
+    },
+    {
+     "name": "Custom property animations appearing via setKeyframes do not override important declarations",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-important-002-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-important-002.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-iteration-count-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-007-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-008-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-iteration-count-009.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Basic floating point iteration count",
+     "status": "PASS"
+    },
+    {
+     "name": "Floating point iteration count after multiple iterations",
+     "status": "PASS"
+    },
+    {
+     "name": "Floating point iteration count during first iteration",
+     "status": "PASS"
+    },
+    {
+     "name": "Floating point iteration count with alternating directions",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-iteration-count-calc.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "calc() should be accepted in animation-iteration-count.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-iteration-event-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-keyframes-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-keyframes-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-keyframes-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-multiple-from-to-keyframes-with-only-timing-function.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animations should not use an implicit value when the first rule within a @keyframes rule specifies \"from\" and \"to\" but only specifies a timing function.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-name-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-name-in-nested-shadow-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-name-in-nested-shadow.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-name-in-shadow-part-inner-match.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-name-in-shadow-part-outer-match.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-name-in-shadow-part-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-name-in-shadow-part.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-name-inline-style.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animation starts when the name is mutated via inline style",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-offscreen-to-onscreen-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-offscreen-to-onscreen.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-opacity-pause-and-set-time-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-opacity-pause-and-set-time.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-play-state-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-play-state-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-play-state-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-play-state-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-play-state-005.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "CSS animation should not restart after resetting its animation-play-state",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-pseudo-dynamic-001-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-pseudo-dynamic-001.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animation-restarted-after-changing-iteration-count-after-completion.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Setting 'animation-iteration-count: infinite' after a CSS Animation is completed restarts the animation.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-shorthand-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-shorthand-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-shorthand-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-style-element-replaced-with-keyframes-rule-of-same-name.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Replacing a <style> element with a new <style> element while both containing the different @keyframes rule with the same name dynamically updates running animations.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animation-timing-function-001-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-002-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-003-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-004-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-005-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-006-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-007-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-008-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-009-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-010-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-011-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-timing-function-012-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/animation-transform-pause-and-set-time-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/animation-transform-pause-and-set-time.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/animationevent-interface.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "the event is an instance of AnimationEvent",
+     "status": "PASS"
+    },
+    {
+     "name": "the event inherts from Event",
+     "status": "PASS"
+    },
+    {
+     "name": "Missing type argument",
+     "status": "PASS"
+    },
+    {
+     "name": "type argument is string",
+     "status": "PASS"
+    },
+    {
+     "name": "type argument is null",
+     "status": "PASS"
+    },
+    {
+     "name": "event type set to undefined",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName has default value of empty string",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime has default value of 0.0",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName is readonly",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime is readonly",
+     "status": "PASS"
+    },
+    {
+     "name": "animationEventInit argument is null",
+     "status": "PASS"
+    },
+    {
+     "name": "animationEventInit argument is undefined",
+     "status": "PASS"
+    },
+    {
+     "name": "animationEventInit argument is empty dictionary",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEvent.pseudoElement initialized from the dictionary",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to 'sample'",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to undefined",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to null",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to false",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to true",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to a number",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to []",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to [1, 2, 3]",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to an object",
+     "status": "PASS"
+    },
+    {
+     "name": "animationName set to an object with a valueOf function",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to 0.5",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to -0.5",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to undefined",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to null",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to false",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to true",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to ''",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to []",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to [0.5]",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime set to an object with a valueOf function",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to NaN",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to Infinity",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to -Infinity",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to 'sample'",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to [0.5, 1.0]",
+     "status": "PASS"
+    },
+    {
+     "name": "elapsedTime cannot be set to an object",
+     "status": "PASS"
+    },
+    {
+     "name": "AnimationEventInit properties set value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animationevent-marker-pseudoelement.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "AnimationEvent should have the correct pseudoElement memeber",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animationevent-pseudoelement.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "AnimationEvent should have the correct pseudoElement memeber",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animationevent-types.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "animationstart event is instanceof AnimationEvent",
+     "status": "PASS"
+    },
+    {
+     "name": "animationend event is instanceof AnimationEvent",
+     "status": "PASS"
+    },
+    {
+     "name": "animationiteration event is instanceof AnimationEvent",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/animationstart-and-animationend-events-manual.html": {
+   "excluded": "manual"
+  },
+  "css/css-animations/cancel-animation-shadow-slot-invalidation.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/computed-style-animation-parsing.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Test animation name being empty.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test a non-conflicting animation name.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation timing-function.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation iteration-count.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation fill-mode.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation direction.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible running state.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/crashtests/add-pseudo-while-animating-001.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/cancel-update.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/chrome-bug-404743651.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/chrome-bug-405795970.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/chrome-bug-415627003.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/keyframe-easing-var-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/pseudo-element-animation-with-marker.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/crashtests/replace-keyframes-animating-filter-001.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/dialog-animation.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "CSS Animations tied to <dialog open> are canceled and restarted as the dialog is hidden and shown",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/dialog-backdrop-animation.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "CSS Animations on a <dialog> ::backdrop are canceled and restarted as the dialog is hidden and shown",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-interpolation.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (-0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (0) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (-0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (0) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (-0.3) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (0.3) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (-0.3) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (0.3) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (-0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (0) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (-0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (0) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (0.3) should be [inline]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (0.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (0.6) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [inline] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [block] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [block] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [block] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (-1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (0) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (0.1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (0.9) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (1) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [block] to [block] at (1.5) should be [block]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (0.1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (0.9) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <display> from [none] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (0.1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (0.9) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <display> from [none] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (0.1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (0.9) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <display> from [none] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (-1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (0) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (0.1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (0.9) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (1) should be [none]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <display> from [none] to [none] at (1.5) should be [none]",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-none-dont-cancel-pseudo.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "A CSS Animation on a pseudo-element animating to \"display: none\" with \"fill: forwards\" remains active after animation completion.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-none-dont-cancel.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "display:none animating to display:inline should be inline for the whole animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "A CSS variable of display:none animating to display:inline should be inline for the whole animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "Animating from display:none to display:none should not cancel the animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "Animating from display:none to display:none with an intermediate variable should not cancel the animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "Animating a variable of \"none\" which gets set to display elsewhere should not cancel the animation.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-none-prevents-starting-in-subtree.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Elements in a \"display: none\" tree cannot start CSS Animations.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-none-to-display-block-dont-cancel.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "display:none animating to display:block should be block for the whole animation.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/display-none-to-display-block.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/display-via-custom-prop-animation-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/empty-pseudo-class-with-animation.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Setting an \"animation\" style property on an element does not interfere with the :empty pseudo-class.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/event-dispatch.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Idle -> Active",
+     "status": "PASS"
+    },
+    {
+     "name": "Idle -> After",
+     "status": "PASS"
+    },
+    {
+     "name": "Before -> Active",
+     "status": "PASS"
+    },
+    {
+     "name": "Before -> After",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Idle, display: none",
+     "status": "PASS"
+    },
+    {
+     "name": "After -> Idle, display: none",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Idle, setting Animation.timeline = null",
+     "status": "FAIL",
+     "message": "assert_approx_equals: expected 0.1 +/- 0.0005 but got 0"
+    },
+    {
+     "name": "Active -> Idle, calling Animation.cancel()",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Before",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> After",
+     "status": "PASS"
+    },
+    {
+     "name": "After -> Before",
+     "status": "PASS"
+    },
+    {
+     "name": "After -> Active",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Active (forwards)",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Active (backwards)",
+     "status": "PASS"
+    },
+    {
+     "name": "Active -> Idle -> Active: animationstart is fired by restarting animation",
+     "status": "PASS"
+    },
+    {
+     "name": "Negative playbackRate sanity test(Before -> Active -> Before)",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, before -> active, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, before -> after, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, active -> before, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, active -> after, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, after -> before, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Redundant change, after -> active, then back",
+     "status": "PASS"
+    },
+    {
+     "name": "Call Animation.cancel after canceling animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "Restart animation after canceling animation immediately.",
+     "status": "PASS"
+    },
+    {
+     "name": "Call Animation.cancel after restarting animation immediately.",
+     "status": "PASS"
+    },
+    {
+     "name": "Set timeline and play transition after clearing the timeline.",
+     "status": "PASS"
+    },
+    {
+     "name": "Set null target effect after canceling the animation.",
+     "status": "PASS"
+    },
+    {
+     "name": "Cancel the animation after clearing the target effect.",
+     "status": "PASS"
+    },
+    {
+     "name": "Replacing a running animation should get animationcancel earlier than animationstart",
+     "status": "PASS"
+    },
+    {
+     "name": "The cancel event should be fired before the new start event if both have the same position in the animation list",
+     "status": "PASS"
+    },
+    {
+     "name": "The cancel event with an earlier position in animation list should be fired earlier",
+     "status": "FAIL",
+     "message": "assert_equals: expected \"anim\" but got \"anim2\""
+    },
+    {
+     "name": "The order of the cancel events follows the relative positions in the animation list at the point when they were cancelled",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/event-order.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Same events are ordered by elements",
+     "status": "PASS"
+    },
+    {
+     "name": "Same events on pseudo-elements follow the prescribed order",
+     "status": "PASS"
+    },
+    {
+     "name": "Same events on pseudo-elements follow the prescribed order (::marker)",
+     "status": "PASS"
+    },
+    {
+     "name": "Start and iteration events are ordered by time",
+     "status": "FAIL",
+     "message": "assert_equals: Event #1 types should match (expected: animationiteration, animationstart, actual: animationstart, animationiteration) expected \"animationiteration\" but got \"animationstart\""
+    },
+    {
+     "name": "Iteration and end events are ordered by time",
+     "status": "FAIL",
+     "message": "assert_equals: Event #1 types should match (expected: animationiteration, animationend, actual: animationend, animationiteration) expected \"animationiteration\" but got \"animationend\""
+    },
+    {
+     "name": "Start and end events are sorted correctly when fired simultaneously",
+     "status": "FAIL",
+     "message": "assert_equals: Event #1 targets should match expected Element node <div style=\"animation: anim 100s 2\"></div> but got Element node <div style=\"animation: anim 100s 100s\"></div>"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/flip-running-animation-via-variable-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/flip-running-animation-via-variable.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/historical.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Historical CSS features must be removed: WebKitAnimationEvent",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/idlharness.html": {
+   "excluded": "idlharness"
+  },
+  "css/css-animations/inheritance-pseudo-element-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/inheritance-pseudo-element.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/inheritance.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-delay has initial value 0s",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-delay does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-direction has initial value normal",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-direction does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration has initial value 0s",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-fill-mode has initial value none",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-fill-mode does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-iteration-count has initial value 1",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-iteration-count does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name has initial value none",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-play-state has initial value running",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-play-state does not inherit",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-timing-function has initial value ease",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-timing-function does not inherit",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/jump-start-animation-before-phase-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/jump-start-animation-before-phase.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/keyframes-remove-documentElement-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/keyframes-unrelated-custom-property.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Unrelated custom properties do not conflict with each other",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/keyframes-zero-angle-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/missing-values-first-keyframe.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Missing property values in the first keyframe are correctly interpolated from a neutral keyframe value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/missing-values-last-keyframe.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Missing property values in the last keyframe are correctly interpolated from a neutral keyframe value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/nested-scale-animations-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/nested-scale-animations.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/neutral-var-keyframe-cycle-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/neutral-var-keyframe-cycle-registered-additive-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/neutral-var-keyframe-cycle-registered-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/parent-after-change-style-pseudo-element-flicker-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/parent-after-change-style-pseudo-element-flicker.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/parsing/animation-composition-computed.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-composition value 'replace, add, accumulate'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-composition-invalid.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-composition'] = \"auto\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"add replace\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"add, initial\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"initial, add\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-composition-valid.tentative.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-composition'] = \"replace\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"add\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"accumulate\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-composition'] = \"replace, add, accumulate\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Default animation value",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value '1s'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'cubic-bezier(0, -2, 1, 3)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'ease-in-out'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value '1s -3s'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value '4'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'reverse'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'both'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'paused'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'none'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'anim'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation value 'none, none'",
+     "status": "PASS"
+    },
+    {
+     "name": "Animation with a delay but no duration",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-delay-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-delay value '-500ms'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-delay value 'calc(2 * 3s)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-delay value '20s, 10s'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-delay value 'calc(10s + (sign(2cqw - 10px) * 5s))'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-delay-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-delay'] = \"infinite\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"0\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"1s 2s 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"initial, -3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"-3s, initial\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-delay-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-delay'] = \"-5ms\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"0s\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"10s\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-delay'] = \"20s, 10s\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-direction-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-direction value 'normal, reverse, alternate, alternate-reverse'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-direction-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-direction'] = \"auto\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"normal reverse\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"reverse, initial\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"initial, reverse\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-direction-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-direction'] = \"normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"reverse\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"alternate\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"alternate-reverse\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-direction'] = \"normal, reverse, alternate, alternate-reverse\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-duration-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-duration value '500ms'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration value 'calc(2 * 3s)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration value 'calc(10s + (sign(2cqw - 10px) * 5s))'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration value '20s, 10s'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration value 'auto'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-duration value 'auto, auto'",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:auto",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:auto, auto",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:--t",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:--t, --t2",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:none",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:scroll()",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:auto with animation-timeline:view()",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:0s with animation-timeline:auto",
+     "status": "PASS"
+    },
+    {
+     "name": "Resolved value of animation-duration:0s with animation-timeline:auto, auto",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-duration-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-duration'] = \"-3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"0\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"infinite\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"1s 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"initial, 1s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"1s, initial\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-duration-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-duration'] = \"3s\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"500ms\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-duration'] = \"1s, 2s, 3s\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-fill-mode-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-fill-mode value 'none, forwards, backwards, both'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-fill-mode-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-fill-mode'] = \"auto\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"forwards backwards\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"both, initial\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"initial, both\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-fill-mode-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-fill-mode'] = \"none\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"forwards\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"backwards\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"both\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-fill-mode'] = \"none, forwards, backwards, both\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation'] = \"1s 2s 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"-1s -2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"steps(1) steps(2)\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"1 2\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"reverse alternate alternate-reverse anim\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"both backwards forwards anim\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"paused running paused anim\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim1 timeline1 anim2\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-iteration-count-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-iteration-count value '0, infinite, 3'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-iteration-count value 'calc(10 + (sign(2cqw - 10px) * 5))'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-iteration-count-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-iteration-count'] = \"auto\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"-2\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"3 4\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"initial, 4\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"4, initial\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-iteration-count-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-iteration-count'] = \"0\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"3\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"4.5\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"infinite\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-iteration-count'] = \"0, infinite, 3\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-name-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-name value 'none'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'NONE'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'foo'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'Both'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'ease-in'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'infinite'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'paused'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value 'first, second, third'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"something\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"---\\22---\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"multi word string\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"none\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"none\", \"INITIAL\", \"inherit\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"none\", both, ease-in'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"NoNe\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"initial\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"INITIAL\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"inherit\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"INHERIT\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"revert\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"REVERT\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"revert-layer\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"REVERT-LAYER\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"unset\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"UNSET\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"default\"'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-name value '\"DEFAULT\"'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-name-edge-cases-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/parsing/animation-name-edge-cases.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/parsing/animation-name-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-name'] = \"12\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"one two\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"one, initial\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"one, inherit\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"one, unset\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"default, two\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"revert, three\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"revert-layer, four\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"\\\"\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-name-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-name'] = \"none\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"NONE\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"foo\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"Both\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"ease-in\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"infinite\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"paused\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"first, second, third\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"something\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"---\\\\22---\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"multi word string\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"none\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"none\\\", \\\"INITIAL\\\", \\\"inherit\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"none\\\", both, ease-in\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"NoNe\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"initial\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"INITIAL\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"inherit\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"INHERIT\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"revert\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"REVERT\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"revert-layer\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"REVERT-LAYER\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"unset\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"UNSET\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"default\\\"\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-name'] = \"\\\"DEFAULT\\\"\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-play-state-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-play-state value 'running, paused'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-play-state-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-play-state'] = \"auto\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-play-state'] = \"paused running\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-play-state'] = \"paused, initial\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-play-state'] = \"initial, paused\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-play-state-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-play-state'] = \"running\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-play-state'] = \"paused\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-play-state'] = \"running, paused\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-end-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-range-end value 'initial'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'COVER 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'COVER 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover 120%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value '0'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value '120%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value '0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value '100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value '120px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover -42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'contain 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit calc(41% + 1%)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit-crossing 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit 1%, cover 2%, contain 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit 1%, cover 2%, contain 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'entry 42px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'entry-crossing 42px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'contain calc(10% + 10px)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'entry 1em'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit calc(1em + 10px)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'cover'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'contain'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'entry'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-end value 'exit'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-end-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-range-end'] = \"infinite\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"1s 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"1s / 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"peek 50%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"50% contain\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"50% cover\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"50% entry\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"50% enter\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"50% exit\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"contain contain\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"none\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover 50% enter 50%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"normal 10px\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"normal foo\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-end-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-range-end'] = \"normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover 0%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover 120%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"0\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"120%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"120px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover -42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"contain 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit 1%, cover 2%, contain 0%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit 1%, cover 2%, contain 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit-crossing 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"entry 42px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"entry-crossing 42px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"contain calc(10px + 10%)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"entry 1em\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit calc(1em + 10px)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"entry 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"cover\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"contain\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"entry\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-end'] = \"exit\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-shorthand.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-range'] = \"normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry-crossing\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit-crossing\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry, exit\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"0% 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 0% entry 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry-crossing 0% entry-crossing 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit 0% exit 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit-crossing 0% exit-crossing 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover 0% cover 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain 0% contain 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry calc(10% - 10%) entry calc(50% + 50%)\" should set the property value",
+     "status": "FAIL",
+     "message": "assert_equals: serialization should be canonical expected \"entry calc(0%) entry calc(100%)\" but got \"entry\""
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry-crossing 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit-crossing 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 50px exit 100px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit calc(10% + 50px)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 50% exit 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover 50% entry 50%, contain 50% exit 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"50% exit 50%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal 100px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100px normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"10% normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'normal normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'cover'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'contain'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry-crossing'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit-crossing'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry, exit'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '0% 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry 0% entry 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry-crossing 0% entry-crossing 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit 0% exit 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit-crossing 0% exit-crossing 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'cover 0% cover 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'contain 0% contain 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry calc(10% - 10%) entry calc(50% + 50%)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'cover 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'contain 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry-crossing 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit-crossing 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry 50px exit 100px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'exit calc(10% + 50px)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry 50% exit 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'cover 50% entry 50%, contain 50% exit 50%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry 10em exit 20em'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '10em exit 20em'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'normal 100px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '100px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '100px normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '10% normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value 'entry normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range value '10% calc(70% + 10% * sign(100em - 1px))'",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 50% 0s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"0s entry 50%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"-1s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s, 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s 2s, 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s, 2s 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s, 2s, 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s 2s 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"0s, 1s 2s 3s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s / 2s\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"1s, 2px\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"#ff0000\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"red\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"thing\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"thing 0%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"thing 42%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"thing 100%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"thing 100px\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100% thing\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal foo normal 100%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal normal 100%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal normal\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal normal\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal normal\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 100%\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 100%\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 100%\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 10%\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 10%\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"normal entry 10%\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"cover\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain 100% contain 0%\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain 100% contain 0%\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"contain 100% contain 0%\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 10% exit 20%\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 10% exit 20%\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 10% exit 20%\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry calc(10% + 10px) exit 20px\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry calc(10% + 10px) exit 20px\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry calc(10% + 10px) exit 20px\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry, exit\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry, exit\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry, exit\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 0%, exit\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 0%, exit\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"entry 0%, exit\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit calc(10% + 50px)\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit calc(10% + 50px)\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"exit calc(10% + 50px)\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100px\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100px\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"100px\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"10%\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"10%\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range'] = \"10%\" should not set unrelated longhands",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-start-computed.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Property animation-range-start value 'initial'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'normal'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover 0px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'COVER 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'COVER 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover 120%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value '0'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value '120%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value '0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value '100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value '120px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover -42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'contain 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit calc(41% + 1%)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit 1%, cover 2%, contain 0%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit 1%, cover 2%, contain 100%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit-crossing 42%'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'entry 42px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'entry-crossing 42px'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'contain calc(10% + 10px)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'entry 1em'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit calc(1em + 10px)'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'cover'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'contain'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'entry'",
+     "status": "PASS"
+    },
+    {
+     "name": "Property animation-range-start value 'exit'",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-start-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-range-start'] = \"peek 50%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"50% contain\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"50% cover\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"50% entry\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"50% enter\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"50% exit\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"contain contain\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"none\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 50% enter 50%\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"normal 10px\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"normal foo\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-range-start-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-range-start'] = \"normal\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 0px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 0%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 120%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"0\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"120%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"120px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover -42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"contain 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit 1%, cover 2%, contain 0%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit 1%, cover 2%, contain 100%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit-crossing 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"entry 42px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"entry-crossing 42px\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"contain calc(10px + 10%)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"entry 1em\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit calc(1em + 10px)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"entry 42%\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"contain\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"entry\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"exit\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-range-start'] = \"cover calc(sign(100em - 1px) * 1%)\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-shorthand.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-delay",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-direction",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-duration",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-fill-mode",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-iteration-count",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-name",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-play-state",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-timeline",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-timing-function",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-delay",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-direction",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-duration",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-fill-mode",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-iteration-count",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-name",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-play-state",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-timeline",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set animation-timing-function",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should not set unrelated longhands",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-delay",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-direction",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-duration",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-fill-mode",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-iteration-count",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-name",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-play-state",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-range-end",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-range-start",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-timeline",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should set animation-timing-function",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse\" should not set unrelated longhands",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-timing-function-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2,()start)\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2,() start)\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2, ()start)\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2())\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2 ())\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2,())\" should not set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation-timing-function'] = \"steps(2, ())\" should not set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/animation-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "e.style['animation'] = \"1s\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"cubic-bezier(0, -2, 1, 3)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"cubic-bezier( 0, -2, 1, 3 )\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"1s -3s\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"4\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"reverse\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"both\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"paused\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"none\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set the property value",
+     "status": "PASS"
+    },
+    {
+     "name": "e.style['animation'] = \"anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)\" should set the property value",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/keyframe-selectors.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "'0%' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'10%' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'100%' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'from' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'to' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'entry 10%' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'exit 60%' should be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'calc(10%)' should be a valid keyframe selector",
+     "status": "FAIL",
+     "message": "assert_true: expected true got false"
+    },
+    {
+     "name": "'calc(10% * sibling-index())' should be a valid keyframe selector",
+     "status": "FAIL",
+     "message": "assert_true: expected true got false"
+    },
+    {
+     "name": "'calc(10% * sign(1em - 1px))' should be a valid keyframe selector",
+     "status": "FAIL",
+     "message": "assert_true: expected true got false"
+    },
+    {
+     "name": "'entry calc(10%)' should be a valid keyframe selector",
+     "status": "FAIL",
+     "message": "assert_true: expected true got false"
+    },
+    {
+     "name": "'exit calc(60%)' should be a valid keyframe selector",
+     "status": "FAIL",
+     "message": "assert_true: expected true got false"
+    },
+    {
+     "name": "'-10%' should not be a valid keyframe selector",
+     "status": "PASS"
+    },
+    {
+     "name": "'120%' should not be a valid keyframe selector",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/keyframes-allowed-properties.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "@keyframes allows all non-animation properties and animation-timing-function",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/keyframes-name-invalid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "invalid: @keyframes none { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes default { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes initial { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes inherit { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes unset { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes revert { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes revert-layer { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes 12 { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes -12 { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes 12foo { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes foo.bar { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes one two { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes one, two { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes one, initial { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes one, inherit { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes one, unset { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes default, two { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes revert, three { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes revert-layer, four { }",
+     "status": "PASS"
+    },
+    {
+     "name": "invalid: @keyframes \"\" { }",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/parsing/keyframes-name-valid.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "valid: @keyframes  foo  { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes   foo { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes -foo { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes _bar { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes __bar { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes __bar__ { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes ease-out { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes example { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes EXAMPLE { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes not { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes and { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes all { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes or { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes auto { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes normal { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \" foo \" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"  foo\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"-foo\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"_bar\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"__bar\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"__bar__\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"ease-out\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"example\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"EXAMPLE\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"one two\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"one, two\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"not\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"and\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"all\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"or\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"auto\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"normal\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"none\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"default\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"initial\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"inherit\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"unset\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"revert\" { }",
+     "status": "PASS"
+    },
+    {
+     "name": "valid: @keyframes \"revert-layer\" { }",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/pending-style-changes-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Animatable::getAnimations() should be able to see a style-created CSS animation immediately",
+     "status": "PASS"
+    },
+    {
+     "name": "Document::getAnimations() should be able to see a style-created CSS animation immediately",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/responsive/column-rule-color-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "column-rule-color responds to currentColor changes",
+     "status": "PASS"
+    },
+    {
+     "name": "column-rule-color responds to inherited changes",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/responsive/column-width-001.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "column-width responds to font-size changes",
+     "status": "PASS"
+    },
+    {
+     "name": "column-width clamps to 0px",
+     "status": "FAIL",
+     "message": "assert_equals: expected \"20px\" but got \"0px\""
+    },
+    {
+     "name": "column-width responds to inherited changes",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/responsive/line-height.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "line-height responds to inherited changes",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/revert-rule-keyframes-dynamic.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "revert-rule in keyframes, reverted-to value changing (standard property)",
+     "status": "PASS"
+    },
+    {
+     "name": "revert-rule in keyframes, reverted-to value changing (custom property)",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/revert-rule-keyframes.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "revert-rule in keyframes (width)",
+     "status": "PASS"
+    },
+    {
+     "name": "revert-rule in keyframes (--x)",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/sample-on-last-keyframe.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Opacity at start of reverse running animation",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/simultaneous-animations-crash.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/stability/animation-event-destroy-renderer.html?animationiteration": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Triggering the cancel of an animation during event handling does not crash.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/stability/animation-event-destroy-renderer.html?animationstart": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Triggering the cancel of an animation during event handling does not crash.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/style-animation-parsing.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Test animation name being empty.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test a non-conflicting animation name.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation fill-mode.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible animation direction.",
+     "status": "PASS"
+    },
+    {
+     "name": "Test an animation name that is the same as a possible running state.",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/svg-transform-animation-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/svg-transform-animation.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/transform-animation-under-large-scale-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/transform-animation-under-large-scale.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/transition-properties-not-animatable.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-duration> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-duration> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-duration> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-duration> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (-0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (0) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (0.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (0.6) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (1) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-duration> from [1s] to [2s] at (1.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (-0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (0) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (0.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (0.6) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (1) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-duration> from [1s] to [2s] at (1.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-delay> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-delay> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-delay> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (-0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (0) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (0.3) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (0.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (0.6) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (1) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-delay> from [1s] to [2s] at (1.5) should be [2s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (-0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (0) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (0.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (0.6) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (1) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-delay> from [1s] to [2s] at (1.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (-0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (0) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (0.3) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (0.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (0.6) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (1) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-delay> from [1s] to [2s] at (1.5) should be [0s]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (-0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (0) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (0.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (0.6) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (1) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-behavior:allow-discrete: property <transition-property> from [color] to [background-color] at (1.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (-0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (0) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (0.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (0.6) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (1) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition-property:all and transition-behavor:allow-discrete: property <transition-property> from [color] to [background-color] at (1.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (-0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (0) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (0.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (0.6) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (1) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions: property <transition-property> from [color] to [background-color] at (1.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (-0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (0) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (0.3) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (0.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (0.6) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (1) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Transitions with transition: all: property <transition-property> from [color] to [background-color] at (1.5) should be [background-color]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (-0.3) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (0) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (0.3) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (0.5) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (0.6) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (1) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "CSS Animations: property <transition-property> from [color] to [background-color] at (1.5) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (-0.3) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (0) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (0.3) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (0.5) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (0.6) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (1) should be [all]",
+     "status": "PASS"
+    },
+    {
+     "name": "Web Animations: property <transition-property> from [color] to [background-color] at (1.5) should be [all]",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/transition-ready-time-offscreen.html": {
+   "harness": "OK",
+   "subtests": [
+    {
+     "name": "Transitions start at the same time regardless of on-screen status",
+     "status": "PASS"
+    }
+   ],
+   "oracle": {
+    "status": "agrees"
+   }
+  },
+  "css/css-animations/translation-animation-on-important-property-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/translation-animation-on-important-property.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/translation-animation-subpixel-offset-ref.html": {
+   "excluded": "reference"
+  },
+  "css/css-animations/translation-animation-subpixel-offset.html": {
+   "excluded": "not-testharness"
+  },
+  "css/css-animations/webkit-writing-mode-crash.html": {
+   "excluded": "not-testharness"
+  }
+ }
+}

@@ -93,8 +93,8 @@ merges. The editor gaps below wait behind T3.
 | T3b-1 | The `div-wpt-script` crate, its runtime, the code generator and animation-frames end to end | Merged (#116) |
 | T3b-2 | resize-observer: the `ResizeTestHelper` intrinsic, promises, and the DOM and style hosts | Merged (#119) |
 | T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | Merged (#124) |
-| T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | In progress |
-| T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset | Not started |
+| T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | Merged (#127) |
+| T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset (empty today) | In progress |
 
 ## After Tier 0
 
@@ -114,6 +114,67 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 22 November 2026: T3d, the transitions, animations and easing ledgers (RFC 0005 steps 2 and 3)
+
+Problem: nothing measured how much of `css/css-transitions`,
+`css/css-animations` and `css/css-easing` Div can run, or what stops the rest.
+That count is where the motion work (A1, A2, A3) starts.
+
+Change (`tools/wpt_script/`, `tests/wpt-script/`, CI's sparse checkout; no
+`divui` or engine change):
+
+- The recorder runs the three suites with Chromium's web test switches and
+  three repeats, and checks each run against Chromium's own record.
+- `idlharness` pages are excluded, as RFC 0005 section 4 says: they need
+  wptserve's IDL files.
+- 19 helper libraries are pinned by sha256 and analysed from source (RFC 0005,
+  "Analysed helpers"). Analysis only names what blocks a row. It can't make a
+  row translatable.
+- The capability table names the blocking features. Each new non-CSS row has
+  no `divui` call, and a CSS property maps only where `StyleProperty` has it.
+
+Ledger. **No subtest in these suites is translatable yet, so T3d generates no
+tests.**
+
+| Suite | Runs (agree, disputed) | Files excluded | Subtests | Translatable | Blocked | Disputed | Untranslatable |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| css-transitions | 116 (112, 4) | 74 | 3,215 | 0 | 2,611 | 563 | 41 |
+| css-animations | 112 (111, 1) | 135 | 1,207 | 0 | 1,202 | 5 | 0 |
+| css-easing | 12 (12, 0) | 1 | 156 | 0 | 151 | 0 | 5 |
+| Total | 240 (235, 5) | 210 | 4,578 | 0 | 3,964 | 568 | 46 |
+
+Div results for the three suites: **0 pass, 0 fail, 0 unsupported, 0 not run.**
+
+What the 3,964 blocked rows may need. A row can need several, and member names
+can match more than one interface, so these are upper bounds:
+
+| Need | Rows |
+| --- | --- |
+| A helper the runtime doesn't implement (`T3:helper-intrinsic`) | 3,864 |
+| `getComputedStyle` and its values (`gap:computed-style`) | 3,577 |
+| A3, Web Animations API | 2,789 |
+| A1, CSS Transitions from style rules | 2,535 |
+| A2, CSS Animations | 1,377 |
+| A surface with no table entry yet | 2,183 |
+
+- 560 of the 568 disputed rows are one page,
+  `properties-value-inherit-001.html`, which `TestExpectations` lists as
+  `[ Failure Pass ]`.
+- The 46 untranslatable rows are two pages whose script tag names a file the
+  pinned checkout doesn't have (`transitionevent-interface.js`,
+  `support/util.js`).
+- pointerevents: 17 rows that loaded the shared CSS helpers move from
+  `untranslatable` to `blocked` (40 to 23, and 2,002 to 2,019). Its 3
+  translatable rows and Div results don't change, and neither do the
+  resize-observer and animation-frames ledgers.
+
+Verification:
+
+- `python -m unittest discover -s tools/wpt_script -p "test_*.py"`: 68 tests
+  pass.
+- `ledger.py --check` and `codegen.py --check` pass against a checkout with
+  only the paths CI's sparse checkout fetches.
 
 ### 22 November 2026: T3c-2, computed subtest names and the first pointerevents tests (RFC 0005 step 3)
 

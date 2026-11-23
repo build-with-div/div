@@ -18,8 +18,9 @@ wptrunner does. Files that need wptserve features (`.sub.` substitution,
 generated `.any.js`/`.window.js` wrappers, `.headers`) or a person
 (`-manual`) are recorded as excluded with their reason, not run.
 
-A suite that needs real input (`INPUT_SUITES`) runs with the test driver
-Chromium's own web test server serves (`DRIVER_FILES`, from the same
+A suite in `ORACLE_SUITES` runs with the switches of Chromium's web test
+runner and is checked against Chromium's own pinned record. It also gets the
+test driver Chromium's web test server serves (`DRIVER_FILES`, from the same
 checkout). Its vendor file sends pointer actions through
 `chrome.gpuBenchmarking.pointerActionSequence`, so the browser starts with
 `--enable-gpu-benchmarking`. `--wpt-root` must then sit in a tree that keeps
@@ -88,7 +89,7 @@ DRIVER_FILES = {
         "third_party/blink/web_tests/resources/testdriver-vendor.js",
         "d84f8fcdaf4a2d3fbfd2f6951268345a2fb813637fe733a56421e282b370edf0"),
 }
-INPUT_SUITES = {"pointerevents"}
+ORACLE_SUITES = {"pointerevents", "css/css-transitions", "css/css-animations", "css/css-easing"}
 # The switches of content/web_test's runner that decide these tests' results,
 # so a run can be compared with Chromium's pinned baselines. The vendor file
 # also stands down under WebDriver (`navigator.webdriver`), which a debugging
@@ -140,6 +141,9 @@ def exclusion(relative: str) -> str | None:
         return "wptserve-substitution"
     if ".https." in name:
         return "https"
+    # RFC 0005 section 4: it needs wptserve's IDL files and parser alias.
+    if stem == "idlharness" or stem.startswith("idlharness-"):
+        return "idlharness"
     return None
 
 
@@ -367,7 +371,7 @@ def capture(wpt_root: Path, suite: str, chrome: str, chrome_dir: str | None,
         if only and relative not in only:
             continue
         to_run.extend(relative + variant for variant in page_variants(wpt_root / relative))
-    real_input = suite in INPUT_SUITES
+    real_input = suite in ORACLE_SUITES
     scripts = driver_files(wpt_root) if real_input else {}
     entries: dict[str, str] = {}
     if real_input:

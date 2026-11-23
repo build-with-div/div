@@ -65,7 +65,8 @@ CHROMIUM = ROOT / "tests/wpt-script/chromium"
 LEDGERS = ROOT / "tests/wpt-script/ledgers"
 # Div's recorded results for the generated tests (codegen.py --record).
 EXPECTED = ROOT / "tests/wpt-script/expected"
-SUITES = ("html/webappapis/animation-frames", "resize-observer", "pointerevents")
+SUITES = ("html/webappapis/animation-frames", "resize-observer", "pointerevents",
+          "css/css-transitions", "css/css-animations", "css/css-easing")
 ACORN_SHA256 = "402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93"
 
 # `<script>`, including XHTML/SVG forms such as `<h:script src="..."/>`.
@@ -151,6 +152,8 @@ HANDLER = re.compile(r"""\s(on[a-z]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))"""
 REL_STYLESHEET = re.compile(r"""\brel\s*=\s*["']?stylesheet""", re.I)
 CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 CSS_BLOCK = re.compile(r"\{([^{}]*)\}")
+# The at-rules that need an animation feature of their own.
+AT_RULE = re.compile(r"@(keyframes|starting-style)\b", re.I)
 # The property names `stylesheet!` accepts.
 PROPERTY_TABLE = ROOT / "crates/div-style/src/generated_properties.rs"
 PROPERTY_ARM = re.compile(r'^\s*"([a-z-]+)" => Some\(Self::\w+\),$', re.M)
@@ -189,6 +192,8 @@ def markup_surfaces(text: str, relative: str) -> list[str]:
     surfaces = set()
     for sheet in STYLE_ELEMENT.finditer(text):
         surfaces.add("markup:<style>")
+        rules = CSS_COMMENT.sub("", sheet.group(0))
+        surfaces.update(f"markup:@{name.lower()}" for name in AT_RULE.findall(rules))
         for block in CSS_BLOCK.findall(CSS_COMMENT.sub("", sheet.group(0))):
             for declaration in block.split(";"):
                 if ":" in declaration:
@@ -228,6 +233,81 @@ def front_end(pages: list[dict], intrinsics: dict, acorn: str) -> dict:
         ["node", str(TOOL / "translate.mjs"), acorn],
         input=json.dumps(payload), capture_output=True, text=True, encoding="utf-8", check=True)
     return {record["file"]: record for record in json.loads(result.stdout)}
+
+
+def expand_intrinsics(intrinsics: dict, capabilities: dict, wpt_root: Path, acorn: str) -> None:
+    """Fill in what each `analyse` helper's functions use, from its pinned source.
+
+    Each function's surfaces follow its calls, across the analysed helpers
+    too. `page` is what the helper's top-level code uses, which every subtest
+    on a page loading it needs. `declares` lists the functions that declare
+    subtests for the page.
+
+    The runtime doesn't implement these helpers yet, so every page loading
+    one is blocked on `T3:helper-intrinsic` (`helper:<path>`). Of a helper's
+    surfaces, only those the capability table names are kept, to attribute
+    the block to a feature: the rest are the helper's private fields.
+    """
+    paths = [path for path, entry in intrinsics.items() if entry.get("analyse")
+             and (wpt_root / path).is_file() and sha256(wpt_root / path) == entry["sha256"]]
+    if not paths:
+        return
+    payload = [{"file": path, "source": (wpt_root / path).read_text(encoding="utf-8")}
+               for path in paths]
+    result = subprocess.run(
+        ["node", str(TOOL / "translate.mjs"), acorn, "--helpers"],
+        input=json.dumps(payload), capture_output=True, text=True, encoding="utf-8", check=True)
+    records = json.loads(result.stdout)
+    functions: dict[str, set[str]] = {}
+    declaring: set[str] = set()
+    for record in records:
+        reasons = set(record["page"]["reasons"])
+        for name, found in record["functions"].items():
+            reasons.update(found["reasons"])
+            functions.setdefault(name, set()).update(found["surfaces"])
+            if found["declares"]:
+                declaring.add(name)
+        if reasons:
+            raise SystemExit(f"{record['file']} uses {sorted(reasons)}: review this helper")
+    # A call into another helper stands for what that function uses.
+    changed = True
+    while changed:
+        changed = False
+        for surfaces in functions.values():
+            for surface in list(surfaces):
+                other = surface[:-2] if surface.endswith("()") else None
+                if other in functions and not functions[other] <= surfaces:
+                    surfaces |= functions[other]
+                    changed = True
+    named = set(capabilities)
+    for record in records:
+        path = record["file"]
+        entry = intrinsics[path]
+        page = set(record["page"]["surfaces"])
+        for surface in list(page):
+            other = surface[:-2] if surface.endswith("()") else None
+            if other in functions:
+                page |= functions[other]
+        entry["page"] = sorted((page & named) | {f"helper:{path}"})
+        entry["provides"] = {name: sorted(functions[name] & named) for name in record["functions"]}
+        entry["declares"] = sorted(name for name in record["functions"] if name in declaring)
+        entry["page_declares"] = record["page_declares"]
+        capabilities[f"helper:{path}"] = {"feature": "T3:helper-intrinsic", "divui": None}
+        for name in entry["provides"]:
+            capabilities.setdefault(f"harness:{name}",
+                                    {"feature": "T3:helper-intrinsic", "divui": None})
+
+
+def helper_declared(record: dict, page: dict, intrinsics: dict) -> bool:
+    """Whether a helper the page loads declares subtests when it loads, or
+    the page calls one of its functions that does."""
+    if any(intrinsics[helper].get("page_declares") for helper in page["helpers"]):
+        return True
+    names = {name for helper in page["helpers"]
+             for name in intrinsics[helper].get("declares", [])}
+    used = {surface.removeprefix("harness:") for surface in record["whole_page"]["surfaces"]
+            if surface.startswith("harness:")}
+    return bool(names & used)
 
 
 def expected_baseline(wpt_root: Path, relative: str) -> dict[str, str] | None:
@@ -272,6 +352,7 @@ def subtest_surfaces(record: dict, page: dict, intrinsics: dict) -> list[str]:
     found, methods = set(), set()
     for helper in page["helpers"]:
         intrinsic = intrinsics[helper]
+        found.update(intrinsic.get("page", []))
         for name, surfaces in intrinsic["provides"].items():
             if name in used:
                 found.update(surfaces)
@@ -292,9 +373,10 @@ def classify_computed(record: dict, dynamic: list[dict], page: dict, intrinsics:
     It can't be tied to one declaration, so it needs the whole page: every
     script surface and all the markup must map to `divui`, and nothing on the
     page may be outside the subset. A name no declaration on the page can
-    produce stays `undeclared-subtest`.
+    produce stays `undeclared-subtest`; a helper function that declares
+    subtests for the page counts as a declaration.
     """
-    if not dynamic:
+    if not dynamic and not helper_declared(record, page, intrinsics):
         return {"status": "untranslatable", "reasons": ["undeclared-subtest"]}
     whole = record["whole_page"]
     reasons = set(whole["reasons"]) | {reason for subtest in dynamic
@@ -416,7 +498,7 @@ def build(suite: str, wpt_root: Path, acorn: str, intrinsics: dict, capabilities
                 row.update(status="untranslatable", reasons=["parse-error"])
             elif subtest is None:
                 row.update(classify_computed(record, dynamic, page, intrinsics, capabilities))
-                if dynamic:
+                if dynamic or helper_declared(record, page, intrinsics):
                     row["computed_name"] = True
             elif subtest.get("untranslatable"):
                 row.update(status="untranslatable", reasons=subtest["untranslatable"])
@@ -491,6 +573,7 @@ def main() -> int:
     capabilities = load_json(TOOL / "capabilities.json")
     check_css_capabilities(capabilities,
                            div_css_properties(PROPERTY_TABLE.read_text(encoding="utf-8")))
+    expand_intrinsics(intrinsics, capabilities, args.wpt_root.resolve(), args.acorn)
     failed = False
     for suite in args.suite or SUITES:
         text = render(build(suite, args.wpt_root.resolve(), args.acorn, intrinsics, capabilities))

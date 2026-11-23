@@ -495,6 +495,30 @@ that one, for the rows whose name no declaration on the page states:
 The ledger marks these rows `computed_name`. A row whose name a declaration
 states keeps the per-declaration rule above.
 
+### Analysed helpers
+
+The CSS suites load helper libraries that declare subtests and use most of
+the animation API. Listing each helper function's surfaces by hand wouldn't
+stay accurate, so an intrinsic marked `analyse` is read from its pinned source
+(still checked by sha256):
+
+- A function's surfaces follow its calls, within the file and across the other
+  analysed helpers. The body of an immediately invoked wrapper counts as
+  top-level code, and what it assigns to the global object is exposed.
+- A helper function that declares subtests counts as a declaration for rule 1
+  of "Computed subtest names", and so does a helper that declares them when it
+  loads.
+- **Analysis never makes a row translatable.** The runtime doesn't implement
+  these helpers, so every page loading one is blocked on
+  `T3:helper-intrinsic`. Only the surfaces the capability table names are kept
+  from a helper, so the block can be attributed to a feature (A1, A2, A3 and
+  so on). When the runtime implements a helper, its entry becomes a reviewed
+  `provides` list.
+- A helper using dynamic code fails the ledger until someone reviews it.
+
+Member names can match more than one interface (`.cancel()`, `.ready`), so a
+feature's count is how many rows may need it, not an exact figure.
+
 ### Affected tracks
 
 The framework track owns it, and no other track is affected:
