@@ -838,7 +838,9 @@ impl Engine {
     /// Create an application element of a native kind that keeps its own
     /// local name, such as `h1` or `blockquote` over the `Div` kind. Type
     /// selectors match the name; layout and paint follow the kind, with its
-    /// display default as [`Engine::create_native_element`] gives it.
+    /// display default as [`Engine::create_native_element`] gives it. The
+    /// name must be non-empty and ASCII-lowercase, as an HTML document's
+    /// `createElement` leaves it; debug builds assert this.
     pub fn create_native_element_named(
         &mut self,
         tag: ElementTag,
@@ -864,6 +866,12 @@ impl Engine {
     }
 
     fn set_created_name(&mut self, handle: NodeHandle, name: &str) -> Result<(), EngineError> {
+        // An HTML document's names are ASCII-lowercase, as type selectors
+        // are once parsed, and never empty.
+        debug_assert!(
+            !name.is_empty() && !name.bytes().any(|byte| byte.is_ascii_uppercase()),
+            "element names are non-empty and ASCII-lowercase: {name:?}"
+        );
         let node = self.resolve(handle)?;
         let data = self.document.node_mut(node);
         if data.tag.default_local_name() != Some(name) {
@@ -2489,10 +2497,15 @@ impl Engine {
         Ok(self.document.node(self.resolve(handle)?).tag)
     }
 
-    /// The element's local name, as DOM `Element.localName` reports it: the
-    /// name it was created with, else its kind's default. Text has none.
+    /// An authored element's local name, as DOM `Element.localName` reports
+    /// it: the name it was created with, else its kind's default. Text, the
+    /// viewport root and generated pseudo-elements have none.
     pub fn local_name(&self, handle: NodeHandle) -> Result<Option<&str>, EngineError> {
-        Ok(self.document.node(self.resolve(handle)?).local_name())
+        let node = self.document.node(self.resolve(handle)?);
+        if node.pseudo_kind.is_some() {
+            return Ok(None);
+        }
+        Ok(node.local_name())
     }
 
     /// Whether this handle identifies an authored element rather than text or

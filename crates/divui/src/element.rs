@@ -50,19 +50,32 @@ impl WeakElement {
 }
 
 impl Element {
-    /// Create a native retained element. `foreignObject` creates an SVG
-    /// viewport for native UI children; like `div`, it has container kind
-    /// [`ElementTag::Div`]. No document scripts execute.
+    /// Create a native retained element, as `document.createElement` does in
+    /// an HTML document. The tag is ASCII-lowercased and kept as the element's
+    /// [local name](Element::local_name), which type selectors match; its
+    /// native [kind](Element::kind) decides layout and paint. Every element
+    /// GitHub's HTML sanitizer allows has its HTML kind and display. Any other
+    /// valid element name creates an inline element that keeps its name, as
+    /// Blink's `HTMLUnknownElement`. [`Error::UnknownTag`] is returned for a
+    /// name that is not a valid element name, for `html` and `body` (the
+    /// document has its own), and for elements whose behavior Div does not
+    /// have yet: `script`, `style`, `template`, `head`, `title`, `meta`,
+    /// `link`, `base`, `area`, `datalist`, `noscript` and `dialog`.
+    ///
+    /// `foreignObject` creates an SVG viewport for native UI children; like
+    /// `div`, it has container kind [`ElementTag::Div`]. No document scripts
+    /// execute.
     pub fn create(document: &Document, tag: &str) -> Result<Self, Error> {
         if tag.eq_ignore_ascii_case("foreignobject") {
             return Self::create_svg_foreign_object(document);
         }
-        let (tag_kind, display) = tag_definition(tag)?;
+        let name = tag.to_ascii_lowercase();
+        let (tag_kind, display) = tag_definition(&name)?;
         let handle = document.with_engine_mut(|engine| {
             if let Some(display) = display {
-                engine.create_native_element_with_display_default(tag_kind, display)
+                engine.create_native_element_named_with_display_default(tag_kind, &name, display)
             } else {
-                engine.create_native_element(tag_kind)
+                engine.create_native_element_named(tag_kind, &name)
             }
         })?;
         Ok(Self::from_handle(document.clone(), handle))
@@ -93,6 +106,20 @@ impl Element {
     pub fn kind(&self) -> Result<ElementTag, Error> {
         self.document
             .with_engine(|engine| engine.element_tag(self.handle))?
+            .map_err(Into::into)
+    }
+
+    /// Return this element's local name, as DOM `Element.localName` does:
+    /// `h1`, `blockquote`, or any other name it was created with. It is
+    /// `None` only for the document's root, [`Document::body`], which is the
+    /// viewport rather than an HTML element.
+    pub fn local_name(&self) -> Result<Option<String>, Error> {
+        self.document
+            .with_engine(|engine| {
+                engine
+                    .local_name(self.handle)
+                    .map(|name| name.map(str::to_owned))
+            })?
             .map_err(Into::into)
     }
 
@@ -1246,14 +1273,34 @@ pub(crate) fn validate_class_token(class: &str) -> Result<(), Error> {
     }
 }
 
-fn tag_definition(tag: &str) -> Result<(ElementTag, Option<Display>), Error> {
+/// The native kind and constructor display of an HTML element, by its
+/// lowercased local name.
+///
+/// It covers every tag GitHub's HTML sanitizer allows, as sample-markdown's
+/// `markdown-tree/src/sanitize.rs` lists them (`tagNames` of hast-util-sanitize
+/// 5.0.2's default schema, which follows GitHub's), and the elements the
+/// browser style preset names (RFC 0004, `docs/architecture/
+/// user-agent-stylesheet.md`). Flow elements are block `Div`s and phrasing
+/// elements inline `Span`s, as the HTML Standard's rendering section displays
+/// them; the style preset adds the rest of their default style. A valid
+/// name not listed is an inline `Span`, as Blink's `HTMLUnknownElement`,
+/// except the elements a browser hides by default, which stay rejected.
+fn tag_definition(name: &str) -> Result<(ElementTag, Option<Display>), Error> {
     use ElementTag as T;
-    let normalized = tag.to_ascii_lowercase();
-    let definition = match normalized.as_str() {
+    let definition = match name {
         "div" | "main" | "nav" | "header" | "footer" | "section" | "article" | "aside" | "p"
-        | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "ul" | "ol" | "hr" => (T::Div, None),
+        | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "hgroup" | "ul" | "ol" | "menu" | "hr"
+        | "blockquote" | "pre" | "dl" | "dt" | "dd" | "figure" | "figcaption" | "address"
+        | "search" | "center" => (T::Div, None),
         "li" => (T::Div, Some(Display::ListItem)),
-        "span" | "a" | "label" | "strong" | "em" | "small" => (T::Span, None),
+        "span" | "a" | "label" | "strong" | "em" | "small" | "b" | "i" | "u" | "s" | "strike"
+        | "tt" | "code" | "kbd" | "samp" | "var" | "sub" | "sup" | "q" | "del" | "ins" | "mark"
+        | "abbr" | "cite" | "dfn" | "time" | "data" | "bdi" | "bdo" | "picture" | "source" => {
+            (T::Span, None)
+        }
+        // Hidden by default (15.3.1 "Hidden elements"), with no behavior to
+        // keep: Chromium 147's computed `display` for each is `none`.
+        "rp" | "basefont" | "noembed" | "noframes" | "param" => (T::Span, Some(Display::None)),
         "br" => (T::Break, None),
         "wbr" => (T::WordBreak, None),
         "ruby" => (T::Ruby, None),
@@ -1289,9 +1336,42 @@ fn tag_definition(tag: &str) -> Result<(ElementTag, Option<Display>), Error> {
         "optgroup" => (T::OptGroup, None),
         "form" => (T::Form, None),
         "embed" => (T::Embed, None),
-        _ => return Err(Error::UnknownTag(tag.to_owned())),
+        // The HTML Standard hides these by default (15.3.1 "Hidden elements")
+        // and gives them behavior Div does not have yet; they stay rejected
+        // rather than become inert look-alikes.
+        "area" | "base" | "datalist" | "head" | "link" | "meta" | "script" | "style"
+        | "template" | "title" | "noscript" | "dialog" => {
+            return Err(Error::UnknownTag(name.to_owned()))
+        }
+        // The document's own root and body. Layout and paint treat every
+        // `Html` and `Body` node as the document's, so content cannot create
+        // another one.
+        "html" | "body" => return Err(Error::UnknownTag(name.to_owned())),
+        _ if is_valid_element_name(name) => (T::Span, None),
+        _ => return Err(Error::UnknownTag(name.to_owned())),
     };
     Ok(definition)
+}
+
+/// DOM's "valid element local name", which Chromium 147's `createElement`
+/// follows:
+/// - an ASCII letter, then anything but ASCII whitespace, NULL, `/` and `>`;
+/// - or `:`, `_` or a non-ASCII character, then only ASCII alphanumerics,
+///   `-`, `.`, `:`, `_` and non-ASCII characters.
+fn is_valid_element_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if first.is_ascii_alphabetic() {
+        chars.all(|ch| !matches!(ch, '\t' | '\n' | '\x0c' | '\r' | ' ' | '\0' | '/' | '>'))
+    } else if matches!(first, ':' | '_') || !first.is_ascii() {
+        chars.all(|ch| {
+            ch.is_ascii_alphanumeric() || matches!(ch, '-' | '.' | ':' | '_') || !ch.is_ascii()
+        })
+    } else {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -1300,6 +1380,150 @@ mod tests {
     use crate::events::{EventPhase, Modifiers, MouseButton, MouseEventType};
     use div_style::{AnimationOptions, FillMode, Keyframes, Overflow, OverflowClipBox};
     use std::cell::{Cell, RefCell};
+
+    /// `tagNames` of sample-markdown's sanitizer (`markdown-tree/src/
+    /// sanitize.rs`, hast-util-sanitize 5.0.2's default schema, which follows
+    /// GitHub's).
+    const SANITIZER_TAGS: &[&str] = &[
+        "a",
+        "b",
+        "blockquote",
+        "br",
+        "code",
+        "dd",
+        "del",
+        "details",
+        "div",
+        "dl",
+        "dt",
+        "em",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "hr",
+        "i",
+        "img",
+        "input",
+        "ins",
+        "kbd",
+        "li",
+        "ol",
+        "p",
+        "picture",
+        "pre",
+        "q",
+        "rp",
+        "rt",
+        "ruby",
+        "s",
+        "samp",
+        "section",
+        "source",
+        "span",
+        "strike",
+        "strong",
+        "sub",
+        "summary",
+        "sup",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+        "tt",
+        "ul",
+        "var",
+    ];
+
+    #[test]
+    fn every_sanitizer_tag_is_created_with_its_local_name() {
+        let document = Document::new(200, 100).unwrap();
+        for &tag in SANITIZER_TAGS {
+            let element = Element::create(&document, tag).unwrap_or_else(|e| panic!("{tag}: {e}"));
+            assert_eq!(element.local_name().unwrap().as_deref(), Some(tag));
+            // Names are kept in lowercase, as an HTML document's createElement keeps them.
+            let upper = Element::create(&document, &tag.to_ascii_uppercase()).unwrap();
+            assert_eq!(upper.local_name().unwrap().as_deref(), Some(tag));
+        }
+    }
+
+    #[test]
+    fn named_elements_keep_their_html_kind_and_display() {
+        let document = Document::new(200, 100).unwrap();
+        let display = |element: &Element| element.computed_style().unwrap().display;
+        for tag in [
+            "p",
+            "h1",
+            "blockquote",
+            "pre",
+            "dl",
+            "dd",
+            "figure",
+            "address",
+        ] {
+            let element = Element::create(&document, tag).unwrap();
+            document.body().append_child(&element).unwrap();
+            assert_eq!(element.kind().unwrap(), ElementTag::Div, "{tag}");
+            assert_eq!(display(&element), Display::Block, "{tag}");
+        }
+        for tag in [
+            "code", "kbd", "sub", "sup", "del", "b", "i", "s", "mark", "abbr",
+        ] {
+            let element = Element::create(&document, tag).unwrap();
+            document.body().append_child(&element).unwrap();
+            assert_eq!(element.kind().unwrap(), ElementTag::Span, "{tag}");
+            assert_eq!(display(&element), Display::Inline, "{tag}");
+        }
+        let item = Element::create(&document, "li").unwrap();
+        document.body().append_child(&item).unwrap();
+        assert_eq!(display(&item), Display::ListItem);
+        // Hidden by default, as in Chromium 147, but an author can show them.
+        for tag in ["rp", "basefont", "noembed", "noframes", "param"] {
+            let element = Element::create(&document, tag).unwrap();
+            document.body().append_child(&element).unwrap();
+            assert_eq!(display(&element), Display::None, "{tag}");
+            element.set_display(Display::Inline).unwrap();
+            assert_eq!(display(&element), Display::Inline, "{tag}");
+        }
+    }
+
+    #[test]
+    fn other_valid_names_are_unknown_inline_elements() {
+        let document = Document::new(200, 100).unwrap();
+        // Chromium 147 accepts each of these names.
+        for tag in [
+            "x-widget",
+            "acronym",
+            "marquee",
+            "x!",
+            "_",
+            ":",
+            "_x-.:_9\u{e9}",
+            "\u{e9}x",
+        ] {
+            let element = Element::create(&document, tag).unwrap();
+            document.body().append_child(&element).unwrap();
+            assert_eq!(element.kind().unwrap(), ElementTag::Span, "{tag}");
+            assert_eq!(element.local_name().unwrap().as_deref(), Some(tag));
+            assert_eq!(element.computed_style().unwrap().display, Display::Inline);
+        }
+        // Names Chromium 147 rejects, elements with behavior Div does not
+        // have yet, and the document's own root and body.
+        for tag in [
+            "", "1x", "a b", "a/b", "x>", "x\0", "_x!", "_x y", "-x", "script", "style",
+            "template", "head", "dialog", "html", "body",
+        ] {
+            assert!(
+                matches!(Element::create(&document, tag), Err(Error::UnknownTag(_))),
+                "{tag:?}"
+            );
+        }
+    }
 
     #[test]
     fn native_edit_commands_dispatch_after_borrows_and_preserve_graphemes() {

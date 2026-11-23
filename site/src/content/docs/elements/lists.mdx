@@ -14,6 +14,15 @@ elements](/elements/div/) that hold the items.
 
 <ElementTable tags={['ul', 'ol', 'li']} links={false} />
 
+## menu, dl, dt and dd
+
+`<menu>`, `<dl>`, `<dt>` and `<dd>` are also plain [block
+elements](/elements/div/). Div keeps their names but gives them no default
+style: `<menu>` has no list padding, `<dl>` has no margins, and `<dd>` is
+not indented.
+
+<ElementTable tags={['menu', 'dl', 'dt', 'dd']} links={false} />
+
 ## Markers
 
 The marker is set with the `list-style` property, which takes `disc` (the
@@ -44,7 +53,7 @@ for a complete example.
 
 ## Accessibility
 
-All three are `GenericContainer`; there is no list or list-item role by
+All of them are `GenericContainer`; there is no list or list-item role by
 default. Set `AccessibilityRole::List` and `ListItem` with
 `set_accessibility_role` when a screen reader should announce a list.
 
@@ -55,4 +64,4 @@ default. Set `AccessibilityRole::List` and `ListItem` with
 | `ul` and `ol` have padding and margins | None: add `padding-left` for the markers |
 | `ol` numbers its items (`decimal`, `lower-alpha`…) | Only `disc` and `none`: write numbers as text |
 | List and list-item roles | `GenericContainer` |
-| `dl`, `dt`, `dd`, `menu` | Not supported |
+| `menu` has list padding; `dl` has margins; `dd` is indented | None: all are plain blocks |

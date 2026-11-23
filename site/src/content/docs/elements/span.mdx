@@ -1,6 +1,6 @@
 ---
 title: span and inline elements
-description: span, a, label, strong, em and small are one plain inline element.
+description: span, a, label, strong, em, code, sub, mark and the other phrasing tags are one plain inline element.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -11,14 +11,37 @@ import Example from '../../../components/Example.astro';
 across lines. Use it to style part of a sentence, or to hold a short label
 inside a row.
 
-Five other tags create **the same element**: `a`, `label`, `strong`, `em`
-and `small`. None has a style or behavior of its own: `<strong>` is not
-bold, `<em>` is not italic, `<a>` does not navigate, and `<label>` is not
-tied to a control.
+Thirty other tags create **the same element**: `a`, `label`, `strong`, `em`,
+`small`, `b`, `i`, `u`, `s`, `strike`, `tt`, `code`, `kbd`, `samp`, `var`,
+`sub`, `sup`, `q`, `del`, `ins`, `mark`, `abbr`, `cite`, `dfn`, `time`,
+`data`, `bdi`, `bdo`, `picture` and `source`. Div keeps the name, which
+`Element::local_name` returns, but none has a style or behavior of its own:
+
+- `<strong>` and `<b>` are not bold, and `<em>`, `<i>`, `<cite>`, `<dfn>`
+  and `<var>` are not italic.
+- `<small>` is not smaller.
+- `<code>`, `<kbd>`, `<samp>` and `<tt>` are not monospace.
+- `<sub>` and `<sup>` are not lowered, raised or smaller.
+- `<q>` draws no quotation marks.
+- `<u>`, `<ins>`, `<abbr>`, `<s>`, `<strike>` and `<del>` draw no line, and
+  `<mark>` has no background.
+- `<bdi>` and `<bdo>` do not change the text direction, and `dir` has no
+  effect on them.
+- `<picture>` and `<source>` choose and load no image: `srcset` is not read.
+  Use an [`<img>`](/elements/img/).
+- `<a>` does not navigate, and `<label>` is not tied to a control.
 
 <Example name="el_span" alt="A paragraph with a bold phrase, an italic word, a smaller word and a blue phrase reading This link" />
 
-<ElementTable tags={['span', 'a', 'label', 'strong', 'em', 'small']} links={false} />
+<ElementTable tags={['span', 'a', 'label', 'strong', 'em', 'small', 'b', 'i', 'u', 's', 'strike', 'tt', 'code', 'kbd', 'samp', 'var', 'sub', 'sup', 'q', 'del', 'ins', 'mark', 'abbr', 'cite', 'dfn', 'time', 'data', 'bdi', 'bdo', 'picture', 'source']} links={false} />
+
+## Hidden by default
+
+`<basefont>`, `<noembed>`, `<noframes>` and `<param>` are inline elements
+whose default `display` is `none`, so they and their content do not appear
+until you set a `display`. They have no other behavior.
+
+<ElementTable tags={['basefont', 'noembed', 'noframes', 'param']} links={false} />
 
 ## Attributes
 
@@ -66,6 +89,8 @@ name with `aria-label` when its text is not enough.
 | HTML | Div |
 | --- | --- |
 | `<strong>` is bold, `<em>` italic, `<small>` smaller | No default styles |
+| `<code>` is monospace, `<sub>` and `<sup>` shift, `<q>` adds quotes, `<mark>` is highlighted | None of these yet: style the element yourself |
+| `<bdi>` and `<bdo>` control text direction | No effect |
+| `<picture>` and `<source>` choose an image | No image: use `<img>` |
 | `<a href>` navigates, is focusable and has the link role | No navigation, not focusable, `GenericContainer` |
 | `<label for>` forwards clicks to its control | No association |
-| Many more inline tags (`b`, `i`, `code`, `kbd`, `mark`, `sub`, `sup`…) | Not supported; style a `<span>` instead |

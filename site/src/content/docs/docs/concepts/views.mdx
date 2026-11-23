@@ -32,8 +32,9 @@ Several roots in one `view!` make a `ViewNode::Fragment`, and an empty
 `view! {}` makes `ViewNode::Empty`.
 
 <Aside type="caution" title="Things that compile but go wrong">
-- An unknown tag such as `<b>`, `<code>` or `<dialog>` compiles but panics
-  when the view is built. The [element list](/elements/) is closed.
+- A misspelt tag compiles and becomes a plain inline element. A few names
+  Div has no behavior for, such as `<script>`, compile but panic when the
+  view is built; the [element list](/elements/) names them.
 - `{expr}` needs a value that implements `Display`: write
   `{count.get()}`, not `{count}`.
 - A boolean attribute is on whatever its value: `disabled={false}` still

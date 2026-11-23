@@ -14,6 +14,97 @@ Each named gap is pinned by a test that fails if its count changes.
 | `rounded-border-raster-1.25x`: the outer curve of a solid rounded border ring at 1.25x differs from Chromium's by up to 7, and the clipped content next to it follows | fidelity (border raster) | `native_rounded_clip.rs`, page `rrect` | 23 pixels at 1.25x, all in the bottom-left corner | 17 November 2026 |
 | `gradient-dither-fractional-scale`: Chromium's dithered gradient blends to 129 on a rounded clip's curve where Div blends to 128 | fidelity (gradient raster) | `native_rounded_clip.rs`, page `gradient-clip` | 36 pixels at 1.25x | 17 November 2026 |
 
+## 22 November 2026: HTML element names (S6a and S6b)
+
+Platform-plan item 0.3 (S6) gives each element the HTML name it was created
+with, beside its layout and paint kind. Both changes are prerequisites of
+RFC 0004's browser style preset.
+
+- **S6a** (`div-dom`, `div-engine`): `NodeData` keeps the element's
+  `LocalName`. Type selectors and the cascade's tag buckets match that name, so
+  `div {}` no longer matches `p` or `h1`.
+- **S6b** (`divui`): `Element::create` lowercases the tag and keeps it as the
+  local name.
+  - The element table covers every tag that sample-markdown's sanitizer allows
+    (`crates/markdown-tree/src/sanitize.rs`, hast-util-sanitize 5.0.2's
+    default schema). Flow elements are block `Div`s and phrasing elements are
+    inline `Span`s, as the HTML Standard's rendering section displays them.
+  - Any other valid element name creates an inline element that keeps its
+    name, as Blink's `HTMLUnknownElement` does. "Valid" is DOM's current rule,
+    which Chromium 147 follows (measured below): `_x`, `:x` and `éx` are
+    accepted, while `1x`, `_x!` and `a b` are rejected.
+  - `rp`, `basefont`, `noembed`, `noframes` and `param` are hidden with no
+    other behavior. They are inline elements whose constructor display is
+    `none`, as `li`'s is `list-item`.
+  - The rest of the standard's hidden elements (`head`, `script`, `style`,
+    `template`, `title`, `meta`, `link`, `base`, `area`, `datalist`), plus
+    `noscript` and `dialog`, have behavior Div lacks, so they are still
+    rejected with `UnknownTag`.
+  - `html` and `body` are rejected too. Layout and paint treat every `Html`
+    and `Body` node as the document's own (`div-layout/src/block.rs` body
+    overflow propagation, `div-paint/src/painter.rs` body outlines), so content
+    must not create a second one. S6c builds the root through the engine.
+
+No preset exists yet, so a named element is styled only by author rules.
+
+**Chromium 147 measurements** (pinned Windows Chrome for Testing,
+`getComputedStyle` and `document.createElement` through
+`tools/qualification/windows_chrome.py`):
+
+- `rp`, `basefont`, `noembed`, `noframes` and `param` compute `display: none`.
+- `html` and `body` compute `display: block`.
+- `q` computes `display: inline`, and its `::before` and `::after` have
+  `content: open-quote` and `close-quote`.
+- `createElement` accepts `_x`, `:x`, `éx`, `_`, `:`, `x!` and `a.b-c`, and
+  throws `InvalidCharacterError` for `1x`, `_x!`, `x y`, `x/y`, `x>y`, a name
+  with NUL and the empty name.
+
+**Named gaps:**
+
+- **`q` quotes.** Chromium draws quotation marks from its user-agent
+  `q::before` and `q::after`. Div's `q` is a plain inline element. This needs
+  generated `content` with `open-quote` and `close-quote` and a `quotes`
+  property. The design note's first part does not list `q`, so the browser
+  preset adds it once Div supports them.
+- **Of-type pseudo-classes.** `:nth-of-type` and the other of-type
+  pseudo-classes are not supported yet (`selector_parser.rs`). When they are,
+  "same type" must compare local names, not kinds, or `p` and `h1` (both `Div`
+  kind) would count as one type. This came from the engine's review of S6a.
+
+**Verification** (WSL, CI Skia flags, census under the census lock):
+
+- `cargo fmt --all --check`: clean at `af739f7`, S6b rebased on main `24436b9`.
+- `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components
+  -p div-engine -p div-dom` with `divui/async divui/http divui/testing` at
+  `af739f7`: 131 test binaries, 1,023 passed, 0 failed, 15 ignored.
+- The site's "does not do yet" lines, measured at `af739f7` with a throwaway
+  `divui` test:
+  - The computed style of each of the 37 new block and inline tags equals
+    `div`'s or `span`'s.
+  - `pre` lays its line breaks out as one line.
+  - `code`, `kbd`, `samp`, `tt`, `q`, `sub`, `sup`, `b`, `i`, `small` and `mark`
+    have the width, height and position of a `span` with the same text.
+  - `dir="rtl"` leaves the computed style of `bdi` and `bdo` unchanged.
+  - `picture` and `source` are zero-width, and no crate reads `srcset`.
+- `site-build`'s steps (`npm ci`, `check-reference`, `build`, `build:cover`)
+  pass at `af739f7` on local Node 22.18; CI uses Node 24.22.1. All 102 accepted
+  tags appear in `site/src/data/elements.json`.
+- Expanded census and CSS Grid coverage, S6a `6c7bdd9` against S6b's first
+  version `0c1ce64`:
+  both sides are 16,296 exact, 7,432 different, 0 errors (census) and
+  1,473 / 2,575 / 156 (coverage).
+  - All 23,728 census pages and 1,051 coverage tests keep the same status, pixel
+    count and Div image hash.
+  - The census builds its pages through the engine, not `Element::create`
+    (`pixel-compare` does not depend on `divui`), so the change cannot reach
+    it. The review changes since then touch the element table, plus an
+    accessor and a debug assertion on named creation in the engine, none of
+    which `pixel-compare` calls.
+- **Not measured:** sample-markdown's semantic mode (0/48 pages and 0/428 boxes
+  at its last measurement). Its harness pins a Div commit and replaces rejected
+  tags with stand-ins. It is measured again with the style preset (S5), which
+  its pages need.
+
 ## 19 November 2026: border-image tiling as Blink's NinePieceImageGrid
 
 - **Problem:** at 1.25x, 1.5x and 2x, `css-backgrounds/border-image-repeat-005`

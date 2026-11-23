@@ -106,6 +106,13 @@
       "role": "GenericContainer"
     },
     {
+      "tag": "hgroup",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
       "tag": "ul",
       "kind": "Div",
       "display": "block",
@@ -120,7 +127,84 @@
       "role": "GenericContainer"
     },
     {
+      "tag": "menu",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
       "tag": "hr",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "blockquote",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "pre",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "dl",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "dt",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "dd",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "figure",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "figcaption",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "address",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "search",
+      "kind": "Div",
+      "display": "block",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "center",
       "kind": "Div",
       "display": "block",
       "control": false,
@@ -172,6 +256,216 @@
       "tag": "small",
       "kind": "Span",
       "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "b",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "i",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "u",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "s",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "strike",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "tt",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "code",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "kbd",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "samp",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "var",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "sub",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "sup",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "q",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "del",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "ins",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "mark",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "abbr",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "cite",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "dfn",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "time",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "data",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "bdi",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "bdo",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "picture",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "source",
+      "kind": "Span",
+      "display": "inline",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "rp",
+      "kind": "Span",
+      "display": "none",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "basefont",
+      "kind": "Span",
+      "display": "none",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "noembed",
+      "kind": "Span",
+      "display": "none",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "noframes",
+      "kind": "Span",
+      "display": "none",
+      "control": false,
+      "role": "GenericContainer"
+    },
+    {
+      "tag": "param",
+      "kind": "Span",
+      "display": "none",
       "control": false,
       "role": "GenericContainer"
     },

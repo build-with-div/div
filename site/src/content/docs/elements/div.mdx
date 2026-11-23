@@ -1,6 +1,6 @@
 ---
 title: div and block elements
-description: div, main, nav, header, footer, section, article, aside, p, h1 to h6 and hr are one plain block element.
+description: div, the sectioning tags, p, h1 to h6, hr, blockquote, pre, figure and other flow tags are one plain block element.
 ---
 
 import ElementTable from '../../../components/ElementTable.astro';
@@ -10,15 +10,25 @@ import Example from '../../../components/Example.astro';
 its container, and holds other elements and text. It is the element you use
 most, for every container, row, column and card.
 
-Fifteen other tags create **the same element**: `main`, `nav`, `header`,
-`footer`, `section`, `article`, `aside`, `p`, `h1` to `h6` and `hr`. Pick
-the one that makes your markup easy to read; Div treats them all as a
-`div`. A heading is not larger or bold, a paragraph has no margins, and an
-`<hr>` draws nothing until you give it a border.
+Twenty-three other tags create **the same element**: `main`, `nav`,
+`header`, `footer`, `section`, `article`, `aside`, `p`, `h1` to `h6`, `hr`,
+`hgroup`, `blockquote`, `pre`, `figure`, `figcaption`, `address`, `search`
+and `center`. Pick the one that makes your markup easy to read. Div keeps
+the name, which `Element::local_name` returns, and otherwise treats them all
+as a `div`. A heading is not larger or bold, a paragraph has no margins, and
+an `<hr>` draws nothing until you give it a border.
+
+The same goes for the rest:
+
+- `<pre>` does not keep whitespace: its spaces and line breaks collapse as
+  in any block.
+- `<blockquote>` and `<figure>` have no margins.
+- `<address>` is not italic.
+- `<center>` does not center its content.
 
 <Example name="el_div" alt="A card with the heading Notifications, a gray description, two lines of settings and a light gray footer reading Saved automatically" />
 
-<ElementTable tags={['div', 'main', 'nav', 'header', 'footer', 'section', 'article', 'aside', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr']} links={false} />
+<ElementTable tags={['div', 'main', 'nav', 'header', 'footer', 'section', 'article', 'aside', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'hgroup', 'blockquote', 'pre', 'figure', 'figcaption', 'address', 'search', 'center']} links={false} />
 
 ## Attributes
 
@@ -80,6 +90,7 @@ text of its own.
 | HTML | Div |
 | --- | --- |
 | Headings are large and bold; `p` has margins; `hr` draws a line | No default styles: all of them are a plain block |
+| `pre` keeps whitespace; `blockquote` and `figure` have margins; `address` is italic; `center` centers | None of these yet |
 | Each tag has a semantic role (heading, navigation, main…) | All are `GenericContainer`; set the role yourself |
-| The tag name is kept (`tagName`) | Only the kind is kept: `kind()` returns `Div` |
+| The tag name is kept (`tagName`) | Kept too: `local_name()` returns it, and `kind()` returns `Div` |
 | `<p>` closes itself before a block | Elements nest exactly as written |
