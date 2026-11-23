@@ -29,7 +29,10 @@ AUTHORED_OUT = ROOT / "crates/div-style/src/generated_authored_fields.rs"
 # `CSS.supports`, `setProperty`, a style attribute and a stylesheet. They keep
 # their typed `StyleProperty` and C constant, and have no name lookup, so no
 # parser or tool can reach them from CSS text.
+# Some names below are specified in CSS but not shipped by pinned Chromium.
+# Each row also keeps its typed setter.
 INTERNAL_CSS_NAMES = (
+    # One axis of a corner radius.
     "border-top-left-radius-x",
     "border-top-left-radius-y",
     "border-top-right-radius-x",
@@ -38,6 +41,21 @@ INTERNAL_CSS_NAMES = (
     "border-bottom-right-radius-y",
     "border-bottom-left-radius-x",
     "border-bottom-left-radius-y",
+    # Parts of `filter`, `scrollbar-color`, `scroll-snap-type` and
+    # `scroll-snap-align`.
+    "filter-blur",
+    "filter-grayscale",
+    "scrollbar-track-color",
+    "scrollbar-thumb-color",
+    "scroll-snap-axis",
+    "scroll-snap-strictness",
+    "scroll-snap-align-block",
+    "scroll-snap-align-inline",
+    # Specified in CSS, but not shipped by Chromium 147.
+    "block-ellipsis",
+    "font-synthesis-position",
+    "hanging-punctuation",
+    "ruby-overhang",
 )
 
 # Frozen from Chromium 147.0.7727.24's css_properties.json5 after excluding

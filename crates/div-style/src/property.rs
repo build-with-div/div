@@ -3788,7 +3788,12 @@ mod tests {
         assert_eq!(cases.len(), 79);
         let mut style = ComputedStyle::initial();
         for (name, literal) in cases {
-            let property = StyleProperty::from_css_name(name).unwrap();
+            // Through the metadata: some of these are typed-only names.
+            let property = PROPERTY_METADATA
+                .iter()
+                .find(|row| row.css_name == name)
+                .unwrap()
+                .property;
             let value =
                 parse_literal(property, literal).unwrap_or_else(|error| panic!("{name}: {error}"));
             apply_to_computed(&mut style, property, &value, (800.0, 600.0))

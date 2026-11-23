@@ -1,0 +1,422 @@
+{
+ "dropped": [
+  {
+   "name": "block-ellipsis",
+   "value": "auto",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "block-ellipsis",
+   "value": "no-ellipsis",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "block-ellipsis",
+   "value": "\"x\"",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-blur",
+   "value": "0",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-blur",
+   "value": "2",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-blur",
+   "value": "2px",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-grayscale",
+   "value": "0",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-grayscale",
+   "value": "1",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "filter-grayscale",
+   "value": "0.5",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "font-synthesis-position",
+   "value": "auto",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "font-synthesis-position",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "first",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "last",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "first last",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "allow-end",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "hanging-punctuation",
+   "value": "force-end",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "ruby-overhang",
+   "value": "auto",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "ruby-overhang",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-block",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-block",
+   "value": "start",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-block",
+   "value": "center",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-block",
+   "value": "end",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-inline",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-inline",
+   "value": "start",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-inline",
+   "value": "center",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-align-inline",
+   "value": "end",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "x",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "y",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "both",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "block",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-axis",
+   "value": "inline",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-strictness",
+   "value": "none",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-strictness",
+   "value": "proximity",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scroll-snap-strictness",
+   "value": "mandatory",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-thumb-color",
+   "value": "auto",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-thumb-color",
+   "value": "red",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-thumb-color",
+   "value": "#123456",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-track-color",
+   "value": "auto",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-track-color",
+   "value": "red",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  },
+  {
+   "name": "scrollbar-track-color",
+   "value": "#123456",
+   "supports": false,
+   "set_property": false,
+   "attribute": false,
+   "sheet": false
+  }
+ ],
+ "controls": [
+  {
+   "name": "filter",
+   "value": "none",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "filter",
+   "value": "blur(2px)",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "filter",
+   "value": "grayscale(1)",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "opacity",
+   "value": "0.5",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scroll-snap-align",
+   "value": "none",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scroll-snap-align",
+   "value": "start",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scroll-snap-type",
+   "value": "none",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scroll-snap-type",
+   "value": "y mandatory",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scrollbar-color",
+   "value": "auto",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  },
+  {
+   "name": "scrollbar-color",
+   "value": "red blue",
+   "supports": true,
+   "set_property": true,
+   "attribute": true,
+   "sheet": true
+  }
+ ]
+}

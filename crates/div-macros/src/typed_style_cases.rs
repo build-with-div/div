@@ -29,10 +29,15 @@ pub(crate) fn expand(input: TokenStream) -> TokenStream {
             errors.push(error(number, line, "expected `css-name: literal`"));
             continue;
         };
-        let Some(property) = div_style::StyleProperty::from_css_name(name.trim()) else {
+        // Through the metadata, so typed-only names keep their coverage.
+        let Some(metadata) = div_style::PROPERTY_METADATA
+            .iter()
+            .find(|row| row.css_name == name.trim())
+        else {
             errors.push(error(number, line, "unknown property"));
             continue;
         };
+        let property = metadata.property;
         match div_style::parse_literal(property, literal.trim()) {
             Ok(value) => cases.push((property, literal.trim().to_owned(), value)),
             Err(parse) => errors.push(error(number, line, &parse.to_string())),

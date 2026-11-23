@@ -17,7 +17,11 @@ The audit includes all 77 default-enabled author properties selected from CSS
 Fonts, CSS Text, CSS Text Decorations, CSS Writing Modes, and CSS Ruby. It also
 keeps `line-clamp`, `block-ellipsis`, `ruby-overhang`, and
 `font-synthesis-position`, plus `hanging-punctuation`, in the typed surface because the renderer contract
-explicitly requires those values even where Chromium gates their syntax.
+explicitly requires those values even where Chromium gates their syntax. Pinned
+Chromium rejects `block-ellipsis`, `ruby-overhang`, `font-synthesis-position`
+and `hanging-punctuation` as CSS names, so those four are typed setters only and
+Div's parsers drop them as Chromium does. `line-clamp` keeps its CSS name until
+the `-webkit-line-clamp` work replaces it.
 
 The generator emits the same metadata into Rust property IDs, `Style`
 builders, `Element` setters, `view!` literal validation, C property IDs and

@@ -91,7 +91,7 @@ class CanonicalOwnershipGeneratorTests(unittest.TestCase):
 
     def test_internal_css_names_have_no_name_lookup(self):
         generated = GENERATOR.outputs()[GENERATOR.RUST_OUT].decode()
-        self.assertEqual(len(GENERATOR.INTERNAL_CSS_NAMES), 8)
+        self.assertEqual(len(GENERATOR.INTERNAL_CSS_NAMES), 20)
         for name in GENERATOR.INTERNAL_CSS_NAMES:
             self.assertNotIn(f'"{name}" => Some', generated)
             self.assertIn(f'    "{name}",', generated)
