@@ -1,0 +1,38 @@
+{"canvas":"c","width":16,"height":12}
+{"canvas":"c","set":"fillStyle","value":"#f00"}
+{"canvas":"c","call":"fillRect","args":[0,0,8,6]}
+{"canvas":"c","set":"fillStyle","value":"rgba(0, 0, 255, 0.5)"}
+{"canvas":"c","call":"fillRect","args":[8,0,8,6]}
+{"canvas":"c","set":"fillStyle","value":"rgba(0, 255, 0, 0.25)"}
+{"canvas":"c","call":"fillRect","args":[0,6,8,6]}
+{"canvas":"c","set":"fillStyle","value":"rgba(10, 20, 30, 0.1)"}
+{"canvas":"c","call":"fillRect","args":[8,6,8,6]}
+{"canvas":"c","call":"getImageData","args":[0,0,4,2]}
+{"canvas":"c","call":"getImageData","args":[6,4,4,4]}
+{"canvas":"c","call":"getImageData","args":[-2,-1,4,3]}
+{"canvas":"c","call":"getImageData","args":[14,10,4,4]}
+{"canvas":"c","call":"getImageData","args":[100,100,2,2]}
+{"canvas":"c","call":"getImageData","args":[-5,-5,2,2]}
+{"canvas":"c","call":"getImageData","args":[8,6,-3,-2]}
+{"canvas":"c","call":"getImageData","args":[2,3,2,-2]}
+{"canvas":"c","call":"getImageData","args":[1.9,1.9,2.9,2.9]}
+{"canvas":"c","call":"getImageData","args":[-0.5,0,1,1]}
+{"canvas":"c","call":"save","args":[]}
+{"canvas":"c","call":"translate","args":[3,3]}
+{"canvas":"c","call":"scale","args":[2,2]}
+{"canvas":"c","call":"rect","args":[0,0,1,1]}
+{"canvas":"c","call":"clip","args":[]}
+{"canvas":"c","set":"globalAlpha","value":0.5}
+{"canvas":"c","set":"globalCompositeOperation","value":"xor"}
+{"canvas":"c","call":"getImageData","args":[6,4,3,3]}
+{"canvas":"c","call":"restore","args":[]}
+{"canvas":"c","call":"getImageData","args":[0,0,0,1]}
+{"canvas":"c","call":"getImageData","args":[0,0,1,0]}
+{"canvas":"c","call":"getImageData","args":[0,0,"-0",1]}
+{"canvas":"c","call":"getImageData","args":[0,0,2147483647,2]}
+{"canvas":"c","call":"getImageData","args":[1,0,2147483647,1]}
+{"canvas":"c","call":"getImageData","args":[0,0,65536,32768]}
+{"canvas":"c","call":"getImageData","args":[-5,0,-2147483648,1]}
+{"canvas":"c","call":"getImageData","args":[0,-2,1,-2147483647]}
+{"canvas":"c","call":"getImageData","args":[0,0,-2147483648,1]}
+{"canvas":"c","call":"getImageData","args":[0,0,1,-2147483648]}

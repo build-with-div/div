@@ -437,6 +437,190 @@
    },
    "observations": []
   },
+  "image-data-create": {
+   "canvases": {
+    "c": {
+     "height": 4,
+     "sha256": "44c842a69b60834610954b2781b8f37e05c42612527f0540a2df6944070c9811",
+     "width": 4
+    }
+   },
+   "observations": [
+    {
+     "imageData": "zero-w",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "zero-h",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "wide",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "tall",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "big",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "big-side",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "bad-width",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "bad-height",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "odd",
+     "throws": "InvalidStateError"
+    },
+    {
+     "imageData": "empty",
+     "throws": "InvalidStateError"
+    },
+    {
+     "imageData": "zero-w-data",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "zero-h-data",
+     "throws": "IndexSizeError"
+    },
+    {
+     "imageData": "over",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "00000000000000000000000000000000",
+      "height": 2,
+      "width": 2
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "000000000000000000000000000000000000000000000000",
+      "height": 2,
+      "width": 3
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "000000000000000000000000000000000000000000000000",
+      "height": 2,
+      "width": 3
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "00000000",
+      "height": 1,
+      "width": 1
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "00000000",
+      "height": 1,
+      "width": 1
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "0000000000000000",
+      "height": 1,
+      "width": 2
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "0000000000000000",
+      "height": 2,
+      "width": 1
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "return": {
+      "data": "000000000000000000000000000000000000000000000000",
+      "height": 3,
+      "width": 2
+     }
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "createImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "000000000000000000000000000000000000000000000004a1b1c0d00000000000000000000000000000000000000004000000000000000000000000a1b1c0d0",
+      "height": 4,
+      "width": 4
+     }
+    }
+   ]
+  },
   "line-caps-joins": {
    "canvases": {
     "c": {
@@ -578,6 +762,257 @@
      "call": "isPointInStroke",
      "canvas": "c",
      "return": true
+    }
+   ]
+  },
+  "readback-get": {
+   "canvases": {
+    "c": {
+     "height": 12,
+     "sha256": "46352e4bf78ec35e97eb34607fd6606038843d7d16f5f1696fbfac8b556404e7",
+     "width": 16
+    }
+   },
+   "observations": [
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ff",
+      "height": 2,
+      "width": 4
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ff0000ff800000ff80ff0000ffff0000ff0000ff800000ff8000ff004000ff00400a141d1a0a141d1a00ff004000ff00400a141d1a0a141d1a",
+      "height": 4,
+      "width": 4
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "000000000000000000000000000000000000000000000000ff0000ffff0000ff0000000000000000ff0000ffff0000ff",
+      "height": 3,
+      "width": 4
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "0a141d1a0a141d1a00000000000000000a141d1a0a141d1a00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "height": 4,
+      "width": 4
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "00000000000000000000000000000000",
+      "height": 2,
+      "width": 2
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "00000000000000000000000000000000",
+      "height": 2,
+      "width": 2
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ff",
+      "height": 2,
+      "width": 3
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ffff0000ffff0000ff",
+      "height": 2,
+      "width": 2
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ffff0000ffff0000ff",
+      "height": 2,
+      "width": 2
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ff",
+      "height": 1,
+      "width": 1
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "return": {
+      "data": "ff0000ffff0000ff0000ff80ff0000ffff0000ff0000ff8000ff004000ff00400a141d1a",
+      "height": 3,
+      "width": 3
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "IndexSizeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    },
+    {
+     "call": "getImageData",
+     "canvas": "c",
+     "throws": "RangeError"
+    }
+   ]
+  },
+  "readback-put": {
+   "canvases": {
+    "dirty": {
+     "height": 16,
+     "sha256": "c8fb92ffa86a7a2661fb16d834a7123293718c1cbaf56ef42495e6353033a075",
+     "width": 64
+    },
+    "plain": {
+     "height": 24,
+     "sha256": "2c08bff5a7f270107208e9fa0fd08d19f90a2a779b0b765bfcdfb44bd9b912b9",
+     "width": 40
+    },
+    "state": {
+     "height": 24,
+     "sha256": "e17d3a54c65610040c5e1512156a9a3b09bb40ac677d7a0262877fc4fb5da51a",
+     "width": 24
+    }
+   },
+   "observations": [
+    {
+     "call": "getImageData",
+     "canvas": "plain",
+     "return": {
+      "data": "204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff000080601e0080ff3c0080ff5a008060780080ff960080ff204060ff204060ff204060ff204060ff001e80ff1e1e80ff3d1d80605a1e80ff781e80ff951d8060204060ff204060ff204060ff204060ff003c80ff1d3d80603c3c80ff5a3c80ff783d8060963c80ff204060ff204060ff204060ff204060ff005a80601e5a80ff3c5a80ff5a5a8060785a80ff965a80ff204060ff204060ff204060ff204060ff007880ff1e7880ff3d7880605a7880ff787880ff95788060204060ff204060ff204060ff204060ff009680ff1d9580603c9680ff5a9680ff78958060969680ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff5a008060780080ff960080ff204060ff204060ff204060ff204060ff204060ff204060ff204060ff",
+      "height": 10,
+      "width": 10
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "state",
+     "return": {
+      "data": "000080601e0080ff3c0080ff5a008060780080ff960080ff001e80ff1e1e80ff3d1d80605a1e80ff781e80ff951d8060003c80ff1d3d80603c3c80ff5a3c80ff783d8060963c80ff005a80601e5a80ff3c5a80ff5a5a8060785a80ff965a80ff007880ff1e7880ff3d7880605a7880ff787880ff95788060009680ff1d9580603c9680ff5a9680ff78958060969680ff",
+      "height": 6,
+      "width": 6
+     }
+    }
+   ]
+  },
+  "readback-roundtrip": {
+   "canvases": {
+    "a": {
+     "height": 16,
+     "sha256": "e15fbc8ebd9ad361cfaeec1ed1b277422bf0a73a636a426ebce1ae43953d43e6",
+     "width": 16
+    },
+    "b": {
+     "height": 16,
+     "sha256": "283e7d2d82dc6ec1da52dd25a4aee7cad6b0b7836528398fd1bc11a1f362daf8",
+     "width": 16
+    }
+   },
+   "observations": [
+    {
+     "call": "getImageData",
+     "canvas": "a",
+     "return": {
+      "data": "00000000ff000001ff800002aa550003bf804004cc663305d4552a06b66d2407bf602008c6711c09cc661a0ad15d2e0bbf6a2a0cc462270dc85b240ecc66220fcf602010c3691e11c6632a12c95e2813cc662614c2612415c5682316c8642117ca602018cc662919c462271ac668261bc864241cca61231dcc66221ec563211fc7682820c9642721cb622522c5662423c6632324c8672225c9652826cb622727c6662628c7642529c861242aca65242bcb63232cc666282dc864272ec962262fca652530c6632431c7662432c8642333c9622734ca652635c6632636c7662537c8642438c9622439c665233ac763273bc866263cc964263dca63253ec665243fc7642440c8622341c9642742ca632643c7652544c8642545c8622446c9652447c6632348c7652649c864264ac963254bc965254cc763244dc765244ec864244fc9632650c9652651c7642552c8652553c8642454c9632455c7652456c7642657c8652658c9642559c963255ac765245bc864245cc863245dc964265ec963265fc7652560c8642561c8632462c9642463c7632664c7652665c8642566c9632567c9652568c7642469c865246ac864266bc963266cc765256dc764256ec865256fc8642470c9632471c7652672c8642673c8632574c9642575c9632576c7652477c8642478c8632679c964267ac764257bc765257cc864257dc863247ec964247fc7642680c8652681c8642582c8632583c9642584c7642485c8652486c8642687c9632588c7652589c864258ac865258bc864248cc963248dc765268ec864258fc8632590c8642591c9642592c7652493c8642494c8632695c9642596c7642597c8652598c8642599c863249ac964249bc764269cc865259dc864259ec863259fc76425a0c86424a1c86526a2c86426a3c96425a4c76425a5c86425a6c86325a7c86424a8c96426a9c86426aac86425abc86325acc86425adc76425aec86524afc86426b0c86325b1c96425b2c76425b3c86525b4c86425b5c86324b6c96426b7c86425b8c86525b9c86425bac86425bbc76425bcc86424bdc86526bec86425bfc96425c0c86425c1c86425c2c86325c3c86424c4c96426c5c86425c6c86425c7c86325c8c86425c9c76425cac86424cbc86425ccc86425cdc96425cec86425cfc86525d0c86425d1c86424d2c76425d3c86425d4c86525d5c86425d6c86425d7c86425d8c86424d9c86325dac86425dbc96425dcc86425ddc86425dec86325dfc86426e0c76425e1c86425e2c86425e3c86425e4c86425e5c86425e6c86426e7c86425e8c86425e9c96425eac86425ebc86425ecc86425edc86426eec86425efc86425f0c86525f1c86425f2c86425f3c86425f4c86425f5c86425f6c86425f7c96425f8c86425f9c86425fac86425fbc86425fcc86425fdc86425fec86425ff",
+      "height": 16,
+      "width": 16
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "a",
+     "return": {
+      "data": "00000000ff000001ff800002aa550003bf804004cc663305d4552a06b66d2407bf602008c6711c09cc661a0ad15d2e0bbf6a2a0cc462270dc85b240ecc66220fcf602010c3691e11c6632a12c95e2813cc662614c2612415c5682316c8642117ca602018cc662919c462271ac668261bc864241cca61231dcc66221ec563211fc7682820c9642721cb622522c5662423c6632324c8672225c9652826cb622727c6662628c7642529c861242aca65242bcb63232cc666282dc864272ec962262fca652530c6632431c7662432c8642333c9622734ca652635c6632636c7662537c8642438c9622439c665233ac763273bc866263cc964263dca63253ec665243fc7642440c8622341c9642742ca632643c7652544c8642545c8622446c9652447c6632348c7652649c864264ac963254bc965254cc763244dc765244ec864244fc9632650c9652651c7642552c8652553c8642454c9632455c7652456c7642657c8652658c9642559c963255ac765245bc864245cc863245dc964265ec963265fc7652560c8642561c8632462c9642463c7632664c7652665c8642566c9632567c9652568c7642469c865246ac864266bc963266cc765256dc764256ec865256fc8642470c9632471c7652672c8642673c8632574c9642575c9632576c7652477c8642478c8632679c964267ac764257bc765257cc864257dc863247ec964247fc7642680c8652681c8642582c8632583c9642584c7642485c8652486c8642687c9632588c7652589c864258ac865258bc864248cc963248dc765268ec864258fc8632590c8642591c9642592c7652493c8642494c8632695c9642596c7642597c8652598c8642599c863249ac964249bc764269cc865259dc864259ec863259fc76425a0c86424a1c86526a2c86426a3c96425a4c76425a5c86425a6c86325a7c86424a8c96426a9c86426aac86425abc86325acc86425adc76425aec86524afc86426b0c86325b1c96425b2c76425b3c86525b4c86425b5c86324b6c96426b7c86425b8c86525b9c86425bac86425bbc76425bcc86424bdc86526bec86425bfc96425c0c86425c1c86425c2c86325c3c86424c4c96426c5c86425c6c86425c7c86325c8c86425c9c76425cac86424cbc86425ccc86425cdc96425cec86425cfc86525d0c86425d1c86424d2c76425d3c86425d4c86525d5c86425d6c86425d7c86425d8c86424d9c86325dac86425dbc96425dcc86425ddc86425dec86325dfc86426e0c76425e1c86425e2c86425e3c86425e4c86425e5c86425e6c86426e7c86425e8c86425e9c96425eac86425ebc86425ecc86425edc86426eec86425efc86425f0c86525f1c86425f2c86425f3c86425f4c86425f5c86425f6c86425f7c96425f8c86425f9c86425fac86425fbc86425fcc86425fdc86425fec86425ff",
+      "height": 16,
+      "width": 16
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "b",
+     "return": {
+      "data": "0000000000ff490700ff5b0e00ff551500ff521c07f8502306f9552a05fa533109f65b3808f75d3f0bf45f460af55d4d0cf358540ef1575b0df25b620ff05a6910ef447011ee457712ed477e13ec478514eb428c15ea409316e9429a18e743a118e74da819e64caf1be44eb61be44ebd1de249c41de248cb1ee14bd21fe04ad920df75e021de74e722dd77ee23dc76f524db71fc00ff55031ae6800a2dd278112ad4801829d67b1f28d780262dd27d2d2cd37b342bd4793b2ed17c422dd27a4930cf665032cd645731ce675e32cd656534cb616c35ca5f7336c9627a37c8638138c76d8839c66d8f3ac56e963ac56e9d3dc26aa43dc268ab3ec16bb23fc06ab940bf15c041be15c742bd18ce43bc16d544bb11dc45ba10e346b913ea47b812f148b71df849b61cff55aa2a064eb1270d4db31a144cb31c1b4bb41e2251ae192950af05304fb0053752ad083e51ae074554ab004c56a9005355aa035a57a8036158a70c685aa50b6f5ba40f765ca30e7d5da20a845ea1078b5ea10a925fa00a99609f35a0629d34a7629d38ae639c36b5649b31bc659a30c3669932ca669932d168973dd869963bdf6a953fe66b943eed6c9339f46d9238fb80800002718e3909708f20106f9021176e902a1e758a2925748b232c738c1e337788233a7689234178872e4877882d4f7a852f567b842f5d7d8229647c83296b7d822a727e812a798080d580807fd487817ed78e847bd695847bd19c857ad0a3867ad4aa8778d2b18877dcb88a75dcbf8a75dfc68b74ddcd8c73d9d48d72d9db8e71dbe28f70dae9906ec5f0916ec4f7926dc7fe9966cc05956abf0c946bbc13936cc41a9b64c1219966cc289867ce2f9c63d0369b64cd3d9e62cb449c63c94b9f60ca529e61cb599f60f460a15ef567a25df86ea35cf675a55af17ca55aef83a659f48aa758f391a857fd98a857fc9fab54ffa6ab54feadab54f9b4ad52f8bbae51fbc2af50fac9b14ee5d0b14ee4d7b24de7deb34ce7e5b44be1ecb44be0f3b649e3faff00ff01bf40df08bb44ee0fb946f316b946ed1dbf40ea24be41e72bbd42eb32c03fe939bf409340c23d9347c13e964ec33c9655c53a905cc43b9063c53a936ac7389371c8379d78c9369d7fca35a086cb349d8dcb349994ce31979bce319aa2cf309aa9d12e85b0d12e84b7d12e88bed32c87c5d42a81ccd52a80d3d62983dad72882e1d9268de8d9268cefda258ff6db248efdbf408004e8178b0be31c8e12e01f8f19df20b720de21b727e31cb72ee21db735e61ab23ce41baf43e718b34ae619b351e817bc58ea15bc5feb14be66ea15bd6deb14b974ec13b97bed12ba82ee11ba89f10ea590f10ea497f20da69ef30ca5a5f50aa2acf50aa0b3f50aa3baf708a3c1f906adc8f906accffa05afd6fc03aeddfc03a9e4fd02a8ebfe01abf2ff00aaf9",
+      "height": 16,
+      "width": 16
+     }
+    },
+    {
+     "call": "getImageData",
+     "canvas": "b",
+     "return": {
+      "data": "0000000000ff490700ff5b0e00ff551500ff521c07f8502306f9552a05fa533109f65b3808f75d3f0bf45f460af55d4d0cf358540ef1575b0df25b620ff05a6910ef447011ee457712ed477e13ec478514eb428c15ea409316e9429a18e743a118e74da819e64caf1be44eb61be44ebd1de249c41de248cb1ee14bd21fe04ad920df75e021de74e722dd77ee23dc76f524db71fc00ff55031ae6800a2dd278112ad4801829d67b1f28d780262dd27d2d2cd37b342bd4793b2ed17c422dd27a4930cf665032cd645731ce675e32cd656534cb616c35ca5f7336c9627a37c8638138c76d8839c66d8f3ac56e963ac56e9d3dc26aa43dc268ab3ec16bb23fc06ab940bf15c041be15c742bd18ce43bc16d544bb11dc45ba10e346b913ea47b812f148b71df849b61cff55aa2a064eb1270d4db31a144cb31c1b4bb41e2251ae192950af05304fb0053752ad083e51ae074554ab004c56a9005355aa035a57a8036158a70c685aa50b6f5ba40f765ca30e7d5da20a845ea1078b5ea10a925fa00a99609f35a0629d34a7629d38ae639c36b5649b31bc659a30c3669932ca669932d168973dd869963bdf6a953fe66b943eed6c9339f46d9238fb80800002718e3909708f20106f9021176e902a1e758a2925748b232c738c1e337788233a7689234178872e4877882d4f7a852f567b842f5d7d8229647c83296b7d822a727e812a798080d580807fd487817ed78e847bd695847bd19c857ad0a3867ad4aa8778d2b18877dcb88a75dcbf8a75dfc68b74ddcd8c73d9d48d72d9db8e71dbe28f70dae9906ec5f0916ec4f7926dc7fe9966cc05956abf0c946bbc13936cc41a9b64c1219966cc289867ce2f9c63d0369b64cd3d9e62cb449c63c94b9f60ca529e61cb599f60f460a15ef567a25df86ea35cf675a55af17ca55aef83a659f48aa758f391a857fd98a857fc9fab54ffa6ab54feadab54f9b4ad52f8bbae51fbc2af50fac9b14ee5d0b14ee4d7b24de7deb34ce7e5b44be1ecb44be0f3b649e3faff00ff01bf40df08bb44ee0fb946f316b946ed1dbf40ea24be41e72bbd42eb32c03fe939bf409340c23d9347c13e964ec33c9655c53a905cc43b9063c53a936ac7389371c8379d78c9369d7fca35a086cb349d8dcb349994ce31979bce319aa2cf309aa9d12e85b0d12e84b7d12e88bed32c87c5d42a81ccd52a80d3d62983dad72882e1d9268de8d9268cefda258ff6db248efdbf408004e8178b0be31c8e12e01f8f19df20b720de21b727e31cb72ee21db735e61ab23ce41baf43e718b34ae619b351e817bc58ea15bc5feb14be66ea15bd6deb14b974ec13b97bed12ba82ee11ba89f10ea590f10ea497f20da69ef30ca5a5f50aa2acf50aa0b3f50aa3baf708a3c1f906adc8f906accffa05afd6fc03aeddfc03a9e4fd02a8ebfe01abf2ff00aaf9",
+      "height": 16,
+      "width": 16
+     }
     }
    ]
   },
