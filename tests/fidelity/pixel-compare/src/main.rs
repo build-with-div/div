@@ -22,6 +22,7 @@ use std::sync::OnceLock;
 
 // Generated WPT fixtures are kept byte-for-byte by the porter, not rustfmt.
 #[rustfmt::skip]
+mod damage_coverage;
 mod wpt;
 
 mod pending_native_mutation_v1;
@@ -532,6 +533,17 @@ fn main() {
             let viewport = install_viewport(&args[4..]);
             render_test(test_id, output, viewport);
         }
+        Some("damage-coverage") => {
+            // pixel_compare damage-coverage [--filter PREFIX] [profile options]
+            let (filter, rest) = match args.get(2).map(String::as_str) {
+                Some("--filter") => (args.get(3).cloned(), &args[4..]),
+                _ => (None, &args[2..]),
+            };
+            let viewport = install_viewport(rest);
+            if !damage_coverage::run(&registry(), viewport, filter.as_deref()) {
+                std::process::exit(1);
+            }
+        }
         Some("render-all") => {
             let dir = args
                 .get(2)
@@ -546,7 +558,7 @@ fn main() {
         }
         _ => {
             eprintln!(
-                "Usage: pixel_compare <list|raster-identity|render|render-all> ... [--viewport WxH] [--scale N]"
+                "Usage: pixel_compare <list|raster-identity|render|render-all|damage-coverage> ... [--viewport WxH] [--scale N]"
             );
             std::process::exit(1);
         }
@@ -626,7 +638,7 @@ fn print_raster_identity(options: &[String]) {
     );
 }
 
-type TestBuilder = fn(ViewportMetrics) -> Result<Engine, EngineError>;
+pub(crate) type TestBuilder = fn(ViewportMetrics) -> Result<Engine, EngineError>;
 
 /// Returns the full registry of test IDs → Document builders.
 fn registry() -> Vec<(&'static str, TestBuilder)> {

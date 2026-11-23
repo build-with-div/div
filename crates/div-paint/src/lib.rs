@@ -8,6 +8,7 @@
 
 mod collapsed_table_painter;
 mod content_layer;
+mod damage;
 pub mod decoration_painter;
 pub mod emphasis_painter;
 pub mod image_resource;
@@ -22,6 +23,7 @@ mod surface_program;
 pub mod text_painter;
 
 pub use content_layer::RecordedContentLayer;
+pub use damage::{ChunkOwner, PaintChunk, PaintChunks};
 pub use layered_program::*;
 pub use paint_program::{
     IntrinsicPictureStatus, PaintCaptureIncompleteReason, PaintCaptureStatus, PaintLayoutScopeRole,

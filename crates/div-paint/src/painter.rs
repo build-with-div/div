@@ -2011,6 +2011,10 @@ fn paint_fragment_contents(
             });
         let paint_recording =
             crate::paint_record::RecordingScope::new(layer_canvas.raw_tracking_target());
+        let chunk_scope = crate::damage::ChunkScope::nested(
+            canvas.raw_tracking_target(),
+            layer_canvas.raw_tracking_target(),
+        );
         // The scrolling contents are their own Chromium layer, rastered like
         // the document.
         let lcd_text_contents = layer_lcd_text_contents(&fragment.children, doc);
@@ -2042,9 +2046,13 @@ fn paint_fragment_contents(
         drop(program_scope);
         drop(paint_recording);
         drop(background_recording);
+        let nested_chunks = chunk_scope.map(crate::damage::ChunkScope::finish);
         let picture = recorder
             .finish_recording_as_picture(None)
             .expect("viewport content recording must finish");
+        if let Some(chunks) = nested_chunks {
+            crate::damage::register_picture(&picture, chunks);
+        }
         let rect_known_to_be_opaque = layer_opaque_rect(&annotations);
         let layer = crate::RecordedContentLayer {
             node_id: fragment.node_id,

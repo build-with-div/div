@@ -100,6 +100,8 @@ pub struct RecordedPicture {
     pub(crate) lcd_surface: bool,
     pub(crate) direct_replay: bool,
     pub(crate) content_requires_tiling: bool,
+    /// The recording's paint chunks, for damage (RFC 0006 A1).
+    pub(crate) chunks: Arc<crate::PaintChunks>,
     /// Retains immutable registered bytes for every face referenced by a
     /// scene, even if the live document unregisters that face immediately.
     pub(crate) retained_font_bytes: Arc<[Arc<[u8]>]>,
@@ -109,6 +111,41 @@ pub struct RecordedPicture {
 }
 
 impl RecordedPicture {
+    /// The recording's paint chunks.
+    pub fn paint_chunks(&self) -> &crate::PaintChunks {
+        &self.chunks
+    }
+
+    /// The rects, in CSS pixels as `[x, y, width, height]` and clipped to
+    /// the viewport, that changed since `previous`, or `None` when only the
+    /// whole viewport is safe: a different viewport, scale, raster
+    /// configuration or raster strategy, or chunks that cannot be compared
+    /// (RFC 0006 A1).
+    pub fn damage_since(&self, previous: &RecordedPicture) -> Option<Vec<[f32; 4]>> {
+        if self.viewport != previous.viewport
+            || self.raster_configuration != previous.raster_configuration
+            || self.lcd_surface != previous.lcd_surface
+            || self.direct_replay != previous.direct_replay
+            || self.content_requires_tiling != previous.content_requires_tiling
+        {
+            return None;
+        }
+        let viewport = Rect::from_wh(
+            self.viewport.logical_width() as f32,
+            self.viewport.logical_height() as f32,
+        );
+        let rects = self.chunks.damage_since(&previous.chunks)?;
+        Some(
+            rects
+                .into_iter()
+                .filter_map(|mut rect| {
+                    rect.intersect(viewport)
+                        .then(|| [rect.left, rect.top, rect.width(), rect.height()])
+                })
+                .collect(),
+        )
+    }
+
     /// The canonical document recording, including viewport controls.
     pub fn canonical_picture(&self) -> &Picture {
         &self.picture
@@ -539,6 +576,8 @@ fn record_fragment_impl(
 > {
     crate::initialize_skia();
     crate::painter::reset_picture_paint_state();
+    div_text::blob_fingerprint::clear_text_blob_fingerprints();
+    crate::damage::clear_registered_pictures();
     let width = logical_dimension(viewport.logical_width())?;
     let height = logical_dimension(viewport.logical_height())?;
     let raster_configuration = doc.raster_configuration();
@@ -562,6 +601,7 @@ fn record_fragment_impl(
     let mut recorder = PictureRecorder::new();
     let recording_canvas: &dyn crate::paint_record::PaintCanvas =
         recorder.begin_recording(bounds, false);
+    let chunk_scope = crate::damage::ChunkScope::new(recording_canvas.raw_tracking_target(), false);
     let program_scope = capture_program.then(|| {
         crate::paint_program::PaintProgramScope::new(recording_canvas.raw_tracking_target())
     });
@@ -597,15 +637,18 @@ fn record_fragment_impl(
     let viewport_content_layer = crate::painter::take_viewport_content_layer();
     let mut content_program = program_scope.as_ref().map(|scope| scope.snapshot());
     drop(program_scope);
+    let content_chunks = chunk_scope.finish();
     let content_picture = recorder
         .finish_recording_as_picture(None)
         .ok_or_else(|| "Failed to record paint commands".to_string())?;
     let mut overlay_program = None;
+    let mut overlay_chunks = None;
     let viewport_overlay = if fragment
         .viewport_scrollport
         .is_some_and(|scrollport| scrollport.horizontal_scrollbar || scrollport.vertical_scrollbar)
     {
         let canvas: &dyn crate::paint_record::PaintCanvas = recorder.begin_recording(bounds, false);
+        let chunk_scope = crate::damage::ChunkScope::new(canvas.raw_tracking_target(), true);
         let program_scope = capture_program
             .then(|| crate::paint_program::PaintProgramScope::new(canvas.raw_tracking_target()));
         crate::painter::paint_viewport_scrollbars(
@@ -616,6 +659,7 @@ fn record_fragment_impl(
         );
         overlay_program = program_scope.as_ref().map(|scope| scope.snapshot());
         drop(program_scope);
+        overlay_chunks = Some(chunk_scope.finish());
         Some(
             recorder
                 .finish_recording_as_picture(None)
@@ -635,6 +679,7 @@ fn record_fragment_impl(
         content_picture.clone()
     };
     let recording = RecordedPicture {
+        chunks: Arc::new(crate::damage::concatenate(content_chunks, overlay_chunks)),
         picture,
         content_picture,
         viewport_overlay,
