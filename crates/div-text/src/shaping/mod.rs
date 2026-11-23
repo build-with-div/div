@@ -22,3 +22,6 @@ pub use shape_result::{
     ShapeResult, ShapeResultCharacterData, ShapeResultRun, TextDirection, TextRasterPolicy,
 };
 pub use shaper::TextShaper;
+pub(crate) use web_font_outlines::release_web_font_outlines;
+#[doc(hidden)]
+pub use web_font_outlines::retained_web_font_outline_count;
