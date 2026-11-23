@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removed pointer target</title>
+<style>
+  html, body { margin: 0; }
+  div { position: absolute; left: 0; top: 0; width: 100px; height: 50px; }
+</style>
+<div id="grand" tabindex="0"><div id="parent" tabindex="0"><div id="child" tabindex="0"></div></div></div>
+<script>
+  const query = new URLSearchParams(location.search);
+  const when = query.get("when");
+  const which = query.get("which");
+  window.log = [];
+  window.recording = false;
+  const types = ["pointerover", "pointerdown", "pointermove", "pointerup",
+    "pointerout", "gotpointercapture", "lostpointercapture", "mouseover",
+    "mousedown", "mousemove", "mouseup", "mouseout", "click",
+    "auxclick", "dblclick", "contextmenu", "focusin", "focusout"];
+  const name = (node) => node.id || node.nodeName.toLowerCase();
+  let removed = false;
+  for (const type of types) {
+    window.addEventListener(type, (event) => {
+      if (window.recording) window.log.push(type + ":" + name(event.target));
+    }, true);
+  }
+  for (const id of ["child", "parent"]) {
+    document.getElementById(id).addEventListener(when, () => {
+      if (removed || !window.recording) return;
+      removed = true;
+      document.getElementById(which).remove();
+    });
+  }
+</script>

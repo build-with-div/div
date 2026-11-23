@@ -51144,8 +51144,7 @@
    "chromium": "PASS",
    "status": "translatable",
    "computed_name": true,
-   "div": "PASS",
-   "div_harness_error": "Div: pointer input failed (Engine(StaleHandle))"
+   "div": "PASS"
   },
   {
    "file": "pointerevents/pointerup_after_pointerdown_target_removed.html?pen",
@@ -51153,8 +51152,7 @@
    "chromium": "PASS",
    "status": "translatable",
    "computed_name": true,
-   "div": "PASS",
-   "div_harness_error": "Div: pointer input failed (Engine(StaleHandle))"
+   "div": "PASS"
   },
   {
    "file": "pointerevents/pointerup_after_pointerdown_target_removed.html?touch",

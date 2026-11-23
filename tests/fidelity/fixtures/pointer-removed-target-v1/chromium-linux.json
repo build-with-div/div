@@ -1,0 +1,174 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux",
+ "input": "cdp",
+ "repeats": 3,
+ "mouse": {
+  "pointerdown/child": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:parent",
+    "focusin:parent",
+    "pointerover:parent",
+    "mouseover:parent",
+    "pointerup:parent",
+    "mouseup:parent"
+   ],
+   "focus": "parent"
+  },
+  "pointerdown/parent": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:grand",
+    "focusin:grand",
+    "pointerover:grand",
+    "mouseover:grand",
+    "pointerup:grand",
+    "mouseup:grand"
+   ],
+   "focus": "grand"
+  },
+  "mousedown/child": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:parent",
+    "pointerover:parent",
+    "mouseover:parent",
+    "pointerup:parent",
+    "mouseup:parent"
+   ],
+   "focus": "parent"
+  },
+  "mousedown/parent": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:grand",
+    "pointerover:grand",
+    "mouseover:grand",
+    "pointerup:grand",
+    "mouseup:grand"
+   ],
+   "focus": "grand"
+  },
+  "pointerup/child": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:child",
+    "pointerup:child",
+    "focusout:child",
+    "mouseup:parent",
+    "pointerover:parent",
+    "mouseover:parent"
+   ],
+   "focus": "body"
+  },
+  "pointerup/parent": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:child",
+    "pointerup:child",
+    "focusout:child",
+    "mouseup:grand",
+    "pointerover:grand",
+    "mouseover:grand"
+   ],
+   "focus": "body"
+  },
+  "mouseup/child": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:child",
+    "pointerup:child",
+    "mouseup:child",
+    "focusout:child",
+    "pointerover:parent",
+    "mouseover:parent"
+   ],
+   "focus": "body"
+  },
+  "mouseup/parent": {
+   "log": [
+    "pointerdown:child",
+    "mousedown:child",
+    "focusin:child",
+    "pointerup:child",
+    "mouseup:child",
+    "focusout:child",
+    "pointerover:grand",
+    "mouseover:grand"
+   ],
+   "focus": "body"
+  }
+ },
+ "tap": {
+  "pointerdown/child": {
+   "log": [
+    "pointerover:child",
+    "pointerdown:child",
+    "pointerover:parent",
+    "pointerup:parent",
+    "pointerout:parent",
+    "mouseover:parent",
+    "mousemove:parent",
+    "mousedown:parent",
+    "focusin:parent",
+    "mouseup:parent",
+    "click:parent"
+   ],
+   "focus": "parent"
+  },
+  "pointerdown/parent": {
+   "log": [
+    "pointerover:child",
+    "pointerdown:child",
+    "pointerover:grand",
+    "pointerup:grand",
+    "pointerout:grand",
+    "mouseover:grand",
+    "mousemove:grand",
+    "mousedown:grand",
+    "focusin:grand",
+    "mouseup:grand",
+    "click:grand"
+   ],
+   "focus": "grand"
+  },
+  "pointerup/child": {
+   "log": [
+    "pointerover:child",
+    "pointerdown:child",
+    "gotpointercapture:child",
+    "pointerup:child",
+    "lostpointercapture:#document",
+    "mouseover:parent",
+    "mousemove:parent",
+    "mousedown:parent",
+    "focusin:parent",
+    "mouseup:parent",
+    "click:parent"
+   ],
+   "focus": "parent"
+  },
+  "pointerup/parent": {
+   "log": [
+    "pointerover:child",
+    "pointerdown:child",
+    "gotpointercapture:child",
+    "pointerup:child",
+    "lostpointercapture:#document",
+    "mouseover:grand",
+    "mousemove:grand",
+    "mousedown:grand",
+    "focusin:grand",
+    "mouseup:grand",
+    "click:grand"
+   ],
+   "focus": "grand"
+  }
+ }
+}
