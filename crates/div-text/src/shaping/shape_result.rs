@@ -515,20 +515,12 @@ impl ShapeResult {
     }
 
     /// The width of `runs`: the `i64` sum of every glyph's units, converted
-    /// once, as Blink's `ComputePositionData` sums an `InlineLayoutUnit`.
+    /// once. Blink instead keeps each run's width as a float and adds those
+    /// (`ShapeResult::InsertRun`, `ApplySpacingOrExpansion`), so a result of
+    /// several runs past 256 px can differ by a rounding step. Named gap in
+    /// `docs/progress/t8-harfbuzz-units-2026-11-19.md`.
     pub(crate) fn width_from_runs(runs: &[ShapeResultRun]) -> f32 {
         units_to_px(runs.iter().map(ShapeResultRun::width_units).sum())
-    }
-
-    /// Add `px` to one glyph's advance as the shaper adds spacing, converted
-    /// once by `TextRunLayoutUnit(float)`, and keep the result's width and
-    /// character positions in step.
-    pub fn add_glyph_advance(&mut self, run: usize, glyph: usize, px: f32) {
-        self.runs[run].add_advance_units(glyph, px_to_units(px));
-        self.width = Self::width_from_runs(&self.runs);
-        if !self.character_data.is_empty() {
-            self.rebuild_x_positions();
-        }
     }
 
     /// Each character's `x_position` from a running sum in 1/65536 px of the

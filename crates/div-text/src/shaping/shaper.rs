@@ -443,6 +443,28 @@ impl TextShaper {
     ///
     /// Blink: `HarfBuzzShaper::Shape` in `harfbuzz_shaper.cc`.
     pub fn shape(&self, text: &str, font: &Font, direction: TextDirection) -> ShapeResult {
+        self.shape_spaced(text, font, direction, true)
+    }
+
+    /// [`Self::shape`] for text whose first character starts a
+    /// `ShapeResultSpacing` context that does not allow word spacing
+    /// anywhere: a space at index 0 gets none (`ComputeSpacing`).
+    pub fn shape_at_text_start(
+        &self,
+        text: &str,
+        font: &Font,
+        direction: TextDirection,
+    ) -> ShapeResult {
+        self.shape_spaced(text, font, direction, false)
+    }
+
+    fn shape_spaced(
+        &self,
+        text: &str,
+        font: &Font,
+        direction: TextDirection,
+        word_spacing_at_start: bool,
+    ) -> ShapeResult {
         if text.is_empty() {
             return ShapeResult::empty(direction);
         }
@@ -477,7 +499,7 @@ impl TextShaper {
         self.apply_font_fallback(&mut result, text, font, direction);
 
         // Apply letter spacing and word spacing from the font description.
-        Self::apply_spacing(&mut result, font, text);
+        Self::apply_spacing(&mut result, font, text, word_spacing_at_start);
 
         result
     }
@@ -1216,7 +1238,12 @@ impl TextShaper {
     /// Apply letter spacing and word spacing after shaping.
     ///
     /// Blink: `ShapeResult::ApplySpacing` in `shape_result.cc`.
-    fn apply_spacing(result: &mut ShapeResult, font: &Font, text: &str) {
+    fn apply_spacing(
+        result: &mut ShapeResult,
+        font: &Font,
+        text: &str,
+        word_spacing_at_start: bool,
+    ) {
         let desc = font.description();
         let letter_spacing = desc.letter_spacing;
         let word_spacing = desc.word_spacing;
@@ -1249,7 +1276,7 @@ impl TextShaper {
                 extra_advance_per_char[char_idx].saturating_add(letter_spacing);
 
             // Word spacing: applied only to space characters (U+0020).
-            if ch == ' ' {
+            if ch == ' ' && (char_idx > 0 || word_spacing_at_start) {
                 extra_advance_per_char[char_idx] =
                     extra_advance_per_char[char_idx].saturating_add(word_spacing);
             }
@@ -1799,7 +1826,7 @@ mod tests {
         desc.letter_spacing = 5.0;
         let spaced_font = Font::new(desc);
 
-        TextShaper::apply_spacing(&mut result, &spaced_font, "office");
+        TextShaper::apply_spacing(&mut result, &spaced_font, "office", true);
 
         // Glyph 0 (cluster 0, covers char 0): should get 1 × 5.0 = 5.0
         let eps = 0.01;

@@ -254,12 +254,15 @@ impl CanvasRenderingContext2D {
     /// The text's `PlainTextNode`, from the canvas's shape caches.
     fn text_node(&mut self, font: &Font, text: &str, direction: TextDirection) -> Arc<TextNode> {
         let description_key = format!("{:?}", font.description());
-        let word_spacing = font.description().word_spacing;
         let shaper = &self.shaper;
         self.shape_caches
             .node(&description_key, text, direction, |segment| {
-                TextItem::shape(segment, word_spacing, |word, dir| {
-                    shaper.shape(word, font, dir)
+                TextItem::shape(segment, |word, dir, starts_text| {
+                    if starts_text {
+                        shaper.shape_at_text_start(word, font, dir)
+                    } else {
+                        shaper.shape(word, font, dir)
+                    }
                 })
             })
     }
