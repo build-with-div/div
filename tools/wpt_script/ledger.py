@@ -66,7 +66,7 @@ LEDGERS = ROOT / "tests/wpt-script/ledgers"
 # Div's recorded results for the generated tests (codegen.py --record).
 EXPECTED = ROOT / "tests/wpt-script/expected"
 SUITES = ("html/webappapis/animation-frames", "resize-observer", "pointerevents",
-          "css/css-transitions", "css/css-animations", "css/css-easing")
+          "css/css-transitions", "css/css-animations", "css/css-easing", "web-animations")
 ACORN_SHA256 = "402f6759c744ea2ca501c1dc4ded8b1c54c9066cc7a741837057dcb68bc64c93"
 
 # `<script>`, including XHTML/SVG forms such as `<h:script src="..."/>`.

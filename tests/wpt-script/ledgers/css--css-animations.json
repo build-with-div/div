@@ -11,7 +11,7 @@
  "blocked_by": {
   "A1": 270,
   "A2": 645,
-  "A3": 529,
+  "A3": 575,
   "A5": 16,
   "S3": 7,
   "T3:helper-intrinsic": 1138,
@@ -25,7 +25,7 @@
   "gap:query-selector": 267,
   "gap:script-exceptions": 44,
   "gap:window-events": 1,
-  "unmapped": 351
+  "unmapped": 349
  },
  "rows": [
   {
@@ -369,8 +369,7 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".localTime",
-    ".playbackRate="
+    ".localTime"
    ]
   },
   {
@@ -1044,7 +1043,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".composite",
     ".style.animationComposition="
    ]
   },
@@ -1062,7 +1060,6 @@
    ],
    "unmapped": [
     ".appendRule()",
-    ".composite",
     ".delay",
     ".direction",
     ".duration",
@@ -1072,7 +1069,6 @@
     ".style.animationDirection=",
     ".style.animationFillMode=",
     ".style.animationIterationCount=",
-    ".timeline",
     "MS_PER_SEC",
     "document.styleSheets.0"
    ]
@@ -1196,7 +1192,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".playbackRate=",
     "harness:assert_throws_dom"
    ]
   },
@@ -1640,8 +1635,7 @@
     "gap:cssom-rules"
    ],
    "unmapped": [
-    ".entries()",
-    ".pseudoElement"
+    ".entries()"
    ]
   },
   {
@@ -1659,7 +1653,6 @@
    ],
    "unmapped": [
     ".entries()",
-    ".pseudoElement",
     ".splice()",
     "harness:assert_class_string"
    ],
@@ -1680,7 +1673,6 @@
    ],
    "unmapped": [
     ".entries()",
-    ".pseudoElement",
     ".splice()",
     "harness:assert_class_string"
    ],
@@ -1970,9 +1962,6 @@
     "T3:helper-intrinsic",
     "gap:background-shorthand",
     "gap:cssom-rules"
-   ],
-   "unmapped": [
-    ".pseudoElement"
    ]
   },
   {
@@ -1999,9 +1988,6 @@
     "T3:helper-intrinsic",
     "gap:background-shorthand",
     "gap:cssom-rules"
-   ],
-   "unmapped": [
-    ".pseudoElement"
    ]
   },
   {
@@ -2140,7 +2126,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".composite",
     ".style.animationComposition=",
     "css:--end-color",
     "css:--not-used",
@@ -2160,7 +2145,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".composite",
     "css:--end-color",
     "css:--not-used",
     "css:--var-100px",
@@ -2179,7 +2163,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    ".composite",
     ".style.animationComposition=",
     "css:--end-color",
     "css:--not-used",
@@ -2696,9 +2679,7 @@
     "gap:cssom-rules"
    ],
    "unmapped": [
-    "MS_PER_SEC",
-    "document.timeline",
-    "new Animation()"
+    "MS_PER_SEC"
    ]
   },
   {
@@ -4213,6 +4194,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4225,6 +4207,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4237,6 +4220,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4249,6 +4233,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4261,6 +4246,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4273,6 +4259,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4285,6 +4272,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4297,6 +4285,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4309,6 +4298,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4321,6 +4311,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4333,6 +4324,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4345,6 +4337,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4357,6 +4350,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4369,6 +4363,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4381,6 +4376,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4393,6 +4389,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4405,6 +4402,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4417,6 +4415,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4429,6 +4428,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4441,6 +4441,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4453,6 +4454,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4465,6 +4467,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4477,6 +4480,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4489,6 +4493,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4501,6 +4506,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4513,6 +4519,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4525,6 +4532,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4537,6 +4545,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4549,6 +4558,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4561,6 +4571,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4573,6 +4584,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4585,6 +4597,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4597,6 +4610,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4609,6 +4623,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4621,6 +4636,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4633,6 +4649,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4645,6 +4662,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4657,6 +4675,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4669,6 +4688,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4681,6 +4701,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4693,6 +4714,7 @@
    "status": "blocked",
    "features": [
     "A2",
+    "A3",
     "T3:helper-intrinsic",
     "gap:script-exceptions"
    ],
@@ -4704,10 +4726,10 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "A2"
+    "A2",
+    "A3"
    ],
    "unmapped": [
-    ".pseudoElement",
     "window.AnimationEvent"
    ]
   },
@@ -4717,10 +4739,10 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "A2"
+    "A2",
+    "A3"
    ],
    "unmapped": [
-    ".pseudoElement",
     "window.AnimationEvent"
    ]
   },
@@ -4730,11 +4752,11 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "A2"
+    "A2",
+    "A3"
    ],
    "unmapped": [
     ".elapsedTime",
-    ".pseudoElement",
     "harness:assert_idl_attribute",
     "window.AnimationEvent"
    ]
@@ -4745,11 +4767,11 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "A2"
+    "A2",
+    "A3"
    ],
    "unmapped": [
     ".elapsedTime",
-    ".pseudoElement",
     "harness:assert_idl_attribute",
     "window.AnimationEvent"
    ]
@@ -4760,11 +4782,11 @@
    "chromium": "PASS",
    "status": "blocked",
    "features": [
-    "A2"
+    "A2",
+    "A3"
    ],
    "unmapped": [
     ".elapsedTime",
-    ".pseudoElement",
     "harness:assert_idl_attribute",
     "window.AnimationEvent"
    ]
@@ -7604,7 +7626,6 @@
    ],
    "unmapped": [
     ".elapsedTime",
-    ".playbackRate=",
     "MS_PER_SEC",
     "harness:EventWatcher",
     "harness:t.wait_for"
@@ -7760,7 +7781,6 @@
     "T3:helper-intrinsic"
    ],
    "unmapped": [
-    "document.timeline",
     "harness:EventWatcher",
     "harness:t.wait_for"
    ]
@@ -7872,7 +7892,6 @@
     ".join()",
     ".length=",
     ".map()",
-    ".pseudoElement",
     "MS_PER_SEC",
     "harness:EventWatcher",
     "harness:t.wait_for"
@@ -7897,7 +7916,6 @@
     ".join()",
     ".length=",
     ".map()",
-    ".pseudoElement",
     ".splice()",
     "MS_PER_SEC",
     "harness:EventWatcher",
@@ -7924,7 +7942,6 @@
     ".join()",
     ".length=",
     ".map()",
-    ".pseudoElement",
     ".splice()",
     "MS_PER_SEC",
     "harness:EventWatcher",
@@ -7948,7 +7965,6 @@
     ".join()",
     ".length=",
     ".map()",
-    ".pseudoElement",
     "MS_PER_SEC",
     "harness:EventWatcher",
     "harness:t.wait_for"
@@ -7970,7 +7986,6 @@
     ".join()",
     ".length=",
     ".map()",
-    ".pseudoElement",
     "MS_PER_SEC",
     "harness:EventWatcher",
     "harness:t.wait_for"
@@ -7991,7 +8006,6 @@
     ".entries()",
     ".join()",
     ".map()",
-    ".pseudoElement",
     "harness:EventWatcher",
     "harness:t.wait_for"
    ]
