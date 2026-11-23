@@ -580,8 +580,10 @@ impl Engine {
         let data = self.document.node(dom_id);
         let authored = self.semantics.get(&handle.index);
         let control = self.controls.get(&handle.index);
+        let is_dialog = self.is_dialog(handle)?;
         let role = authored
             .and_then(|semantic| semantic.role)
+            .or_else(|| self.local_name(handle).ok().flatten().and_then(named_role))
             .unwrap_or_else(|| inferred_role(data.tag, control.map(|state| state.role), is_root));
         let mut node = Node::new(role);
         let closed_details =
@@ -697,7 +699,17 @@ impl Engine {
         if self.document.attribute(dom_id, "readonly").is_some() {
             node.set_read_only();
         }
-        if self.modal_root == Some(handle) || self.top_layer().contains(&handle) {
+        let in_modal_state = self.modal_root == Some(handle) || self.top_layer().contains(&handle);
+        let reports_modal = if is_dialog {
+            dialog_reports_modal(
+                role,
+                in_modal_state,
+                self.document.attribute(dom_id, "aria-modal"),
+            )
+        } else {
+            in_modal_state
+        };
+        if reports_modal {
             node.set_modal();
         }
         if let Some(bounds) = self.accessibility_bounds(dom_id) {
@@ -915,6 +927,29 @@ fn inferred_role(tag: ElementTag, control: Option<FormControlRole>, is_root: boo
         ElementTag::Ruby => Role::Ruby,
         ElementTag::RubyText => Role::RubyAnnotation,
         _ => Role::GenericContainer,
+    }
+}
+
+/// The role of an element the engine knows by its local name rather than its
+/// tag. The site's element table reads this function.
+fn named_role(local_name: &str) -> Option<Role> {
+    match local_name {
+        "dialog" => Some(Role::Dialog),
+        _ => None,
+    }
+}
+
+/// The `modal` flag a `dialog` element reports, as Chromium 147 computes it.
+/// Only a dialog role has the flag. `aria-modal` changes the flag and nothing
+/// else: inertness follows `showModal()` alone. An empty value is no value,
+/// `false` is matched without case, and any other value counts as true.
+fn dialog_reports_modal(role: Role, in_modal_state: bool, aria_modal: Option<&str>) -> bool {
+    if !matches!(role, Role::Dialog | Role::AlertDialog) {
+        return false;
+    }
+    match aria_modal {
+        None | Some("") => in_modal_state,
+        Some(value) => !value.eq_ignore_ascii_case("false"),
     }
 }
 

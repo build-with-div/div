@@ -1,0 +1,2240 @@
+{
+ "chromium": "147.0.7727.50",
+ "page": "<!doctype html><meta charset=\"utf-8\"><title>dialog accessibility</title>\n<body><button id=\"outside\">out</button>\n<dialog id=\"d\"><button id=\"inside\">in</button><p id=\"text\">body text</p></dialog>\n<dialog id=\"second\"><button id=\"second-inside\">two</button></dialog>\n<h2 id=\"heading\">Heading name</h2><p id=\"desc\">Description text</p></body>\n",
+ "nodes": [
+  "d",
+  "inside",
+  "text",
+  "second",
+  "outside",
+  "heading"
+ ],
+ "cases": {
+  "closed": {
+   "steps": [],
+   "nodes": {
+    "d": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "inside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "open_attribute": {
+   "steps": [
+    "set-open"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show": {
+   "steps": [
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_modal": {
+   "steps": [
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_label": {
+   "steps": [
+    [
+     "attr",
+     "aria-label",
+     "Label name"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "Label name",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_label": {
+   "steps": [
+    [
+     "attr",
+     "aria-label",
+     "Label name"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "Label name",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_labelledby": {
+   "steps": [
+    [
+     "attr",
+     "aria-labelledby",
+     "heading"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "Heading name",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_labelledby": {
+   "steps": [
+    [
+     "attr",
+     "aria-labelledby",
+     "heading"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_title": {
+   "steps": [
+    [
+     "attr",
+     "title",
+     "Title name"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "Title name",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_describedby": {
+   "steps": [
+    [
+     "attr",
+     "aria-describedby",
+     "desc"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_describedby": {
+   "steps": [
+    [
+     "attr",
+     "aria-describedby",
+     "desc"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": "Description text",
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_labelledby_inside": {
+   "steps": [
+    [
+     "attr",
+     "aria-labelledby",
+     "text"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "body text",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_describedby_inside": {
+   "steps": [
+    [
+     "attr",
+     "aria-describedby",
+     "text"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": "body text",
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_false": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "false"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_true": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "true"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_true": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "true"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_false": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "false"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_upper_false": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "FALSE"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_upper_true": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "TRUE"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_empty": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     ""
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_empty": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     ""
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_invalid": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "maybe"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_invalid": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     "maybe"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_aria_modal_spaces": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     " false "
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_aria_modal_spaces": {
+   "steps": [
+    [
+     "attr",
+     "aria-modal",
+     " false "
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_role_alertdialog": {
+   "steps": [
+    [
+     "attr",
+     "role",
+     "alertdialog"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "alertdialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_role_alertdialog": {
+   "steps": [
+    [
+     "attr",
+     "role",
+     "alertdialog"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "alertdialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_role_none": {
+   "steps": [
+    [
+     "attr",
+     "role",
+     "none"
+    ],
+    "show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_role_none": {
+   "steps": [
+    [
+     "attr",
+     "role",
+     "none"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_role_button": {
+   "steps": [
+    [
+     "attr",
+     "role",
+     "button"
+    ],
+    "show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in body text",
+     "description": null,
+     "modal": null
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_closed": {
+   "steps": [
+    "show-modal",
+    "close"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "inside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_open_removed": {
+   "steps": [
+    "show-modal",
+    "remove-open"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "inside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "modal_moved": {
+   "steps": [
+    "show-modal",
+    "move"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": false
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "notRendered"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "out",
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "heading",
+     "name": "Heading name",
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "two_modals": {
+   "steps": [
+    "show-modal",
+    "second-show-modal"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "inside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  },
+  "show_under_modal": {
+   "steps": [
+    "show-modal",
+    "second-show"
+   ],
+   "nodes": {
+    "d": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "dialog",
+     "name": "",
+     "description": null,
+     "modal": true
+    },
+    "inside": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "button",
+     "name": "in",
+     "description": null,
+     "modal": null
+    },
+    "text": {
+     "ignored": false,
+     "ignoredReasons": [],
+     "role": "paragraph",
+     "name": "",
+     "description": null,
+     "modal": null
+    },
+    "second": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "outside": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    },
+    "heading": {
+     "ignored": true,
+     "ignoredReasons": [
+      "activeModalDialog"
+     ],
+     "role": "none",
+     "name": null,
+     "description": null,
+     "modal": null
+    }
+   }
+  }
+ }
+}

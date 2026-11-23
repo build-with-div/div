@@ -39,8 +39,10 @@ The background and text stay white and black in a dark color scheme for now.
 
 ## Accessibility
 
-A dialog has the `GenericContainer` role for now, so assistive technology
-does not announce it as a dialog.
+A dialog has the `Dialog` role. It takes no name from its contents, so give
+it one with `aria-label`. `aria-modal` sets only the modal flag that
+assistive technology reads. It does not make the page behind the dialog
+inert.
 
 ## Differences from HTML
 
@@ -51,5 +53,5 @@ does not announce it as a dialog.
 | Escape closes a modal dialog | Not available yet |
 | A modal dialog is painted in the top layer, above the page | Not painted there yet |
 | `::backdrop` | Not available yet |
-| The `dialog` accessibility role | `GenericContainer` |
+| The `aria-labelledby`, `aria-describedby`, `title` and `role` attributes name or change a dialog | Not read yet |
 | `Canvas` and `CanvasText` colors | White and black |
