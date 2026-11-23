@@ -178,6 +178,10 @@ function surfacesOf(node, locals, helpers, skip = () => false) {
       const path = memberSurface(node, root, locals);
       if (path) surfaces.add(write ? `${path}=` : path);
     } else if (node.type === 'Identifier' && parent && isReference(parent, key)
+               && locals.has(node.name)) {
+      // A function passed by name (`window.onload = run`) runs too.
+      calls.add(node.name);
+    } else if (node.type === 'Identifier' && parent && isReference(parent, key)
                && !locals.has(node.name) && !LANGUAGE.has(node.name) && !HARNESS_NAMES.has(node.name)
                && !helpers.has(node.name) && !GLOBAL_OBJECTS.has(node.name)
                && !node.name.startsWith('assert_')) {
@@ -284,7 +288,17 @@ function analyse(page) {
         || (HELPER_DECLARATIONS.has(node.callee.name) && helpers.has(node.callee.name)));
   // The page's own top-level code, without the subtests it declares: each
   // declaration's body belongs to its own subtest.
-  const pageLevel = surfacesOf({type: 'Program', body: topLevel}, locals, helpers, isDeclaration);
+  // Markup event handlers (`<body onload="run()">`) are page code too.
+  let handlers;
+  try {
+    handlers = (page.handlers ?? []).flatMap(source => parse(source, {
+      ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true,
+    }).body);
+  } catch (error) {
+    return {file: page.file, parse_error: `${error.message}`, subtests: [], page_surfaces: []};
+  }
+  const pageLevel = surfacesOf({type: 'Program', body: [...topLevel, ...handlers]}, locals, helpers,
+    isDeclaration);
 
   // Functions that declare a subtest belong to that subtest: another
   // subtest that reaches one (through the page's test chain) does not take
@@ -474,7 +488,12 @@ function analyse(page) {
       ...(reached.reasons.size ? {untranslatable: [...reached.reasons].sort()} : {}),
     });
   }
-  return {file: page.file, subtests, page_surfaces: [...pageLevel.surfaces].sort(), chains};
+  // Everything the page's scripts use, whichever subtest uses it. A subtest
+  // whose name is computed while the page runs can't be tied to one
+  // declaration, so it needs all of this (RFC 0005, "Computed subtest names").
+  const whole = surfacesOf({type: 'Program', body: [...program.body, ...handlers]}, locals, helpers);
+  return {file: page.file, subtests, page_surfaces: [...pageLevel.surfaces].sort(), chains,
+    whole_page: {surfaces: [...whole.surfaces].sort(), reasons: [...whole.reasons].sort()}};
 }
 
 // `--ast`: the parsed scripts themselves, one Program per inline script,

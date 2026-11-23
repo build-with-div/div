@@ -26,9 +26,11 @@ use std::fmt;
 use std::rc::Rc;
 
 mod dom;
+mod input;
 mod promise;
 mod resize;
 
+pub use input::Actions;
 pub use promise::{Await, JsPromise};
 pub use resize::Helper;
 
@@ -139,6 +141,10 @@ pub enum Host {
     ResizeObserver(ResizeObserver),
     /// A `ResizeTestHelper`, the intrinsic of `resizeTestHelper.js`.
     Helper(Rc<Helper>),
+    /// An event a listener received.
+    Event(div::Event),
+    /// A `test_driver.Actions`.
+    Actions(Rc<Actions>),
 }
 
 /// An ordinary object or array: properties in insertion order.
@@ -484,6 +490,12 @@ struct Inner {
     /// The web keeps an observer with targets alive however few references
     /// a script holds; `divui` stops one when its last handle drops.
     observers: RefCell<Vec<ResizeObserver>>,
+    /// `location.search`: the run's `<meta name=variant>`.
+    search: RefCell<String>,
+    listeners: RefCell<Vec<input::Registered>>,
+    listener_order: std::cell::Cell<u64>,
+    /// The ticks of the `test_driver` sequence being sent, one per frame.
+    pending_input: RefCell<VecDeque<input::Tick>>,
 }
 
 /// One page's runtime: its document, its harness and its clock.
@@ -530,7 +542,16 @@ impl Rt {
             current_task: RefCell::new(None),
             promise_tests: RefCell::new(None),
             observers: RefCell::new(Vec::new()),
+            search: RefCell::new(String::new()),
+            listeners: RefCell::new(Vec::new()),
+            listener_order: std::cell::Cell::new(0),
+            pending_input: RefCell::new(VecDeque::new()),
         }))
+    }
+
+    /// The run's `location.search`, such as `?mouse`.
+    pub fn set_search(&self, search: &str) {
+        *self.0.search.borrow_mut() = search.to_owned();
     }
 
     pub fn document(&self) -> &Document {
@@ -546,6 +567,7 @@ impl Rt {
         }
         // The observers' callbacks hold this runtime.
         self.0.observers.borrow_mut().clear();
+        self.0.pending_input.borrow_mut().clear();
         let stopped = self.0.stopped.borrow().clone();
         let mut tests = self.0.tests.borrow_mut();
         for test in tests.iter_mut().filter(|test| !test.finished) {
@@ -657,6 +679,7 @@ impl Rt {
             self.0.timer_nesting.set(0);
         }
         self.0.now_ms.set(next);
+        self.run_input_tick();
         self.0.app.borrow_mut().advance_frame(FRAME_MS);
     }
 
@@ -939,6 +962,16 @@ impl Rt {
                     rt.create_and_append_element(args)
                 })
             }
+            "location" => Value::record(
+                "Location",
+                vec![("search", Value::str(&self.0.search.borrow()))],
+            ),
+            "test_driver" if self.has_helper(input::TESTDRIVER) => {
+                Value::Host(Host::Constructor("test_driver"))
+            }
+            "getEvent" if self.has_helper(input::POINTEREVENT_SUPPORT) => {
+                Value::function("getEvent", |rt, _, args| rt.get_event(args))
+            }
             "setup" => Value::function("setup", |_, _, args| {
                 // Only an empty or function-only setup is exact here; options
                 // change the harness and are reported.
@@ -1020,6 +1053,9 @@ impl Rt {
                     "surface:{}.{key}",
                     object.record.unwrap_or_default()
                 ))),
+                None if object.array && matches!(key, "push" | "toString") => {
+                    Ok(array_method(object, key))
+                }
                 None if OBJECT_PROTOTYPE.contains(&key) => Err(Throw::unsupported(format!(
                     "builtin:Object.prototype.{key}"
                 ))),
@@ -1038,8 +1074,17 @@ impl Rt {
                 self.resize_observer_member(observer, key)
             }
             Value::Host(Host::Helper(helper)) => self.helper_member(helper, key),
+            Value::Host(Host::Event(event)) => self.event_member(event, key),
+            Value::Host(Host::Actions(actions)) => self.actions_member(actions, key),
+            Value::Host(Host::Constructor("test_driver")) => self.test_driver_member(key),
             Value::Str(text) if key == "length" => {
                 Ok(Value::Number(text.encode_utf16().count() as f64))
+            }
+            Value::Str(text) if key == "substring" => {
+                let text = text.clone();
+                Ok(Value::function("substring", move |rt, _, args| {
+                    substring(rt, &text, &args)
+                }))
             }
             Value::Undefined | Value::Null => Err(Throw::error(format!(
                 "TypeError: Cannot read properties of {} (reading '{key}')",
@@ -1088,6 +1133,7 @@ impl Rt {
                 self.construct_resize_observer(args)
             }
             Value::Host(Host::Constructor("ResizeTestHelper")) => self.construct_helper(args),
+            Value::Host(Host::Constructor("test_driver.Actions")) => self.construct_actions(args),
             other => Err(Throw::unsupported(format!("surface:new {}", other.kind()))),
         }
     }
@@ -1293,6 +1339,62 @@ impl Rt {
 
 use Status::Timeout;
 
+/// `String.prototype.substring`, on UTF-16 code units.
+fn substring(rt: &Rt, text: &str, args: &[Value]) -> Res {
+    let units: Vec<u16> = text.encode_utf16().collect();
+    let length = units.len() as f64;
+    let clamp = |value: f64| {
+        let integer = if value.is_nan() { 0.0 } else { value.trunc() };
+        integer.max(0.0).min(length)
+    };
+    let start = clamp(rt.to_number(args.first().unwrap_or(&Value::Undefined))?);
+    let end = match args.get(1) {
+        None | Some(Value::Undefined) => length,
+        Some(value) => clamp(rt.to_number(value)?),
+    };
+    let (from, to) = (start.min(end) as usize, start.max(end) as usize);
+    String::from_utf16(&units[from..to])
+        .map(|text| Value::str(&text))
+        .map_err(|_| Throw::unsupported("lone-surrogate"))
+}
+
+/// `Array.prototype.push` and `toString` (its `join` with a comma).
+fn array_method(object: &Rc<Object>, key: &str) -> Value {
+    let array = object.clone();
+    if key == "push" {
+        return Value::function("push", move |_, _, args| {
+            let mut properties = array.properties.borrow_mut();
+            let slot = properties
+                .iter()
+                .position(|(name, _)| &**name == "length")
+                .expect("an array has a length");
+            let Value::Number(length) = properties[slot].1 else {
+                return Err(Throw::unsupported("builtin:array-length"));
+            };
+            let mut length = length as usize;
+            for value in args {
+                let at = properties.len() - 1;
+                properties.insert(at, (Rc::from(length.to_string().as_str()), value));
+                length += 1;
+            }
+            let last = properties.len() - 1;
+            properties[last].1 = Value::Number(length as f64);
+            Ok(Value::Number(length as f64))
+        });
+    }
+    Value::function("toString", move |rt, _, _| {
+        let items = rt.iterate(&Value::Object(array.clone()))?;
+        let parts = items
+            .iter()
+            .map(|item| match item {
+                Value::Undefined | Value::Null => Ok(String::new()),
+                item => rt.to_string(item),
+            })
+            .collect::<Result<Vec<_>, Throw>>()?;
+        Ok(Value::str(&parts.join(",")))
+    })
+}
+
 /// SameValue, which testharness.js's `assert_equals` uses.
 fn same_value(a: &Value, b: &Value) -> Result<bool, Throw> {
     match (a, b) {
@@ -1344,6 +1446,9 @@ fn same_host(a: &Host, b: &Host) -> Result<bool, Throw> {
         (Host::Promise(x), Host::Promise(y)) => Rc::ptr_eq(x, y),
         (Host::ResizeObserver(x), Host::ResizeObserver(y)) => x == y,
         (Host::Helper(x), Host::Helper(y)) => Rc::ptr_eq(x, y),
+        (Host::Actions(x), Host::Actions(y)) => Rc::ptr_eq(x, y),
+        // A clone shares the event's state, and `divui` has no identity call.
+        (Host::Event(_), Host::Event(_)) => return Err(Throw::unsupported("event-identity")),
         _ => false,
     })
 }
@@ -1514,6 +1619,33 @@ pub enum Expected {
     Unsupported,
 }
 
+/// A page whose subtest names are computed while it runs must report the
+/// names Chromium recorded for this run, exactly. A run the translation
+/// stopped may have declared fewer, but never another name.
+pub fn expect_names(page: &str, result: &PageResult, oracle: &[&str]) {
+    if std::env::var_os("DIV_WPT_SCRIPT_RECORD").is_some() {
+        return; // `codegen.py --record` applies the same rule.
+    }
+    if let Some(problem) = names_differ(result, oracle) {
+        panic!("{page}: {problem}");
+    }
+}
+
+/// How a page's subtest names differ from the oracle's, if they do.
+fn names_differ(result: &PageResult, oracle: &[&str]) -> Option<String> {
+    let mut observed: Vec<&str> = result.subtests.iter().map(|(n, _)| n.as_str()).collect();
+    let mut recorded = oracle.to_vec();
+    observed.sort_unstable();
+    recorded.sort_unstable();
+    let extra = observed.iter().any(|name| !recorded.contains(name));
+    let interrupted = result.unsupported.is_some() || result.stopped.is_some();
+    (extra || (!interrupted && observed != recorded)).then(|| {
+        format!(
+            "subtest names differ from Chromium's record\nobserved: {observed:?}\nrecorded: {recorded:?}"
+        )
+    })
+}
+
 /// Check a page's results against the ledger's expectations: a regression
 /// fails, and so does a pass the ledger does not record yet. With
 /// `DIV_WPT_SCRIPT_RECORD` set to a directory, write the results there
@@ -1618,7 +1750,10 @@ fn record(directory: &std::path::Path, page: &str, result: &PageResult) {
         optional(&result.stopped),
         rows.join(", ")
     );
-    let file = directory.join(format!("{}.json", page.replace(['/', '.'], "_")));
+    let file = directory.join(format!(
+        "{}.json",
+        page.replace(['/', '.', '?', '=', '&'], "_")
+    ));
     std::fs::create_dir_all(directory).expect("the record directory");
     std::fs::write(file, json).expect("the record file");
 }
@@ -1761,6 +1896,99 @@ mod tests {
             .unwrap();
         rt.frame();
         assert_eq!(element.client_width().unwrap(), 40);
+    }
+
+    fn page(names: &[&str], unsupported: Option<&str>) -> PageResult {
+        PageResult {
+            subtests: names
+                .iter()
+                .map(|name| (name.to_string(), Status::Pass))
+                .collect(),
+            harness_error: None,
+            unsupported: unsupported.map(str::to_owned),
+            stopped: None,
+        }
+    }
+
+    #[test]
+    fn computed_names_must_match_the_record_exactly() {
+        assert_eq!(names_differ(&page(&["b", "a"], None), &["a", "b"]), None);
+        // An extra, a missing and a renamed subtest.
+        assert!(names_differ(&page(&["a", "b", "c"], None), &["a", "b"]).is_some());
+        assert!(names_differ(&page(&["a"], None), &["a", "b"]).is_some());
+        assert!(names_differ(&page(&["a", "x"], None), &["a", "b"]).is_some());
+        // A stopped run may declare fewer, never another.
+        assert_eq!(
+            names_differ(&page(&["a"], Some("surface:x")), &["a", "b"]),
+            None
+        );
+        assert!(names_differ(&page(&["x"], Some("surface:x")), &["a", "b"]).is_some());
+    }
+
+    #[test]
+    fn strings_and_arrays_have_their_builtins() {
+        let rt = Rt::new(None);
+        let text = Value::str("?mouse");
+        let tail = rt.call_method(&text, "substring", vec![Value::Number(1.0)]);
+        assert_eq!(rt.to_string(&tail.unwrap()).unwrap(), "mouse");
+        let swapped = rt.call_method(
+            &text,
+            "substring",
+            vec![Value::Number(3.0), Value::Number(1.0)],
+        );
+        assert_eq!(rt.to_string(&swapped.unwrap()).unwrap(), "mo");
+        let log = Value::array(Vec::new());
+        rt.call_method(&log, "push", vec![Value::str("a"), Value::Null])
+            .unwrap();
+        rt.call_method(&log, "push", vec![Value::Number(2.0)])
+            .unwrap();
+        let joined = rt.call_method(&log, "toString", Vec::new()).unwrap();
+        assert_eq!(rt.to_string(&joined).unwrap(), "a,,2");
+        assert_eq!(rt.to_number(&rt.get(&log, "length").unwrap()).unwrap(), 3.0);
+    }
+
+    #[test]
+    fn a_touch_pointer_moves_only_while_pressed_and_each_action_is_a_tick() {
+        let rt = Rt::new(None);
+        rt.load_helper(input::TESTDRIVER);
+        rt.load_helper(input::TESTDRIVER_ACTIONS);
+        let driver = rt.global("test_driver").unwrap();
+        let class = rt.get(&driver, "Actions").unwrap();
+        let actions = rt.construct(&class, Vec::new()).unwrap();
+        let actions = rt
+            .call_method(
+                &actions,
+                "addPointer",
+                vec![Value::str("p"), Value::str("touch")],
+            )
+            .unwrap();
+        for (method, args) in [
+            ("pointerMove", vec![Value::Number(5.0), Value::Number(6.0)]),
+            ("pointerDown", vec![]),
+            ("pointerMove", vec![Value::Number(7.0), Value::Number(8.0)]),
+            ("pointerUp", vec![]),
+        ] {
+            rt.call_method(&actions, method, args).unwrap();
+        }
+        rt.call_method(&actions, "send", Vec::new()).unwrap();
+        let ticks: Vec<_> =
+            rt.0.pending_input
+                .borrow()
+                .iter()
+                .map(|tick| tick.summary())
+                .collect();
+        assert_eq!(
+            ticks,
+            [
+                None,
+                Some((div::PointerInputKind::Down, 5.0, 6.0)),
+                Some((div::PointerInputKind::Move, 7.0, 8.0)),
+                Some((div::PointerInputKind::Up, 7.0, 8.0)),
+            ]
+        );
+        // Another action or option stops the subtest.
+        let more = rt.call_method(&actions, "pointerDown", vec![Value::object(vec![])]);
+        assert!(matches!(more, Err(Throw::Unsupported(_))));
     }
 
     #[test]

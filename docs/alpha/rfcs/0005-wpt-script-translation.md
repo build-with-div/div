@@ -466,6 +466,35 @@ repeated three times and gets an `oracle`:
 A disputed run's subtests have the ledger status `disputed`. They stay in the
 denominator, are never generated, and are never counted as a Chromium pass.
 
+### Computed subtest names
+
+Many pages compute a subtest's name while they run: in a loop, from the
+variant (`` `pointerup from ${pointer_type}` ``), or in a helper. T3a made
+these rows `untranslatable` (`runtime-subtest-name`), because the analysis
+couldn't tie such a name to one declaration. The compiled runtime runs the
+whole page, so the name itself is no longer the problem. These rules replace
+that one, for the rows whose name no declaration on the page states:
+
+1. The row is translatable only if every surface on the whole page maps to a
+   `divui` call: every script, including functions it reaches only through
+   markup event handlers or passes by name, and all of the page's markup.
+   Anything outside the accepted subset anywhere on the page makes the row
+   `untranslatable` with that reason. A name no declaration on the page can
+   produce stays `undeclared-subtest`.
+2. When the page runs, its subtest names must match the names the oracle
+   recorded for that run exactly. An extra, missing or renamed subtest fails
+   the generated test (`expect_names`) and `codegen.py --record`, and
+   `ledger.py --check` fails when Div recorded a name Chromium didn't. A run
+   the translation stopped may have declared fewer names, but never another.
+   Nothing is matched loosely.
+3. A name that isn't identical in all three Chromium repeats makes the run
+   `disputed` with the reason `unstable`, so its rows are never generated.
+4. A reclassified row counts as translatable, not as passing, until it runs
+   and its result is recorded.
+
+The ledger marks these rows `computed_name`. A row whose name a declaration
+states keeps the per-declaration rule above.
+
 ### Affected tracks
 
 The framework track owns it, and no other track is affected:

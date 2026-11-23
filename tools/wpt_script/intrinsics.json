@@ -23,7 +23,11 @@
  },
  "pointerevents/pointerevent_support.js": {
   "sha256": "f7d16731163380e393dfbc6ad699ffa33e16d692e4d26aa2130cc9b045237340",
-  "provides": {}
+  "provides": {
+   "getEvent": [
+    ".addEventListener()"
+   ]
+  }
  },
  "resources/testdriver.js": {
   "sha256": "a74f264b3bafe6db9ad1e6b1f0ca2a2269a7d61b25a59df8e2ccf9f01c5fdf31",
