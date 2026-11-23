@@ -1,0 +1,26 @@
+{"fontFace":"A","file":"Ahem.ttf"}
+{"fontFace":"S","file":"DejaVuSans.ttf"}
+{"canvas":"hebrew-only","width":320,"height":60}
+{"canvas":"hebrew-only","set":"font","value":"33.3px A, S"}
+{"canvas":"hebrew-only","set":"direction","value":"rtl"}
+{"canvas":"hebrew-only","call":"fillText","args":["אבג",310,42]}
+{"canvas":"box-letter","width":320,"height":60}
+{"canvas":"box-letter","set":"font","value":"33.3px A, S"}
+{"canvas":"box-letter","set":"direction","value":"rtl"}
+{"canvas":"box-letter","call":"fillText","args":[".א",310,42]}
+{"canvas":"letter-box","width":320,"height":60}
+{"canvas":"letter-box","set":"font","value":"33.3px A, S"}
+{"canvas":"letter-box","set":"direction","value":"rtl"}
+{"canvas":"letter-box","call":"fillText","args":["א.",310,42]}
+{"canvas":"letter-box-letter","width":320,"height":60}
+{"canvas":"letter-box-letter","set":"font","value":"33.3px A, S"}
+{"canvas":"letter-box-letter","set":"direction","value":"rtl"}
+{"canvas":"letter-box-letter","call":"fillText","args":["א.ב",310,42]}
+{"canvas":"box-letters-box","width":320,"height":60}
+{"canvas":"box-letters-box","set":"font","value":"33.3px A, S"}
+{"canvas":"box-letters-box","set":"direction","value":"rtl"}
+{"canvas":"box-letters-box","call":"fillText","args":[".אב.",310,42]}
+{"canvas":"alternating","width":320,"height":60}
+{"canvas":"alternating","set":"font","value":"33.3px A, S"}
+{"canvas":"alternating","set":"direction","value":"rtl"}
+{"canvas":"alternating","call":"fillText","args":["א.ב.ג.",310,42]}
