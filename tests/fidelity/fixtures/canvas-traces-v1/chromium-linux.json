@@ -3400,6 +3400,1553 @@
     }
    ]
   },
+  "text-measure-spaces": {
+   "canvases": {
+    "c": {
+     "height": 10,
+     "sha256": "7a12e561363385e9dfeeab326368731c030ed4b374e7f5897ac819159d2884c5",
+     "width": 10
+    }
+   },
+   "observations": [
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 10.584121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -10.584121704101562,
+      "actualBoundingBoxRight": 10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -21.168243408203125,
+      "actualBoundingBoxRight": 21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -31.752365112304688,
+      "actualBoundingBoxRight": 31.752365112304688,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 42.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -10.584121704101562,
+      "actualBoundingBoxRight": 10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -21.168243408203125,
+      "actualBoundingBoxRight": 21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -23.168243408203125,
+      "actualBoundingBoxRight": 39.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 18,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -12.584121704101562,
+      "actualBoundingBoxRight": 28.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 72.15646362304688,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 73.29217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -23.168243408203125,
+      "actualBoundingBoxRight": 82.74058532714844,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 105.04454040527344
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 19.999984741210938
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -19.999984741210938,
+      "actualBoundingBoxRight": 19.999984741210938,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 39.999969482421875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -39.999969482421875,
+      "actualBoundingBoxRight": 39.999969482421875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 59.99995422363281
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -59.99995422363281,
+      "actualBoundingBoxRight": 59.99995422363281,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 79.99993896484375
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -19.999984741210938,
+      "actualBoundingBoxRight": 19.999984741210938,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 39.999969482421875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -39.999969482421875,
+      "actualBoundingBoxRight": 39.999969482421875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 59.99995422363281
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 39.999969482421875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 16,
+      "actualBoundingBoxDescent": 4,
+      "actualBoundingBoxLeft": -39.999969482421875,
+      "actualBoundingBoxRight": 59.999969482421875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 59.99995422363281
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 16,
+      "actualBoundingBoxDescent": 4,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 20,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 59.99995422363281
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 16,
+      "actualBoundingBoxDescent": 4,
+      "actualBoundingBoxLeft": -19.999984741210938,
+      "actualBoundingBoxRight": 39.99998474121094,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 59.99995422363281
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 16,
+      "actualBoundingBoxDescent": 4,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 99.99993896484375,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 99.99992370605469
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 16,
+      "actualBoundingBoxDescent": 4,
+      "actualBoundingBoxLeft": -39.999969482421875,
+      "actualBoundingBoxRight": 119.99992370605469,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 16,
+      "fontBoundingBoxDescent": 4,
+      "hangingBaseline": 12.800000190734863,
+      "ideographicBaseline": -4,
+      "width": 159.9998779296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 4.350860595703125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -4.350860595703125,
+      "actualBoundingBoxRight": 4.350860595703125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 8.70172119140625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -8.70172119140625,
+      "actualBoundingBoxRight": 8.70172119140625,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 13.052581787109375
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -13.052581787109375,
+      "actualBoundingBoxRight": 13.052581787109375,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 17.4034423828125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -4.350860595703125,
+      "actualBoundingBoxRight": 4.350860595703125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 8.70172119140625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -8.70172119140625,
+      "actualBoundingBoxRight": 8.70172119140625,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 13.052581787109375
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 8.70172119140625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 8,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -8.70172119140625,
+      "actualBoundingBoxRight": 16.70172119140625,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 17.089324951171875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 8,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 8,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 17.089324951171875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 8,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -4.350860595703125,
+      "actualBoundingBoxRight": 12.350860595703125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 17.089324951171875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 11,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 29.440185546875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 30.1285400390625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 11,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -8.70172119140625,
+      "actualBoundingBoxRight": 33.791046142578125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 13,
+      "fontBoundingBoxDescent": 3,
+      "hangingBaseline": 10.399999618530273,
+      "ideographicBaseline": -3,
+      "width": 43.181121826171875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 5.292060852050781,
+      "actualBoundingBoxRight": -5.292060852050781,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 10.584121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -5.292060852050781,
+      "actualBoundingBoxRight": 5.292060852050781,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -10.584121704101562,
+      "actualBoundingBoxRight": 10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 42.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -5.292060852050781,
+      "actualBoundingBoxRight": 5.292060852050781,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2.3820724487304688,
+      "actualBoundingBoxRight": 18.38207244873047,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 18.786170959472656,
+      "actualBoundingBoxRight": -2.7861709594726562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 8.202049255371094,
+      "actualBoundingBoxRight": 7.797950744628906,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 34.646087646484375,
+      "actualBoundingBoxRight": 35.5103759765625,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 73.29217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 29.354026794433594,
+      "actualBoundingBoxRight": 30.21831512451172,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 105.04454040527344
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 10.584121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 42.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 21.168243408203125,
+      "actualBoundingBoxRight": -21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 18.404098510742188,
+      "actualBoundingBoxRight": -2.4040985107421875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 39.57234191894531,
+      "actualBoundingBoxRight": -23.572341918945312,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 28.98822021484375,
+      "actualBoundingBoxRight": -12.98822021484375,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 71.29217529296875,
+      "actualBoundingBoxRight": -1.135711669921875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 73.29217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 81.87629699707031,
+      "actualBoundingBoxRight": -22.303955078125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 105.04454040527344
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 10.584121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 42.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 10.584121704101562,
+      "actualBoundingBoxRight": -10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 21.168243408203125,
+      "actualBoundingBoxRight": -21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 39.57234191894531,
+      "actualBoundingBoxRight": -23.572341918945312,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 18.404098510742188,
+      "actualBoundingBoxRight": -2.4040985107421875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 28.98822021484375,
+      "actualBoundingBoxRight": -12.98822021484375,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 71.29217529296875,
+      "actualBoundingBoxRight": -1.135711669921875,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 73.29217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 81.87629699707031,
+      "actualBoundingBoxRight": -22.303955078125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 105.04454040527344
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 10.584121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -10.584121704101562,
+      "actualBoundingBoxRight": 10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -21.168243408203125,
+      "actualBoundingBoxRight": 21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -31.752365112304688,
+      "actualBoundingBoxRight": 31.752365112304688,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 42.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -10.584121704101562,
+      "actualBoundingBoxRight": 10.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 21.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -21.168243408203125,
+      "actualBoundingBoxRight": 21.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 31.752365112304688
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 35.768218994140625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -23.168243408203125,
+      "actualBoundingBoxRight": 39.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 18,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -12.584121704101562,
+      "actualBoundingBoxRight": 28.584121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 41.57234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 72.15646362304688,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 73.29217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -23.168243408203125,
+      "actualBoundingBoxRight": 82.74058532714844,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 105.04454040527344
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 13.084121704101562
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -13.084121704101562,
+      "actualBoundingBoxRight": 13.084121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 26.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -26.168243408203125,
+      "actualBoundingBoxRight": 26.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 39.25236511230469
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -39.25236511230469,
+      "actualBoundingBoxRight": 39.25236511230469,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 52.33648681640625
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -13.084121704101562,
+      "actualBoundingBoxRight": 13.084121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 26.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -26.168243408203125,
+      "actualBoundingBoxRight": 26.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 39.25236511230469
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": "-0",
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": 0,
+      "actualBoundingBoxRight": 0,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 26.168243408203125
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -28.168243408203125,
+      "actualBoundingBoxRight": 44.168243408203125,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 49.07234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 18,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 49.07234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 19,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -15.084121704101562,
+      "actualBoundingBoxRight": 31.084121704101562,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 49.07234191894531
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -2,
+      "actualBoundingBoxRight": 82.15646362304688,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 85.79217529296875
+     }
+    },
+    {
+     "call": "measureText",
+     "canvas": "c",
+     "return": {
+      "actualBoundingBoxAscent": 26,
+      "actualBoundingBoxDescent": 0,
+      "actualBoundingBoxLeft": -28.168243408203125,
+      "actualBoundingBoxRight": 95.24058532714844,
+      "alphabeticBaseline": "-0",
+      "fontBoundingBoxAscent": 31,
+      "fontBoundingBoxDescent": 8,
+      "hangingBaseline": 24.799999237060547,
+      "ideographicBaseline": -8,
+      "width": 125.04454040527344
+     }
+    }
+   ]
+  },
   "text-spacing-rtl": {
    "canvases": {
     "c": {

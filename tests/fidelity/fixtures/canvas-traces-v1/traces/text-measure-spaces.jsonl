@@ -1,0 +1,111 @@
+{"fontFace":"CanvasSans","file":"DejaVuSans.ttf","weight":"400"}
+{"fontFace":"CanvasBox","file":"Ahem.ttf","weight":"400"}
+{"canvas":"c","width":10,"height":10}
+{"canvas":"c","set":"font","value":"33.3px CanvasSans"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"font","value":"20px CanvasBox"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"font","value":"13.7px CanvasSans, CanvasBox"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"font","value":"33.3px CanvasSans"}
+{"canvas":"c","set":"textAlign","value":"center"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"textAlign","value":"right"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"textAlign","value":"start"}
+{"canvas":"c","set":"direction","value":"rtl"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"direction","value":"ltr"}
+{"canvas":"c","set":"wordSpacing","value":"7.3px"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}
+{"canvas":"c","set":"wordSpacing","value":"0px"}
+{"canvas":"c","set":"letterSpacing","value":"2.5px"}
+{"canvas":"c","call":"measureText","args":[" "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["   "]}
+{"canvas":"c","call":"measureText","args":["    "]}
+{"canvas":"c","call":"measureText","args":["\t\t"]}
+{"canvas":"c","call":"measureText","args":[" \n "]}
+{"canvas":"c","call":"measureText","args":["  "]}
+{"canvas":"c","call":"measureText","args":["  a"]}
+{"canvas":"c","call":"measureText","args":["a  "]}
+{"canvas":"c","call":"measureText","args":[" a "]}
+{"canvas":"c","call":"measureText","args":["a   b"]}
+{"canvas":"c","call":"measureText","args":["  a  b  "]}

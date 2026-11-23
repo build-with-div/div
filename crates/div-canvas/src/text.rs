@@ -767,13 +767,31 @@ pub(crate) struct RectF {
 }
 
 impl RectF {
-    /// `gfx::RectF(x, y, w, h)`: `SizeF` clamps negative sizes to 0.
+    /// `gfx::SizeF::kTrivial`.
+    const TRIVIAL_SIZE: f32 = 8.0 * f32::EPSILON;
+
+    /// `SizeF::clamp`: a size that is not above `kTrivial`, or is NaN, is 0.
+    fn clamp_size(size: f32) -> f32 {
+        if size > Self::TRIVIAL_SIZE {
+            size
+        } else {
+            0.0
+        }
+    }
+
+    /// `SizeF::next`: the next float above `size`, from at least `kTrivial`.
+    /// Only called below `f32::MAX`.
+    fn next_size(size: f32) -> f32 {
+        f32::from_bits(size.max(Self::TRIVIAL_SIZE).to_bits() + 1)
+    }
+
+    /// `gfx::RectF(x, y, w, h)`, its size clamped as `SizeF` does.
     fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
         Self {
             x,
             y,
-            width: width.max(0.0),
-            height: height.max(0.0),
+            width: Self::clamp_size(width),
+            height: Self::clamp_size(height),
         }
     }
 
@@ -789,20 +807,30 @@ impl RectF {
         self.width == 0.0 || self.height == 0.0
     }
 
-    /// `RectF::Union`.
+    /// `RectF::Union`. An empty rectangle takes the other one whole, even an
+    /// empty one, so the position of the last of several empty rectangles
+    /// survives: `measureText("  ")` reports the second space's origin.
     fn union(&mut self, other: &RectF) {
-        if other.is_empty() {
-            return;
-        }
         if self.is_empty() {
             *self = *other;
             return;
         }
+        if other.is_empty() {
+            return;
+        }
+        // `UnionEvenIfEmpty`. Float error and the size clamp can leave the
+        // new rectangle short of the old edges, and one step fixes that.
         let left = self.x.min(other.x);
         let top = self.y.min(other.y);
         let right = self.right().max(other.right());
         let bottom = self.bottom().max(other.bottom());
         *self = RectF::new(left, top, right - left, bottom - top);
+        if self.right() < right && self.width < f32::MAX {
+            self.width = Self::next_size(self.width);
+        }
+        if self.bottom() < bottom && self.height < f32::MAX {
+            self.height = Self::next_size(self.height);
+        }
     }
 }
 
@@ -1217,6 +1245,29 @@ impl TextMetrics {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rect_union_follows_gfx_rect_f() {
+        // An empty rectangle takes the other whole, even an empty one.
+        let mut rect = RectF::default();
+        rect.union(&RectF::new(33.25, 0.0, 0.0, 0.0));
+        assert_eq!((rect.x, rect.right()), (33.25, 33.25));
+        // A non-empty rectangle ignores an empty one.
+        let mut rect = RectF::new(1.0, 1.0, 2.0, 2.0);
+        rect.union(&RectF::new(50.0, 50.0, 0.0, 9.0));
+        assert_eq!(rect, RectF::new(1.0, 1.0, 2.0, 2.0));
+        // `SizeF` clamps a trivial size to 0.
+        assert!(RectF::new(0.0, 0.0, 8.0 * f32::EPSILON, 1.0).is_empty());
+        assert!(!RectF::new(0.0, 0.0, 9.0 * f32::EPSILON, 1.0).is_empty());
+        // The union always reaches the old right edge.
+        let (a, b) = (
+            RectF::new(-16_777_217.0, 0.0, 1.0, 1.0),
+            RectF::new(0.1, 0.0, 0.3, 1.0),
+        );
+        let mut union = a;
+        union.union(&b);
+        assert!(union.right() >= b.right());
+    }
 
     #[test]
     fn numbers_print_with_six_significant_digits() {

@@ -66,6 +66,10 @@ unchanged on both platforms. Of their 102 canvases, the 99 without text are
 identical on Linux and Windows. The three in `gradient-text` differ, as other
 text does.
 
+The `text-measure-spaces` trace was added on 22 November 2026 with the same
+builds and flags, and again every earlier trace's entry stayed unchanged on
+both platforms.
+
 ## CPU classes
 
 Pinned Chromium's own pixels differ between Intel and AMD CPUs on three
