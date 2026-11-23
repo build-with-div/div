@@ -95,7 +95,7 @@ merges. The editor gaps below wait behind T3.
 | T3c-1 | `pointerevents`: the Chromium recording with real input, its oracle status, and the ledger | Merged (#124) |
 | T3c-2 | `pointerevents`: computed subtest names, `test_driver` actions on pointer input, and the generated tests | Merged (#127) |
 | T3d | `css-transitions`, `css-animations` and `css-easing` ledgers and their translatable subset (empty today) | Merged (#128) |
-| T3e | `web-animations` ledger, the last suite of RFC 0005 step 2 and the measurement for A3 | In progress |
+| T3e | `web-animations` ledger, the last suite of RFC 0005 step 2 and the measurement for A3 | Merged (#130) |
 | T3f | Canvas generator (RFC 0005 step 5): T3f-1 recording and ledger, T3f-2 runtime host and tests (waits on C1 step 5b), T3f-3 reftests | Not started |
 | Later | Interpolation-table generator (step 4), once A1–A3 exist; O2 and O3 suites (step 6), as each lands | Not started |
 
@@ -117,6 +117,62 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 23 November 2026: a listener that removes the pointer's target
+
+Problem: T3c-2 recorded a Div error that Chromium doesn't have. When a
+`pointerdown` listener removed its own target, the rest of the pointer step
+used the removed node's handle and `dispatch_pointer_input` returned
+`StaleHandle`. The two affected WPT rows
+(`pointerup_after_pointerdown_target_removed.html` `?mouse` and `?pen`) passed
+but carried a `div_harness_error`.
+
+Change (`crates/divui/src/pointer_dispatch.rs`):
+
+- Dispatch records the target's path before the first event. Each later part
+  of the step goes to the innermost element of that path still in the
+  document.
+- A mouse release sends no `click` once the pressed element has left the
+  document.
+- A tap still clicks the surviving element.
+
+Source: pinned Chromium 147.0.7727.50, `PointerEventManager::SendMousePointerEvent`,
+`MouseEventManager::DispatchMouseClickIfNeeded` and
+`MouseEventManager::HandleRemoveSubtree`, with the stable
+`BoundaryEventDispatchTracksNodeRemoval` feature. All are BSD-licensed.
+
+Oracle: `tests/fidelity/fixtures/pointer-removed-target-v1`. `capture.py`
+drives `page.html` in Chrome-for-Testing on Linux over CDP and writes the
+result only if three runs agree. It has 8 mouse scenarios (`pointerdown`,
+`mousedown`, `pointerup` or `mouseup`, removing the target or its parent) and
+4 tap scenarios. `crates/divui/tests/pointer_removed_target.rs` compares the
+event sequence and final focus of all 12.
+
+Div results for pointerevents: **3 pass, 0 fail, 0 unsupported, 0 not run**,
+unchanged. The two `div_harness_error` entries are gone.
+
+Remaining gaps, each failing the comparison if it closes:
+
+- `focusout-on-removal` (framework): Chromium fires `focusout` when the focused
+  element is removed. Div clears focus without an event.
+- `hover-after-dom-change` (framework, existing): after a mouse release that
+  removed the target, Chromium fires `pointerover` and `mouseover` at the
+  surviving element without new input. Div fires them at the next pointer
+  event.
+
+Not covered: a target that a listener moves instead of removing, a pressed
+element removed and reinserted, enter and leave events (the recording has
+none), and pen input in the new oracle. WPT's `?pen` row covers pen for the
+removal itself.
+
+Verification, on this branch at `18ba5303` plus the fix:
+
+- WSL debug with CI's Skia flags, `cargo test --locked -j 4 -p divui --features
+  testing` and `-p div-wpt-script`: 60 binaries, 404 passed, 0 failed, 8 ignored.
+- `tools/wpt_script/ledger.py --check` and `codegen.py --check` pass, and so do
+  their 68 unit tests.
+- `generate_renderer_contract.py --check`: profiles=4 focused=40 style=235
+  unclassified=0 javascript=393.
 
 ### 23 November 2026: T3e, the web-animations ledger (RFC 0005 step 2)
 
