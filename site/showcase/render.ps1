@@ -17,7 +17,7 @@ if (-not (Get-Command clang -ErrorAction SilentlyContinue) -and (Test-Path 'C:\P
     $env:Path = "C:\Program Files\LLVM\bin;$env:Path"
     $env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
 }
-$env:SKIA_GN_ARGS = 'extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]'
+$env:SKIA_GN_ARGS = 'extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]'
 $env:SKIA_NINJA_COMMAND = 'ninja'
 $env:RUST_MIN_STACK = '4194304'
 if (-not $env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR = Join-Path $main 'out\cargo-site' }
