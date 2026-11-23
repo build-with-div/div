@@ -270,3 +270,9 @@ on branch `components/c4-assets` and the shared findings note.
   and CSS Grid coverage are unchanged at all four profiles against `main`
   `090406b` (evidence `4628f28e`).
   [Record](../t8-harfbuzz-units-2026-11-19.md).
+- 22 November 2026: Skia is compiled with `-USK_ENABLE_AVX512_OPTS`, so
+  Div has the same CPU raster paths as Chromium. Before this, Div on an
+  AVX-512 CPU could render differently from Chromium. The Linux census
+  pair changes 0 of 23,728 images, but its machine has no AVX-512, so it
+  cannot show the effect there. Windows on Intel was not compared.
+  [Record](../skia-no-avx512-2026-11-22.md).
