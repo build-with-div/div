@@ -53,12 +53,14 @@ Of the hidden-elements list, S6b already hides `rp`, `basefont`, `noembed`,
 rest. So today the list's rule only restates that. The `html, body` rule
 applies once S6c builds the document's root through the engine.
 
-**Verification** (WSL, CI Skia flags):
+**Verification** (WSL, CI Skia flags, at `fc40a32` on main `4e69bdf`):
 
-- `cargo fmt --all --check`: clean.
+- Format of the 4 changed `.rs` files, one at a time on stdin, comparing
+  rustfmt's output with the file: clean. `rustfmt --check` is not used here
+  because rustfmt 1.8.0 exits 0 on stdin even when it prints a diff.
 - `cargo test --locked --no-fail-fast -p divui -p div-macros -p div-components
-  -p div-engine -p div-dom` with `divui/async divui/http divui/testing`, on
-  S5a over S6b: 130 test binaries, 1,022 passed, 0 failed, 15 ignored.
+  -p div-engine -p div-dom` with `divui/async divui/http divui/testing`:
+  132 test binaries, 1,026 passed, 0 failed, 15 ignored.
   - `tests/style_preset.rs` covers: `NONE` adds nothing; `BROWSER` hides
     `[hidden]` and `input[type=hidden i]`, and leaves `hidden=until-found`
     and a hidden `embed` displayed; author rules, the `style` attribute and element styles
