@@ -51,6 +51,11 @@ not: every attribute read agrees, but text pixels differ on five of the
 seven traces and some `measureText` bounds differ by one pixel, so each
 platform is compared with its own capture.
 
+The four readback traces (`readback-get`, `readback-put`,
+`readback-roundtrip`, `image-data-create`) were added on 22 November 2026
+with the same builds and flags. That capture left every earlier trace's
+entry unchanged on both platforms.
+
 ## Regenerating
 
 ```bash

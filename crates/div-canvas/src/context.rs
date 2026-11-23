@@ -65,8 +65,12 @@ pub struct CanvasRenderingContext2D {
     shaper: TextShaper,
     shape_caches: ShapeCaches,
     raster: RasterConfiguration,
+    /// The canvas's origin-clean flag (RFC 0008 §5). Every source is local
+    /// until H1 lands, so nothing clears it yet.
+    origin_clean: bool,
 }
 
+mod readback;
 mod text_methods;
 
 type Bounds = (f32, f32, f32, f32);
@@ -129,6 +133,7 @@ impl CanvasRenderingContext2D {
             shaper: TextShaper::new(),
             shape_caches: ShapeCaches::new(),
             raster,
+            origin_clean: true,
         })
     }
 

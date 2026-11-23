@@ -10,7 +10,14 @@
 //!   font face, as `document.fonts.add(new FontFace(...))` does: `file` names
 //!   one of div-text's bundled fonts (`crates/div-text/fonts`), which the
 //!   capture embeds and [`replay_with_fonts`]'s loader supplies. Every canvas
-//!   of the trace sees every face, as a document's canvases do.
+//!   of the trace sees every face, as a document's canvases do;
+//! - `{"imageData": name, "width": w, "height": h}` creates a named
+//!   `ImageData`, and with `"data": hex` (then `height` is optional) creates
+//!   it from those bytes. A constructor that throws is an observation.
+//!
+//! A `getImageData` or `createImageData` call may add `"store": name` to keep
+//! its result, and `{"imageData": name}` as an argument passes a kept one. A
+//! returned `ImageData` is observed as its width, height and bytes in hex.
 //!
 //! Numbers that JSON cannot carry are strings: `"NaN"`, `"Infinity"`,
 //! `"-Infinity"` and `"-0"`. Replaying a trace yields its observations (every
@@ -26,7 +33,9 @@ use std::sync::Arc;
 use div_text::{FontAxisRange, FontCollection, FontFaceDescriptor, FontStyleRange};
 use serde_json::{json, Map, Number, Value};
 
-use crate::{CanvasError, CanvasRenderingContext2D, FillRule, RoundRectRadius, TextMetrics};
+use crate::{
+    CanvasError, CanvasRenderingContext2D, FillRule, ImageData, RoundRectRadius, TextMetrics,
+};
 
 /// One canvas's final state after a replay.
 pub struct ReplayedCanvas {
@@ -108,6 +117,7 @@ pub fn replay_with_fonts(
 ) -> Result<Replay, TraceError> {
     let fonts = FontCollection::system();
     let mut canvases: BTreeMap<String, CanvasRenderingContext2D> = BTreeMap::new();
+    let mut images: BTreeMap<String, ImageData> = BTreeMap::new();
     let mut observations = Vec::new();
     for (index, line) in trace.lines().enumerate() {
         let line_no = index + 1;
@@ -123,6 +133,15 @@ pub fn replay_with_fonts(
             serde_json::from_str(line).map_err(|e| err(e.to_string()))?;
         if let Some(family) = entry.get("fontFace").and_then(Value::as_str) {
             add_font_face(&fonts, family, &entry, load).map_err(err)?;
+            continue;
+        }
+        if let Some(image_name) = entry.get("imageData").and_then(Value::as_str) {
+            match new_image_data(&entry).map_err(err)? {
+                Ok(image) => {
+                    images.insert(image_name.to_string(), image);
+                }
+                Err(e) => observations.push(json!({"imageData": image_name, "throws": e.name()})),
+            }
             continue;
         }
         let id = entry
@@ -149,10 +168,17 @@ pub fn replay_with_fonts(
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
-            match call(ctx, name, &args).map_err(err)? {
+            match call(ctx, name, &args, &images).map_err(err)? {
                 CallResult::Void => {}
                 CallResult::Return(value) => {
                     observations.push(json!({"canvas": id, "call": name, "return": value}))
+                }
+                CallResult::Image(image) => {
+                    observations
+                        .push(json!({"canvas": id, "call": name, "return": image_value(&image)}));
+                    if let Some(store) = entry.get("store").and_then(Value::as_str) {
+                        images.insert(store.to_string(), image);
+                    }
                 }
                 CallResult::Throw(e) => {
                     observations.push(json!({"canvas": id, "call": name, "throws": e.name()}))
@@ -215,6 +241,52 @@ fn add_font_face(
     Ok(())
 }
 
+/// An `imageData` line's `ImageData`. The outer error is a bad trace line, the
+/// inner one what the constructor throws.
+fn new_image_data(entry: &Map<String, Value>) -> Result<Result<ImageData, CanvasError>, String> {
+    let side = |key: &str| -> Result<Option<u32>, String> {
+        entry
+            .get(key)
+            .map(|v| {
+                v.as_u64()
+                    .and_then(|v| u32::try_from(v).ok())
+                    .ok_or_else(|| format!("imageData: bad {key}"))
+            })
+            .transpose()
+    };
+    let width = side("width")?.ok_or("imageData: missing width")?;
+    let height = side("height")?;
+    Ok(match entry.get("data") {
+        Some(data) => {
+            let hex = data.as_str().ok_or("imageData: data is not a string")?;
+            ImageData::from_data(decode_hex(hex)?, width, height)
+        }
+        None => ImageData::new(width, height.ok_or("imageData: missing height")?),
+    })
+}
+
+fn decode_hex(hex: &str) -> Result<Vec<u8>, String> {
+    if !hex.is_ascii() || hex.len() % 2 != 0 {
+        return Err("imageData: data is not hex bytes".into());
+    }
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|_| "imageData: data is not hex bytes".to_string())
+        })
+        .collect()
+}
+
+/// A returned `ImageData` as the capture lists it.
+fn image_value(image: &ImageData) -> Value {
+    let mut data = String::with_capacity(image.data().len() * 2);
+    for byte in image.data() {
+        data.push_str(&format!("{byte:02x}"));
+    }
+    json!({"width": image.width(), "height": image.height(), "data": data})
+}
+
 /// A `TextMetrics` as the capture lists it.
 fn text_metrics(m: &TextMetrics) -> Value {
     json!({
@@ -234,6 +306,7 @@ fn text_metrics(m: &TextMetrics) -> Value {
 enum CallResult {
     Void,
     Return(Value),
+    Image(ImageData),
     Throw(CanvasError),
 }
 
@@ -244,15 +317,41 @@ fn from_result(r: Result<(), CanvasError>) -> CallResult {
     }
 }
 
+fn image_result(r: Result<ImageData, CanvasError>) -> CallResult {
+    match r {
+        Ok(image) => CallResult::Image(image),
+        Err(e) => CallResult::Throw(e),
+    }
+}
+
 fn call(
     ctx: &mut CanvasRenderingContext2D,
     name: &str,
     args: &[Value],
+    images: &BTreeMap<String, ImageData>,
 ) -> Result<CallResult, String> {
     let n = |i: usize| -> Result<f64, String> {
         args.get(i)
             .and_then(number)
             .ok_or_else(|| format!("{name}: argument {i} is not a number"))
+    };
+    // `[EnforceRange] long`: a value out of range would be a TypeError from
+    // the bindings, which the Rust API cannot receive, so a trace may not
+    // contain one.
+    let long = |i: usize| -> Result<i32, String> {
+        let v = n(i)?.trunc();
+        if v.is_finite() && v >= f64::from(i32::MIN) && v <= f64::from(i32::MAX) {
+            Ok(v as i32)
+        } else {
+            Err(format!("{name}: argument {i} is not a long"))
+        }
+    };
+    let image = |i: usize| -> Result<&ImageData, String> {
+        args.get(i)
+            .and_then(|v| v.get("imageData"))
+            .and_then(Value::as_str)
+            .and_then(|key| images.get(key))
+            .ok_or_else(|| format!("{name}: argument {i} is not a stored ImageData"))
     };
     let flag = |i: usize| -> bool { args.get(i).and_then(Value::as_bool).unwrap_or(false) };
     let string = |i: usize| -> Result<&str, String> {
@@ -401,6 +500,28 @@ fn call(
             CallResult::Void
         }
         "measureText" => CallResult::Return(text_metrics(&ctx.measure_text(string(0)?))),
+        "createImageData" => image_result(if args.len() == 1 {
+            ctx.create_image_data_from(image(0)?)
+        } else {
+            ctx.create_image_data(long(0)?, long(1)?)
+        }),
+        "getImageData" => image_result(ctx.get_image_data(long(0)?, long(1)?, long(2)?, long(3)?)),
+        "putImageData" => {
+            if args.len() > 3 {
+                ctx.put_image_data_dirty(
+                    image(0)?,
+                    long(1)?,
+                    long(2)?,
+                    long(3)?,
+                    long(4)?,
+                    long(5)?,
+                    long(6)?,
+                );
+            } else {
+                ctx.put_image_data(image(0)?, long(1)?, long(2)?);
+            }
+            CallResult::Void
+        }
         other => return Err(format!("unsupported call {other}")),
     })
 }

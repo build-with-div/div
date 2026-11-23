@@ -84,13 +84,19 @@ async (lines) => {
   const arg = (a) => {
     if (Array.isArray(a)) return a.map(arg);
     if (a !== null && typeof a === "object") {
+      if ("imageData" in a) return images.get(a.imageData);
       const p = {};
       for (const k of Object.keys(a)) p[k] = num(a[k]);
       return p;
     }
     return num(a);
   };
+  const imageValue = (d) => ({
+    width: d.width, height: d.height,
+    data: Array.from(d.data, (b) => b.toString(16).padStart(2, "0")).join(""),
+  });
   const contexts = new Map();
+  const images = new Map();
   const order = [];
   const observations = [];
   // Faces a previous replay added.
@@ -102,6 +108,23 @@ async (lines) => {
                                 {weight: e.weight || "400", style: e.style || "normal"});
       await face.load();
       document.fonts.add(face);
+      continue;
+    }
+    if ("imageData" in e) {
+      try {
+        let image;
+        if ("data" in e) {
+          const bytes = Uint8ClampedArray.from(e.data.match(/../g) || [],
+                                               (h) => parseInt(h, 16));
+          image = "height" in e ? new ImageData(bytes, e.width, e.height)
+                                : new ImageData(bytes, e.width);
+        } else {
+          image = new ImageData(e.width, e.height);
+        }
+        images.set(e.imageData, image);
+      } catch (err) {
+        observations.push({imageData: e.imageData, throws: err.name});
+      }
       continue;
     }
     if ("width" in e) {
@@ -125,6 +148,9 @@ async (lines) => {
           const m = {};
           for (const k of METRICS) m[k] = enc(r[k]);
           observations.push({canvas: e.canvas, call: e.call, return: m});
+        } else if (r instanceof ImageData) {
+          observations.push({canvas: e.canvas, call: e.call, return: imageValue(r)});
+          if ("store" in e) images.set(e.store, r);
         } else if (r !== undefined) {
           observations.push({canvas: e.canvas, call: e.call,
                              return: Array.isArray(r) ? r.map(enc) : enc(r)});

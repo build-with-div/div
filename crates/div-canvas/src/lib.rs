@@ -14,11 +14,13 @@
 //! `roundRect`), `fill`, `stroke`, `clip`, the rectangle calls and the
 //! point-in-path tests. Step 3 adds text: `font` and the other text
 //! attributes, `fillText`, `strokeText` and `measureText`, shaped and
-//! rasterized by div-text. Gradients, patterns, images, shadows and filters
-//! come in later steps of RFC 0008's migration.
+//! rasterized by div-text. Readback adds `ImageData`, `createImageData`,
+//! `getImageData` and `putImageData`. Gradients, patterns, images, shadows
+//! and filters come in later steps of RFC 0008's migration.
 
 mod affine;
 mod context;
+mod image_data;
 mod math;
 mod path;
 mod shape_cache;
@@ -28,6 +30,7 @@ pub mod trace;
 
 pub use affine::AffineTransform;
 pub use context::{CanvasRenderingContext2D, FillRule};
+pub use image_data::ImageData;
 pub use path::{CanvasPath, RoundRectRadius};
 pub use state::{LineCap, LineJoin};
 pub use text::{
@@ -38,10 +41,16 @@ pub use text::{
 /// A `DOMException` or JavaScript error a canvas call throws.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanvasError {
-    /// `IndexSizeError` (a negative radius).
+    /// `IndexSizeError` (a negative radius, an invalid `ImageData` size).
     IndexSize,
-    /// `RangeError` (`roundRect` radii).
+    /// `RangeError` (`roundRect` radii, an `ImageData` too large to create).
     Range,
+    /// `InvalidStateError` (`ImageData` data of an invalid length).
+    InvalidState,
+    /// `NotSupportedError` (`ImageData` data over 4 GiB).
+    NotSupported,
+    /// `SecurityError` (reading a canvas that is not origin-clean).
+    Security,
 }
 
 impl CanvasError {
@@ -50,6 +59,9 @@ impl CanvasError {
         match self {
             Self::IndexSize => "IndexSizeError",
             Self::Range => "RangeError",
+            Self::InvalidState => "InvalidStateError",
+            Self::NotSupported => "NotSupportedError",
+            Self::Security => "SecurityError",
         }
     }
 }
