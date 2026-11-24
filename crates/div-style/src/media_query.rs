@@ -531,7 +531,7 @@ fn collect_unknown(
 
 impl MediaQuery {
     /// `not all`, which an invalid query becomes.
-    pub fn not_all() -> Self {
+    pub(crate) fn not_all() -> Self {
         Self {
             restrictor: MediaRestrictor::Not,
             media_type: MediaType::All,
@@ -1099,7 +1099,7 @@ impl MediaQueryList {
 }
 
 impl MediaQuery {
-    pub fn matches(&self, values: &MediaValues) -> bool {
+    pub(crate) fn matches(&self, values: &MediaValues) -> bool {
         let type_matches = matches!(self.media_type, MediaType::All | MediaType::Screen);
         let value = if !type_matches {
             Kleene::False
