@@ -23,6 +23,10 @@ python tools/isolation/interface_manifest.py --withheld-list <list> --out <manif
 python tools/isolation/build_broker.py check --withheld-list <list> --work-dir <private-dir> --manifest <manifest.json> --census-lock <census.lock> --candidate crates/example/src/file.rs=<candidate.rs>
 ```
 
+The export deliberately omits `AGENTS.md`, `CLAUDE.md` and `.claude`. A session
+started in the export would load them automatically, and they point to project
+history and documents that the export withholds.
+
 ## What the broker returns
 
 - **Builds:** level, error code, identifiers, visible path, line and column,
@@ -56,3 +60,6 @@ blocks builds while the lock file exists.
 
 These tools filter output. They do not sandbox the implementer's file access,
 so the session must still be started without access to the work directory.
+The `test` command also runs candidate code with the broker's own file and
+network access, so a candidate test could bypass the filter. Do not run it on a
+candidate until that step is contained.
