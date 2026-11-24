@@ -1,5 +1,64 @@
 # Setup track progress
 
+## Windows Skia without FMA contraction 22 November 2026
+
+Chromium 147.0.7727.50 compiles every file with `-ffp-contract=off`; on
+Windows it passes `/clang:-ffp-contract=off` (`build/config/compiler/BUILD.gn`
+lines 653-658). Skia's own GN adds the flag only for clang off Windows
+(`gn/skia/BUILD.gn:71`). rust-skia builds Windows Skia with clang-cl, so
+Div's Windows Skia fused `a*b+c` into FMA in its `/arch:AVX2` (HSW) raster
+stages, and Chromium's does not.
+
+- The windows-msvc job's `SKIA_GN_ARGS` adds `/clang:-ffp-contract=off`.
+  clang-cl ignores the plain `-ffp-contract=off` ("unknown argument
+  ignored"), and Linux clang would read the `/clang:` form as a file name,
+  so the flag is Windows' alone.
+- `crates/div-cli/src/skia.rs` has a Windows profile, `WINDOWS_GN_ARGS`,
+  that `div new` writes on Windows, and its drift test pins windows-msvc to
+  it. The framework lane reviewed it.
+- `docs/DEVELOPMENT.md` gives the flag in the Windows snippet.
+
+Measured on Windows at main `848551a`, under the census lock, with CI's
+flags against the same flags plus `/clang:-ffp-contract=off`, over CI's
+headless workspace tests, divui's `testing` suites and div-components:
+
+| Run | Passed | Failed | Ignored |
+| --- | --- | --- | --- |
+| CI flags | 10,113 | 0 | 31 |
+| With `/clang:-ffp-contract=off` | 10,112 | 1 | 31 |
+
+- The one failure is div-svg `paint_v4_matches_chromium_147`, which reports
+  that the listed gaps `windows 2x rad/focal` and `windows 2x rad/repeat`
+  are now exact. Both are removed from
+  `tests/fidelity/fixtures/svg-paint-v4/known-gaps.txt`.
+- Every other test, including every pinned pixel gap, is unchanged.
+- `2x rad/fr-focal` (both OSes) and `linux 2x rad/focal` stay listed; their
+  cause is not known.
+
+Measured again after the rebase, on Windows under the census lock, with the
+same three test commands. Each side took `SKIA_GN_ARGS` from its own
+`ci.yml`:
+
+| Commit | Passed | Failed | Ignored |
+| --- | --- | --- | --- |
+| Base `a74ca749` | 10,153 | 0 | 31 |
+| #112 code `e272e29e` | 10,154 | 0 | 31 |
+
+- None of the 10,184 tests on both sides changed status. The one extra test
+  is the new `skia::tests::windows_adds_only_chromium_fp_contract_off`.
+- The svg-paint mismatch dumps fall from 10 files to 8. The two that are gone
+  are `svg-paint-v4-2x-rad-focal` and `svg-paint-v4-2x-rad-repeat`.
+- **Toolset:** this run used MSVC 14.52.37025 and SDK 10.0.26100, not CI's
+  pinned 14.44.35207, which is no longer installed on this machine. It is
+  not a measurement of CI's toolset.
+- **Skia:** ninja found the libraries up to date. They were compiled at 14.52
+  with the same flags by the first attempt at this pair, whose Rust bindings
+  step failed. Only #112's side has the flag on its `hsw` target.
+- **Overlap:** another lane ran a 21-second Windows Cargo test module, without
+  Skia, between 01:09 and 01:35 UTC on 24 November. The base workspace stage
+  ran from 01:19:34 to 01:37:32 UTC, so the two may have overlapped. Every
+  stage exited 0 with no timeout, so none was rerun.
+
 ## windows-msvc MSVC toolset pin 18 November 2026
 
 Runner image `windows-2025-vs2026` 20261116.315.1 made VS 18's MSVC

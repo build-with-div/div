@@ -131,11 +131,16 @@ jobs:
       LIBCLANG_PATH: C:\Program Files\LLVM\bin
       PYTHONUTF8: "1"
       RUST_MIN_STACK: "4194304"
+      # Linux's flags plus Chromium's /clang:-ffp-contract=off
+      # (build/config/compiler/BUILD.gn at 147.0.7727.50): clang-cl otherwise
+      # fuses multiply-adds in Skia's AVX2 code, and Skia's own GN turns
+      # contraction off for clang on non-Windows only.
       SKIA_GN_ARGS: >-
         extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP",
         "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS",
         "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
-        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
+        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3",
+        "/clang:-ffp-contract=off" ]
       SKIA_NINJA_COMMAND: ninja
       # One MSVC toolset for every compiler and linker, whatever toolsets the
       # runner image adds: the image's Clang 20 meets the 14.44 STL, and local
