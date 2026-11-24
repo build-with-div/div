@@ -11,6 +11,14 @@ rasterized) and writes, for the given platform:
 - `chromium-<platform>/<trace>.<canvas>.png`: each canvas's `getImageData`
   bytes as an 8-bit RGBA PNG (non-premultiplied, exactly the bytes).
 
+A canvas listed in the fixture's `cpu-classes.json` differs between CPU
+classes, so it is written as `<trace>.<canvas>.<class>.png`, and its JSON
+`sha256` maps each class to a hash. `--cpu-fingerprint` (from
+`tools/canvas/rcpps_fingerprint.rs`) names this machine's class. An unknown
+fingerprint stops the capture. The other classes' files and hashes are kept.
+Every other canvas has one oracle for all classes, and the script lists any
+whose hash changed from the stored capture.
+
 `div-canvas`'s `chromium_traces` test replays the same files and compares
 bytes and observations with `==`.
 
@@ -23,7 +31,7 @@ text raster pin (ClearType on, RGB).
 Usage:
   python3 tools/canvas/capture_canvas_traces.py \
       --chrome <path to chrome or chrome.exe> --platform linux|windows \
-      tests/fidelity/fixtures/canvas-traces-v1
+      --cpu-fingerprint <hex> tests/fidelity/fixtures/canvas-traces-v1
 """
 
 import argparse
@@ -271,16 +279,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--chrome", required=True)
     parser.add_argument("--platform", required=True, choices=["linux", "windows"])
+    parser.add_argument("--cpu-fingerprint", required=True,
+                        help="this machine's RCPPS fingerprint, from tools/canvas/rcpps_fingerprint.rs")
     parser.add_argument("fixture", type=Path)
     args = parser.parse_args()
+
+    cpu = json.loads((args.fixture / "cpu-classes.json").read_text(encoding="utf-8"))
+    cpu_class = cpu["classes"].get(args.cpu_fingerprint.lower())
+    if cpu_class is None:
+        sys.exit(f"unknown RCPPS fingerprint {args.cpu_fingerprint}: no CPU class in cpu-classes.json")
+    per_class = set(cpu["canvases"])
+    other_classes = set(cpu["classes"].values()) - {cpu_class}
+    target = args.fixture / f"chromium-{args.platform}.json"
+    previous = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {"traces": {}}
 
     traces = sorted((args.fixture / "traces").glob("*.jsonl"))
     if not traces:
         sys.exit(f"no traces under {args.fixture / 'traces'}")
     out_dir = args.fixture / f"chromium-{args.platform}"
     out_dir.mkdir(exist_ok=True)
+    kept = {f"{key}.{other}.png" for key in per_class for other in other_classes}
     for old in out_dir.glob("*.png"):
-        old.unlink()
+        if old.name not in kept:
+            old.unlink()
 
     acc = _accountability()
     flags = FLAGS[:2] + (LINUX_FLAGS if args.platform == "linux" else [])
@@ -292,7 +313,9 @@ def main():
         # raster reproduces (RFC 0012).
         windows_chrome.check_text_raster_pin()
     oracle = {"chromium": None, "platform": args.platform, "flags": flags, "traces": {}}
-    with tempfile.TemporaryDirectory(prefix="div-canvas-chrome-") as profile:
+    changed = []
+    # Chrome can still hold its profile when it is deleted on Windows.
+    with tempfile.TemporaryDirectory(prefix="div-canvas-chrome-", ignore_cleanup_errors=True) as profile:
         process, client = start_chrome(acc, args.chrome, profile, args.platform)
         try:
             oracle["chromium"] = version(client)
@@ -306,14 +329,27 @@ def main():
                 if first != second:
                     sys.exit(f"{trace.name}: two Chromium replays disagree")
                 entry = {"observations": first["observations"], "canvases": {}}
+                stored = previous["traces"].get(trace.stem, {}).get("canvases", {})
                 for cid, canvas in first["canvases"].items():
                     rgba = base64.b64decode(canvas["rgba"])
                     assert len(rgba) == canvas["width"] * canvas["height"] * 4
+                    digest = hashlib.sha256(rgba).hexdigest()
+                    key = f"{trace.stem}.{cid}"
+                    old = stored.get(cid, {}).get("sha256")
+                    if key in per_class:
+                        hashes = {k: v for k, v in (old or {}).items() if k in other_classes}
+                        hashes[cpu_class] = digest
+                        name = f"{key}.{cpu_class}.png"
+                    else:
+                        if old is not None and old != digest:
+                            changed.append(key)
+                        hashes = digest
+                        name = f"{key}.png"
                     entry["canvases"][cid] = {
                         "width": canvas["width"], "height": canvas["height"],
-                        "sha256": hashlib.sha256(rgba).hexdigest(),
+                        "sha256": hashes,
                     }
-                    (out_dir / f"{trace.stem}.{cid}.png").write_bytes(
+                    (out_dir / name).write_bytes(
                         png_rgba(canvas["width"], canvas["height"], rgba))
                 oracle["traces"][trace.stem] = entry
                 print(f"{trace.stem}: {len(entry['canvases'])} canvas(es), "
@@ -321,9 +357,10 @@ def main():
         finally:
             acc._close_chromium_client(client)
             acc._stop_chromium_process(process)
-    target = args.fixture / f"chromium-{args.platform}.json"
     target.write_text(json.dumps(oracle, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
-    print(f"wrote {target}")
+    print(f"wrote {target} ({cpu_class} class, fingerprint {args.cpu_fingerprint.lower()})")
+    for key in changed:
+        print(f"changed from the stored capture: {key}")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,14 @@
 //! Regenerate the oracles with `tools/canvas/capture_canvas_traces.py` (see
 //! the fixture's README). On a mismatch the test writes Div's bitmap next to
 //! the expected one under `CARGO_TARGET_TMPDIR/canvas-traces`.
+//!
+//! A few canvases differ between Intel and AMD in pinned Chromium itself.
+//! The fixture's `cpu-classes.json` lists them, with one oracle per CPU
+//! class, chosen by this machine's RCPPS fingerprint. An unknown fingerprint
+//! fails: no skip, no nearest class, no tolerance.
+
+#[path = "support/rcpps.rs"]
+mod rcpps;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -92,6 +100,71 @@ const KNOWN_GAPS: &[(&str, &str, &str)] = &[(
      outlines under a transform, engine track",
 )];
 
+/// `cpu-classes.json`: each class's fingerprint, and the canvases that have
+/// one oracle per class.
+struct CpuClasses {
+    classes: Vec<(u64, String)>,
+    canvases: Vec<String>,
+}
+
+fn cpu_classes() -> CpuClasses {
+    let json: Value = serde_json::from_str(
+        &fs::read_to_string(fixture().join("cpu-classes.json")).expect("read cpu-classes.json"),
+    )
+    .expect("parse cpu-classes.json");
+    let classes = json["classes"]
+        .as_object()
+        .expect("classes")
+        .iter()
+        .map(|(fingerprint, class)| {
+            (
+                u64::from_str_radix(fingerprint, 16).expect("hex fingerprint"),
+                class.as_str().expect("class name").to_owned(),
+            )
+        })
+        .collect();
+    let canvases = json["canvases"]
+        .as_array()
+        .expect("canvases")
+        .iter()
+        .map(|key| key.as_str().expect("canvas key").to_owned())
+        .collect();
+    CpuClasses { classes, canvases }
+}
+
+/// The one class `fingerprint` selects, or why there is none.
+fn class_for(cpu: &CpuClasses, fingerprint: Option<u64>) -> Result<&str, String> {
+    let Some(fingerprint) = fingerprint else {
+        return Err("no RCPPS fingerprint on this CPU (no AVX)".to_owned());
+    };
+    let mut matching = cpu.classes.iter().filter(|(f, _)| *f == fingerprint);
+    match (matching.next(), matching.next()) {
+        (Some((_, class)), None) => Ok(class),
+        (None, _) => Err(format!(
+            "unknown RCPPS fingerprint {fingerprint:016x}: no Chromium oracle for this CPU class"
+        )),
+        (Some(_), Some(_)) => Err(format!(
+            "RCPPS fingerprint {fingerprint:016x} names more than one class"
+        )),
+    }
+}
+
+/// The oracle PNG for `key` (`trace.canvas`) on `platform` and this CPU.
+fn oracle_png(
+    root: &Path,
+    platform: &str,
+    key: &str,
+    cpu: &CpuClasses,
+    fingerprint: Option<u64>,
+) -> Result<PathBuf, String> {
+    let file = if cpu.canvases.iter().any(|k| k == key) {
+        format!("{key}.{}.png", class_for(cpu, fingerprint)?)
+    } else {
+        format!("{key}.png")
+    };
+    Ok(root.join(format!("chromium-{platform}")).join(file))
+}
+
 /// The cause of a known gap for `key` on `platform`.
 fn known_gap(platform: &str, key: &str) -> Option<&'static str> {
     KNOWN_GAPS
@@ -120,6 +193,8 @@ fn traces_match_chromium() {
     traces.sort();
     assert!(!traces.is_empty());
 
+    let cpu = cpu_classes();
+    let fingerprint = rcpps::fingerprint();
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("canvas-traces");
     let mut failures = Vec::new();
     let mut known = Vec::new();
@@ -169,17 +244,21 @@ fn traces_match_chromium() {
             "{name}: canvas count"
         );
         for (id, canvas) in &replay.canvases {
+            let key = format!("{name}.{id}");
+            let png = match oracle_png(&root, platform, &key, &cpu, fingerprint) {
+                Ok(png) => png,
+                Err(why) => {
+                    failures.push(format!("{key}: {why}"));
+                    continue;
+                }
+            };
             checked_canvases += 1;
-            let png = root
-                .join(format!("chromium-{platform}"))
-                .join(format!("{name}.{id}.png"));
             let (w, h, rgba) = decode_png(&png);
             assert_eq!(
                 (w as i32, h as i32),
                 (canvas.width, canvas.height),
                 "{name}.{id}: size"
             );
-            let key = format!("{name}.{id}");
             let gap = known_gap(platform, &key);
             if rgba == canvas.rgba {
                 if gap.is_some() {
@@ -234,4 +313,131 @@ fn traces_match_chromium() {
         out.display(),
         failures.join("\n")
     );
+}
+
+#[test]
+fn a_fingerprint_selects_exactly_one_oracle() {
+    let cpu = cpu_classes();
+    let mut fingerprints: Vec<u64> = cpu.classes.iter().map(|(f, _)| *f).collect();
+    let mut names: Vec<&str> = cpu.classes.iter().map(|(_, c)| c.as_str()).collect();
+    fingerprints.sort();
+    fingerprints.dedup();
+    names.sort();
+    names.dedup();
+    assert_eq!(
+        fingerprints.len(),
+        cpu.classes.len(),
+        "a fingerprint is listed twice"
+    );
+    assert_eq!(names, ["amd", "intel"]);
+    for (fingerprint, class) in &cpu.classes {
+        assert_eq!(class_for(&cpu, Some(*fingerprint)), Ok(class.as_str()));
+    }
+    let unknown = class_for(&cpu, Some(0x0123_4567_89ab_cdef)).unwrap_err();
+    assert!(unknown.contains("0123456789abcdef"), "{unknown}");
+    assert!(class_for(&cpu, None).is_err());
+
+    // Each listed canvas has exactly one file per class on each platform,
+    // and no class-free file to fall back on.
+    let root = fixture();
+    assert!(!cpu.canvases.is_empty());
+    for platform in ["linux", "windows"] {
+        let dir = root.join(format!("chromium-{platform}"));
+        for key in &cpu.canvases {
+            assert!(
+                !dir.join(format!("{key}.png")).exists(),
+                "{platform} {key}.png"
+            );
+            let mut found: Vec<String> = fs::read_dir(&dir)
+                .unwrap()
+                .map(|e| e.unwrap().file_name().into_string().unwrap())
+                .filter(|f| {
+                    f.strip_prefix(key.as_str())
+                        .and_then(|rest| rest.strip_prefix('.'))
+                        .is_some_and(|rest| rest.matches('.').count() == 1)
+                })
+                .collect();
+            found.sort();
+            let mut want: Vec<String> = names.iter().map(|c| format!("{key}.{c}.png")).collect();
+            want.sort();
+            assert_eq!(found, want, "{platform} {key}");
+            for (fingerprint, class) in &cpu.classes {
+                let png = oracle_png(&root, platform, key, &cpu, Some(*fingerprint)).unwrap();
+                assert_eq!(png, dir.join(format!("{key}.{class}.png")));
+            }
+        }
+    }
+}
+
+/// The pixels where pinned Chromium on AMD differs from Intel, as measured in
+/// Div run 45123063142: canvas, pixel index, Intel RGBA, AMD RGBA.
+const CPU_CLASS_PIXELS: [(&str, usize, [u8; 4], [u8; 4]); 7] = [
+    (
+        "gradient-composite.color-dodge",
+        83,
+        [61, 139, 138, 235],
+        [61, 139, 139, 235],
+    ),
+    (
+        "gradient-composite.color-dodge",
+        275,
+        [61, 139, 138, 235],
+        [61, 139, 139, 235],
+    ),
+    (
+        "gradient-composite.hue",
+        107,
+        [130, 86, 143, 235],
+        [130, 87, 143, 235],
+    ),
+    (
+        "gradient-composite.hue",
+        299,
+        [130, 86, 143, 235],
+        [130, 87, 143, 235],
+    ),
+    (
+        "gradient-composite.saturation",
+        79,
+        [35, 146, 84, 240],
+        [34, 146, 84, 240],
+    ),
+    (
+        "gradient-composite.saturation",
+        155,
+        [42, 140, 94, 235],
+        [43, 140, 94, 235],
+    ),
+    (
+        "gradient-composite.saturation",
+        271,
+        [35, 146, 84, 240],
+        [34, 146, 84, 240],
+    ),
+];
+
+#[test]
+fn intel_and_amd_oracles_differ_only_at_the_known_pixels() {
+    let cpu = cpu_classes();
+    let root = fixture();
+    for platform in ["linux", "windows"] {
+        let dir = root.join(format!("chromium-{platform}"));
+        let mut differing = Vec::new();
+        for key in &cpu.canvases {
+            let (iw, ih, intel) = decode_png(&dir.join(format!("{key}.intel.png")));
+            let (aw, ah, amd) = decode_png(&dir.join(format!("{key}.amd.png")));
+            assert_eq!((iw, ih), (aw, ah), "{platform} {key}: size");
+            for (index, (i, a)) in intel.chunks(4).zip(amd.chunks(4)).enumerate() {
+                if i != a {
+                    differing.push((
+                        key.as_str(),
+                        index,
+                        <[u8; 4]>::try_from(i).unwrap(),
+                        <[u8; 4]>::try_from(a).unwrap(),
+                    ));
+                }
+            }
+        }
+        assert_eq!(differing, CPU_CLASS_PIXELS, "{platform}");
+    }
 }

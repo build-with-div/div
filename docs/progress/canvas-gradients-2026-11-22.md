@@ -111,6 +111,52 @@ job means 177 of 177 and 381 of 381.
 cargo test -p div-canvas
 ```
 
+## Oracles by CPU class (23 and 24 November 2026)
+
+Pinned Chromium's own pixels differ between Intel and AMD CPUs on three
+`gradient-composite` canvases (`color-dodge`, `hue`, `saturation`): 7 pixels,
+each one level in one channel. This is a real variation in Chromium by CPU
+vendor. Div matched the same machine's Chromium byte for byte in every run
+that compared them. The likely mechanism is Skia's unrefined reciprocal
+estimate (RCPPS), which these blend modes use and whose results split exactly
+by vendor. That is strongly supported but not isolated.
+
+So exact now means byte-identical to pinned Chromium on the same CPU class.
+Those three canvases have one oracle per class, chosen by the machine's RCPPS
+fingerprint. An unknown fingerprint fails, with no skip, fallback or
+tolerance. Every other canvas keeps one oracle, which must match on both
+classes. Two tests check that a fingerprint selects exactly one oracle, and
+that the Intel and AMD oracles differ only at the 7 known pixels.
+
+| Platform | Intel oracle | AMD oracle |
+| --- | --- | --- |
+| Linux | local capture, matched exactly by 4 CI captures (Xeon 6975P-C) | CI, 2 identical captures (EPYC 9V74) |
+| Windows | **local capture** (Core i9-12900KF), see below | CI, 9 identical captures (EPYC 7763, 9V74, 9V45) |
+
+Every capture was checked against the stored oracles. Intel captures had to
+match them exactly. AMD captures had to differ only at the 7 pixels.
+`composite-modes`, which reaches the same Skia stages, had to show no
+difference by class, and did not.
+
+**Windows Intel comes from a local capture of pinned Chromium, not a CI
+runner.** No CI Windows Intel runner reached capture in 24 jobs: 3 of the 18
+Windows jobs ran on Intel. Two failed on a workflow bug before capture, and
+one failed while deleting Chrome's temporary profile.
+
+The local capture was taken on 24 November 2026 at 05:05 UTC:
+- CPU: 12th Gen Intel Core i9-12900KF, RCPPS fingerprint `5fc0454d9f4c2325`,
+  the same as the CI Intel runners;
+- Chromium for Testing 147.0.7727.50, `chrome.exe` sha256 `5a261cd9…8505`,
+  headless;
+- result: all 58 canvases and all observations of both traces matched the
+  stored Windows oracle byte for byte.
+
+The CI runs were 45329548510, 45329917393 and 45330160761, on a temporary
+branch that has been deleted. Their receipts (CPU model, fingerprint, Chrome
+sha256, run and job ids) and the local receipt are in `div-fidelity-data` at
+`archive/docs/progress/evidence/canvas-cpu-classes-v1.json`, pinned by
+`fidelity-data.lock`.
+
 The Chromium build, flags and capture commands are in
 `tests/fidelity/fixtures/canvas-traces-v1/README.md`. This is a focused
 measurement of `div-canvas`, not a census or a claim of renderer

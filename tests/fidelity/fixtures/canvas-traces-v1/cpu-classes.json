@@ -1,0 +1,13 @@
+{
+ "description": "Canvases whose pinned Chromium pixels differ by CPU class, and the RCPPS fingerprint of each class. See README.md.",
+ "fingerprint": "tools/canvas/rcpps_fingerprint.rs",
+ "classes": {
+  "5fc0454d9f4c2325": "intel",
+  "f7ba415b37cf2325": "amd"
+ },
+ "canvases": [
+  "gradient-composite.color-dodge",
+  "gradient-composite.hue",
+  "gradient-composite.saturation"
+ ]
+}

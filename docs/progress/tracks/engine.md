@@ -143,7 +143,10 @@ on branch `components/c4-assets` and the shared findings note.
   stroke styles. Replaying 47 traces against Chromium 147.0.7727.50 on Linux,
   all 381 observations and 176 of 177 canvases are exact, the one left being
   the text gap above. Windows is checked by the `windows-msvc` CI job. No
-  other crate changes. [Record](../canvas-gradients-2026-11-22.md).
+  other crate changes. Three `gradient-composite` canvases differ by CPU
+  vendor in Chromium itself, so they have one oracle per class, chosen by
+  RCPPS fingerprint; Windows Intel comes from a local capture.
+  [Record](../canvas-gradients-2026-11-22.md).
 - 22 November 2026: `div-canvas` gains readback (RFC 0008 §5): `ImageData`,
   `createImageData`, `getImageData` and `putImageData`. Replaying 38 traces
   against Chromium 147.0.7727.50 on Linux, all 258 observations and 74 of 75

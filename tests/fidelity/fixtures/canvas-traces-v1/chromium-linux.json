@@ -466,7 +466,10 @@
     },
     "color-dodge": {
      "height": 16,
-     "sha256": "1f008aea012f2a2a2390b52fd9b5c6f27f5c31dc07b702ad58bc5511965b6db7",
+     "sha256": {
+      "amd": "f80057f196f3e0d87ddddf03f322b0374594d804dcfb543228d2a05147b6d0cf",
+      "intel": "1f008aea012f2a2a2390b52fd9b5c6f27f5c31dc07b702ad58bc5511965b6db7"
+     },
      "width": 24
     },
     "copy": {
@@ -516,7 +519,10 @@
     },
     "hue": {
      "height": 16,
-     "sha256": "edba391b2823f477368bd9cc07be0607dcd86c6c26a54ab66f189bdb94fc0f54",
+     "sha256": {
+      "amd": "d8dfdef810faeb86401a639d4760d728ebb91776d959b256d7825269a79a6431",
+      "intel": "edba391b2823f477368bd9cc07be0607dcd86c6c26a54ab66f189bdb94fc0f54"
+     },
      "width": 24
     },
     "lighten": {
@@ -546,7 +552,10 @@
     },
     "saturation": {
      "height": 16,
-     "sha256": "bd94aff0f75e528aeffe569f2eb0a053a9c8e546300bc50294e13f67668c6db8",
+     "sha256": {
+      "amd": "00a3316fa1199f4dc8c09f19f470d350203608f9e67e2ec21a23df62ce054fe1",
+      "intel": "bd94aff0f75e528aeffe569f2eb0a053a9c8e546300bc50294e13f67668c6db8"
+     },
      "width": 24
     },
     "screen": {
