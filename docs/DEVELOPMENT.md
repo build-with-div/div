@@ -145,7 +145,13 @@ python tools\ffi\verify_abi.py --library <target>\debug\div_ffi.dll
 python tools\ci\check_platform_scoped_tests.py
 ```
 
-Windows adds `/clang:-ffp-contract=off` to Linux's `SKIA_GN_ARGS`, as Chromium
+Linux's `SKIA_GN_ARGS` ends with `-O2`, the level Chromium compiles Skia with.
+Off Windows, rust-skia passes Cargo's `-O<level>` after Skia's own `-O3`, so
+without it a dev build compiles Skia at `-O0`. On Windows rust-skia passes no
+level, and Skia's release configuration compiles with `/O2`, so Windows leaves
+`-O2` out.
+
+Windows adds `/clang:-ffp-contract=off`, as Chromium
 compiles everything (`build/config/compiler/BUILD.gn` at 147.0.7727.50):
 rust-skia builds Skia with clang-cl, which otherwise fuses multiply-adds in
 Skia's AVX2 raster code, and Skia's own GN turns contraction off for clang on
