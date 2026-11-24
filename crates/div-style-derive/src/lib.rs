@@ -8,6 +8,11 @@
 //! A variant marked `#[constructor_tokens(unsupported)]` is one that no style
 //! literal produces, such as a value sampled from an animation. Asking for its
 //! tokens returns `Unsupported` instead of naming its fields.
+//!
+//! A variant marked `#[constructor_tokens(module = "name")]` holds values
+//! whose types are public under `root::name` rather than at `root`, such as
+//! the `calc()` tree in `math`. Its fields are built with `root::name` as
+//! their root.
 
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as Tokens};
@@ -34,13 +39,14 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     let body = match &input.data {
         Data::Struct(data) => {
-            if is_unsupported(&input.attrs)? {
+            let options = options(&input.attrs)?;
+            if options.unsupported || options.module.is_some() {
                 return Err(syn::Error::new_spanned(
                     name,
-                    "`unsupported` applies to enum variants only",
+                    "`unsupported` and `module` apply to enum variants only",
                 ));
             }
-            let (pattern, build) = construct(quote!(Self), &[name.clone()], &data.fields);
+            let (pattern, build) = construct(quote!(Self), &[name.clone()], &data.fields, None);
             quote! {
                 let #pattern = self;
                 #build
@@ -50,7 +56,8 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
             let mut arms = Vec::with_capacity(data.variants.len());
             for variant in &data.variants {
                 let ident = &variant.ident;
-                if is_unsupported(&variant.attrs)? {
+                let options = options(&variant.attrs)?;
+                if options.unsupported {
                     let rest = match &variant.fields {
                         Fields::Named(_) => quote!({ .. }),
                         Fields::Unnamed(_) => quote!((..)),
@@ -67,6 +74,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                         quote!(Self::#ident),
                         &[name.clone(), ident.clone()],
                         &variant.fields,
+                        options.module.as_ref(),
                     );
                     arms.push(quote!(#pattern => { #build }));
                 }
@@ -97,11 +105,21 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
 }
 
 /// A destructuring pattern for `fields` and the statements that build the
-/// constructor expression `root::<segments>` from the bound fields.
-fn construct(pattern_path: Tokens, segments: &[Ident], fields: &Fields) -> (Tokens, Tokens) {
+/// constructor expression `root::<segments>` from the bound fields. With
+/// `field_module`, the fields are built under `root::<field_module>`.
+fn construct(
+    pattern_path: Tokens,
+    segments: &[Ident],
+    fields: &Fields,
+    field_module: Option<&LitStr>,
+) -> (Tokens, Tokens) {
     let module = quote!(crate::constructor_tokens);
     let names: Vec<String> = segments.iter().map(Ident::to_string).collect();
     let path = quote!(#module::path(root, &[#(#names),*]));
+    let field_root = match field_module {
+        Some(field_module) => quote!(&#module::path(root, &[#field_module])),
+        None => quote!(root),
+    };
     match fields {
         Fields::Unit => (pattern_path, quote!(::core::result::Result::Ok(#path))),
         Fields::Unnamed(unnamed) => {
@@ -112,7 +130,7 @@ fn construct(pattern_path: Tokens, segments: &[Ident], fields: &Fields) -> (Toke
                 ::core::result::Result::Ok(#module::call(
                     #path,
                     ::std::vec![#(
-                        #module::ConstructorTokens::constructor_tokens(#bindings, root)?
+                        #module::ConstructorTokens::constructor_tokens(#bindings, #field_root)?
                     ),*],
                 ))
             };
@@ -136,7 +154,7 @@ fn construct(pattern_path: Tokens, segments: &[Ident], fields: &Fields) -> (Toke
                     #path,
                     ::std::vec![#((
                         #labels,
-                        #module::ConstructorTokens::constructor_tokens(#bindings, root)?,
+                        #module::ConstructorTokens::constructor_tokens(#bindings, #field_root)?,
                     )),*],
                 ))
             };
@@ -145,20 +163,41 @@ fn construct(pattern_path: Tokens, segments: &[Ident], fields: &Fields) -> (Toke
     }
 }
 
-fn is_unsupported(attributes: &[Attribute]) -> syn::Result<bool> {
-    let mut unsupported = false;
+/// The `#[constructor_tokens(...)]` options of an item or variant.
+#[derive(Default)]
+struct Options {
+    unsupported: bool,
+    module: Option<LitStr>,
+}
+
+fn options(attributes: &[Attribute]) -> syn::Result<Options> {
+    let mut options = Options::default();
+    let mut last = None;
     for attribute in attributes {
         if !attribute.path().is_ident("constructor_tokens") {
             continue;
         }
+        last = Some(attribute);
         attribute.parse_nested_meta(|meta| {
             if meta.path.is_ident("unsupported") {
-                unsupported = true;
+                options.unsupported = true;
+                Ok(())
+            } else if meta.path.is_ident("module") {
+                let module: LitStr = meta.value()?.parse()?;
+                syn::parse_str::<Ident>(&module.value())
+                    .map_err(|_| meta.error("`module` must name one module"))?;
+                options.module = Some(module);
                 Ok(())
             } else {
-                Err(meta.error("expected `unsupported`"))
+                Err(meta.error("expected `unsupported` or `module = \"...\"`"))
             }
         })?;
     }
-    Ok(unsupported)
+    if let (true, Some(_), Some(attribute)) = (options.unsupported, &options.module, last) {
+        return Err(syn::Error::new_spanned(
+            attribute,
+            "`unsupported` and `module` cannot be combined",
+        ));
+    }
+    Ok(options)
 }

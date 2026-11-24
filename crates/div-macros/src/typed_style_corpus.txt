@@ -69,6 +69,8 @@ font-size: 1.25rem
 line-height: 1.5
 line-height: 20px
 line-height: normal
+line-height: calc(1.25 / 0.875)
+line-height: calc(1 / 0.75)
 display: flex
 display: inline-grid
 position: absolute
