@@ -235,8 +235,8 @@ pub(crate) fn release_web_font_outlines() {
 }
 
 /// How many entries the process cache holds.
-#[doc(hidden)]
-pub fn retained_web_font_outline_count() -> usize {
+#[cfg(test)]
+pub(crate) fn retained_web_font_outline_count() -> usize {
     CACHE.get().map_or(0, |cache| {
         cache
             .lock()
