@@ -54,6 +54,27 @@ partial tile raster.
   0009), so A1 has nothing to chunk there. When it lands, each SVG element
   must enter a `PaintOwnerScope`, as HTML boxes do.
 
+## Public API
+
+A1's first revision made the chunk types public. The user chose the narrower
+version, answering "Do you approve my narrower version, or each as it is?"
+with "yes approve". Commit `9d705b2` makes that change:
+
+- `ChunkOwner`, `PaintChunk` and `PaintChunks`, with their fields and
+  methods, are `pub(crate)` in `div-paint`, and the root re-export is gone.
+- `RecordedPicture::paint_chunks` and `PaintChunks::is_complete` had no
+  callers and are removed.
+- `div-text`'s `blob_fingerprint` module is `#[doc(hidden)]`. `div-paint`
+  still calls `BlobFingerprint`, `text_blob_fingerprint` and
+  `clear_text_blob_fingerprints`, so they stay `pub` inside it. `hash_font`
+  is private.
+- `RecordedPicture::damage_since`, which `div-compositor` calls, and
+  `SceneSnapshot::physical_damage_since`, which A2's presenter will call,
+  stay public.
+
+The change only alters visibility. It was not built locally, because drive
+E: was below its free-space floor; CI builds and tests it.
+
 ## Verification
 
 | Check | Commit | Result |
@@ -95,17 +116,18 @@ their test pages (`-002` and `-003`) aborted with exit
 The Linux gate's Skia build used `main`'s Linux flags, including
 `-USK_ENABLE_AVX512_OPTS`, read back from its `args.gn`.
 
-The receipts are in the data repository at `fcbb6f3e`, under
+The receipts were added to the data repository at `fcbb6f3e`, under
 `docs/progress/evidence/paint-chunks-a1-*`: the census and coverage pair,
 the gate receipt and log, and the frame-cost and P7 logs with their
-conditions and binary hashes.
+conditions and binary hashes. `main`'s pin, `b6c41deb`, already contains
+that commit, so this change does not move the lock.
 
 **What the census pair and the gate do not cover.** The census pair was
 measured at `4e69bdf` against `7c816ac`, before #120, #131, #132, #134,
 #135, #136, #137 and #139, and was not rerun on the new Skia flags. The
 Linux gate ran at `0cdd653` on `main` `271415b`, before #112 (Windows Skia
-flags only), #140, #141, #126, #133, #143, #145, #147 and #142 (Linux Skia at
-`-O2`). The code patch is unchanged by every rebase:
+flags only), #140, #141, #126, #133, #143, #145, #147, #142 (Linux Skia at
+`-O2`) and #150. The code patch is unchanged by every rebase:
 
 ```text
 git diff <base> <head> | git patch-id --stable
@@ -113,13 +135,20 @@ git diff <base> <head> | git patch-id --stable
 271415b..0cdd653  35a50ffec9c76fb5e1967617954f374c960ea44a
 c2ad60a..e0a80c2  35a50ffec9c76fb5e1967617954f374c960ea44a
 dde5083..33255b7  35a50ffec9c76fb5e1967617954f374c960ea44a
+4dc219e..ab3a6ed  35a50ffec9c76fb5e1967617954f374c960ea44a
 ```
+
+`9d705b2` (above) comes after `ab3a6ed` and changes the patch ID. Whether
+the census pair carries across it is decided by a byte comparison of the
+`pixel_compare` binaries built at `efa3f8a` (A1 before the narrowing, on
+the same `main`) and at the final head, once drive E: has space again;
+until then the pair covers `ab3a6ed`'s code only.
 
 #136 and #143 change `div-text` font lifetimes next to A1's text
 fingerprints, so the crate tests were rerun on `0cdd653` and `e0a80c2`. The
-last rebase, onto `dde5083`, crosses #147, which changes how `div-text` sums
-run widths, and #142, which builds Linux Skia at `-O2`. The crate tests were
-not rerun on `33255b7`, because drive E: was below its free-space floor; CI
+later rebases, onto `dde5083` and `4dc219e`, cross #147, which changes how
+`div-text` sums run widths, #142, which builds Linux Skia at `-O2`, and #150.
+The crate tests were not rerun on `ab3a6ed` or `9d705b2`, because drive E: was below its free-space floor; CI
 runs them.
 
 ## Cost
