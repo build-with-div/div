@@ -10,6 +10,8 @@ macro_rules! gn_args {
         concat!(
             r#"extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "#,
             r#""-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "#,
+            r#""-DSK_AVOID_SLOW_RASTER_PIPELINE_BLURS", "-DSK_SUPPORT_LEGACY_ANISOTROPIC_MIPMAP_SCALE", "#,
+            r#""-DSK_SUPPORT_LEGACY_RRECT_TRANSFORM", "-DSK_LEGACY_INITWITHPREV_LAYER_SIZING", "#,
             r#""-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "#,
             r#""-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "#,
             r#""-msse3""#,
