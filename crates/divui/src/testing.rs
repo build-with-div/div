@@ -789,6 +789,9 @@ mod tests {
         log
     }
 
+    /// How long the fetch in [`fetch_app`] takes.
+    const FETCH_TIME: Duration = Duration::from_millis(150);
+
     fn fetch_app() -> (TestApp, crate::Signal<String>) {
         use crate::task::{spawn_local, time::sleep, Task};
         let status = create_signal(String::from("Idle"));
@@ -800,7 +803,7 @@ mod tests {
                     <button on:click={move |_| {
                         status.set("Loading".into());
                         let task = spawn_local(async move {
-                            sleep(Duration::from_millis(150)).await;
+                            sleep(FETCH_TIME).await;
                             status.set("Loaded".into());
                         });
                         *fetch.borrow_mut() = Some(task);
@@ -830,11 +833,13 @@ mod tests {
         app.run_until_idle();
         assert_eq!(status.get(), "Cancelled", "cancelling dropped the fetch");
 
+        // The fetch's timer starts during this click, so a clock started
+        // before it bounds the wait however slowly the click itself runs.
+        let before_click = Instant::now();
         app.click(&app.by_text("Fetch"));
         assert!(app.find_text("Loading").is_some());
-        let started = Instant::now();
         let loaded = app.find_by_text("Loaded");
-        assert!(started.elapsed() >= Duration::from_millis(100));
+        assert!(before_click.elapsed() >= FETCH_TIME);
         assert_eq!(loaded.text_content().unwrap(), "Loaded");
     }
 
