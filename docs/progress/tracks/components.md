@@ -59,8 +59,8 @@ related target, and a later Tab resumes where it was.
 
 | Change | Owner | Source |
 | --- | --- | --- |
-| `Document::begin_frame` ends with the focus fixup: after style, layout and resize observations, a focused element that can no longer take focus (not rendered, `visibility: hidden`, disabled, inert, or no longer focusable) is blurred. It reuses `settle_focus_eligibility`, which `disabled` already used | framework (H4, RFC 0015) | `crates/divui/src/document.rs`; `focus-fixup-v1` |
-| Removing or changing `tabindex` settles focus at once, as `disabled` already did, since Chromium blurs synchronously for both | framework (H4, RFC 0015) | same file and oracle |
+| `Document::begin_frame` ends with the focus fixup: after style, layout and resize observations, a focused element that can no longer take focus (not rendered, `visibility: hidden`, disabled, inert, or no longer focusable) is blurred. It reuses `settle_focus_eligibility`, which `disabled` already used. The inert case is defensive: the engine's only inertness is a modal dialog's, and showing one already moves focus into it | framework (H4, RFC 0015) | `crates/divui/src/document.rs`; `focus-fixup-v1` |
+| A `tabindex` change settles focus at once, as `disabled` already did. The oracle measures removal (`tabindex_removed`), which Chromium blurs synchronously, as it does `disabled`; setting an invalid value on an element with no other focus semantics is unmeasured | framework (H4, RFC 0015) | same file and oracle |
 | The engine replays the dialog oracle's `remove_open_attribute`, with two frames after each step as `divui` runs them | engine test | `crates/div-engine/tests/dialog_oracle.rs` |
 
 `tools/qualification/capture_focus_fixup_oracle.py` records 9 scenarios
