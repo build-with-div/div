@@ -232,6 +232,7 @@ jobs:
             tools.wpt.test_sp19_closure \
             tools.wpt.test_sp20_closure \
             tools.wpt.test_port_coverage_area \
+            tools.isolation.test_isolation_tools \
             tools.qualification.test_build_renderer \
             tools.qualification.test_census_lock \
             tools.test_fidelity_data \
@@ -476,6 +477,7 @@ jobs:
             tools.wpt.test_sp19_closure \
             tools.wpt.test_sp20_closure \
             tools.wpt.test_port_coverage_area \
+            tools.isolation.test_isolation_tools \
             tools.qualification.test_build_renderer \
             tools.qualification.test_census_lock \
             tools.test_fidelity_data \
