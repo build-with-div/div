@@ -437,6 +437,7 @@ pub enum StyleValue {
     Renderer(RendererStyleValue),
     /// A `calc()` value, resolved once the element's font and viewport
     /// are known. `line-height` is the first property to accept one.
+    #[cfg_attr(feature = "constructor-tokens", constructor_tokens(module = "math"))]
     Math(crate::math::MathFunction),
 }
 
