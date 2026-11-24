@@ -53,7 +53,7 @@ pub fn Badge(variant: BadgeVariant, children: Vec<ViewNode>) -> ViewNode {
             ("padding", "2px 8px"),
             // `text-xs`: 0.75rem with line-height calc(1 / 0.75).
             ("font-size", "12px"),
-            ("line-height", "16px"),
+            ("line-height", "calc(1 / 0.75)"),
             ("font-weight", "500"),
             ("white-space", "nowrap"),
         ],

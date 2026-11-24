@@ -134,7 +134,7 @@ pub fn TabsTrigger(
             ("padding", "4px 8px"),
             // `text-sm`: 0.875rem with line-height calc(1.25 / 0.875).
             ("font-size", "14px"),
-            ("line-height", "20px"),
+            ("line-height", "calc(1.25 / 0.875)"),
             ("font-weight", "500"),
             ("white-space", "nowrap"),
         ],

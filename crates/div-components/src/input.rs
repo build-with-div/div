@@ -67,10 +67,10 @@ pub fn Input(
             ("min-width", "0px"),
             ("border-radius", &radius),
             ("padding", "4px 12px"),
-            // `md:text-sm`: 0.875rem with line-height calc(1.25 / 0.875),
-            // 20px at this size (see the module documentation).
+            // `md:text-sm`: 0.875rem with line-height calc(1.25 / 0.875) (see
+            // the module documentation).
             ("font-size", "14px"),
-            ("line-height", "20px"),
+            ("line-height", "calc(1.25 / 0.875)"),
             ("outline-style", "none"),
         ],
     );

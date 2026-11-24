@@ -127,9 +127,8 @@ preflight's reset (`box-sizing: border-box; margin: 0; padding: 0;
 border: 0 solid`); see `crates/div-components/src/css.rs`. Where Div's
 style literals cannot express a value, the typed value is set instead:
 `box-shadow`, `width: fit-content`, `container-type`, `container-name`
-and grid placement. `border` is set as longhands, and `line-height`
-lengths stand for Tailwind's `calc()` ratios (`text-sm` is 14px over
-20px).
+and grid placement. `border` is set as longhands, and `line-height` is
+Tailwind's `calc()` ratio (`text-sm` is `calc(1.25 / 0.875)`).
 
 ## Fonts and icons
 

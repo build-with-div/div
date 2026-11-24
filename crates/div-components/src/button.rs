@@ -77,10 +77,9 @@ pub fn Button(
             ("justify-content", "center"),
             ("gap", "8px"),
             ("border-radius", &radius),
-            // `text-sm`: 0.875rem with line-height calc(1.25 / 0.875), which
-            // is 20px at this size.
+            // `text-sm`: 0.875rem with line-height calc(1.25 / 0.875).
             ("font-size", "14px"),
-            ("line-height", "20px"),
+            ("line-height", "calc(1.25 / 0.875)"),
             ("font-weight", "500"),
             ("white-space", "nowrap"),
             ("outline-style", "none"),
@@ -109,7 +108,7 @@ pub fn Button(
                 ("padding", "0 8px"),
                 // `text-xs`: 0.75rem with line-height calc(1 / 0.75).
                 ("font-size", "12px"),
-                ("line-height", "16px"),
+                ("line-height", "calc(1 / 0.75)"),
             ],
         ),
         ButtonSize::Sm => set(
