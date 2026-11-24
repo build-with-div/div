@@ -116,6 +116,20 @@ Likely causes, not proven:
   end of the first space's glyph advance, while Div reports one at 0. The
   width and the single-space case match. The cause has not been identified.
 
+## Constraints on RFC 0014's later steps (24 November 2026)
+
+From the framework track's review of #149:
+
+- A future value type for the CSS `color-scheme` property must not be named
+  `ColorScheme`. That name is the `prefers-color-scheme` input
+  (`div::ColorScheme`); Chromium calls it `PreferredColorScheme`.
+- Before `matchMedia` takes the name `MediaQueryList` for its public handle,
+  rename the data-model `div_style::media_query::MediaQueryList` (for
+  example to `MediaQueryListData`) or keep its module hidden.
+- Known existing gap: `Engine::note_selector_state_change` sets the paint
+  flag without bumping a dirty generation, so a state change from outside
+  input handling may not request a frame on its own.
+
 ## Log
 
 - 9 November 2026, PR #89: RFC 0001 typed style rules merged. Docs only;
@@ -420,9 +434,9 @@ Likely causes, not proven:
   `@media` rules at the top level, in a layer, nested in `@media` and nested
   in a style rule. Queries parse and evaluate as Chromium 147 does, and they
   follow the viewport, the device scale factor, the new
-  `Document::set_color_scheme` and the reduced-motion preference. The new
+  `Document::set_color_scheme` and the reduced-motion preference. A flip
+  bumps the paint generation, so a frame loop redraws. The new
   `media-queries-v1` oracle (84 queries in 7 environments) matches in all
-  588 values. The census and CSS Grid coverage are unchanged at all four
-  profiles, measured at `b7e4f6a` against `8106a6d` before #142's `-O2`
-  (evidence `179feb54`); the rebased code patch has the same patch ID.
+  588 values. The public surface is the narrower one the user approved.
+  The census pair on `main` `4dc219ed` is pending.
   [Record](../media-style-sheets-2026-11-24.md).
