@@ -283,3 +283,12 @@ on branch `components/c4-assets` and the shared findings note.
   and #120 (evidence `5d5ef0fb`). The rebased code patch has the same
   patch ID. Linux 1,154 tests pass at `d62d081` on `main` `8fbf18e`.
   [Record](../internal-css-names-2026-11-23.md).
+- 23 November 2026: the last font client now releases the shaper's parent
+  fonts before it purges Skia's strike cache, which repairs `main`'s weekly
+  address and leak sanitizer jobs without a suppression. The census and CSS
+  Grid coverage are unchanged at all four profiles, measured at `8fbf18e`
+  against `0a11dbe`, before #134 and #135 (evidence `63f6e1ae`). The
+  rebased code patch has the same patch ID. Linux 3,526 tests pass at
+  `e6a2c1f` on `main` `9219d0a`. The web-font outline cache has the same
+  retention and gets its own PR.
+  [Record](../font-cache-parent-release-2026-11-23.md).

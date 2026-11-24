@@ -573,6 +573,7 @@ struct ParentFont(*mut HbFont);
 unsafe impl Send for ParentFont {}
 
 /// The parent fonts by typeface ID, least recently used first in `order`.
+#[derive(Default)]
 struct ParentFonts {
     fonts: HashMap<u32, ParentFont>,
     order: VecDeque<u32>,
@@ -582,19 +583,49 @@ struct ParentFonts {
 /// (`SkShaper_harfbuzz.cpp`'s `SkLRUCache`); so does Div.
 const PARENT_FONT_CACHE: usize = 100;
 
+static PARENTS: OnceLock<Mutex<ParentFonts>> = OnceLock::new();
+
+/// Destroy every cached parent font, and with it the typeface each one owns.
+///
+/// The last `FontCacheLifetime` calls this while it holds the client lock.
+/// Every shaping call holds a `FontPlatformData`, which holds a lifetime, so
+/// none is running and none can start until the client lock is released. The
+/// lock order is the client lock, then this cache's; `create_font` never takes
+/// or drops a lifetime while it holds this cache's lock.
+pub(crate) fn release_parent_fonts() {
+    let Some(parents) = PARENTS.get() else {
+        return;
+    };
+    let retired = std::mem::take(
+        &mut *parents
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()),
+    );
+    for ParentFont(font) in retired.fonts.into_values() {
+        // Sub-fonts hold their own reference to the parent.
+        unsafe { hb_font_destroy(font) };
+    }
+}
+
+/// How many parent fonts the shaping cache holds, for lifetime tests.
+#[doc(hidden)]
+pub fn retained_parent_font_count() -> usize {
+    PARENTS.get().map_or(0, |parents| {
+        parents
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .fonts
+            .len()
+    })
+}
+
 /// A sub-font of the typeface's cached parent with Blink's funcs over
 /// `font`, Blink's scale and `ptem`.
 fn create_font(font: &SkFont, specified_size: f32) -> *mut HbFont {
-    static PARENTS: OnceLock<Mutex<ParentFonts>> = OnceLock::new();
     let typeface = font.typeface();
     let id = u32::from(typeface.unique_id());
-    let parents = PARENTS.get_or_init(|| {
-        Mutex::new(ParentFonts {
-            fonts: HashMap::new(),
-            order: VecDeque::new(),
-        })
-    });
-    let mut parents = parents
+    let mut parents = PARENTS
+        .get_or_init(Mutex::default)
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if parents.fonts.contains_key(&id) {

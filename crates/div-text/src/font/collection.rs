@@ -26,11 +26,11 @@ const MAX_INSTANCE_CACHE: usize = 256;
 
 static NEXT_COLLECTION_ID: AtomicU64 = AtomicU64::new(1);
 
-// Skia's global strike cache retains typefaces after their document font
-// collections are released. Finish that cache lifetime when the last collection,
-// resolved font instance, and retained paint recording are gone. Serializing
-// acquisition with retirement prevents a new client from starting while
-// preceding clients are being retired.
+// Skia's global strike cache and the shaper's parent fonts retain typefaces
+// after their document font collections are released. Finish both when the last
+// collection, resolved font instance, and retained paint recording are gone.
+// Serializing acquisition with retirement prevents a new client from starting
+// while preceding clients are being retired.
 static FONT_CACHE_CLIENTS: Mutex<usize> = Mutex::new(0);
 
 /// Keeps cached font resources alive for an immutable paint recording.
@@ -65,6 +65,8 @@ impl Drop for FontCacheLifetime {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         *clients -= 1;
         if *clients == 0 {
+            // The shaper's parent fonts own typefaces, so release them first.
+            crate::shaping::release_parent_fonts();
             // This releases cached strikes, which own references to typefaces.
             // Existing SkFont/Typeface objects remain valid. Fontconfig itself
             // stays initialized; other libraries may own their configurations.
