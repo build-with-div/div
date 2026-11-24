@@ -58,7 +58,7 @@ impl BlobFingerprint {
 }
 
 /// Every property of a `Font` that changes the glyphs it rasters.
-fn hash_font(font: &Font, h: &mut impl Hasher) {
+pub fn hash_font(font: &Font, h: &mut impl Hasher) {
     // Typeface ids are never reused within a process.
     font.typeface().unique_id().hash(h);
     font.size().to_bits().hash(h);

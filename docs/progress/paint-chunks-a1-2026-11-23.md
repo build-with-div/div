@@ -65,9 +65,12 @@ with "yes approve". Commit `9d705b2` makes that change:
 - `RecordedPicture::paint_chunks` and `PaintChunks::is_complete` had no
   callers and are removed.
 - `div-text`'s `blob_fingerprint` module is `#[doc(hidden)]`. `div-paint`
-  still calls `BlobFingerprint`, `text_blob_fingerprint` and
-  `clear_text_blob_fingerprints`, so they stay `pub` inside it. `hash_font`
-  is private.
+  still calls `BlobFingerprint`, `text_blob_fingerprint`,
+  `clear_text_blob_fingerprints` and `hash_font`, so they stay `pub` inside
+  it. `9d705b2` first made `hash_font` private, on the wrong belief that only
+  its own file used it. `div-paint`'s `damage.rs` hashes the font of string
+  draws with it, so CI failed to compile, and the next commit makes it `pub`
+  again.
 - `RecordedPicture::damage_since`, which `div-compositor` calls, and
   `SceneSnapshot::physical_damage_since`, which A2's presenter will call,
   stay public.
@@ -138,11 +141,12 @@ dde5083..33255b7  35a50ffec9c76fb5e1967617954f374c960ea44a
 4dc219e..ab3a6ed  35a50ffec9c76fb5e1967617954f374c960ea44a
 ```
 
-`9d705b2` (above) comes after `ab3a6ed` and changes the patch ID. Whether
-the census pair carries across it is decided by a byte comparison of the
-`pixel_compare` binaries built at `efa3f8a` (A1 before the narrowing, on
-the same `main`) and at the final head, once drive E: has space again;
-until then the pair covers `ab3a6ed`'s code only.
+The census pair carries to `ab3a6ed`, A1's code on `main` `4dc219e`,
+because its patch ID is unchanged. The narrowing after it (`9d705b2` and the
+`hash_font` fix) is a separate check: a masked byte comparison of the
+`pixel_compare` binaries built at `efa3f8a` (A1 before the narrowing, also
+on `4dc219e`) and at the final head, with the same flags, under the census
+lock, once drive E: has space again. It has not run yet.
 
 #136 and #143 change `div-text` font lifetimes next to A1's text
 fingerprints, so the crate tests were rerun on `0cdd653` and `e0a80c2`. The
