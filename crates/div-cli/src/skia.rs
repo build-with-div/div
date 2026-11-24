@@ -6,28 +6,36 @@
 //! `cargo build` produces the same Skia as `div dev` and `div build`.
 
 macro_rules! gn_args {
-    ($($extra:literal)?) => {
+    ($extra:literal) => {
         concat!(
             r#"extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP", "#,
             r#""-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS", "#,
             r#""-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2", "#,
             r#""-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "#,
             r#""-msse3""#,
-            $($extra,)?
+            $extra,
             r#" ]"#,
         )
     };
 }
 
 /// Compile-time Skia options, as in CI's `SKIA_GN_ARGS` on Linux.
-pub const GN_ARGS: &str = gn_args!();
+///
+/// The last flag, `-O2`, is the optimization level Chromium compiles Skia
+/// with. Off Windows, rust-skia passes Cargo's `OPT_LEVEL` to the compiler as
+/// `-O<level>` after Skia's own `-O3`, so a dev build would compile Skia at
+/// `-O0`; this later flag wins in every profile.
+pub const GN_ARGS: &str = gn_args!(r#", "-O2""#);
 
-/// Windows' Skia options: [`GN_ARGS`] plus Chromium's
+/// Windows' Skia options: the same options without `-O2`, plus Chromium's
 /// `/clang:-ffp-contract=off` (`build/config/compiler/BUILD.gn` at
-/// 147.0.7727.50). rust-skia compiles Skia with clang-cl, which otherwise
-/// fuses multiply-adds in Skia's AVX2 code; Skia's own GN turns contraction
-/// off for clang on other platforms only. clang on Linux would read the
-/// `/clang:` flag as a file name, so it is Windows' alone.
+/// 147.0.7727.50).
+///
+/// rust-skia passes no optimization level on Windows, where Skia's release
+/// configuration already compiles with `/O2`. rust-skia compiles Skia with
+/// clang-cl, which otherwise fuses multiply-adds in Skia's AVX2 code; Skia's
+/// own GN turns contraction off for clang on other platforms only. clang on
+/// Linux would read the `/clang:` flag as a file name, so it is Windows' alone.
 pub const WINDOWS_GN_ARGS: &str = gn_args!(r#", "/clang:-ffp-contract=off""#);
 
 /// Variables every platform sets.
@@ -142,12 +150,15 @@ mod tests {
     }
 
     #[test]
-    fn windows_adds_only_chromium_fp_contract_off() {
+    fn platforms_differ_only_in_their_last_flag() {
+        let shared = GN_ARGS
+            .strip_suffix(r#", "-O2" ]"#)
+            .expect("the Linux options end with -O2");
+        assert!(shared.ends_with(r#""-fno-strict-aliasing", "-msse3""#));
         assert_eq!(
             WINDOWS_GN_ARGS,
-            GN_ARGS.replace(r#" ]"#, r#", "/clang:-ffp-contract=off" ]"#)
+            format!(r#"{shared}, "/clang:-ffp-contract=off" ]"#)
         );
-        assert!(GN_ARGS.ends_with(r#""-fno-strict-aliasing", "-msse3" ]"#));
     }
 
     #[test]

@@ -1,5 +1,41 @@
 # Setup track progress
 
+## Linux Skia at -O2 24 November 2026
+
+Off Windows, rust-skia passes Cargo's `OPT_LEVEL` to the compiler as
+`-O<level>` after Skia's own `-O3` (rust-skia `a31b86b`,
+`skia-bindings/build_support/skia/config.rs:243-252`). In dev builds,
+including CI's rust-parity job and the census, the later flag wins, so Skia
+compiled at `-O0`. A census Skia build's ninja files show 47 cflags lines
+with both `-O3` and `-O0`. Chromium compiles Skia at `-O2`. On Windows,
+rust-skia passes no level, and Skia's release configuration compiles with
+`/O2` (41 of 41 cflags lines in a local Windows build).
+
+- Linux's `SKIA_GN_ARGS` now ends with `-O2`. This applies to `ci.yml`
+  rust-parity, `components.yml`, `GN_ARGS` in `crates/div-cli/src/skia.rs`
+  (written by `div new` off Windows) and the components README. The census
+  takes its flags from `ci.yml`. Windows' flags are unchanged.
+- The components cache key now hashes `components.yml`, so a flag change
+  cannot restore a `target` directory whose Skia was built from the old
+  flags.
+- Not changed: `hardening.yml` and `fuzz/.cargo/config.toml` (sanitizer
+  builds) and `release.yml` (release builds, where rust-skia passes `-O3`).
+
+Measured before the change, on 23 November at main `4e69bdf4`, data pin
+`4628f28e90dd`, in a Linux census and coverage pair under the lock. The only
+difference between the two sides was Skia's level (`-O0` against `-O2`,
+checked in the build). Both sides used the census script's flags of that
+time, which lacked CI's `-USK_ENABLE_AVX512_OPTS`.
+
+| Set | Images | Changed |
+| --- | ---: | ---: |
+| Expanded census | 23,728 | 0 |
+| Coverage | 4,048 | 0 |
+
+The census, its coverage and their status counts are identical. One run of
+each took 5,069 s at `-O0` and 4,505 s at `-O2` in total, on a shared
+machine.
+
 ## Windows Skia without FMA contraction 22 November 2026
 
 Chromium 147.0.7727.50 compiles every file with `-ffp-contract=off`; on

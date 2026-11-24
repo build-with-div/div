@@ -76,11 +76,14 @@ jobs:
       LIBCLANG_PATH: /usr/lib/llvm-18/lib
       PKG_CONFIG_SYSROOT_DIR: ""
       RUST_MIN_STACK: "4194304"
+      # -O2 is the level Chromium compiles Skia with. rust-skia passes Cargo's
+      # OPT_LEVEL (-O0 in dev builds) after Skia's own -O3; this later flag wins.
       SKIA_GN_ARGS: >-
         extra_cflags += [ "-DSK_SUPPORT_LEGACY_CONIC_CHOP",
         "-DSK_ENABLE_LEGACY_SHADERCONTEXT", "-USK_ENABLE_AVX512_OPTS",
         "-DSK_USE_FREETYPE_EMBOLDEN", "-DSK_GAMMA_EXPONENT=1.2",
-        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3" ]
+        "-DSK_GAMMA_CONTRAST=0.2", "-USK_GAMMA_APPLY_TO_A8", "-fno-strict-aliasing", "-msse3",
+        "-O2" ]
       SKIA_NINJA_COMMAND: ninja
     steps:
       - uses: actions/checkout@v6
@@ -100,7 +103,9 @@ jobs:
             ~/.cargo/git
             ~/.cargo/registry
             target
-          key: components-v1-${{ runner.os }}-1.94.1-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          # The workflow holds SKIA_GN_ARGS; a flag change must not restore a
+          # target directory with Skia built from the old flags.
+          key: components-v1-${{ runner.os }}-1.94.1-${{ hashFiles('Cargo.lock', '**/Cargo.toml', '.github/workflows/components.yml') }}
 
       - name: Check Rust formatting
         run: cargo fmt --all --check
