@@ -3,9 +3,10 @@
 //! styles, dashes, global alpha and the composite mode.
 
 use div_style::Color;
-use skia_safe::{dash_path_effect, BlendMode, Color4f, Paint, PaintCap, PaintJoin, PaintStyle};
+use skia_safe::{dash_path_effect, BlendMode, Paint, PaintCap, PaintJoin, PaintStyle};
 
 use crate::affine::AffineTransform;
+use crate::style::CanvasStyle;
 use crate::text::TextState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,8 +139,8 @@ pub(crate) enum PaintType {
 pub(crate) struct CanvasState {
     pub transform: AffineTransform,
     pub transform_invertible: bool,
-    pub fill_color: Color,
-    pub stroke_color: Color,
+    pub fill_style: CanvasStyle,
+    pub stroke_style: CanvasStyle,
     pub global_alpha: f64,
     pub line_width: f32,
     pub line_cap: LineCap,
@@ -159,8 +160,8 @@ impl Default for CanvasState {
         Self {
             transform: AffineTransform::IDENTITY,
             transform_invertible: true,
-            fill_color: Color::BLACK,
-            stroke_color: Color::BLACK,
+            fill_style: CanvasStyle::Color(Color::BLACK),
+            stroke_style: CanvasStyle::Color(Color::BLACK),
             global_alpha: 1.0,
             line_width: 1.0,
             line_cap: LineCap::Butt,
@@ -177,26 +178,20 @@ impl Default for CanvasState {
 }
 
 impl CanvasState {
-    /// `CanvasStyle::ApplyColorToFlags`: the colour's float alpha times the
-    /// global alpha (as float), then `toSkColor4f`.
-    fn color_with_alpha(&self, color: Color) -> Color4f {
-        let global_alpha = self.global_alpha as f32;
-        Color4f::new(color.r, color.g, color.b, color.a * global_alpha)
-    }
-
     /// `GetFlags(paint_type, kDrawForegroundOnly)` as an `SkPaint`.
     pub fn paint(&self, paint_type: PaintType) -> Paint {
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
         paint.set_blend_mode(self.composite);
+        let global_alpha = self.global_alpha as f32;
         match paint_type {
             PaintType::Fill => {
                 paint.set_style(PaintStyle::Fill);
-                paint.set_color4f(self.color_with_alpha(self.fill_color), None);
+                self.fill_style.apply_to_paint(&mut paint, global_alpha);
             }
             PaintType::Stroke => {
                 paint.set_style(PaintStyle::Stroke);
-                paint.set_color4f(self.color_with_alpha(self.stroke_color), None);
+                self.stroke_style.apply_to_paint(&mut paint, global_alpha);
                 paint.set_stroke_width(self.line_width);
                 paint.set_stroke_cap(self.line_cap.to_skia());
                 paint.set_stroke_join(self.line_join.to_skia());

@@ -25,6 +25,7 @@ use crate::math::{clamp_non_finite_to_zero, clamp_to_f32, float_nearly_equal, PI
 use crate::path::{CanvasPath, RoundRectRadius};
 use crate::shape_cache::ShapeCaches;
 use crate::state::{composite_name, parse_composite, CanvasState, LineCap, LineJoin, PaintType};
+use crate::style::{CanvasGradient, CanvasStyle, CanvasStyleValue};
 use crate::CanvasError;
 
 /// `CanvasFillRule`.
@@ -409,22 +410,99 @@ impl CanvasRenderingContext2D {
 
     pub fn set_fill_style(&mut self, color: &str) {
         if let Some(c) = parse_canvas_color(color) {
-            self.state_mut().fill_color = c;
+            self.state_mut().fill_style = CanvasStyle::Color(c);
         }
     }
 
     pub fn set_stroke_style(&mut self, color: &str) {
         if let Some(c) = parse_canvas_color(color) {
-            self.state_mut().stroke_color = c;
+            self.state_mut().stroke_style = CanvasStyle::Color(c);
         }
     }
 
-    pub fn fill_style(&self) -> String {
-        serialize_canvas_color(self.state().fill_color)
+    /// `fillStyle = gradient`.
+    pub fn set_fill_gradient(&mut self, gradient: &CanvasGradient) {
+        self.state_mut().fill_style = CanvasStyle::Gradient(gradient.clone());
     }
 
-    pub fn stroke_style(&self) -> String {
-        serialize_canvas_color(self.state().stroke_color)
+    /// `strokeStyle = gradient`.
+    pub fn set_stroke_gradient(&mut self, gradient: &CanvasGradient) {
+        self.state_mut().stroke_style = CanvasStyle::Gradient(gradient.clone());
+    }
+
+    pub fn fill_style(&self) -> CanvasStyleValue {
+        self.state().fill_style.value()
+    }
+
+    pub fn stroke_style(&self) -> CanvasStyleValue {
+        self.state().stroke_style.value()
+    }
+
+    // ---- Gradients -----------------------------------------------------
+
+    /// `createLinearGradient`. `None` for a non-finite argument, which script
+    /// cannot pass: the binding throws a `TypeError` first.
+    pub fn create_linear_gradient(
+        &self,
+        x0: f64,
+        y0: f64,
+        x1: f64,
+        y1: f64,
+    ) -> Option<CanvasGradient> {
+        if ![x0, y0, x1, y1].iter().all(|v| v.is_finite()) {
+            return None;
+        }
+        Some(CanvasGradient::linear(
+            (clamp_to_f32(x0), clamp_to_f32(y0)),
+            (clamp_to_f32(x1), clamp_to_f32(y1)),
+        ))
+    }
+
+    /// `createRadialGradient`: an `IndexSizeError` for a negative radius,
+    /// else as [`Self::create_linear_gradient`].
+    pub fn create_radial_gradient(
+        &self,
+        x0: f64,
+        y0: f64,
+        r0: f64,
+        x1: f64,
+        y1: f64,
+        r1: f64,
+    ) -> Result<Option<CanvasGradient>, CanvasError> {
+        if r0 < 0.0 || r1 < 0.0 {
+            return Err(CanvasError::IndexSize);
+        }
+        if ![x0, y0, r0, x1, y1, r1].iter().all(|v| v.is_finite()) {
+            return Ok(None);
+        }
+        Ok(Some(CanvasGradient::radial(
+            (clamp_to_f32(x0), clamp_to_f32(y0)),
+            clamp_to_f32(r0),
+            (clamp_to_f32(x1), clamp_to_f32(y1)),
+            clamp_to_f32(r1),
+        )))
+    }
+
+    /// `createConicGradient`, as [`Self::create_linear_gradient`].
+    pub fn create_conic_gradient(
+        &self,
+        start_angle: f64,
+        center_x: f64,
+        center_y: f64,
+    ) -> Option<CanvasGradient> {
+        if ![start_angle, center_x, center_y]
+            .iter()
+            .all(|v| v.is_finite())
+        {
+            return None;
+        }
+        // `Rad2deg(float)`, then a quarter turn so that an angle of 0 starts
+        // on the x-axis.
+        let degrees = clamp_to_f32(start_angle) * (180.0 / PI_FLOAT) + 90.0;
+        Some(CanvasGradient::conic(
+            degrees,
+            (clamp_to_f32(center_x), clamp_to_f32(center_y)),
+        ))
     }
 
     // ---- Paths ---------------------------------------------------------
@@ -909,7 +987,7 @@ fn quad_contains(q: &[(f32, f32); 4], p: (f32, f32)) -> bool {
 
 /// `ParseCanvasColorString` for a canvas without a host element: HTML
 /// whitespace stripped, `currentcolor` resolving to black.
-fn parse_canvas_color(input: &str) -> Option<Color> {
+pub(crate) fn parse_canvas_color(input: &str) -> Option<Color> {
     let trimmed = input.trim_matches(|c| matches!(c, ' ' | '\t' | '\n' | '\x0c' | '\r'));
     if trimmed.eq_ignore_ascii_case("currentcolor") {
         return Some(Color::BLACK);
@@ -919,7 +997,7 @@ fn parse_canvas_color(input: &str) -> Option<Color> {
 
 /// `Color::SerializeAsCanvasColor` for the legacy sRGB colours this crate
 /// stores: `#rrggbb` when opaque, else `rgba(r, g, b, a)`.
-fn serialize_canvas_color(color: Color) -> String {
+pub(crate) fn serialize_canvas_color(color: Color) -> String {
     let channel = |v: f32| (v * 255.0).round().clamp(0.0, 255.0) as u8;
     let (r, g, b) = (channel(color.r), channel(color.g), channel(color.b));
     if color.a >= 1.0 {

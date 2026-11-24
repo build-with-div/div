@@ -21,7 +21,11 @@ capture for the operating system it runs on:
   observations and each canvas's size and sha256 of its RGBA bytes.
 - `chromium-linux/`, `chromium-windows/`: each canvas's `getImageData`
   bytes as an 8-bit RGBA PNG named `<trace>.<canvas>.png`. These are the
-  exact bytes, non-premultiplied.
+  exact bytes, non-premultiplied. A canvas listed in `cpu-classes.json` has
+  one file per CPU class instead, `<trace>.<canvas>.<class>.png`, and its
+  JSON `sha256` maps each class to a hash.
+- `cpu-classes.json`: the canvases whose Chromium pixels differ by CPU class,
+  and each class's RCPPS fingerprint.
 
 ## Oracle
 
@@ -56,13 +60,55 @@ The four readback traces (`readback-get`, `readback-put`,
 with the same builds and flags. That capture left every earlier trace's
 entry unchanged on both platforms.
 
+The nine gradient traces (`gradient-*`) were added on 22 November 2026 with
+the same builds and flags, and again every earlier trace's entry stayed
+unchanged on both platforms. Of their 102 canvases, the 99 without text are
+identical on Linux and Windows. The three in `gradient-text` differ, as other
+text does.
+
+## CPU classes
+
+Pinned Chromium's own pixels differ between Intel and AMD CPUs on three
+`gradient-composite` canvases: `color-dodge`, `hue` and `saturation`, 7
+pixels, each by one level in one channel. This is a real variation in
+Chromium by CPU vendor, not a Div difference. Div matches the same machine's
+Chromium on both. The likely mechanism is Skia's unrefined reciprocal
+estimate (RCPPS, `rcp_fast` in `SkRasterPipeline_opts.h`), which these
+blend modes use and whose results split exactly by vendor. That mechanism is
+strongly supported but was not isolated.
+
+So exact means byte-identical to pinned Chromium on the same CPU class.
+`tools/canvas/rcpps_fingerprint.rs` computes the class's fingerprint:
+FNV-1a 64 over RCPPS of every float in [1, 2). The test selects the oracle
+for this machine's class, and an unknown fingerprint fails with its value.
+There is no skip, nearest match, fallback or tolerance. Every other canvas
+has a single oracle, which must match on both classes.
+
+| Class | Fingerprint | Measured on |
+| --- | --- | --- |
+| `intel` | `5fc0454d9f4c2325` | Core i9-12900KF, Xeon 6975P-C, Xeon 6973P-C, Xeon 8573C, Xeon 8370C |
+| `amd` | `f7ba415b37cf2325` | EPYC 7763, EPYC 9V45, EPYC 9V74 |
+
+The AMD oracles were captured on GitHub Actions runners (EPYC 9V74 on Linux,
+EPYC 9V74 on Windows) on 23 November 2026. The Intel oracles are the local
+captures above. Four CI Intel captures on Linux matched them exactly. **The
+Windows Intel oracle is a local capture only**: no CI Windows Intel runner
+reached capture in 24 jobs, so it was recaptured locally on 24 November 2026,
+headless, and matched the stored bytes exactly. The receipts are in
+`div-fidelity-data` at `archive/docs/progress/evidence/canvas-cpu-classes-v1.json`.
+
 ## Regenerating
 
 ```bash
+rustc --edition 2021 -O tools/canvas/rcpps_fingerprint.rs -o out/rcpps_fingerprint
 python3 tools/canvas/capture_canvas_traces.py --platform linux \
-    --chrome <chrome-linux64>/chrome tests/fidelity/fixtures/canvas-traces-v1
+    --chrome <chrome-linux64>/chrome --cpu-fingerprint "$(out/rcpps_fingerprint)" \
+    tests/fidelity/fixtures/canvas-traces-v1
 python tools/canvas/capture_canvas_traces.py --platform windows \
-    --chrome <chrome-win64>/chrome.exe tests/fidelity/fixtures/canvas-traces-v1
+    --chrome <chrome-win64>/chrome.exe --cpu-fingerprint <fingerprint> \
+    tests/fidelity/fixtures/canvas-traces-v1
 ```
 
-A new trace needs both captures before the test can pass.
+A new trace needs both captures before the test can pass. A capture writes
+only its own class's files for the canvases in `cpu-classes.json`, and lists
+any other canvas whose hash changed from the stored capture.
