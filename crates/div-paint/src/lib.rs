@@ -23,7 +23,6 @@ mod surface_program;
 pub mod text_painter;
 
 pub use content_layer::RecordedContentLayer;
-pub use damage::{ChunkOwner, PaintChunk, PaintChunks};
 pub use layered_program::*;
 pub use paint_program::{
     IntrinsicPictureStatus, PaintCaptureIncompleteReason, PaintCaptureStatus, PaintLayoutScopeRole,

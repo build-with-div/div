@@ -101,7 +101,7 @@ pub struct RecordedPicture {
     pub(crate) direct_replay: bool,
     pub(crate) content_requires_tiling: bool,
     /// The recording's paint chunks, for damage (RFC 0006 A1).
-    pub(crate) chunks: Arc<crate::PaintChunks>,
+    pub(crate) chunks: Arc<crate::damage::PaintChunks>,
     /// Retains immutable registered bytes for every face referenced by a
     /// scene, even if the live document unregisters that face immediately.
     pub(crate) retained_font_bytes: Arc<[Arc<[u8]>]>,
@@ -111,11 +111,6 @@ pub struct RecordedPicture {
 }
 
 impl RecordedPicture {
-    /// The recording's paint chunks.
-    pub fn paint_chunks(&self) -> &crate::PaintChunks {
-        &self.chunks
-    }
-
     /// The rects, in CSS pixels as `[x, y, width, height]` and clipped to
     /// the viewport, that changed since `previous`, or `None` when only the
     /// whole viewport is safe: a different viewport, scale, raster

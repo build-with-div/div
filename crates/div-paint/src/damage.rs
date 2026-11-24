@@ -56,32 +56,32 @@ use crate::paint_program::{OwnedDraw, PaintOwnerPhase, ProgramOperation};
 
 /// Who painted a chunk.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ChunkOwner {
+pub(crate) struct ChunkOwner {
     /// The fragment's node, or `None` for draws outside every fragment
     /// (the canvas background).
-    pub node: Option<NodeId>,
+    pub(crate) node: Option<NodeId>,
     /// Whether the draws come from the fragment itself or its contents.
-    pub contents: bool,
+    pub(crate) contents: bool,
     /// Whether the fragment owns its element's box.
-    pub owns_element_box: bool,
+    pub(crate) owns_element_box: bool,
     /// Whether the draws belong to the viewport overlay (scrollbars).
-    pub overlay: bool,
+    pub(crate) overlay: bool,
 }
 
 /// One chunk of a recording.
 #[derive(Clone, Debug, PartialEq)]
-pub struct PaintChunk {
-    pub owner: ChunkOwner,
+pub(crate) struct PaintChunk {
+    pub(crate) owner: ChunkOwner,
     /// How many chunks with the same owner come before it.
-    pub occurrence: u32,
+    pub(crate) occurrence: u32,
     /// Every pixel the chunk can change, in the recording's coordinates.
-    pub bounds: Rect,
-    pub fingerprint: u64,
+    pub(crate) bounds: Rect,
+    pub(crate) fingerprint: u64,
 }
 
 /// A recording's chunks, in paint order.
 #[derive(Clone, Default)]
-pub struct PaintChunks {
+pub(crate) struct PaintChunks {
     chunks: Vec<PaintChunk>,
     /// Whether every draw went through the observed facade.
     complete: bool,
@@ -111,12 +111,8 @@ enum Retained {
 }
 
 impl PaintChunks {
-    pub fn chunks(&self) -> &[PaintChunk] {
+    pub(crate) fn chunks(&self) -> &[PaintChunk] {
         &self.chunks
-    }
-
-    pub fn is_complete(&self) -> bool {
-        self.complete
     }
 
     fn append(&mut self, other: PaintChunks) {
@@ -131,7 +127,7 @@ impl PaintChunks {
 
     /// The damage from `previous` to `self`, in the recording's
     /// coordinates, or `None` when only the whole viewport is safe.
-    pub fn damage_since(&self, previous: &PaintChunks) -> Option<Vec<Rect>> {
+    pub(crate) fn damage_since(&self, previous: &PaintChunks) -> Option<Vec<Rect>> {
         if !self.complete || !previous.complete {
             return None;
         }
