@@ -233,7 +233,7 @@ GROUPS = [
     ("Tables", r"^(border-collapse|border-spacing|caption-side|empty-cells|table-layout)"),
     ("Multi-column and fragmentation", r"^(column-|break-|orphans|widows)"),
     ("Typography", r"^(font|line-|letter-|word-|text-|white-space|tab-size|hyphen|direction|unicode-bidi|"
-     r"writing-mode|ruby-|hanging-|initial-letter|-webkit-font|-webkit-text|block-ellipsis|locale|quotes|"
+     r"writing-mode|ruby-|initial-letter|-webkit-font|-webkit-text|locale|quotes|"
      r"overflow-wrap|color$)"),
     ("Color and background", r"^(background|mask)"),
     ("Borders, outline and radius", r"^(border|outline)"),
@@ -299,7 +299,6 @@ GRAMMAR = {
     "font-variation-settings": "`normal` or comma list of `<4-char tag> <number>`, e.g. `\"wght\" 600`",
     "font-language-override": "`normal` or a 4-character tag",
     "hyphenate-character": "`auto` or a string (quotes stripped)",
-    "block-ellipsis": "`auto`, `no-ellipsis` or any string",
     "font-palette": "`normal`, `light`, `dark` or a `--name` registered with `Document::register_font_palette_values`",
     "font-size-adjust": f"`none`, `from-font`, `<number>` or `<ex-height{P}cap-height{P}ch-width{P}ic-width{P}ic-height> <number>`",
     "font-stretch": "keyword (`ultra-condensed` … `ultra-expanded`) or `<percent>`",
@@ -340,8 +339,6 @@ for name in ("grid-auto-columns", "grid-auto-rows"):
 for name in ("border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
              "outline-width", "outline-offset", "column-rule-width"):
     GRAMMAR[name] = "a bare integer in px (`2`, not `2px`)"
-GRAMMAR["filter-blur"] = "a bare number (blur radius, px)"
-GRAMMAR["filter-grayscale"] = "a bare number (amount)"
 
 
 def literal_summary(css: str, applied: list[str], unapplied: list[str]) -> str:

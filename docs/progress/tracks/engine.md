@@ -292,3 +292,14 @@ on branch `components/c4-assets` and the shared findings note.
   `e6a2c1f` on `main` `9219d0a`. The web-font outline cache has the same
   retention and gets its own PR.
   [Record](../font-cache-parent-release-2026-11-23.md).
+- 23 November 2026: twelve names pinned Chromium rejects by default are no
+  longer CSS names. Their typed setters, FFI and animation stay. The site
+  reference drops from 250 to 238 properties. The census and CSS Grid coverage
+  are unchanged at all four profiles, measured at `5bbcfff` against
+  `d3f4c31` (evidence `9c42d2a2`). Linux 1,160 tests pass
+  at `8a29c22` on `main` `db3e244`.
+  [Record](../css-dropped-names-2026-11-23.md). Open for the
+  `-webkit-line-clamp` PR: `block-ellipsis-024` matches at 3 of 4 profiles by
+  accident, because its fixture sets a clamp Chromium rejected and
+  `algorithm.rs:6224` treats the empty string as no clamp; `block-ellipsis-023`
+  and `-024` differ at 1.5x, cause not established.

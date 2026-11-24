@@ -94,11 +94,23 @@ and `not-allowed`.
 ## Names that are Div's own
 
 A few structured values that CSS writes inside one property are separate
-properties in Div, set from code: `filter-blur` and
-`filter-grayscale` for `filter`, `background-linear-gradient` and
+properties in Div, set from code: `background-linear-gradient` and
 `background-layers` for backgrounds, and `clip-path-inset` for `clip-path`.
 Each is in the properties reference with its setter.
 
-The `-x` and `-y` corner radius axes have setters, such as
-`set_border_top_left_radius_x`, but no CSS name, so they are not in the
-properties reference.
+## Setters with no CSS name
+
+These setters have no CSS name, so they are not in the properties reference
+and a stylesheet or `style` attribute cannot reach them. Chromium rejects
+these names too.
+
+- Parts of `filter`: `set_filter_blur` and `set_filter_grayscale`.
+- Parts of `scrollbar-color`: `set_scrollbar_thumb_color` and
+  `set_scrollbar_track_color`.
+- Parts of `scroll-snap-type` and `scroll-snap-align`:
+  `set_scroll_snap_axis`, `set_scroll_snap_strictness`,
+  `set_scroll_snap_align_block` and `set_scroll_snap_align_inline`.
+- Corner radius axes, such as `set_border_top_left_radius_x`.
+- CSS properties Chromium does not ship: `set_block_ellipsis`,
+  `set_font_synthesis_position`, `set_hanging_punctuation` and
+  `set_ruby_overhang`.

@@ -964,15 +964,6 @@
       "initial": "auto"
     },
     {
-      "property": "font-synthesis-position",
-      "group": "Typography",
-      "setter": "set_font_synthesis_position(FontSynthesis)",
-      "literal": "`auto`, `none`",
-      "expr": "yes, `FontSynthesis`",
-      "inherited": true,
-      "initial": "auto"
-    },
-    {
       "property": "font-feature-settings",
       "group": "Typography",
       "setter": "set_font_feature_settings(OpenTypeFeatureList)",
@@ -1360,24 +1351,6 @@
       "initial": "over"
     },
     {
-      "property": "ruby-overhang",
-      "group": "Typography",
-      "setter": "set_ruby_overhang(RubyOverhang)",
-      "literal": "`auto`, `none`",
-      "expr": "yes, `RubyOverhang`",
-      "inherited": true,
-      "initial": "auto"
-    },
-    {
-      "property": "hanging-punctuation",
-      "group": "Typography",
-      "setter": "set_hanging_punctuation(HangingPunctuation)",
-      "literal": "`none`, `first`, `last`, `force-end`, `allow-end`",
-      "expr": "yes, `HangingPunctuation`",
-      "inherited": true,
-      "initial": "none"
-    },
-    {
       "property": "initial-letter",
       "group": "Typography",
       "setter": "set_initial_letter(InitialLetterValue)",
@@ -1412,15 +1385,6 @@
       "expr": "yes, `LineClamp`",
       "inherited": false,
       "initial": "none"
-    },
-    {
-      "property": "block-ellipsis",
-      "group": "Typography",
-      "setter": "set_block_ellipsis(BlockEllipsis)",
-      "literal": "`auto`, `no-ellipsis` or any string",
-      "expr": "yes, `BlockEllipsis`",
-      "inherited": false,
-      "initial": "auto"
     },
     {
       "property": "text-box-edge",
@@ -1900,24 +1864,6 @@
       "initial": null
     },
     {
-      "property": "filter-blur",
-      "group": "Effects (opacity, shadow, filter, transform, clip)",
-      "setter": "set_filter_blur(f32)",
-      "literal": "a bare number (blur radius, px)",
-      "expr": "yes, `f32`",
-      "inherited": false,
-      "initial": null
-    },
-    {
-      "property": "filter-grayscale",
-      "group": "Effects (opacity, shadow, filter, transform, clip)",
-      "setter": "set_filter_grayscale(f32)",
-      "literal": "a bare number (amount)",
-      "expr": "yes, `f32`",
-      "inherited": false,
-      "initial": null
-    },
-    {
       "property": "transform-origin",
       "group": "Effects (opacity, shadow, filter, transform, clip)",
       "setter": "set_transform_origin((Length, Length))",
@@ -1990,29 +1936,11 @@
       "initial": null
     },
     {
-      "property": "scroll-snap-axis",
-      "group": "Overflow and scrolling",
-      "setter": "set_scroll_snap_axis(ScrollSnapAxis)",
-      "literal": "`none`, `x`, `y`, `both`, `inline`, `block`",
-      "expr": "no: `ScrollSnapAxis` has no `Into<StyleValue>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
       "property": "scrollbar-gutter",
       "group": "Overflow and scrolling",
       "setter": "set_scrollbar_gutter(ScrollbarGutter)",
       "literal": "`auto`, `stable both-edges`, `stable`",
       "expr": "no: `ScrollbarGutter` has no `Into<StyleValue>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
-      "property": "scrollbar-track-color",
-      "group": "Overflow and scrolling",
-      "setter": "set_scrollbar_track_color(Option<Color>)",
-      "literal": "**C** except `currentcolor`; `auto`",
-      "expr": "no: `view!` cannot name `Option<Color>`",
       "inherited": false,
       "initial": null
     },
@@ -2031,15 +1959,6 @@
       "setter": "set_scroll_target_group(ScrollTargetGroup)",
       "literal": null,
       "expr": "no: `ScrollTargetGroup` has no `Into<StyleValue>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
-      "property": "scrollbar-thumb-color",
-      "group": "Overflow and scrolling",
-      "setter": "set_scrollbar_thumb_color(Option<Color>)",
-      "literal": "**C** except `currentcolor`; `auto`",
-      "expr": "no: `view!` cannot name `Option<Color>`",
       "inherited": false,
       "initial": null
     },
@@ -2116,38 +2035,11 @@
       "initial": null
     },
     {
-      "property": "scroll-snap-strictness",
-      "group": "Overflow and scrolling",
-      "setter": "set_scroll_snap_strictness(ScrollSnapStrictness)",
-      "literal": "`mandatory`, `proximity`",
-      "expr": "no: `ScrollSnapStrictness` has no `Into<StyleValue>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
       "property": "scroll-snap-stop",
       "group": "Overflow and scrolling",
       "setter": "set_scroll_snap_stop(ScrollSnapStop)",
       "literal": "`normal`, `always`",
       "expr": "no: `ScrollSnapStop` has no `Into<StyleValue>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
-      "property": "scroll-snap-align-block",
-      "group": "Overflow and scrolling",
-      "setter": "set_scroll_snap_align_block(Option<ScrollSnapAlign>)",
-      "literal": "`auto`, `none`, `center`, `start`, `end`",
-      "expr": "no: `view!` cannot name `Option<ScrollSnapAlign>`",
-      "inherited": false,
-      "initial": null
-    },
-    {
-      "property": "scroll-snap-align-inline",
-      "group": "Overflow and scrolling",
-      "setter": "set_scroll_snap_align_inline(Option<ScrollSnapAlign>)",
-      "literal": "`auto`, `none`, `center`, `start`, `end`",
-      "expr": "no: `view!` cannot name `Option<ScrollSnapAlign>`",
       "inherited": false,
       "initial": null
     },

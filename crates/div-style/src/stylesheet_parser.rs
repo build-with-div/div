@@ -496,6 +496,15 @@ mod tests {
         parse_stylesheet(text).unwrap_or_else(|errors| panic!("{errors:?}"))
     }
 
+    #[test]
+    fn a_name_with_no_css_lookup_is_an_error() {
+        for name in crate::INTERNAL_CSS_NAMES {
+            let errors = parse_stylesheet(&format!(".a {{ {name}: 1; }}")).unwrap_err();
+            assert_eq!(errors.len(), 1, "{name}");
+            assert!(errors[0].message.contains(name), "{name}: {errors:?}");
+        }
+    }
+
     fn rule(item: &SheetItem) -> &SheetRule {
         match item {
             SheetItem::Rule(rule) => rule,
