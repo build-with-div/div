@@ -89,6 +89,33 @@ canvases differ by 3,740, 1,512, 1,512 and 743 pixels.
   `letter-box-letter` 717. `hebrew-only` (no fallback) and `box-letters-box`
   (symmetric) match.
 
+## Text gaps left by the T8 sweep (24 November 2026)
+
+Owner: `div-text` (engine track), assigned by the orchestrator on 24 November.
+No work on them is planned yet. Source: a `measureText` canvas trace with
+`font = "33.3px P, Q"` (P is `Ahem.ttf`, Q is `DejaVuSans.ttf`) and
+`wordSpacing = "7.3px"`, Chromium 147.0.7727.50 on Linux. The values are the
+same on `main` `2f8af21`, T8 `3a58` and the multi-run width fix `2cee39d`.
+Only the fields that differ are listed.
+
+| Case | Text | Field | Div | Chromium |
+| --- | --- | --- | --- | --- |
+| #4 | two spaces | `actualBoundingBoxLeft` | 0 | -33.29682922363281 |
+| #4 | two spaces | `actualBoundingBoxRight` | 0 | 33.29682922363281 |
+| #6 | U+00A0 `a` | `width` | 66.59365844726562 | 73.89364624023438 |
+| #6 | U+00A0 `a` | `actualBoundingBoxLeft` | -33.29682922363281 | -40.59681701660156 |
+| #6 | U+00A0 `a` | `actualBoundingBoxRight` | 67.29682922363281 | 74.59681701660156 |
+| #7 | `a` U+00A0 `b` | `width` | 99.89048767089844 | 107.19047546386719 |
+| #7 | `a` U+00A0 `b` | `actualBoundingBoxRight` | 100.59365844726562 | 107.89364624023438 |
+| #8 | U+00A0 | `width` | 33.29682922363281 | 40.59681701660156 |
+
+Likely causes, not proven:
+- #6, #7 and #8: each Chromium value is exactly 7.3px (the `wordSpacing`)
+  larger, so Chromium applies word spacing to U+00A0 and Div does not.
+- #4: for two spaces, Chromium reports a zero-width ink box at x = 33.297, the
+  end of the first space's glyph advance, while Div reports one at 0. The
+  width and the single-space case match. The cause has not been identified.
+
 ## Log
 
 - 9 November 2026, PR #89: RFC 0001 typed style rules merged. Docs only;
@@ -378,3 +405,14 @@ canvases differ by 3,740, 1,512, 1,512 and 743 pixels.
   against `691b956` (evidence `b43a0631`); the rebased code patch has the
   same patch ID. Linux 9,366 tests pass at `691b956`.
   [Record](../multi-run-width-2026-11-23.md).
+- 24 November 2026: compile-time `calc()` in `style:`, `style!` and
+  `stylesheet!` compiles again. The `ConstructorTokens` derive gains a
+  variant option, `module = "name"`, and `StyleValue::Math` uses
+  `module = "math"`, so the emitted constructors name the `calc()` tree at
+  `typed_style::math`. No public path is added. The test is the components
+  track's repro. A masked binary comparison showed the code compiled into
+  pixel-compare changes, so a full pair ran. The census and CSS Grid
+  coverage are unchanged at all four profiles, measured at `b7e4f6a` against
+  `b618850` before #142's `-O2` (evidence `b6c41deb`); the code patch has
+  the same patch ID at every base. The four T8-sweep text gaps above are
+  recorded as engine-owned. [Record](../calc-macro-paths-2026-11-24.md).
