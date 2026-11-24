@@ -48,6 +48,47 @@ on branch `components/c4-assets` and the shared findings note.
 - Real-font glyphs sit at a different height from Chromium's, with the same
   horizontal extents. Owner: `div-text` metrics. Unmeasured here.
 
+## Open text gaps found by the multi-run width oracle (22 November 2026)
+
+Both are on main at `4e69bdf`, with the same results before and after the
+multi-run width fix. Each has its own PR to come, and each is replayed and
+pinned by `cargo test -p div-canvas --test multi_run_width`, so a change in
+either fails. Fixture: `tests/fidelity/fixtures/multi-run-width-v1`, captured
+from Chromium 147.0.7727.50. Counts below are Linux. The Windows captures are
+in the fixture, but Div has not been compared with them yet.
+Compared on 24 November at `691b956` with `main`'s Windows Skia flags: on
+Windows, too, 112 of 112 Arabic widths differ, and the right-to-left
+canvases differ by 3,740, 1,512, 1,512 and 743 pixels.
+
+**Letter spacing on cursive scripts.** Owner: `div-text`.
+
+- Source: Blink adds no letter spacing to a run in a cursive script:
+  `IsCursiveScript` (`third_party/blink/renderer/platform/fonts/shaping/shape_result.cc:944`)
+  is passed to `ShapeResultSpacing::ComputeSpacing`
+  (`shape_result_spacing.cc:129`). Div's `apply_spacing`
+  (`crates/div-text/src/shaping/shaper.rs`) adds it to every character, and
+  its runs carry no script.
+- Repro: `font = "33.3px R, S"` (DejaVu Serif, DejaVu Sans),
+  `direction = "rtl"`, `letterSpacing = "1.7px"`,
+  `measureText("\u05D0\u0628\u05D0").width`: Div 80.96095275878906, Chromium
+  79.26095581054688, one spacing for the one Arabic letter.
+- Measured: 112 of 112 widths of Arabic words with letter spacing differ (four
+  spacings, two sizes, fourteen words).
+
+**Right-to-left text with font fallback paints differently.** Owner:
+`div-text`.
+
+- Source: Blink stores a right-to-left result's runs in visual order
+  (`ShapeResult::InsertRun`). Div's `splice_fallback_runs`
+  (`crates/div-text/src/shaping/shaper.rs`) sorts them by ascending
+  `start_index`. This is the likely cause and has not been proven.
+- Repro: a 320 by 60 canvas, `font = "33.3px A, S"` (Ahem, DejaVu Sans),
+  `direction = "rtl"`, `fillText("\u05D0.", 310, 42)`.
+- Measured, pixels of 19,200 that differ (maximum channel delta 255):
+  `alternating` 3,514, `box-letter` 1,443, `letter-box` 1,443,
+  `letter-box-letter` 717. `hebrew-only` (no fallback) and `box-letters-box`
+  (symmetric) match.
+
 ## Log
 
 - 9 November 2026, PR #89: RFC 0001 typed style rules merged. Docs only;
@@ -327,3 +368,13 @@ on branch `components/c4-assets` and the shared findings note.
   same command with `--test shaping_font_lifetime` on `main` `d53a2d9` gives
   the same 320 bytes. CI's sanitizer job runs only `div-ffi`, so it does not run
   these tests. No suppression; the fix is a separate later item.
+- 24 November 2026: `div-text` adds shaped run widths as floats, run by
+  run, in the order Blink inserts runs and, after spacing, in visual order,
+  instead of converting one summed 16.16 total. All 14 widths of the T8
+  sweep now match, including its four regressions (#19, #45, #50, #57).
+  The new `multi-run-width-v1` oracle's 616 non-Arabic widths match on Linux
+  and Windows. The two open text gaps above stay pinned. The census and CSS
+  Grid coverage are unchanged at all four profiles, measured at `b7e4f6a`
+  against `691b956` (evidence `b43a0631`); the rebased code patch has the
+  same patch ID. Linux 9,366 tests pass at `691b956`.
+  [Record](../multi-run-width-2026-11-23.md).

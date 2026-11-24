@@ -519,8 +519,32 @@ impl ShapeResult {
     /// (`ShapeResult::InsertRun`, `ApplySpacingOrExpansion`), so a result of
     /// several runs past 256 px can differ by a rounding step. Named gap in
     /// `docs/progress/t8-harfbuzz-units-2026-11-19.md`.
+    ///
+    /// The multi-run width change closes that gap: each run's units convert
+    /// to a float once, and those floats are added in visual order
+    /// (`ShapeResult::ApplySpacingOrExpansion`).
+    /// Div's fallback splice stores right-to-left runs in logical order, so
+    /// they are walked from the last character here.
     pub(crate) fn width_from_runs(runs: &[ShapeResultRun]) -> f32 {
-        units_to_px(runs.iter().map(ShapeResultRun::width_units).sum())
+        let add = |total: f32, run: &ShapeResultRun| total + units_to_px(run.width_units());
+        if runs.iter().all(|run| run.direction == TextDirection::Rtl) {
+            let mut visual: Vec<&ShapeResultRun> = runs.iter().collect();
+            visual.sort_by_key(|run| std::cmp::Reverse(run.start_index));
+            visual.into_iter().fold(0.0, add)
+        } else {
+            runs.iter().fold(0.0, add)
+        }
+    }
+
+    /// The width of runs just shaped, given in the order Blink inserts them:
+    /// each run's units clamped to zero and converted to a float once, and
+    /// those floats added (`ComputeGlyphPositions`, `ShapeResult::InsertRun`).
+    pub(crate) fn width_of_inserted_runs<'a>(
+        runs: impl Iterator<Item = &'a ShapeResultRun>,
+    ) -> f32 {
+        runs.fold(0.0, |total, run| {
+            total + units_to_px(run.width_units().max(0))
+        })
     }
 
     /// Each character's `x_position` from a running sum in 1/65536 px of the
