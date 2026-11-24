@@ -979,3 +979,40 @@ fn a_media_flip_restyles_like_a_fresh_cascade() {
     engine.update().unwrap();
     assert_eq!(incremental, snapshot(&engine, &elements));
 }
+
+#[test]
+fn a_media_flip_bumps_a_dirty_generation_before_update() {
+    use div_style::media_query::ColorScheme;
+    let mut engine = engine();
+    let root = engine.root();
+    let target = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(target, "class", "a").unwrap();
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".a", opacity(0.4)).with_media(media("(prefers-color-scheme: dark)")));
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    // A frame loop that compares generations sees the flip before update().
+    let before = engine.dirty_generations();
+    engine.set_color_scheme(ColorScheme::Dark);
+    assert_ne!(engine.dirty_generations(), before);
+    engine.update().unwrap();
+    assert_eq!(opacity_of(&engine, target), 0.4);
+
+    // A change that flips no rule leaves the generations alone.
+    let mut engine = engine_with_width_rule();
+    let before = engine.dirty_generations();
+    engine.set_color_scheme(ColorScheme::Dark);
+    assert_eq!(engine.dirty_generations(), before);
+}
+
+fn engine_with_width_rule() -> Engine {
+    let mut engine = engine();
+    let root = engine.root();
+    let target = element(&mut engine, root, ElementTag::Div);
+    engine.set_attribute(target, "class", "a").unwrap();
+    let sheet = StyleSheet::new(CascadeOrigin::Author)
+        .with_rule(rule(".a", opacity(0.2)).with_media(media("(min-width: 100px)")));
+    engine.adopt_style_sheet(&sheet).unwrap();
+    engine.update().unwrap();
+    engine
+}

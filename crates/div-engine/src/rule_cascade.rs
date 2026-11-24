@@ -990,7 +990,10 @@ impl Engine {
             let root = self.document.root();
             self.rule_set.pending.push((root, RestyleScope::Document));
             self.selector_restyle_pending = true;
+            // Bump the generation too: a frame loop that compares generations
+            // must see the flip before anything else asks for a frame.
             self.dirty.paint = true;
+            self.dirty_generations.paint += 1;
         }
     }
 
