@@ -201,11 +201,12 @@ One PR at a time. Each keeps `main` green and records its results in
 PR 3 was split on 22 November 2026 so that the engine work could land
 while the SVG lane's A1 changes `painter.rs`; the paint pass moved to 3b.
 The UA element rules and the `divui` tag moved from PR 4 to 3a, and the
-oracle's gates became field level. `remove_open_attribute` waits for a
-focus fixup in the engine (Chromium clears focus when the focused element
-stops being rendered), and the modal `max-width`/`max-height` for engine
-0.2 PR 2 (`calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and
-`%`).
+oracle's gates became field level. `remove_open_attribute` waited for a
+focus fixup (Chromium clears focus when the focused element stops being
+rendered); since 24 November 2026 `divui` runs it at the end of each frame,
+measured by `focus-fixup-v1`, and the engine replays the scenario. The modal
+`max-width`/`max-height` wait for engine 0.2 PR 2 (`calc()` in `width`,
+`height`, `min-*` and `max-*`, with `em` and `%`).
 
 3a's sheet is not the specification's rules verbatim. Until their owners
 close them, these gaps remain:

@@ -45,6 +45,7 @@ const ENGINE_REPLAYED: &[&str] = &[
     "non_modal_focus_outside",
     "non_modal_click_outside",
     "remove_open_modal",
+    "remove_open_attribute",
     "move_dialog_append",
     "move_dialog_insert_before",
     "move_ancestor_append",
@@ -56,11 +57,6 @@ const API: &str = "RFC 0015 PR 5: the divui dialog API, events, Escape and focus
 
 /// A press on inert content reaches the modal dialog through its backdrop.
 const BACKDROP: &str = "RFC 0015 PR 4: `::backdrop` takes presses outside the modal dialog";
-
-/// Removing `open` from a modal dialog hides its focused button, and Blink
-/// then clears focus (`active` is `body`); Div has no focus fixup for an
-/// element that stops being rendered and keeps it.
-const FOCUS_FIXUP: &str = "engine: focus fixup when the focused element stops being rendered";
 
 /// Scenarios not replayed yet, with what each waits for.
 const PENDING: &[(&str, &str)] = &[
@@ -74,7 +70,6 @@ const PENDING: &[(&str, &str)] = &[
     // The press on the lower dialog reaches the upper one's backdrop, and
     // Escape closes each in turn.
     ("nested", "RFC 0015 PRs 4 and 5: `::backdrop`, then Escape"),
-    ("remove_open_attribute", FOCUS_FIXUP),
     ("return_value", API),
     ("request_close_prevented", API),
     ("invalid_state", API),

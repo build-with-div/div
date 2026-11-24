@@ -66,6 +66,14 @@ pub(crate) struct RegisteredListener {
     callback: RegisteredCallback,
 }
 
+/// An attribute whose change can make the focused element unfocusable at
+/// once: pinned Chromium 147 blurs it synchronously when it becomes
+/// `disabled` or loses its `tabindex` (`focus-fixup-v1`). A change that
+/// stops it being rendered waits for the frame's focus fixup instead.
+fn changes_focusability(name: &str) -> bool {
+    name.eq_ignore_ascii_case("disabled") || name.eq_ignore_ascii_case("tabindex")
+}
+
 fn listener_allocation_error() -> Error {
     Error::Io(std::io::Error::from(std::io::ErrorKind::OutOfMemory))
 }
@@ -502,7 +510,7 @@ impl Document {
         })?;
         // Engine mutation has ended before the shared focus/change callbacks.
         // Reentrant callbacks may reenable or focus another live control.
-        if name.eq_ignore_ascii_case("disabled") {
+        if changes_focusability(name) {
             self.settle_focus_eligibility()?;
         }
         Ok(())
@@ -514,7 +522,7 @@ impl Document {
         name: &str,
     ) -> Result<bool, Error> {
         let removed = self.with_engine_mut(|engine| engine.remove_attribute(target, name))?;
-        if removed && name.eq_ignore_ascii_case("disabled") {
+        if removed && changes_focusability(name) {
             self.settle_focus_eligibility()?;
         }
         Ok(removed)
@@ -1049,14 +1057,23 @@ impl Document {
     /// animations and their events, the animation frame callbacks
     /// ([`request_animation_frame`](Self::request_animation_frame)), then
     /// style and layout, repeated with the resize observations
-    /// ([`ResizeObserver`](crate::ResizeObserver)) while they change sizes.
-    /// Painting follows, by the caller.
+    /// ([`ResizeObserver`](crate::ResizeObserver)) while they change sizes,
+    /// and last the focus fixup: a focused element that can no longer take
+    /// focus, because it stopped being rendered or became hidden, disabled
+    /// or inert, is blurred, with `blur` and `focusout` and no related
+    /// target. Painting follows, by the caller.
     pub fn begin_frame(&self, time_ms: f64) -> Result<(), Error> {
         self.dispatch_pending_events()?;
         self.advance_time(time_ms)?;
         self.run_animation_frame_callbacks(time_ms);
         self.update_all()?;
-        self.broadcast_resize_observations()
+        self.broadcast_resize_observations()?;
+        // HTML's focus fixup. Pinned Chromium 147 blurs an element that
+        // stopped being rendered after a forced layout and before the second
+        // frame (`focus-fixup-v1`), so not when script reads layout. Focus
+        // moves to the viewport and the sequential focus navigation starting
+        // point stays where the element was.
+        self.settle_focus_eligibility()
     }
 
     pub(crate) fn dispatch_animation_events(&self) -> Result<(), Error> {

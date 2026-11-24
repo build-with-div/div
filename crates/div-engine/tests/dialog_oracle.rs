@@ -11,7 +11,10 @@
 //!   action, and clicks the activation target on release;
 //! - a key goes to the focused element, else `body`, and Tab moves focus
 //!   with [`Engine::advance_focus`];
-//! - script calls are the engine's dialog methods.
+//! - script calls are the engine's dialog methods;
+//! - after each step, two frames run as `divui`'s `Document::begin_frame`
+//!   ends them: style and layout, then the focus fixup, which blurs a
+//!   focused element that can no longer take focus.
 //!
 //! After each step it compares, exactly, the targets of the input events,
 //! the focused element and every dialog's `open`, `:modal` and
@@ -51,6 +54,7 @@ const REPLAYED: &[&str] = &[
     "non_modal_focus_outside",
     "non_modal_click_outside",
     "remove_open_modal",
+    "remove_open_attribute",
     "move_dialog_append",
     "move_dialog_insert_before",
     "move_ancestor_append",
@@ -68,6 +72,15 @@ const MOVED_FOCUS_STEPS: &[(&str, usize)] = &[
     ("move_ancestor_append", 3),
     ("move_ancestor_insert_before", 3),
 ];
+
+/// Chromium sends a press that no element takes, outside a modal dialog
+/// whose `open` was removed, to `html`; the engine's hit test reports no
+/// target.
+const ROOT_PRESS: &str = "fidelity S6c: the document root takes the points no element takes";
+
+/// The step of each scenario whose input events are pending on
+/// [`ROOT_PRESS`]. A match fails the test.
+const ROOT_PRESS_STEPS: &[(&str, usize)] = &[("remove_open_attribute", 3)];
 
 /// The UA `max-width` and `max-height` of a modal dialog,
 /// `calc(100% - 6px - 2em)`: Div's lengths cannot hold a percentage less a
@@ -254,6 +267,17 @@ impl Page {
             .map_or_else(|| "body".to_owned(), |node| self.target(Some(node)))
     }
 
+    /// One frame as `divui`'s `begin_frame` ends it: style and layout, then
+    /// the focus fixup.
+    fn frame(&mut self) {
+        self.engine.update().unwrap();
+        if let Some(focused) = self.engine.focused() {
+            if !self.engine.can_focus(focused).unwrap() {
+                self.engine.blur(focused).unwrap();
+            }
+        }
+    }
+
     fn click(&mut self, x: f32, y: f32) -> Vec<Value> {
         let mut events = Vec::new();
         let down = self
@@ -337,6 +361,11 @@ impl Page {
             }
             "close-d1" => {
                 self.engine.close_dialog(d1, None).unwrap();
+            }
+            // Chromium 147 keeps the dialog modal; the focus fixup clears
+            // focus in the next frame.
+            "remove-open-d1" => {
+                self.engine.remove_attribute(d1, "open").unwrap();
             }
             // The oracle lists only the dialogs in the document.
             "remove-d1" => {
@@ -564,6 +593,9 @@ fn the_replayed_scenarios_match_chromium() {
                 }
                 other => panic!("{name}: unknown input {other}"),
             };
+            // The capture waits while the page renders frames.
+            page.frame();
+            page.frame();
             let toggles: Vec<&Value> = step["events"]
                 .as_array()
                 .unwrap()
@@ -592,6 +624,15 @@ fn the_replayed_scenarios_match_chromium() {
                 }
                 actual["active"] = Value::Null;
                 wanted["active"] = Value::Null;
+            }
+            if ROOT_PRESS_STEPS.contains(&(*name, index)) {
+                if actual["events"] == wanted["events"] {
+                    failures.push(format!(
+                        "{name} step {index}: the press targets match; they are no longer pending on {ROOT_PRESS}"
+                    ));
+                }
+                actual["events"] = Value::Null;
+                wanted["events"] = Value::Null;
             }
             if actual != wanted {
                 failures.push(format!(

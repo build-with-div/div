@@ -46,6 +46,73 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 
+## 24 November 2026: the focus fixup (H4, RFC 0015)
+
+When the focused element stopped being rendered, Div kept it focused, so
+keys went to an element nobody could see. This blocked the dialog oracle's
+`remove_open_attribute`, where removing `open` from a modal dialog hides
+its focused button. Div now does what pinned Chromium 147 does: at the end
+of the next frame the element is blurred, with `blur` and `focusout` and no
+related target, and a later Tab resumes where it was.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| `Document::begin_frame` ends with the focus fixup: after style, layout and resize observations, a focused element that can no longer take focus (not rendered, `visibility: hidden`, disabled, inert, or no longer focusable) is blurred. It reuses `settle_focus_eligibility`, which `disabled` already used | framework (H4, RFC 0015) | `crates/divui/src/document.rs`; `focus-fixup-v1` |
+| Removing or changing `tabindex` settles focus at once, as `disabled` already did, since Chromium blurs synchronously for both | framework (H4, RFC 0015) | same file and oracle |
+| The engine replays the dialog oracle's `remove_open_attribute`, with two frames after each step as `divui` runs them | engine test | `crates/div-engine/tests/dialog_oracle.rs` |
+
+`tools/qualification/capture_focus_fixup_oracle.py` records 9 scenarios
+from Chrome-for-Testing 147.0.7727.50 with real XTEST input on X11 in WSL,
+on the keyboard scrolling script's browser and settling code. Each page
+action records the focused element right after the mutation, after a
+forced layout, and in the second animation frame's callbacks, in order
+with the `focus`, `blur`, `focusin` and `focusout` events. It measured:
+
+- `disabled`, removing `tabindex` and removing the element blur at once,
+  before the mutation returns;
+- `display: none` on the element or an ancestor, `visibility: hidden` and
+  removing a dialog's `open` keep focus through a forced layout. The blur
+  comes before the second frame: on either side of the first frame's
+  callbacks, varying between runs, so that frame has no mark;
+- showing the element again does not bring focus back;
+- Tab after the fixup resumes after the element's old place.
+
+Div blurs at the end of the first frame, which falls within that window.
+
+### Replays
+
+| Test | Scenarios | Compared |
+| --- | --- | --- |
+| `crates/divui/tests/focus_fixup_oracle.rs` | the 7 that need no dialog method | every input and focus-family event with its related target, each mark, the focused element |
+| `crates/div-engine/tests/focus_fixup_oracle.rs` | `remove_open_non_modal`, `remove_open_modal`, which need `show()` and `showModal()` (RFC 0015 PR 5) | input events, each mark, the focused element, each dialog's `open` and `:modal`. The focus-family events are `divui`'s and move to the `divui` replay with PR 5 |
+| `crates/div-engine/tests/dialog_oracle.rs` | `remove_open_attribute` (dialog-v1), now off the pending list | as for its other scenarios |
+
+The DOM's `remove()` keeps the node and its listeners, which is `divui`'s
+`detach`; `divui`'s `remove` destroys them, so the replay uses `detach`.
+
+### Remaining failures
+
+| Gap | Where | Owner |
+| --- | --- | --- |
+| A press outside a modal dialog whose `open` was removed reaches `html` in Chromium; the engine's hit test reports no target | `dialog_oracle.rs`, `remove_open_attribute` step 3, input events (pending; a match fails) | fidelity, S6c (the document root takes the points no element takes) |
+| Chromium clears focus inside a moved subtree; Div keeps it | `MOVED_FOCUS_STEPS`, unchanged | engine |
+
+### Verification
+
+The Rust rows ran on `main` at `1ed5a76` with this change, in WSL with the
+Skia flags of `ci.yml`'s `rust-parity` job.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Oracle capture | `python3 tools/qualification/capture_focus_fixup_oracle.py --chrome <pinned chrome-linux64/chrome>` in WSL (WSLg) | 9 scenarios, both runs identical, 33 s; a second invocation wrote the same bytes |
+| Focus fixup, `divui` | `cargo test --locked -p divui --test focus_fixup_oracle` | 2 passed; the 7 scenarios match in every field |
+| Engine replays | `cargo test --locked -p div-engine --test focus_fixup_oracle --test dialog_oracle --test dialog --test dialog_accessibility_oracle` | 15 passed |
+| Full suites | `cargo test --locked -p divui`, `-p div-ffi`, `-p div-components` | all passed |
+| Formatting | For each changed Rust file, under a memory cap: `rustfmt --edition 2021 --emit stdout < file.rs \| cmp - file.rs` | all match |
+| Census and coverage (D4) | not run | No engine source changed. `pixel_compare`'s build (14 packages, the last D4 receipt) does not include `divui`, and the two changed engine files are integration tests, which it does not build. The source-tree and harness hashes change; no compiled census or coverage input does. The orchestrator agreed that no pair was needed |
+
 ## 23 November 2026: the dialog accessibility role (H4, RFC 0015)
 
 A `<dialog>` reported `GenericContainer`. It now reports the existing
