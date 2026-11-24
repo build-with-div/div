@@ -1,5 +1,43 @@
 # Setup track progress
 
+## Census Skia flags without the AVX-512 opt-out 24 November 2026
+
+#132 (merged as `a74ca749` at 14:54 UTC on 23 November) added
+`-USK_ENABLE_AVX512_OPTS` to CI's Skia flags. The shared WSL census build
+script (`out/wsl-census-build.sh`) did not get it. Its default flags lacked
+it, and the `SKIA_GN_ARGS_OVERRIDE` values its callers passed lacked it too.
+So every Linux census or coverage build of a commit that contains #132 used
+flags different from CI's. That held from #132's merge until 13:04:40 UTC on
+24 November. Census builds of earlier commits matched CI, because CI did not
+pass the flag before #132.
+
+- The machine that runs the census (Intel Core i9-12900KF) does not report
+  `avx512f`, so Skia would not take its AVX-512 raster path there in any
+  case.
+- Measured on 24 November at main `e78d5eb6`, data pin `63f6e1ae2612`, in a
+  Linux census and coverage pair under the lock. The base used the old
+  census flags and the head used CI's. The two Div binaries differ
+  (`binary_sha256`), so the flag reached the build.
+
+| Set | Images | Changed |
+| --- | ---: | ---: |
+| Expanded census | 23,728 | 0 |
+| Coverage | 4,048 | 0 |
+
+No image hash, status or mismatch count changed. Both sides had census
+16,297 exact and 7,431 different, and coverage 1,473 exact, 2,575 different
+and 156 errors. Only build identity, cache identity and result hashes
+differ. Results in this window are therefore the same images that CI's flags
+give on this machine. They are still not CI builds, and they are not
+evidence for a CPU with AVX-512.
+
+- The script installed at 13:04:40 UTC on 24 November reads Linux's
+  `SKIA_GN_ARGS` from the checked-out commit's `ci.yml`, through
+  `out/ci-linux-gn-args.py`. If a caller's `SKIA_GN_ARGS_OVERRIDE` differs
+  from it, the build prints both and exits 2, unless the caller sets
+  `SKIA_GN_ARGS_DRIFT_OK=1` for a deliberate experiment. The previous script
+  is kept as `out/wsl-census-build.sh.before-20261124T130440Z`.
+
 ## Linux Skia at -O2 24 November 2026
 
 Off Windows, rust-skia passes Cargo's `OPT_LEVEL` to the compiler as
