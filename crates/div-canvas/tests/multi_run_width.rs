@@ -39,6 +39,10 @@ const RTL_FALLBACK_PAINT_GAP: &[(&str, &str, usize)] = &[
     ("linux", "box-letter", 1443),
     ("linux", "letter-box", 1443),
     ("linux", "letter-box-letter", 717),
+    ("windows", "alternating", 3740),
+    ("windows", "box-letter", 1512),
+    ("windows", "letter-box", 1512),
+    ("windows", "letter-box-letter", 743),
 ];
 
 fn fixture() -> std::path::PathBuf {
