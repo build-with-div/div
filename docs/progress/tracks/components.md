@@ -89,7 +89,10 @@ flags of `ci.yml` at that commit.
 | FFI accessibility | `cargo test --locked -p div-ffi --lib accessib` | 9 passed |
 | Formatting | For each changed Rust file, under a memory cap: `rustfmt --edition 2021 --emit stdout < file.rs \| cmp - file.rs` | both match |
 | Generated element table | in `site/`: `node scripts/gen-reference.mjs --check` | current |
-| Census and coverage (D4) | not run | Not measured for this change |
+| Census and CSS Grid coverage (D4), under the census lock, in WSL with the Skia flags of `ci.yml` at both commits | `cac87c5` against `43830b3`, compared image by image | No image changed in status, mismatched pixels, diff signature or Div or Chromium hash. Census: 23,728 images on both (16,297 exact, 7,431 different, 0 errors). Coverage: 4,204 images on both (1,473 exact, 2,575 different, 156 errors, all `Div render failed`). The two builds differ only in `div_engine` and `pixel_compare` |
+
+The D4 pair measured `43830b3` on `main` at `cac87c5`. The branch was then
+rebased on a later `main` for merging, and the rebased head was not measured.
 
 ## 22 November 2026: the engine top layer without paint (H4, RFC 0015 PR 3a)
 
