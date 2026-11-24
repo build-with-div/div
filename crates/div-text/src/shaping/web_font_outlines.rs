@@ -25,6 +25,8 @@
 //! - **Eviction:** least recently used, at most [`ENTRY_CAPACITY`] entries.
 //!   An entry whose glyph set would exceed [`GLYPH_CAPACITY`] restarts with
 //!   only the glyphs of the current run.
+//! - **Lifetime:** the last font client releases every entry
+//!   (`FontCacheLifetime`), including its copy of the font data.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -211,9 +213,37 @@ struct OutlineCache {
     entries: Vec<OutlineEntry>,
 }
 
+static CACHE: OnceLock<Mutex<OutlineCache>> = OnceLock::new();
+
 fn cache() -> &'static Mutex<OutlineCache> {
-    static CACHE: OnceLock<Mutex<OutlineCache>> = OnceLock::new();
     CACHE.get_or_init(Mutex::default)
+}
+
+/// Releases every entry. Fonts and text blobs already built keep their own
+/// reference to their typeface.
+pub(crate) fn release_web_font_outlines() {
+    let Some(cache) = CACHE.get() else {
+        return;
+    };
+    let retired = std::mem::take(
+        &mut *cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()),
+    );
+    // Destroyed after the cache's lock is released.
+    drop(retired);
+}
+
+/// How many entries the process cache holds.
+#[cfg(test)]
+pub(crate) fn retained_web_font_outline_count() -> usize {
+    CACHE.get().map_or(0, |cache| {
+        cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .entries
+            .len()
+    })
 }
 
 /// The key of `source_font` drawn under `device`. Like the Fontations

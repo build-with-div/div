@@ -608,8 +608,8 @@ pub(crate) fn release_parent_fonts() {
 }
 
 /// How many parent fonts the shaping cache holds, for lifetime tests.
-#[doc(hidden)]
-pub fn retained_parent_font_count() -> usize {
+#[cfg(test)]
+pub(crate) fn retained_parent_font_count() -> usize {
     PARENTS.get().map_or(0, |parents| {
         parents
             .lock()

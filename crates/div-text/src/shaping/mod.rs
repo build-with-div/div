@@ -9,16 +9,17 @@
 //! - `ShapeResult` holds the output: glyph IDs, positions, and metadata.
 
 mod harfbuzz;
+#[cfg(test)]
+mod lifetime_tests;
 mod segmenter;
 mod shape_result;
 mod shaper;
 mod web_font_outlines;
 
 pub(crate) use harfbuzz::release_parent_fonts;
-#[doc(hidden)]
-pub use harfbuzz::retained_parent_font_count;
 pub use segmenter::{RunSegment, RunSegmenter, Script};
 pub use shape_result::{
     ShapeResult, ShapeResultCharacterData, ShapeResultRun, TextDirection, TextRasterPolicy,
 };
 pub use shaper::TextShaper;
+pub(crate) use web_font_outlines::release_web_font_outlines;
