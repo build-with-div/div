@@ -442,3 +442,14 @@ From the framework track's review of #149:
   `4dc219ed`, is unchanged at all four profiles (evidence `e36dce5b`), and
   the touched crates' Linux and Windows suites pass at `b81fcb8`.
   [Record](../media-style-sheets-2026-11-24.md).
+- 24 November 2026: RFC 0006 A1. Every recording carries paint chunks, and
+  `SceneSnapshot::physical_damage_since` returns the region that can differ
+  between two recordings; nothing presents with it yet, so pixels are
+  unchanged. The new `pixel_compare damage-coverage` gate passes on Linux at
+  1x and 2x with no pixel outside the damage over 100,898 steps per scale
+  (fixture crate unoptimized). The census and CSS Grid coverage are
+  unchanged at all four profiles, measured at `4e69bdf` against `7c816ac`
+  (evidence `fcbb6f3e`). The rebased code patch has the same patch ID.
+  Linux crate tests pass at `0cdd653` and `e0a80c2`. Frame cost and
+  P7 are in the record.
+  [Record](../paint-chunks-a1-2026-11-23.md).
