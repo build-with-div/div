@@ -56,6 +56,9 @@ pinned by `cargo test -p div-canvas --test multi_run_width`, so a change in
 either fails. Fixture: `tests/fidelity/fixtures/multi-run-width-v1`, captured
 from Chromium 147.0.7727.50. Counts below are Linux. The Windows captures are
 in the fixture, but Div has not been compared with them yet.
+Compared on 24 November at `691b956` with `main`'s Windows Skia flags: on
+Windows, too, 112 of 112 Arabic widths differ, and the right-to-left
+canvases differ by 3,740, 1,512, 1,512 and 743 pixels.
 
 **Letter spacing on cursive scripts.** Owner: `div-text`.
 
@@ -365,3 +368,13 @@ in the fixture, but Div has not been compared with them yet.
   same command with `--test shaping_font_lifetime` on `main` `d53a2d9` gives
   the same 320 bytes. CI's sanitizer job runs only `div-ffi`, so it does not run
   these tests. No suppression; the fix is a separate later item.
+- 24 November 2026: `div-text` adds shaped run widths as floats, run by
+  run, in the order Blink inserts runs and, after spacing, in visual order,
+  instead of converting one summed 16.16 total. All 14 widths of the T8
+  sweep now match, including its four regressions (#19, #45, #50, #57).
+  The new `multi-run-width-v1` oracle's 616 non-Arabic widths match on Linux
+  and Windows. The two open text gaps above stay pinned. The census and CSS
+  Grid coverage are unchanged at all four profiles, measured at `b7e4f6a`
+  against `691b956` (evidence `b43a0631`); the rebased code patch has the
+  same patch ID. Linux 9,366 tests pass at `691b956`.
+  [Record](../multi-run-width-2026-11-23.md).
