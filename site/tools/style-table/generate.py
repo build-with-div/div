@@ -119,8 +119,15 @@ def arms(lines, signature, path, prefix):
 HELPER_FILES = [PROPERTY_RS, GENERATED_RS, STYLE / "grid_literal.rs", STYLE / "transform_literal.rs",
                 STYLE / "color_function.rs"]
 TOP_PARSERS = {"parse_literal", "parse_typography_literal", "parse_renderer_author_literal"}
+
+
+def unique_sorted(names: list[str]) -> list[str]:
+    """Unique names, sorted so the traversal does not depend on the hash seed."""
+    return sorted(set(names))
+
+
 helper_words: dict[str, list[str]] = {}
-helper_calls: dict[str, set[str]] = {}
+helper_calls: dict[str, list[str]] = {}
 for path in HELPER_FILES:
     text_lines = path.read_text(encoding="utf-8").splitlines()
     for i, t in enumerate(text_lines):
@@ -131,16 +138,16 @@ for path in HELPER_FILES:
         body = "\n".join(text_lines[i + 1:end])
         key = m.group(1) if path in (PROPERTY_RS, GENERATED_RS) else f"{path.stem}::{m.group(1)}"
         helper_words[key] = re.findall(r'"((?:[^"\\]|\\.)*)"', body)
-        helper_calls[key] = set(re.findall(r"\b(\w+)\(", body))
+        helper_calls[key] = unique_sorted(re.findall(r"\b(\w+)\(", body))
 
 
 def called_words(body: str) -> list[str]:
-    names = set(re.findall(r"\b(\w+)\(", body))
-    names |= {f"grid_literal::{n}" for n in re.findall(r"grid_literal::(\w+)", body)}
+    names = re.findall(r"\b(\w+)\(", body)
+    names += [f"grid_literal::{n}" for n in re.findall(r"grid_literal::(\w+)", body)]
     if "transform_literal::parse" in body:
-        names.add("transform_literal::parse")
+        names.append("transform_literal::parse")
     seen: set[str] = set()
-    frontier = list(names)
+    frontier = unique_sorted(names)
     words: list[str] = []
     for _ in range(3):
         nxt: list[str] = []
@@ -150,7 +157,7 @@ def called_words(body: str) -> list[str]:
             seen.add(n)
             words += helper_words[n]
             prefix = n.split("::")[0] + "::" if "::" in n else ""
-            nxt += [prefix + c for c in helper_calls[n]] + list(helper_calls[n])
+            nxt += [prefix + c for c in helper_calls[n]] + helper_calls[n]
         frontier = nxt
     return [w for w in words if "{" not in w]
 
