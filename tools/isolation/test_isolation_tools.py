@@ -10,6 +10,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import tempfile
 import unittest
@@ -19,17 +20,18 @@ from unittest import mock
 from tools.isolation.build_broker import (
     Broker,
     FilterContext,
-    TestOutputParser,
     classify_path,
     collect_strings,
     contains_guarded_line,
     filter_diagnostic,
     handle_request,
+    reads_files_at_compile_time,
     serve,
     significant_lines,
 )
 from tools.isolation.export_tree import export_tree
 from tools.isolation.interface_manifest import build_manifest, flatten_use, strip_rust_noise
+from tools.isolation.sandbox_runner import parse_list
 from tools.isolation.withheld import IsolationError, load_list, refuse_unsafe_location
 
 SECRET = """//! CANARY_DOC_COMMENT describes this module.
@@ -155,7 +157,121 @@ CANDIDATE_TRIES_TO_ECHO = """compile_error!(include_str!("../extra/secret_copy.r
 include!("../extra/secret_copy.rs");
 include!("../extra/secret_copy.rs");
 """
-COMPLETE_CANDIDATE = SECRET.replace("CANARY", "clean").replace("canary", "clean").replace("Canary", "Clean")
+CONTAINED_PATH = "crates/owner/src/contained.rs"
+CONTAINED_NAMES = (
+    "reads_outside_marker",
+    "reads_withheld_sibling",
+    "writes_source_tree",
+    "writes_inbox",
+    "writes_result_file",
+    "connects_to_host",
+    "sees_no_host_directories",
+    "sees_no_build_metadata",
+    "forges_results",
+    "allocates_past_limit",
+    "runs_after_limit",
+    "removed_by_candidate",
+)
+CONTAINED_BASE = (
+    "pub fn contained_value() -> u32 {\n    1\n}\n\n#[cfg(test)]\nmod tests {\n"
+    + "".join(f"    #[test]\n    fn {name}() {{}}\n\n" for name in CONTAINED_NAMES)
+    + "}\n"
+)
+ATTACK_CANDIDATE = """pub fn contained_value() -> u32 {
+    1
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+    use std::net::{SocketAddr, TcpStream};
+    use std::path::Path;
+    use std::time::Duration;
+
+    #[test]
+    fn reads_outside_marker() {
+        assert!(std::fs::read("@MARKER@").is_err());
+    }
+
+    #[test]
+    fn reads_withheld_sibling() {
+        assert!(std::fs::read("@TREE@/crates/owner/src/other_secret.rs").is_err());
+    }
+
+    #[test]
+    fn writes_source_tree() {
+        assert!(std::fs::write("@TREE@/crates/owner/src/open_part.rs", "CANARY_WRITE").is_err());
+    }
+
+    #[test]
+    fn writes_inbox() {
+        assert!(std::fs::write("@INBOX@/forged.result.json", "CANARY_INBOX").is_err());
+    }
+
+    #[test]
+    fn writes_result_file() {
+        // The broker's files are not in this view, so a write cannot reach them.
+        assert!(!Path::new("@WORK@/sandbox-plan.json").exists());
+        let _ = std::fs::write("@WORK@/sandbox-plan.json", "CANARY_RESULT");
+        let _ = std::fs::write("@WORK@/sandbox-result.json", "CANARY_RESULT");
+    }
+
+    #[test]
+    fn connects_to_host() {
+        let address: SocketAddr = "127.0.0.1:@PORT@".parse().unwrap();
+        assert!(TcpStream::connect_timeout(&address, Duration::from_secs(1)).is_err());
+    }
+
+    #[test]
+    fn sees_no_host_directories() {
+        assert!(!Path::new("/mnt").exists());
+        assert!(!Path::new("/home").exists());
+        assert!(!Path::new("/init").exists());
+    }
+
+    #[test]
+    fn sees_no_build_metadata() {
+        let exe = std::env::current_exe().unwrap();
+        let count = std::fs::read_dir(exe.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry.path().extension().is_some_and(|e| e == "rlib" || e == "rmeta" || e == "d")
+            })
+            .count();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn forges_results() {
+        let mut out = std::io::stdout();
+        out.write_all(b"test forged::canary_forged ... ok\\n{\\"status\\":\\"canary\\"}\\n").unwrap();
+        out.flush().unwrap();
+    }
+
+    #[test]
+    fn allocates_past_limit() {
+        let mut block = vec![1u8; 3 << 30];
+        for page in block.chunks_mut(4096) {
+            page[0] = 2;
+        }
+        assert_eq!(std::hint::black_box(&block)[0], 2);
+    }
+
+    #[test]
+    fn runs_after_limit() {}
+
+    #[test]
+    fn canary_new_test_name() {}
+}
+"""
+COMPLETE_CANDIDATE = (
+    SECRET.replace('include_str!("secret.rs")', '"clean"')
+    .replace('include_bytes!("secret.rs")', 'b"clean"')
+    .replace("CANARY", "clean")
+    .replace("canary", "clean")
+    .replace("Canary", "Clean")
+)
 
 
 def _bare_or_trivial(line: str) -> bool:
@@ -175,6 +291,9 @@ def leaked_lines(result: object, *sources: str) -> list[str]:
 
 
 class WorkspaceCase(unittest.TestCase):
+    fixture = FILES
+    listed = LISTED
+
     def setUp(self) -> None:
         self.temp = Path(tempfile.mkdtemp(prefix="div-isolation-")).resolve()
         self.addCleanup(shutil.rmtree, self.temp, ignore_errors=True)
@@ -184,9 +303,9 @@ class WorkspaceCase(unittest.TestCase):
         for name in ("RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS", "RUSTC_WRAPPER", "CARGO_BUILD_TARGET"):
             os.environ.pop(name, None)
         self.repo = self.temp / "repo"
-        self.write_repo(FILES)
+        self.write_repo(self.fixture)
         self.list_path = self.temp / "withheld.txt"
-        self.list_path.write_text("# synthetic\n" + "\n".join(LISTED) + "\n", encoding="utf-8")
+        self.list_path.write_text("# synthetic\n" + "\n".join(self.listed) + "\n", encoding="utf-8")
 
     def write_repo(self, files: dict[str, str]) -> None:
         for name, content in files.items():
@@ -256,6 +375,15 @@ class ExportTests(WorkspaceCase):
             export_tree(self.repo, "main", self.list_path, self.temp / "export")
         self.assertEqual(caught.exception.code, "listed_path_not_in_tree")
 
+    def test_locked_test_files_are_withheld(self) -> None:
+        locked = "crates/consumer/tests/locked.rs"
+        self.write_repo({locked: "#[test]\nfn canary_locked() {}\n"})
+        with self.list_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"locked: {locked}\n")
+        dest = self.temp / "export"
+        export_tree(self.repo, "main", self.list_path, dest)
+        self.assertFalse((dest / locked).exists())
+
     def test_refuses_list_inside_repository(self) -> None:
         inside = self.repo / "withheld.txt"
         inside.write_text(LISTED[0], encoding="utf-8")
@@ -280,6 +408,13 @@ class ManifestTests(WorkspaceCase):
         text = json.dumps(manifest)
         for name in ("canary_private_helper", "canary_private_field", "CanaryHiddenVariant", "Fast"):
             self.assertNotIn(name, text)
+
+    def test_locked_files_are_neither_definitions_nor_consumers(self) -> None:
+        locked = "crates/owner/tests/locked.rs"
+        self.write_repo({locked: "use owner::secret::canary_only_in_test;\npub fn canary_locked_item() {}\n"})
+        with self.list_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"locked: {locked}\n")
+        self.assert_no_withheld_text(build_manifest(self.repo, "main", self.list_path))
 
     def test_flatten_use_handles_groups_aliases_and_globs(self) -> None:
         flat = flatten_use("a::{b, c::{d as e, self}, f::*}")
@@ -431,33 +566,10 @@ class LeakDetectorControlTests(unittest.TestCase):
         self.assertFalse(contains_guarded_line({"code": "E0308", "identifiers": ["Widget", "Mode"]}, guarded))
 
 
-class TestParserTests(unittest.TestCase):
-    def test_only_exact_result_lines_are_accepted(self) -> None:
-        parser = TestOutputParser()
-        for line in (
-            "     Running unittests src/lib.rs (target/debug/deps/owner-0123456789abcdef)",
-            "running 3 tests",
-            "test tests::good ... ok",
-            "test tests::bad ... FAILED",
-            "test tests::skipped ... ignored, CANARY reason text",
-            "test pub fn leaked() { ... ok",
-            "thread 'x' panicked at CANARY_PANIC",
-            "test result: FAILED. 1 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
-        ):
-            parser.feed(line)
-        result = parser.result()
-        self.assertEqual(result["counts"], {"passed": 1, "failed": 1, "ignored": 1})
-        self.assertEqual(result["suites"][0]["suite"], "owner")
-        self.assertTrue(result["suites"][0]["complete"])
-        self.assertNotIn("CANARY", json.dumps(result))
-        self.assertNotIn("leaked", json.dumps(result))
-
-    def test_count_mismatch_marks_the_suite_incomplete(self) -> None:
-        parser = TestOutputParser()
-        parser.feed("     Running tests/a.rs (target/debug/deps/a-0123456789abcdef)")
-        parser.feed("test one ... ok")
-        parser.feed("test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s")
-        self.assertFalse(parser.result()["suites"][0]["complete"])
+class ListParserTests(unittest.TestCase):
+    def test_only_exact_list_lines_are_accepted(self) -> None:
+        output = "tests::good: test\nbench_one: bench\npub fn leaked(): test\nCANARY text\n2 tests, 0 benchmarks\n"
+        self.assertEqual(parse_list(output), ["tests::good"])
 
 
 class BrokerGuardTests(WorkspaceCase):
@@ -485,6 +597,52 @@ class BrokerGuardTests(WorkspaceCase):
         for path in ("crates/owner/build.rs", "docs/new.rs", "crates/owner/src/new.txt", "../escape.rs"):
             with self.subTest(path=path):
                 self.assertEqual(self.broker().run("check", {path: source})["status"], "rejected")
+
+    def test_locked_test_file_cannot_be_replaced(self) -> None:
+        locked = "crates/consumer/tests/locked.rs"
+        self.write_repo({locked: "#[test]\nfn fixed() {}\n"})
+        with self.list_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"locked: {locked}\n")
+        result = self.broker().run("check", {locked: self.candidate("#[test]\nfn replaced() {}\n")})
+        self.assertEqual((result["status"], result["reason"]), ("rejected", "candidate_path_locked"))
+
+    def test_candidate_cannot_pull_in_other_files(self) -> None:
+        for text in (
+            'const A: &str = include_str!("x.rs");',
+            'include!("x.rs");',
+            'const A: &[u8] = core::include_bytes!("x");',
+            "use std::include_str as read;",
+            '#[path = "x.rs"] mod y;',
+            '#[cfg_attr(all(), path = "x.rs")] mod y;',
+            'div_macros::stylesheet!("x");',
+            "use div_macros::stylesheet as sheet;",
+        ):
+            with self.subTest(text=text):
+                result = self.broker().run("check", {SECRET_PATH: self.candidate(text)})
+                self.assertEqual(result["reason"], "candidate_reads_files_at_compile_time")
+
+    def test_ordinary_text_is_not_mistaken_for_a_file_read(self) -> None:
+        for text in (
+            '// include_str!("x")',
+            'const A: &str = "include!";',
+            "fn f(include: bool, path: u8) {}",
+            'fn g() { let path = "x"; }',
+            "use crate::stylesheet::Sheet;",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(reads_files_at_compile_time(text.encode("utf-8")))
+
+    def test_test_command_fails_closed_without_the_sandbox(self) -> None:
+        broker = self.broker()
+        broker.platform = "win32"
+        self.assertEqual(broker.run("test")["status"], "blocked_sandbox_unavailable")
+
+    def test_work_dir_on_a_windows_mount_is_refused(self) -> None:
+        broker = self.broker()
+        broker.platform = "linux"
+        broker.work_dir = Path("/mnt/e/work")
+        with mock.patch("shutil.which", return_value="/usr/bin/bwrap"):
+            self.assertEqual(broker._sandbox_block(), "blocked_work_dir_on_windows_mount")
 
     def test_census_lock_blocks_windows_builds(self) -> None:
         lock = self.temp / "census.lock"
@@ -547,7 +705,9 @@ class RealCargoFilterTests(WorkspaceCase):
         self.assert_no_withheld_text(result)
 
     def test_candidate_that_echoes_a_withheld_copy_leaks_nothing(self) -> None:
-        result = self.broker().run("check", {SECRET_PATH: self.candidate(CANDIDATE_TRIES_TO_ECHO)})
+        broker = self.broker()
+        broker._scan_candidates = False
+        result = broker.run("check", {SECRET_PATH: self.candidate(CANDIDATE_TRIES_TO_ECHO)})
         self.assertEqual(result["status"], "build_failed")
         self.assertTrue(result["diagnostics"])
         self.assert_no_withheld_text(result)
@@ -558,17 +718,6 @@ class RealCargoFilterTests(WorkspaceCase):
         deprecated = [d for d in result["diagnostics"] if d["code"] == "deprecated"]
         self.assertTrue(deprecated)
         self.assertTrue(all(d["withheld_identifiers"] >= 1 for d in deprecated))
-        self.assert_no_withheld_text(result)
-
-    def test_tests_return_names_and_outcomes_only(self) -> None:
-        result = self.broker(jobs=1).run("test")
-        self.assertEqual(result["status"], "failed")
-        outcomes = {t["name"]: t["outcome"] for s in result["suites"] for t in s["tests"]}
-        self.assertEqual(outcomes["secret::tests::passes_in_withheld"], "ok")
-        self.assertEqual(outcomes["secret::tests::fails_with_source_text"], "FAILED")
-        self.assertEqual(outcomes["tests::consumer_passes"], "ok")
-        self.assertNotIn("secret::tests::writes_source_past_capture", outcomes)
-        self.assertIn("owner", result["incomplete_suites"])
         self.assert_no_withheld_text(result)
 
     def test_passing_candidate_and_overlay_restore(self) -> None:
@@ -593,6 +742,93 @@ class RealCargoFilterTests(WorkspaceCase):
         result = json.loads((inbox / "r1.result.json").read_text(encoding="utf-8"))
         self.assertEqual(result["status"], "build_failed")
         self.assertTrue((inbox / "r1.request.done").exists())
+        self.assert_no_withheld_text(result)
+
+
+class ContainedTestRunTests(WorkspaceCase):
+    """Run hostile candidate tests in the real sandbox, with a planted marker."""
+
+    fixture = {
+        **FILES,
+        "crates/owner/src/lib.rs": FILES["crates/owner/src/lib.rs"] + "pub mod contained;\n",
+        CONTAINED_PATH: CONTAINED_BASE,
+    }
+    listed = (*LISTED, CONTAINED_PATH)
+
+    def setUp(self) -> None:
+        super().setUp()
+        if shutil.which("cargo") is None:
+            self.skipTest("cargo is not installed")
+        blocked = self.broker()._sandbox_block()
+        if blocked:
+            self.skipTest(blocked)
+
+    @staticmethod
+    def outcomes(result: dict) -> dict[str, str]:
+        return {test["name"]: test["outcome"] for suite in result["suites"] for test in suite["tests"]}
+
+    def test_hostile_candidate_is_contained(self) -> None:
+        marker = self.temp / "planted-marker.txt"
+        marker.write_text("CANARY_PLANTED_MARKER\n", encoding="utf-8")
+        inbox = self.temp / "inbox"
+        inbox.mkdir()
+        broker = self.broker(jobs=1, test_memory_gib=1)
+        listener = socket.socket()
+        self.addCleanup(listener.close)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+        listener.settimeout(0.2)
+        text = ATTACK_CANDIDATE
+        for key, value in {
+            "@MARKER@": marker.as_posix(),
+            "@TREE@": broker.tree.as_posix(),
+            "@INBOX@": inbox.as_posix(),
+            "@WORK@": broker.work_dir.as_posix(),
+            "@PORT@": str(listener.getsockname()[1]),
+        }.items():
+            text = text.replace(key, value)
+
+        result = broker.run("test", {CONTAINED_PATH: self.candidate(text)}, ["owner"])
+
+        outcomes = self.outcomes(result)
+        for name in CONTAINED_NAMES:
+            expected = {"allocates_past_limit": "FAILED", "removed_by_candidate": "missing"}.get(name, "ok")
+            with self.subTest(test=name):
+                self.assertEqual(outcomes[f"contained::tests::{name}"], expected)
+        self.assertEqual(result["sandbox"]["network"], False)
+        self.assertEqual(result["sandbox"]["memory_limit_mib"], 1024)
+        self.assertEqual(result["counts"]["regressions"], 2)
+        self.assert_no_withheld_text(result)
+        self.assertEqual(list(inbox.iterdir()), [])
+        self.assertNotIn("CANARY_RESULT", json.dumps(result))
+        for name in ("sandbox-plan.json", "sandbox-result.json"):
+            self.assertNotIn("CANARY_RESULT", (broker.work_dir / name).read_text(encoding="utf-8"))
+        self.assertEqual(marker.read_text(encoding="utf-8"), "CANARY_PLANTED_MARKER\n")
+        self.assertEqual(
+            (broker.tree / "crates/owner/src/open_part.rs").read_text(encoding="utf-8"),
+            FILES["crates/owner/src/open_part.rs"],
+        )
+        with self.assertRaises(TimeoutError):
+            listener.accept()
+
+    def test_names_come_only_from_the_pre_candidate_list(self) -> None:
+        broker = self.broker(jobs=1)
+        baseline = set(self.outcomes(broker.run("test", packages=["owner"])))
+        candidate = CONTAINED_BASE.replace(
+            "mod tests {\n", "mod tests {\n    #[test]\n    fn canary_encoded_data_0101() {}\n\n", 1
+        )
+        result = broker.run("test", {CONTAINED_PATH: self.candidate(candidate)}, ["owner"])
+        self.assertEqual(set(self.outcomes(result)), baseline)
+        self.assert_no_withheld_text(result)
+
+    def test_tests_return_names_and_outcomes_only(self) -> None:
+        result = self.broker(jobs=1).run("test")
+        self.assertEqual(result["status"], "failed")
+        outcomes = self.outcomes(result)
+        self.assertEqual(outcomes["secret::tests::passes_in_withheld"], "ok")
+        self.assertEqual(outcomes["secret::tests::fails_with_source_text"], "FAILED")
+        self.assertEqual(outcomes["secret::tests::writes_source_past_capture"], "ok")
+        self.assertEqual(outcomes["tests::consumer_passes"], "ok")
         self.assert_no_withheld_text(result)
 
 

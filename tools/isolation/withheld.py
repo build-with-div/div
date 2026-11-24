@@ -1,8 +1,9 @@
 """Shared handling of a withheld-path list for the isolation tools.
 
 The list is an input file kept outside the repository, with one repo-relative
-path per line. Blank lines and lines starting with ``#`` are ignored. The tools
-may process withheld files, but must never display their text.
+path per line. Blank lines and lines starting with ``#`` are ignored. A line
+``locked: <path>`` withholds a file that a candidate may not replace, such as a
+test. The tools may process withheld files, but must never display their text.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ EMPTY_BLOBS = frozenset(
     }
 )
 SYMLINK_MODE = "120000"
+LOCKED_PREFIX = "locked:"
 
 
 class IsolationError(Exception):
@@ -51,20 +53,27 @@ def is_inside(path: Path, parent: Path) -> bool:
     return path == parent or parent in path.parents
 
 
-def load_list(list_path: Path, repo: Path) -> tuple[frozenset[str], str]:
-    """Return the listed paths and a digest of the normalized list."""
+def load_list(list_path: Path, repo: Path) -> tuple[frozenset[str], frozenset[str], str]:
+    """Return the listed paths, the locked subset and a digest of the list."""
     resolved = list_path.resolve()
     if is_inside(resolved, repo.resolve()):
         raise IsolationError("list_inside_repository", str(list_path))
-    paths = set()
+    paths: set[str] = set()
+    locked: set[str] = set()
     for line in resolved.read_text(encoding="utf-8-sig").splitlines():
         stripped = line.strip()
-        if stripped and not stripped.startswith("#"):
-            paths.add(normalize_repo_path(stripped))
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith(LOCKED_PREFIX):
+            path = normalize_repo_path(stripped[len(LOCKED_PREFIX) :])
+            locked.add(path)
+        else:
+            path = normalize_repo_path(stripped)
+        paths.add(path)
     if not paths:
         raise IsolationError("empty_list", str(list_path))
-    canonical = "\n".join(sorted(paths)).encode("utf-8")
-    return frozenset(paths), hashlib.sha256(canonical).hexdigest()
+    canonical = "\n".join(sorted(f"{LOCKED_PREFIX}{p}" if p in locked else p for p in paths)).encode("utf-8")
+    return frozenset(paths), frozenset(locked), hashlib.sha256(canonical).hexdigest()
 
 
 def git(repo: Path, *args: str) -> str:
@@ -127,6 +136,7 @@ class TreeView:
     list_sha256: str
     entries: tuple[Entry, ...]
     listed: frozenset[str]
+    locked: frozenset[str]
     listed_oids: frozenset[str]
     withheld: frozenset[str]
 
@@ -137,6 +147,10 @@ class TreeView:
     @property
     def listed_entries(self) -> tuple[Entry, ...]:
         return tuple(e for e in self.entries if path_key(e.path) in self.listed)
+
+    @property
+    def replaceable_entries(self) -> tuple[Entry, ...]:
+        return tuple(e for e in self.listed_entries if path_key(e.path) not in self.locked)
 
 
 def is_excluded_root(path: str) -> bool:
@@ -158,7 +172,7 @@ def read_tree(repo: Path, commit: str) -> tuple[Entry, ...]:
 
 def load_view(repo: Path, rev: str, list_path: Path) -> TreeView:
     """Resolve the list against a commit. Any unknown listed path is an error."""
-    listed, digest = load_list(list_path, repo)
+    listed, locked, digest = load_list(list_path, repo)
     commit = git(repo, "rev-parse", "--verify", f"{rev}^{{commit}}").strip()
     object_format = git(repo, "rev-parse", "--show-object-format").strip()
     entries = read_tree(repo, commit)
@@ -182,6 +196,7 @@ def load_view(repo: Path, rev: str, list_path: Path) -> TreeView:
         list_sha256=digest,
         entries=entries,
         listed=listed_keys,
+        locked=frozenset(path_key(p) for p in locked),
         listed_oids=listed_oids,
         withheld=frozenset(withheld),
     )

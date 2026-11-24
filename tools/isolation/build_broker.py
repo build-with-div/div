@@ -5,7 +5,9 @@ The broker overlays candidate files on a private copy of a commit and runs Cargo
 Results are built from an allowlist of fields: error code, identifiers already
 visible to the implementer, visible path and position, test names and outcomes.
 Compiler message text, rendered output, source spans, suggestions, test output
-and Cargo's stderr are never returned, stored or logged.
+and Cargo's stderr are never returned, stored or logged. Candidate tests run in a
+bubblewrap sandbox, and their names come from a list fixed before the candidate
+is applied.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ import sys
 import tarfile
 import threading
 import time
+import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +33,8 @@ from typing import Callable, Iterable, Iterator, Mapping
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from tools.isolation.interface_manifest import strip_rust_noise  # noqa: E402
+from tools.isolation.sandbox_runner import clean_env, sandbox_prefix  # noqa: E402
 from tools.isolation.withheld import (  # noqa: E402
     IsolationError,
     is_excluded_root,
@@ -54,15 +59,11 @@ _PACKAGE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _TEST_FILTER = re.compile(r"^[A-Za-z0-9_:]{1,200}$")
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _INBOX_FILE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
-_RUNNING = re.compile(r"^\s*Running (?:unittests )?.+ \((?P<binary>[^()]+)\)\s*$")
-_TEST_RESULT = re.compile(
-    r"^test (?P<name>[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)"
-    r"(?: - should panic)? \.\.\. (?P<outcome>ok|FAILED|ignored)(?:,.*)?$"
+_FILE_READ = re.compile(
+    r"\b(?:include|include_str|include_bytes|stylesheet)\s*(?:!|\bas\b)"
+    r"|::\s*include(?:_str|_bytes)?\b|\binclude_(?:str|bytes)\b"
 )
-_SUMMARY = re.compile(
-    r"^test result: (?:ok|FAILED)\. (?P<passed>\d+) passed; (?P<failed>\d+) failed; "
-    r"(?P<ignored>\d+) ignored; \d+ measured; \d+ filtered out"
-)
+_PATH_ATTRIBUTE = re.compile(r"#\s*!?\s*\[(?:[^\[\]]|\[[^\]]*\])*\bpath\s*=")
 _KEYWORDS = frozenset(
     "as async await break const continue crate dyn else enum extern false fn for if impl in let "
     "loop match mod move mut pub ref return self Self static struct super trait true type unsafe "
@@ -191,6 +192,23 @@ def filter_diagnostic(message: dict, context: FilterContext) -> dict | None:
     }
 
 
+def reads_files_at_compile_time(data: bytes) -> bool:
+    """Detect macros and attributes that pull another file into a candidate."""
+    text = strip_rust_noise(data.decode("utf-8", "replace"))
+    return bool(_FILE_READ.search(text) or _PATH_ATTRIBUTE.search(text))
+
+
+def custom_harness_targets(manifest: Path) -> set[str]:
+    """Return target names that do not use libtest and so cannot be listed."""
+    data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    targets = [*data.get("test", ()), *data.get("bin", ())]
+    library = data.get("lib")
+    if library is not None:
+        default = data.get("package", {}).get("name", "").replace("-", "_")
+        targets.append({"name": library.get("name", default), "harness": library.get("harness")})
+    return {target.get("name") for target in targets if target.get("harness") is False}
+
+
 def significant_lines(text: str) -> Iterator[str]:
     """Yield lines that must never appear in a result.
 
@@ -216,51 +234,6 @@ def collect_strings(value: object) -> Iterator[str]:
 def contains_guarded_line(result: object, guarded: Iterable[str]) -> bool:
     text = "\n".join(collect_strings(result))
     return any(line in text for line in guarded)
-
-
-class TestOutputParser:
-    """Accept only exact libtest result lines and discard everything else."""
-
-    def __init__(self) -> None:
-        self.suites: list[dict] = []
-        self._current: dict | None = None
-
-    def feed(self, line: str) -> None:
-        running = _RUNNING.match(line)
-        if running:
-            stem = re.split(r"[\\/]", running.group("binary").strip())[-1].removesuffix(".exe")
-            name = re.sub(r"-[0-9a-f]{16}$", "", stem)
-            self._current = {"suite": name if _PACKAGE.match(name) else "unnamed", "tests": [], "summary": None}
-            self.suites.append(self._current)
-            return
-        if self._current is None:
-            return
-        result = _TEST_RESULT.match(line)
-        if result:
-            self._current["tests"].append({"name": result.group("name"), "outcome": result.group("outcome")})
-            return
-        summary = _SUMMARY.match(line)
-        if summary:
-            self._current["summary"] = {k: int(v) for k, v in summary.groupdict().items()}
-
-    def result(self) -> dict:
-        suites, totals = [], {"ok": 0, "FAILED": 0, "ignored": 0}
-        for suite in self.suites:
-            counts = {"ok": 0, "FAILED": 0, "ignored": 0}
-            for test in suite["tests"]:
-                counts[test["outcome"]] += 1
-                totals[test["outcome"]] += 1
-            summary = suite["summary"]
-            complete = summary == {
-                "passed": counts["ok"],
-                "failed": counts["FAILED"],
-                "ignored": counts["ignored"],
-            }
-            suites.append({"suite": suite["suite"], "complete": complete, "tests": suite["tests"]})
-        return {
-            "suites": suites,
-            "counts": {"passed": totals["ok"], "failed": totals["FAILED"], "ignored": totals["ignored"]},
-        }
 
 
 def _kill_tree(process: subprocess.Popen) -> None:
@@ -291,6 +264,8 @@ class Broker:
         min_free_gb: float = 50,
         census_lock: Path | None = None,
         timeout: float = 7200,
+        test_memory_gib: float = 8,
+        test_timeout: float = 300,
     ) -> None:
         if not 1 <= jobs <= MAX_JOBS:
             raise IsolationError("jobs_out_of_range")
@@ -303,7 +278,11 @@ class Broker:
         self.min_free_gb = min_free_gb
         self.census_lock = census_lock
         self.timeout = timeout
+        self.test_memory_mib = int(test_memory_gib * 1024)
+        self.test_timeout = test_timeout
         self.platform = sys.platform
+        self._scan_candidates = True
+        self._packages: dict[str, dict[str, str]] = {}
         self._by_key = {path_key(e.path): e for e in self.view.entries}
         self._vocabulary: frozenset[str] | None = None
         self._guarded: tuple[str, ...] | None = None
@@ -350,6 +329,8 @@ class Broker:
             path = normalize_repo_path(raw_path)
             key = path_key(path)
             if key in self._by_key:
+                if key in self.view.locked:
+                    raise IsolationError("candidate_path_locked", path)
                 if key not in self.view.listed:
                     raise IsolationError("candidate_overwrites_visible_file", path)
                 path = self._by_key[key].path
@@ -359,6 +340,8 @@ class Broker:
                 overlay[path] = Path(source).read_bytes()
             except OSError as error:
                 raise IsolationError("candidate_unreadable", path) from error
+            if self._scan_candidates and path.endswith(".rs") and reads_files_at_compile_time(overlay[path]):
+                raise IsolationError("candidate_reads_files_at_compile_time", path)
         return overlay
 
     def _materialize(self) -> Path:
@@ -422,6 +405,8 @@ class Broker:
             RUST_BACKTRACE="0",
         )
         env.pop("RUST_TEST_NOCAPTURE", None)
+        if os.name == "posix":
+            env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
         return env
 
     def _stream(self, command: list[str], tree: Path, on_line: Callable[[str], None], *, merge: bool) -> int | None:
@@ -466,9 +451,207 @@ class Broker:
         if completed.returncode != 0:
             raise IsolationError("cargo_metadata_failed")
         data = json.loads(completed.stdout)
+        self._packages = {
+            package["id"]: {
+                "name": package["name"],
+                "version": package["version"],
+                "dir": str(Path(package["manifest_path"]).parent),
+            }
+            for package in data["packages"]
+        }
         return {package["id"]: package["name"] for package in data["packages"]}
 
-    def _compile(self, tree: Path, context: FilterContext, command: list[str], ids: dict[str, str], selected: set[str]) -> dict:
+    def _scope_prefix(self) -> list[str]:
+        return [
+            "systemd-run",
+            "--user",
+            "--scope",
+            "--quiet",
+            "--collect",
+            f"--property=MemoryMax={self.test_memory_mib}M",
+            "--property=MemorySwapMax=0",
+            "--property=TasksMax=2048",
+            "--property=OOMPolicy=continue",
+            "--",
+        ]
+
+    def _sandbox_block(self) -> str | None:
+        """Refuse to run candidate code unless the sandbox and memory limit work."""
+        if self.platform != "linux" or shutil.which("bwrap") is None:
+            return "blocked_sandbox_unavailable"
+        if Path("/mnt") in (self.work_dir, *self.work_dir.parents):
+            return "blocked_work_dir_on_windows_mount"
+        probe = self.work_dir / "sandbox-probe"
+        (probe / "tree").mkdir(parents=True, exist_ok=True)
+        (probe / "target").mkdir(parents=True, exist_ok=True)
+        tree, target = str(probe / "tree"), str(probe / "target")
+        quiet = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+        try:
+            sandbox = subprocess.run(
+                [*sandbox_prefix(tree, tree, target, target, tree), "/usr/bin/true"],
+                env=clean_env({}),
+                check=False,
+                **quiet,
+            )
+        except OSError:
+            return "blocked_sandbox_unavailable"
+        if sandbox.returncode != 0:
+            return "blocked_sandbox_unavailable"
+        try:
+            scope = subprocess.run([*self._scope_prefix(), "/usr/bin/true"], env=self._env(), check=False, **quiet)
+        except OSError:
+            return "blocked_no_memory_limit"
+        return None if scope.returncode == 0 else "blocked_no_memory_limit"
+
+    def _context(self, tree: Path, overlay: dict[str, bytes]) -> FilterContext:
+        overlay_paths = {path_key(p): p for p in overlay}
+        vocabulary = self._base_vocabulary() | {
+            token
+            for data in overlay.values()
+            for token in _IDENTIFIER.findall(data.decode("utf-8", "replace"))
+            if token not in _KEYWORDS
+        }
+        return FilterContext(
+            root=normalize_root(tree.resolve()),
+            visible={k: e.path for k, e in ((path_key(e.path), e) for e in self.view.visible) if k not in overlay_paths},
+            candidates=overlay_paths,
+            vocabulary=frozenset(vocabulary),
+        )
+
+    def _test_suites(self, artifacts: list[dict], ids: dict[str, str]) -> tuple[list[dict], list[str]]:
+        suites: dict[str, dict] = {}
+        unsupported: set[str] = set()
+        harness: dict[str, set[str]] = {}
+        for artifact in artifacts:
+            package = ids.get(artifact.get("package_id"))
+            if package is None or not artifact.get("profile", {}).get("test"):
+                continue
+            info = self._packages[artifact["package_id"]]
+            target = artifact["target"]
+            suite_id = f"{package}:{target['kind'][0]}:{target['name']}"
+            custom = harness.setdefault(package, custom_harness_targets(Path(info["dir"]) / "Cargo.toml"))
+            if target["name"] in custom:
+                unsupported.add(suite_id)
+                continue
+            suites[suite_id] = {
+                "id": suite_id,
+                "exe": artifact["executable"],
+                "cwd": info["dir"],
+                "env": {
+                    "CARGO_MANIFEST_DIR": info["dir"],
+                    "CARGO_PKG_NAME": info["name"],
+                    "CARGO_PKG_VERSION": info["version"],
+                },
+            }
+        return [suites[key] for key in sorted(suites)], sorted(unsupported)
+
+    def _prepare_runtime(self, tree: Path, overlay: dict[str, bytes], artifacts: list[dict]) -> None:
+        """Build the only files a test can see: visible files, candidates and executables."""
+        runtime = self.work_dir / "runtime"
+        if runtime.exists():
+            shutil.rmtree(runtime)
+        (runtime / "tree").mkdir(parents=True)
+        (runtime / "target").mkdir(parents=True)
+
+        def link(source: Path, destination: Path) -> None:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if not destination.exists():
+                os.link(source, destination)
+
+        for relative in [*(e.path for e in self.view.visible), *overlay]:
+            link(tree / relative, runtime / "tree" / relative)
+        target_root = self.work_dir / "target"
+        for artifact in artifacts:
+            executable = Path(artifact["executable"])
+            link(executable, runtime / "target" / executable.relative_to(target_root))
+
+    def _execute(self, tree: Path, suites: list[dict]) -> dict:
+        plan_path = self.work_dir / "sandbox-plan.json"
+        result_path = self.work_dir / "sandbox-result.json"
+        result_path.unlink(missing_ok=True)
+        plan = {
+            "tree": str(tree),
+            "runtime_tree": str(self.work_dir / "runtime" / "tree"),
+            "target": str(self.work_dir / "target"),
+            "runtime_target": str(self.work_dir / "runtime" / "target"),
+            "jobs": self.jobs,
+            "test_timeout": self.test_timeout,
+            "suites": suites,
+        }
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        runner = Path(__file__).with_name("sandbox_runner.py")
+        command = [*self._scope_prefix(), sys.executable, "-I", str(runner), str(plan_path), str(result_path)]
+        exit_code = self._stream(command, tree, lambda _line: None, merge=False)
+        if exit_code != 0 or not result_path.exists():
+            raise IsolationError("sandbox_runner_failed")
+        return json.loads(result_path.read_text(encoding="utf-8"))["suites"]
+
+    def _baseline(self, tree: Path, ids: dict[str, str], selected: set[str], scope: list[str]) -> dict:
+        """Record test names and outcomes from the pristine tree, before any candidate."""
+        key = hashlib.sha256("\0".join(scope).encode("utf-8")).hexdigest()[:12]
+        path = self.work_dir / f"baseline-tests-{self.view.commit[:12]}-{key}.json"
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+        self._apply_overlay(tree, {})
+        artifacts: list[dict] = []
+        build = ["cargo", "test", *scope, "--tests", "--no-run", "--locked", "--message-format=json", "-j", str(self.jobs)]
+        if self._compile(tree, self._context(tree, {}), build, ids, selected, artifacts)["status"] != "ok":
+            raise IsolationError("baseline_build_failed")
+        suites, unsupported = self._test_suites(artifacts, ids)
+        self._prepare_runtime(tree, {}, artifacts)
+        results = self._execute(tree, suites)
+        listed = {suite: data for suite, data in results.items() if data["listed"] is not None}
+        baseline = {"suites": listed, "unsupported": sorted({*unsupported, *(set(results) - set(listed))})}
+        path.write_text(json.dumps(baseline), encoding="utf-8")
+        return baseline
+
+    @staticmethod
+    def _assemble_tests(baseline: dict, results: dict, test_filter: str | None) -> dict:
+        """Report only names from the fixed baseline list."""
+        suites = []
+        counts = {"passed": 0, "failed": 0, "ignored": 0, "missing": 0, "timeout": 0, "regressions": 0}
+        field = {"ok": "passed", "FAILED": "failed", "ignored": "ignored", "missing": "missing", "timeout": "timeout"}
+        incomplete = set(baseline["unsupported"])
+        for suite_id in sorted(baseline["suites"]):
+            base = baseline["suites"][suite_id]
+            run = results.get(suite_id) or {}
+            present = set(run.get("listed") or ())
+            ignored = set(base["ignored"])
+            tests = []
+            for name in base["listed"]:
+                if test_filter and test_filter not in name:
+                    continue
+                before = "ignored" if name in ignored else base["outcomes"].get(name, "FAILED")
+                if name in ignored:
+                    outcome = "ignored"
+                elif name not in present:
+                    outcome = "missing"
+                else:
+                    outcome = run["outcomes"].get(name, "FAILED")
+                counts[field[outcome]] += 1
+                counts["regressions"] += before == "ok" and outcome != "ok"
+                tests.append({"name": name, "outcome": outcome, "baseline": before})
+            complete = all(test["outcome"] != "missing" for test in tests)
+            if not complete:
+                incomplete.add(suite_id)
+            suites.append({"suite": suite_id, "complete": complete, "tests": tests})
+        if counts["failed"] or counts["timeout"]:
+            status = "failed"
+        elif incomplete:
+            status = "incomplete"
+        else:
+            status = "passed"
+        return {"status": status, "suites": suites, "counts": counts, "incomplete_suites": sorted(incomplete)}
+
+    def _compile(
+        self,
+        tree: Path,
+        context: FilterContext,
+        command: list[str],
+        ids: dict[str, str],
+        selected: set[str],
+        artifacts: list[dict] | None = None,
+    ) -> dict:
         diagnostics: dict[tuple, dict] = {}
         reached: set[str] = set()
         failed: set[str] = set()
@@ -483,6 +666,8 @@ class Broker:
             package = ids.get(record.get("package_id"))
             if record.get("reason") == "compiler-artifact" and package:
                 reached.add(package)
+                if artifacts is not None and record.get("executable"):
+                    artifacts.append(record)
             elif record.get("reason") == "compiler-message" and isinstance(record.get("message"), dict):
                 item = filter_diagnostic(record["message"], context)
                 if item is not None:
@@ -545,7 +730,7 @@ class Broker:
             package_list = sorted(set(packages))
             if any(not _PACKAGE.match(p) for p in package_list):
                 raise IsolationError("invalid_package")
-            blocked = self._preflight()
+            blocked = self._preflight() or (self._sandbox_block() if command == "test" else None)
             if blocked:
                 return self._finish({**header, "status": blocked})
             overlay = self._validate_candidates(candidates or {})
@@ -553,62 +738,49 @@ class Broker:
                 {"path": path, "sha256": hashlib.sha256(data).hexdigest()} for path, data in sorted(overlay.items())
             ]
             tree = self._materialize()
-            self._apply_overlay(tree, overlay)
             ids = self._workspace_packages(tree)
             names = set(ids.values())
             if not set(package_list) <= names:
                 raise IsolationError("unknown_package")
             selected = set(package_list) or names
             scope = [arg for p in package_list for arg in ("-p", p)] or ["--workspace"]
+            baseline = None
+            if command == "test":
+                header["sandbox"] = {"runner": "bwrap", "network": False, "memory_limit_mib": self.test_memory_mib}
+                baseline = self._baseline(tree, ids, selected, scope)
+            self._apply_overlay(tree, overlay)
         except IsolationError as error:
             return self._finish({**header, "status": "rejected", "reason": error.code})
 
-        overlay_paths = {path_key(p): p for p in overlay}
-        vocabulary = self._base_vocabulary() | {
-            token
-            for data in overlay.values()
-            for token in _IDENTIFIER.findall(data.decode("utf-8", "replace"))
-            if token not in _KEYWORDS
-        }
-        context = FilterContext(
-            root=normalize_root(tree.resolve()),
-            visible={k: e.path for k, e in ((path_key(e.path), e) for e in self.view.visible) if k not in overlay_paths},
-            candidates=overlay_paths,
-            vocabulary=frozenset(vocabulary),
-        )
+        context = self._context(tree, overlay)
         jobs = ["-j", str(self.jobs)]
         if command == "check":
             cargo = ["cargo", "check", *scope, "--all-targets", "--keep-going", "--locked", "--message-format=json", *jobs]
             return self._finish({**header, **self._compile(tree, context, cargo, ids, selected)})
 
+        if not overlay:
+            return self._finish({**header, "diagnostics": [], **self._assemble_tests(baseline, baseline["suites"], test_filter)})
+        artifacts: list[dict] = []
         build = ["cargo", "test", *scope, "--tests", "--no-run", "--locked", "--message-format=json", *jobs]
-        compiled = self._compile(tree, context, build, ids, selected)
+        compiled = self._compile(tree, context, build, ids, selected, artifacts)
         if compiled["status"] != "ok":
             return self._finish({**header, **compiled})
-        parser = TestOutputParser()
-        harness = ["--color=never", f"--test-threads={self.jobs}"]
-        if test_filter:
-            harness.append(test_filter)
-        run = ["cargo", "test", *scope, "--tests", "--no-fail-fast", "--locked", *jobs, "--", *harness]
-        exit_code = self._stream(run, tree, parser.feed, merge=True)
-        tests = parser.result()
-        incomplete = [s["suite"] for s in tests["suites"] if not s["complete"]]
-        if exit_code is None:
-            status = "timeout"
-        elif tests["counts"]["failed"]:
-            status = "failed"
-        elif incomplete or exit_code != 0:
-            status = "incomplete"
-        else:
-            status = "passed"
+        planned, _ = self._test_suites(artifacts, ids)
+        fixed = []
+        for suite in planned:
+            base = baseline["suites"].get(suite["id"])
+            if base is None:
+                continue
+            ignored = set(base["ignored"])
+            allowed = [n for n in base["listed"] if n not in ignored and (not test_filter or test_filter in n)]
+            fixed.append({**suite, "allowed": allowed})
+        try:
+            self._prepare_runtime(tree, overlay, artifacts)
+            results = self._execute(tree, fixed)
+        except IsolationError as error:
+            return self._finish({**header, "status": "rejected", "reason": error.code})
         return self._finish(
-            {
-                **header,
-                "status": status,
-                "diagnostics": compiled["diagnostics"],
-                "incomplete_suites": incomplete,
-                **tests,
-            }
+            {**header, "diagnostics": compiled["diagnostics"], **self._assemble_tests(baseline, results, test_filter)}
         )
 
 
@@ -678,6 +850,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-free-gb", type=float, default=50)
     parser.add_argument("--census-lock", type=Path)
     parser.add_argument("--timeout", type=float, default=7200)
+    parser.add_argument("--test-memory-gib", type=float, default=8)
+    parser.add_argument("--test-timeout", type=float, default=300)
     parser.add_argument("--inbox", type=Path)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--out", type=Path)
@@ -693,6 +867,8 @@ def main(argv: list[str] | None = None) -> int:
             min_free_gb=args.min_free_gb,
             census_lock=args.census_lock,
             timeout=args.timeout,
+            test_memory_gib=args.test_memory_gib,
+            test_timeout=args.test_timeout,
         )
         if args.command == "serve":
             if args.inbox is None:

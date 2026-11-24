@@ -201,13 +201,13 @@ def build_manifest(repo: Path, rev: str, list_path: Path) -> dict:
             continue
         module = module_for(entry.path, package_dir)
         for kind, name in _PUBLIC_ITEM.findall(stripped[entry.path]):
-            if path_key(entry.path) in view.listed:
+            if path_key(entry.path) in view.listed and path_key(entry.path) not in view.locked:
                 listed_defs[crate][name].append((entry.path, kind, module))
             elif path_key(entry.path) not in view.withheld:
                 other_defs[crate][name].append(module)
     owners = {
         crate
-        for crate in (crate_for(e.path, packages)[0] for e in view.listed_entries if e.path.endswith(".rs"))
+        for crate in (crate_for(e.path, packages)[0] for e in view.replaceable_entries if e.path.endswith(".rs"))
         if crate
     }
 

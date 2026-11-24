@@ -9,7 +9,8 @@ error.
 | --- | --- |
 | `export_tree.py` | Exports a commit without the listed files, tracked copies of them, symlinks, `docs/`, agent instruction files and `.git`. Refuses a destination inside or under a project. |
 | `interface_manifest.py` | Lists the names visible Rust files use from the listed files. It is not a complete interface: read its `caveat` field. |
-| `build_broker.py` | Overlays candidate files on a private copy of the commit and runs `cargo check` or `cargo test`. |
+| `build_broker.py` | Overlays candidate files on a private copy of the commit and runs `cargo check` or contained tests. |
+| `sandbox_runner.py` | Started by the broker. Runs each test in its own `bwrap` sandbox and records its exit status. |
 
 ```powershell
 python tools/isolation/export_tree.py --withheld-list <list> --dest <outside-project>
@@ -31,8 +32,9 @@ history and documents that the export withholds.
 
 - **Builds:** level, error code, identifiers, visible path, line and column,
   failed packages and packages Cargo did not reach.
-- **Tests:** suite names, test names and `ok`, `FAILED` or `ignored`. A suite
-  whose results cannot be fully parsed is reported as incomplete.
+- **Tests:** suite names, baseline test names and `ok`, `FAILED`, `ignored`,
+  `missing` or `timeout`, with each test's baseline outcome. A suite that
+  cannot be listed or has a missing test is reported as incomplete.
 - **Never:** compiler message text, rendered output, source spans, suggestions,
   test output or Cargo's stderr.
 
@@ -60,6 +62,35 @@ blocks builds while the lock file exists.
 
 These tools filter output. They do not sandbox the implementer's file access,
 so the session must still be started without access to the work directory.
-The `test` command also runs candidate code with the broker's own file and
-network access, so a candidate test could bypass the filter. Do not run it on a
-candidate until that step is contained.
+
+## Contained tests
+
+`test` needs Linux, `bwrap` and a user systemd manager. It refuses to run
+otherwise, and refuses a work directory under `/mnt`.
+
+- **Fixed names.** Before a candidate is applied, the broker builds the pristine
+  commit and records its test names and outcomes. Only those names are reported.
+  A test the candidate adds is never named, and one it removes is `missing`.
+- **Containment.** Each test runs in its own `bwrap` sandbox with no network, no
+  `/mnt` or home directory, and read-only views holding only visible files,
+  candidates and test executables. Only a private `/tmp` is writable.
+- **Memory.** A transient `systemd-run --user` scope sets `MemoryMax` (default
+  8 GiB, `--test-memory-gib`) with swap off.
+- **Results.** Test output goes to `/dev/null`. The outcome is the process exit
+  status, recorded by a runner outside the sandbox.
+- **Compile time.** Candidates that use `include!`, `include_str!`,
+  `include_bytes!`, `stylesheet!` or a `path` attribute are refused. This is a
+  static check, not a proof.
+
+Custom-harness test targets cannot be listed and are reported as incomplete.
+
+**Remaining channel.** Pass or fail cannot be fully closed. Test binaries contain
+compiled code from listed files, so a hostile candidate could read that code and
+encode bits in which fixed-name tests pass, or in whether a build succeeds. The
+channel is bounded per run by the number of baseline tests plus the build
+outcome. Treat a candidate as untrusted, and rate-limit and log broker runs.
+
+## List format
+
+One repo-relative path per line. `#` starts a comment. A line `locked: <path>`
+withholds a file that a candidate may not replace, such as a test.
