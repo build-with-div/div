@@ -54,7 +54,9 @@ MIN_GUARDED_LINE = 8
 _CODE = re.compile(r"^(?:E\d{4}|[a-z][a-z0-9_]*(?:::[a-z][a-z0-9_]*)*)$")
 _QUOTED = re.compile(r"`([^`\n]{1,200})`")
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_BARE_LINE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*[,;]?")
+# One token, such as a name, path or selector. The allowlist already limits these,
+# and matching them as substrings would abort on harmless paths and test names.
+_BARE_LINE = re.compile(r"[A-Za-z0-9_.:/-]+[,;]?")
 _PACKAGE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _TEST_FILTER = re.compile(r"^[A-Za-z0-9_:]{1,200}$")
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -212,7 +214,7 @@ def custom_harness_targets(manifest: Path) -> set[str]:
 def significant_lines(text: str) -> Iterator[str]:
     """Yield lines that must never appear in a result.
 
-    A lone identifier is excluded because identifiers are an allowed output.
+    A lone token is excluded because names and paths are allowed outputs.
     """
     for raw in text.splitlines():
         line = " ".join(raw.split())

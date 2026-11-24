@@ -84,6 +84,9 @@ otherwise, and refuses a work directory under `/mnt`.
 
 Custom-harness test targets cannot be listed and are reported as incomplete.
 
+A test that reads a withheld data file at run time cannot see it in the sandbox.
+It fails in the baseline too, so it cannot show a regression.
+
 **Remaining channel.** Pass or fail cannot be fully closed. Test binaries contain
 compiled code from listed files, so a hostile candidate could read that code and
 encode bits in which fixed-name tests pass, or in whether a build succeeds. The

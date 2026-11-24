@@ -565,6 +565,13 @@ class LeakDetectorControlTests(unittest.TestCase):
         self.assertTrue(contains_guarded_line({"x": "pub fn make_widget(size: u32) -> Widget {"}, guarded))
         self.assertFalse(contains_guarded_line({"code": "E0308", "identifiers": ["Widget", "Mode"]}, guarded))
 
+    def test_single_token_data_lines_do_not_abort_allowed_values(self) -> None:
+        guarded = tuple(significant_lines(".owner-part\nsrc/open_part\ndisplay:block;\ncolor: red;\n"))
+        self.assertEqual(guarded, ("color: red;",))
+        allowed = {"path": "crates/owner-part/src/open_part.rs", "name": "tests::display:block"}
+        self.assertFalse(contains_guarded_line(allowed, guarded))
+        self.assertTrue(contains_guarded_line({"extra": "color: red;"}, guarded))
+
 
 class ListParserTests(unittest.TestCase):
     def test_only_exact_list_lines_are_accepted(self) -> None:
