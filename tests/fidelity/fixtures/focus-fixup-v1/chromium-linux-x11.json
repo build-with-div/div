@@ -1,0 +1,1379 @@
+{
+ "chromium": "147.0.7727.50",
+ "platform": "linux-x11",
+ "host": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+ "input": "X11 keys, modifiers, motion and buttons through XTEST, --ozone-platform=x11",
+ "viewport": [
+  480,
+  400
+ ],
+ "row": [
+  [
+   "opener",
+   "button",
+   10,
+   300,
+   60,
+   24,
+   ""
+  ],
+  [
+   "a",
+   "button",
+   80,
+   300,
+   60,
+   24,
+   ""
+  ],
+  [
+   "b",
+   "button",
+   150,
+   300,
+   60,
+   24,
+   ""
+  ],
+  [
+   "wrap",
+   "div",
+   220,
+   300,
+   60,
+   24,
+   ""
+  ],
+  [
+   "t",
+   "div",
+   290,
+   300,
+   60,
+   24,
+   " tabindex=\"0\""
+  ],
+  [
+   "c",
+   "button",
+   360,
+   300,
+   60,
+   24,
+   ""
+  ]
+ ],
+ "wrapped": [
+  "w",
+  "button",
+  60,
+  24
+ ],
+ "dialogs": [
+  [
+   "d1",
+   "d1a"
+  ],
+  [
+   "d2",
+   "d2a"
+  ]
+ ],
+ "actions": {
+  "hide-a": "fix(() => { D('a').style.display = 'none'; })",
+  "show-a": "fix(() => { D('a').style.display = ''; })",
+  "hide-wrap": "fix(() => { D('wrap').style.display = 'none'; })",
+  "invisible-a": "fix(() => { D('a').style.visibility = 'hidden'; })",
+  "disable-a": "fix(() => { D('a').disabled = true; })",
+  "untab-t": "fix(() => { D('t').removeAttribute('tabindex'); })",
+  "remove-a": "fix(() => { D('a').remove(); })",
+  "show-d1": "D('d1').show()",
+  "show-modal-d2": "D('d2').showModal()",
+  "remove-open-d1": "fix(() => { D('d1').removeAttribute('open'); })",
+  "remove-open-d2": "fix(() => { D('d2').removeAttribute('open'); })"
+ },
+ "scenarios": {
+  "hide_self": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "a"
+     },
+     {
+      "type": "focus",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "a"
+     },
+     {
+      "type": "click",
+      "target": "a"
+     }
+    ],
+    "active": "a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "a",
+     112,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "a"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "a"
+     },
+     {
+      "type": "blur",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "hide-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "b",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "b",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "hide_ancestor": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "w"
+     },
+     {
+      "type": "focus",
+      "target": "w",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "w",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "w"
+     },
+     {
+      "type": "click",
+      "target": "w"
+     }
+    ],
+    "active": "w",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "w",
+     248,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "w"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "w"
+     },
+     {
+      "type": "blur",
+      "target": "w",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "w",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "hide-wrap"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "t",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "t",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "visibility_hidden": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "a"
+     },
+     {
+      "type": "focus",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "a"
+     },
+     {
+      "type": "click",
+      "target": "a"
+     }
+    ],
+    "active": "a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "a",
+     112,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "a"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "a"
+     },
+     {
+      "type": "blur",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "invisible-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "b",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "b",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "disabled": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "a"
+     },
+     {
+      "type": "focus",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "a"
+     },
+     {
+      "type": "click",
+      "target": "a"
+     }
+    ],
+    "active": "a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "a",
+     112,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "blur",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "disable-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "b",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "b",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "tabindex_removed": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "t"
+     },
+     {
+      "type": "focus",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "t"
+     },
+     {
+      "type": "click",
+      "target": "t"
+     }
+    ],
+    "active": "t",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "t",
+     320,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "blur",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "t",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "untab-t"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "c",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "c",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "c",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "c",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "hide_then_show": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "a"
+     },
+     {
+      "type": "focus",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "a"
+     },
+     {
+      "type": "click",
+      "target": "a"
+     }
+    ],
+    "active": "a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "a",
+     112,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "a"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "a"
+     },
+     {
+      "type": "blur",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "hide-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "show-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "b",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "b",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "remove_open_non_modal": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "focus",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "blur",
+      "target": "opener",
+      "related": "d1a"
+     },
+     {
+      "type": "focusout",
+      "target": "opener",
+      "related": "d1a"
+     },
+     {
+      "type": "focus",
+      "target": "d1a",
+      "related": "opener"
+     },
+     {
+      "type": "focusin",
+      "target": "d1a",
+      "related": "opener"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "show-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "d1a"
+     },
+     {
+      "type": "mouseup",
+      "target": "d1a"
+     },
+     {
+      "type": "click",
+      "target": "d1a"
+     }
+    ],
+    "active": "d1a",
+    "dialogs": {
+     "d1": {
+      "open": true,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "d1a",
+     240,
+     28
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "d1a"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "d1a"
+     },
+     {
+      "type": "blur",
+      "target": "d1a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "d1a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "remove-open-d1"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "opener",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ],
+  "remove_open_modal": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "opener"
+     },
+     {
+      "type": "focus",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "opener",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "opener"
+     },
+     {
+      "type": "click",
+      "target": "opener"
+     }
+    ],
+    "active": "opener",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "opener",
+     40,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "blur",
+      "target": "opener",
+      "related": "d2a"
+     },
+     {
+      "type": "focusout",
+      "target": "opener",
+      "related": "d2a"
+     },
+     {
+      "type": "focus",
+      "target": "d2a",
+      "related": "opener"
+     },
+     {
+      "type": "focusin",
+      "target": "d2a",
+      "related": "opener"
+     }
+    ],
+    "active": "d2a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": true,
+      "modal": true
+     }
+    },
+    "input": [
+     "do",
+     "show-modal-d2"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "d2a"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "d2a"
+     },
+     {
+      "type": "blur",
+      "target": "d2a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "d2a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": true
+     }
+    },
+    "input": [
+     "do",
+     "remove-open-d2"
+    ]
+   }
+  ],
+  "removed": [
+   {
+    "events": [
+     {
+      "type": "mousedown",
+      "target": "a"
+     },
+     {
+      "type": "focus",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mouseup",
+      "target": "a"
+     },
+     {
+      "type": "click",
+      "target": "a"
+     }
+    ],
+    "active": "a",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "click",
+     "a",
+     112,
+     312
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "blur",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "focusout",
+      "target": "a",
+      "related": null
+     },
+     {
+      "type": "mark",
+      "at": "sync",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "layout",
+      "active": "body"
+     },
+     {
+      "type": "mark",
+      "at": "frames",
+      "active": "body"
+     }
+    ],
+    "active": "body",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "do",
+     "remove-a"
+    ]
+   },
+   {
+    "events": [
+     {
+      "type": "keydown",
+      "target": "body",
+      "key": "Tab",
+      "shift": false
+     },
+     {
+      "type": "focus",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "focusin",
+      "target": "b",
+      "related": null
+     },
+     {
+      "type": "keyup",
+      "target": "b",
+      "key": "Tab",
+      "shift": false
+     }
+    ],
+    "active": "b",
+    "dialogs": {
+     "d1": {
+      "open": false,
+      "modal": false
+     },
+     "d2": {
+      "open": false,
+      "modal": false
+     }
+    },
+    "input": [
+     "key",
+     "Tab",
+     ""
+    ]
+   }
+  ]
+ }
+}
