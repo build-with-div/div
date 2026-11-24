@@ -416,3 +416,13 @@ Likely causes, not proven:
   `b618850` before #142's `-O2` (evidence `b6c41deb`); the code patch has
   the same patch ID at every base. The four T8-sweep text gaps above are
   recorded as engine-owned. [Record](../calc-macro-paths-2026-11-24.md).
+- 24 November 2026: S3/S4 PR 1 (RFC 0014). `stylesheet!` sheets hold
+  `@media` rules at the top level, in a layer, nested in `@media` and nested
+  in a style rule. Queries parse and evaluate as Chromium 147 does, and they
+  follow the viewport, the device scale factor, the new
+  `Document::set_color_scheme` and the reduced-motion preference. The new
+  `media-queries-v1` oracle (84 queries in 7 environments) matches in all
+  588 values. The census and CSS Grid coverage are unchanged at all four
+  profiles, measured at `b7e4f6a` against `8106a6d` before #142's `-O2`
+  (evidence `179feb54`); the rebased code patch has the same patch ID.
+  [Record](../media-style-sheets-2026-11-24.md).
