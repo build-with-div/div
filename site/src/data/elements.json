@@ -719,7 +719,7 @@
       "kind": "Div",
       "display": "block",
       "control": false,
-      "role": "GenericContainer"
+      "role": "Dialog"
     }
   ],
   "inputTypes": [

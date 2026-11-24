@@ -7,7 +7,7 @@
 // It reads, from the repository:
 //   crates/divui/src/element.rs               tag_definition: the tags
 //   crates/div-engine/src/lib.rs            create_native_element: default display
-//   crates/div-engine/src/accessibility.rs  inferred_role: default role
+//   crates/div-engine/src/accessibility.rs  named_role, inferred_role: default role
 //   crates/div-engine/src/interaction.rs    control and input types
 //
 // The style properties table (src/data/properties.json) needs Rust: it is
@@ -55,6 +55,11 @@ function elements() {
   const controlRole = {};
   const controlMatch = roleFn.slice(roleFn.indexOf('match control {'), roleFn.indexOf('match tag {'));
   for (const m of controlMatch.matchAll(/FormControlRole::(\w+)\s*=>\s*Role::(\w+)/g)) controlRole[m[1]] = m[2];
+  // An element the engine knows by its local name has that name's role.
+  const namedRole = {};
+  for (const m of functionBody(a11y, 'fn named_role(').matchAll(/"([a-z]+)"\s*=>\s*Some\(Role::(\w+)\)/g)) {
+    namedRole[m[1]] = m[2];
+  }
 
   const interaction = read('crates/div-engine/src/interaction.rs');
   const forTag = functionBody(interaction, 'pub(crate) fn for_tag(');
@@ -77,7 +82,7 @@ function elements() {
       kind: row.kind,
       display: kebab(row.displayOverride ?? display[row.kind] ?? 'unknown'),
       control: control[row.kind] !== undefined,
-      role: control[row.kind] ? controlRole[control[row.kind]] : (role[row.kind] ?? fallback),
+      role: namedRole[row.tag] ?? (control[row.kind] ? controlRole[control[row.kind]] : (role[row.kind] ?? fallback)),
     })),
     inputTypes,
   };

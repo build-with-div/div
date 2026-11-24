@@ -46,6 +46,54 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
 
+## 23 November 2026: the dialog accessibility role (H4, RFC 0015)
+
+A `<dialog>` reported `GenericContainer`. It now reports the existing
+`Dialog` role, and an authored role still takes priority. This adds no enum
+or FFI value: FFI consumers see the existing value 12 for a dialog.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| `named_role` gives the element named `dialog` the `Dialog` role | engine | `crates/div-engine/src/accessibility.rs`; `dialog-accessibility-v1` |
+| `aria-modal` changes only a dialog's reported flag, never inertness: absent or empty is no override, `false` ignores case, any other value is true | engine | same file and oracle |
+| A dialog whose role is neither `Dialog` nor `AlertDialog` has no modal flag | engine | same file and oracle |
+| The element table reads `named_role`; the dialog page describes the role | website | `site/scripts/gen-reference.mjs`, `site/src/data/elements.json`, `site/src/content/docs/elements/dialog.mdx` |
+
+The oracle is Chromium's computed accessibility tree read through CDP, not
+what a screen reader receives from the operating system.
+`tools/qualification/capture_dialog_accessibility_oracle.py` recorded 35
+cases from pinned Chromium 147.0.7727.50, in two identical captures.
+
+### Remaining failures
+
+Eight of the 35 cases keep a field in the test's `PENDING` ledger. A pending
+field that starts to match fails the test, so the ledger can only shrink.
+
+| Gap | Cases | Owner |
+| --- | --- | --- |
+| `aria-labelledby`, `aria-describedby` and `title` are not read | `show_labelledby`, `modal_title`, `modal_labelledby_inside`, `show_describedby`, `modal_describedby_inside` | engine |
+| The `role` attribute is not read | `show_role_alertdialog`, `modal_role_alertdialog`, `modal_role_button` | engine |
+
+### Verification
+
+The Rust rows ran at `396a828` on `main` at `cac87c5`, in WSL with the Skia
+flags of `ci.yml` at that commit.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Dialog tests in the engine | `cargo test --locked -p div-engine --test dialog_accessibility_oracle --test dialog --test dialog_oracle` | 14 passed |
+| Engine accessibility unit tests | `cargo test --locked -p div-engine --lib accessibility` | 8 passed |
+| Framework | `cargo test --locked -p divui --test dialog_oracle --test dialog_element --test native_focus --test v02_conformance` | 88 passed |
+| FFI accessibility | `cargo test --locked -p div-ffi --lib accessib` | 9 passed |
+| Formatting | For each changed Rust file, under a memory cap: `rustfmt --edition 2021 --emit stdout < file.rs \| cmp - file.rs` | both match |
+| Generated element table | in `site/`: `node scripts/gen-reference.mjs --check` | current |
+| Census and CSS Grid coverage (D4), under the census lock, in WSL with the Skia flags of `ci.yml` at both commits | `cac87c5` against `43830b3`, compared image by image | No image changed in status, mismatched pixels, diff signature or Div or Chromium hash. Census: 23,728 images on both (16,297 exact, 7,431 different, 0 errors). Coverage: 4,204 images on both (1,473 exact, 2,575 different, 156 errors, all `Div render failed`). The two builds differ only in `div_engine` and `pixel_compare` |
+
+The D4 pair measured `43830b3` on `main` at `cac87c5`. The branch was then
+rebased on a later `main` for merging, and the rebased head was not measured.
+
 ## 22 November 2026: the engine top layer without paint (H4, RFC 0015 PR 3a)
 
 The engine learns `<dialog>`'s state, the top layer, inertness and the
