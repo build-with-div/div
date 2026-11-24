@@ -96,7 +96,7 @@ The DOM's `remove()` keeps the node and its listeners, which is `divui`'s
 
 | Gap | Where | Owner |
 | --- | --- | --- |
-| A press outside a modal dialog whose `open` was removed reaches `html` in Chromium; the engine's hit test reports no target | `dialog_oracle.rs`, `remove_open_attribute` step 3, input events (pending; a match fails) | fidelity, S6c (the document root takes the points no element takes) |
+| A press outside a modal dialog whose `open` was removed reaches `html` in Chromium; the engine's hit test reports no target | `dialog_oracle.rs`, `remove_open_attribute` step 3, input events: pinned to Div's (`mousedown` and `mouseup` with no target, no `click`); the test fails on a match and on any other change | fidelity, S6c (the document root takes the points no element takes) |
 | Chromium clears focus inside a moved subtree; Div keeps it | `MOVED_FOCUS_STEPS`, unchanged | engine |
 
 ### Verification

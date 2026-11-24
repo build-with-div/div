@@ -79,8 +79,15 @@ const MOVED_FOCUS_STEPS: &[(&str, usize)] = &[
 const ROOT_PRESS: &str = "fidelity S6c: the document root takes the points no element takes";
 
 /// The step of each scenario whose input events are pending on
-/// [`ROOT_PRESS`]. A match fails the test.
-const ROOT_PRESS_STEPS: &[(&str, usize)] = &[("remove_open_attribute", 3)];
+/// [`ROOT_PRESS`], with the events Div reports there today, as `(type,
+/// target)`: a press and release that hit nothing, and so no click. The
+/// test fails when they match Chromium, and when they change in any other
+/// way.
+const ROOT_PRESS_STEPS: &[(&str, usize, &[(&str, &str)])] = &[(
+    "remove_open_attribute",
+    3,
+    &[("mousedown", "none"), ("mouseup", "none")],
+)];
 
 /// The UA `max-width` and `max-height` of a modal dialog,
 /// `calc(100% - 6px - 2em)`: Div's lengths cannot hold a percentage less a
@@ -625,10 +632,22 @@ fn the_replayed_scenarios_match_chromium() {
                 actual["active"] = Value::Null;
                 wanted["active"] = Value::Null;
             }
-            if ROOT_PRESS_STEPS.contains(&(*name, index)) {
+            if let Some((_, _, pinned)) = ROOT_PRESS_STEPS
+                .iter()
+                .find(|(scenario, step, _)| scenario == name && *step == index)
+            {
+                let pinned: Vec<Value> = pinned
+                    .iter()
+                    .map(|(kind, target)| json!({"type": kind, "target": target}))
+                    .collect();
                 if actual["events"] == wanted["events"] {
                     failures.push(format!(
                         "{name} step {index}: the press targets match; they are no longer pending on {ROOT_PRESS}"
+                    ));
+                } else if actual["events"] != json!(pinned) {
+                    failures.push(format!(
+                        "{name} step {index}: the press events changed while pending on {ROOT_PRESS}: {}",
+                        actual["events"]
                     ));
                 }
                 actual["events"] = Value::Null;
