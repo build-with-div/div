@@ -312,3 +312,18 @@ on branch `components/c4-assets` and the shared findings note.
   accident, because its fixture sets a clamp Chromium rejected and
   `algorithm.rs:6224` treats the empty string as no clamp; `block-ellipsis-023`
   and `-024` differ at 1.5x, cause not established.
+- 23 November 2026: the last font client now empties the web-font outline
+  cache too, which kept up to 32 entries with their own font bytes after the
+  last engine (a probe kept 24.3 MB for one 760 KB font). The font lifetime
+  counts are no longer public: both tests run as `div-text` unit tests in a
+  child process of their own. The census and CSS Grid coverage are unchanged at
+  all four profiles, measured at `db3e244` against `2d435c0`
+  (evidence `4ce88e21`); the rebased code patch has the same patch ID.
+  Linux 3,532 tests pass at `26fb891` on `main` `b7e4f6a`.
+  [Record](../web-font-outline-release-2026-11-23.md).
+- Pre-existing failure, owner Fontconfig initialisation in `div-text`: under
+  `RUSTFLAGS="-Zsanitizer=leak" cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu -p div-text --lib lifetime_tests`, the parent-font lifetime test's child reports 320 bytes in 3
+  allocations through `libexpat` and exits 23 (Fontconfig 2.17.1 locally). The
+  same command with `--test shaping_font_lifetime` on `main` `d53a2d9` gives
+  the same 320 bytes. CI's sanitizer job runs only `div-ffi`, so it does not run
+  these tests. No suppression; the fix is a separate later item.
