@@ -73,7 +73,13 @@ have agreed.
   The lock refuses to start unless each one's drive has 50 GB free and the
   shared `out/` drive has 20 GB, and it stops the run and its processes if a
   write drive falls below 30 GB or the shared `out/` drive below 20 GB (exit
-  28). `census_lock.py disk --write-dir <dir>` prints the check.
+  28). `census_lock.py disk --write-dir <dir>` prints the check. A lock held
+  from WSL cannot stop Windows grandchildren: killing its tree ends the
+  `.exe` it started through interop (`powershell.exe`), but that process's
+  own Windows children (`cargo.exe`, `rustc.exe`) keep running. A run that
+  builds on Windows takes the lock from Windows Python instead, whose stop
+  (`taskkill /T`) ends the Windows tree and the Linux processes it started
+  through `wsl.exe`.
 - On Windows, build Skia once per set of build inputs with
   `tools/skia_prebuilt.py` and install it in each worktree, as described in
   [the development guide](docs/DEVELOPMENT.md).

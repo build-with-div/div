@@ -40,6 +40,14 @@ A WSL directory inside ext4 reports its virtual disk's free space, which
 can exceed E:'s; that disk grows on E:, so for it the shared ``out/``
 check is the real limit.
 
+A lock held from WSL cannot stop Windows grandchildren. WSL does not expose
+the Windows process id of an ``.exe`` started through interop: killing its
+Linux stand-in ends that ``.exe`` (``powershell.exe``), but the ``.exe``'s
+own Windows children (``cargo.exe``, ``rustc.exe``) keep running. A run that
+builds on Windows takes the lock from Windows Python, whose ``taskkill /T``
+ends the whole Windows tree and the Linux processes started through
+``wsl.exe``.
+
     python3 tools/qualification/census_lock.py run --wait --write-dir <dir> -- <census command>
     python3 tools/qualification/census_lock.py disk --write-dir <dir>
 """
