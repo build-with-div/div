@@ -69,6 +69,11 @@ have agreed.
   The lock, like the Skia archives below, lives in the machine's shared
   `out/`: `DIV_SHARED_OUT` if set, else `out/` of the outermost main
   checkout, so a clone kept under another checkout's `out/` shares it.
+- Name each directory a locked run writes to with `--write-dir` (repeatable).
+  The lock refuses to start unless each one's drive has 50 GB free and the
+  shared `out/` drive has 20 GB, and it stops the run and its processes if a
+  write drive falls below 30 GB or the shared `out/` drive below 20 GB (exit
+  28). `census_lock.py disk --write-dir <dir>` prints the check.
 - On Windows, build Skia once per set of build inputs with
   `tools/skia_prebuilt.py` and install it in each worktree, as described in
   [the development guide](docs/DEVELOPMENT.md).

@@ -26,16 +26,35 @@ the oldest. ``run`` without ``--wait`` never passes a queued waiter. A
 ticket left by a dead waiter on the same system is dropped automatically;
 one from the other system needs ``release --force --ticket <name>``.
 ``status`` lists the holder and the queue in order.
+
+``run`` also guards the machine's disks. Each ``--write-dir`` (repeatable: a
+directory the census writes to, such as ``F:\\div-out\\<lane>``, or a WSL
+target directory inside ext4) needs 50 GB free on its drive to start, and the
+drive holding the shared ``out/`` (E:, which also holds WSL's virtual disk)
+needs 20 GB. The checks run before queueing and again once the lock is taken.
+While the command runs they repeat every minute, and the command and every
+process it started are stopped if a write directory's drive falls below
+30 GB or the shared ``out/`` drive below 20 GB. A refused or stopped run
+exits 28 (``ENOSPC``). ``disk`` prints the same check without the lock.
+A WSL directory inside ext4 reports its virtual disk's free space, which
+can exceed E:'s; that disk grows on E:, so for it the shared ``out/``
+check is the real limit.
+
+    python3 tools/qualification/census_lock.py run --wait --write-dir <dir> -- <census command>
+    python3 tools/qualification/census_lock.py disk --write-dir <dir>
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime
 import json
 import os
 import platform
 import re
+import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -44,6 +63,10 @@ from collections.abc import Mapping
 from pathlib import Path
 
 POLL_SECONDS = float(os.environ.get("CENSUS_LOCK_POLL_SECONDS", "30"))
+DISK_POLL_SECONDS = float(os.environ.get("CENSUS_LOCK_DISK_POLL_SECONDS", "60"))
+# A run refused or stopped for disk space exits with ENOSPC's number.
+DISK_EXIT = 28
+GIB = 2**30
 
 
 def native_path(text: str) -> Path:
@@ -273,18 +296,139 @@ def acquire(path: Path, command: list[str], wait: bool) -> None:
         ticket.unlink(missing_ok=True)
 
 
-def cmd_run(path: Path, command: list[str], wait: bool) -> int:
+def disk_floors() -> dict[str, float]:
+    """Free space floors in GB (GiB, as ``df -BG`` counts). The environment
+    overrides are for the tests, whose CI runners have small disks."""
+    return {
+        "start": float(os.environ.get("CENSUS_LOCK_START_FREE_GB", "50")),
+        "stop": float(os.environ.get("CENSUS_LOCK_STOP_FREE_GB", "30")),
+        "guard": float(os.environ.get("CENSUS_LOCK_GUARD_FREE_GB", "20")),
+    }
+
+
+def free_gb(path: Path) -> float:
+    """Free space on the file system holding ``path`` or, so that a write
+    directory need not exist yet, its nearest existing parent."""
+    for directory in [path, *path.parents]:
+        if directory.exists():
+            return shutil.disk_usage(directory).free / GIB
+    raise SystemExit(f"census_lock: no existing parent of {path}")
+
+
+def check_disks(write_dirs: list[Path], guard_dir: Path, starting: bool) -> tuple[list[str], list[str]]:
+    """Apply the disk rule. Returns (report lines, problems)."""
+    floors = disk_floors()
+    write_floor = floors["start"] if starting else floors["stop"]
+    report, problems = [], []
+    for directory in write_dirs:
+        free = free_gb(directory)
+        report.append(
+            f"write dir {directory}: {free:.1f} GB free "
+            f"(needs {floors['start']:g} to start, stops below {floors['stop']:g})"
+        )
+        if free < write_floor:
+            problems.append(f"{directory} has {free:.1f} GB free, under {write_floor:g} GB")
+    free = free_gb(guard_dir)
+    report.append(f"shared out {guard_dir}: {free:.1f} GB free (needs {floors['guard']:g}, stops below it)")
+    if free < floors["guard"]:
+        problems.append(f"the shared out drive ({guard_dir}) has {free:.1f} GB free, under {floors['guard']:g} GB")
+    return report, problems
+
+
+def descendants(pid: int) -> list[int]:
+    """Every live descendant of ``pid`` (POSIX), from one ``ps`` listing."""
+    try:
+        listing = subprocess.run(
+            ["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True, check=True
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    children: dict[int, list[int]] = {}
+    for line in listing.splitlines():
+        fields = line.split()
+        if len(fields) == 2:
+            children.setdefault(int(fields[1]), []).append(int(fields[0]))
+    found, stack = [], [pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            found.append(child)
+            stack.append(child)
+    return found
+
+
+def stop_tree(process: subprocess.Popen) -> None:
+    """Stop the command and every process it started."""
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/T", "/F", "/PID", str(process.pid)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        process.wait()
+        return
+    # List the tree first: once the command exits, its children are reparented.
+    tree = [process.pid, *descendants(process.pid)]
+    for pid in tree:
+        with contextlib.suppress(OSError):
+            os.kill(pid, signal.SIGTERM)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=30)
+    for pid in [*tree, *descendants(process.pid)]:
+        with contextlib.suppress(OSError):
+            os.kill(pid, signal.SIGKILL)
+    process.wait()
+
+
+def refuse(problems: list[str], outcome: str) -> int:
+    for problem in problems:
+        print(f"census_lock: {problem}", file=sys.stderr)
+    print(f"census_lock: not enough disk space; {outcome}", file=sys.stderr)
+    return DISK_EXIT
+
+
+def cmd_run(path: Path, command: list[str], wait: bool, write_dirs: list[Path]) -> int:
     if command and command[0] == "--":
         command = command[1:]
     if not command:
         raise SystemExit("census_lock: run needs a command after --")
+    guard_dir = path.parent
+    report, problems = check_disks(write_dirs, guard_dir, starting=True)
+    for line in report:
+        print(f"census_lock: {line}", file=sys.stderr)
+    if problems:
+        return refuse(problems, "not started or queued")
     acquire(path, command, wait)
     try:
-        return subprocess.run(command).returncode
-    except KeyboardInterrupt:
-        return 130
+        # Space may have gone while this run waited in the queue.
+        _, problems = check_disks(write_dirs, guard_dir, starting=True)
+        if problems:
+            return refuse(problems, "not started")
+        process = subprocess.Popen(command)
+        try:
+            while True:
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    return process.wait(timeout=DISK_POLL_SECONDS)
+                _, problems = check_disks(write_dirs, guard_dir, starting=False)
+                if problems:
+                    stop_tree(process)
+                    return refuse(problems, "the command and its processes were stopped")
+        except KeyboardInterrupt:
+            stop_tree(process)
+            return 130
     finally:
         release(path)
+
+
+def cmd_disk(path: Path, write_dirs: list[Path]) -> int:
+    report, problems = check_disks(write_dirs, path.parent, starting=True)
+    for line in report:
+        print(line)
+    for problem in problems:
+        print(f"refused: {problem}")
+    if problems:
+        return DISK_EXIT
+    print("ok to start")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -293,15 +437,22 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="run a command while holding the lock")
     run.add_argument("--wait", action="store_true", help="wait instead of failing when held")
+    write_dir_help = "a directory the census writes to, whose drive needs free space (repeatable)"
+    run.add_argument("--write-dir", action="append", default=[], help=write_dir_help)
     run.add_argument("argv", nargs=argparse.REMAINDER)
+    disk = sub.add_parser("disk", help="check the disk rule without taking the lock")
+    disk.add_argument("--write-dir", action="append", default=[], help=write_dir_help)
     sub.add_parser("status", help="print the current holder")
     rel = sub.add_parser("release", help="remove a lock whose census has ended")
     rel.add_argument("--force", action="store_true", required=True)
     rel.add_argument("--ticket", help="remove this queued ticket (its file name) instead")
     args = parser.parse_args(argv)
     path = args.lock or default_lock_path()
-    if args.command == "run":
-        return cmd_run(path, args.argv, args.wait)
+    if args.command in ("run", "disk"):
+        write_dirs = [native_path(directory) for directory in args.write_dir]
+        if args.command == "disk":
+            return cmd_disk(path, write_dirs)
+        return cmd_run(path, args.argv, args.wait, write_dirs)
     holder = read_holder(path)
     if args.command == "status":
         if holder is None:
