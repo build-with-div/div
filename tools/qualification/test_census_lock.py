@@ -12,8 +12,33 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools.qualification import census_lock
+
+# The queue and lock tests run on CI runners with small disks. The disk rule
+# has its own tests below, with the real floors and a stand-in for free space.
+_DISK_FLOORS_OFF = {
+    "CENSUS_LOCK_START_FREE_GB": "0",
+    "CENSUS_LOCK_STOP_FREE_GB": "0",
+    "CENSUS_LOCK_GUARD_FREE_GB": "0",
+}
+_saved_environment: dict[str, str | None] = {}
+REAL_FREE_GB = census_lock.free_gb
+
+
+def setUpModule() -> None:
+    for key, value in _DISK_FLOORS_OFF.items():
+        _saved_environment[key] = os.environ.get(key)
+        os.environ[key] = value
+
+
+def tearDownModule() -> None:
+    for key, value in _saved_environment.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
 
 class CensusLockTests(unittest.TestCase):
@@ -280,6 +305,129 @@ class CensusLockQueueTests(unittest.TestCase):
         self.assertNotIn("stale", lines[1])
         self.assertIn("queued 2: 00000000000000000002-dead.json", lines[2])
         self.assertIn("stale", lines[2])
+
+
+class CensusLockDiskTests(unittest.TestCase):
+    """``run`` and ``disk`` apply the disk rule: 50 GB on each write
+    directory's drive to start, 30 GB to keep running, and 20 GB on the
+    shared ``out/`` drive throughout."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        root = Path(self.temporary.name)
+        self.lock = root / "out" / "census.lock"
+        self.lock.parent.mkdir(parents=True)
+        self.write = root / "lane"
+        self.marker = root / "ran.txt"
+        # Free space in GB by directory, changed by the tests while a run goes.
+        self.free = {self.lock.parent: 100.0, self.write: 100.0}
+        patches = [
+            mock.patch.dict(os.environ, {key: "" for key in _DISK_FLOORS_OFF}),
+            mock.patch.object(census_lock, "free_gb", lambda path: self.free[path]),
+            mock.patch.object(census_lock, "DISK_POLL_SECONDS", 0.05),
+        ]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+        for key in _DISK_FLOORS_OFF:
+            os.environ.pop(key)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def run_lock(self, *argv: str) -> int:
+        with contextlib.redirect_stderr(io.StringIO()) as self.stderr:
+            return census_lock.main(["--lock", str(self.lock), *argv])
+
+    def touch_command(self) -> list[str]:
+        return ["--", sys.executable, "-c", f"open({str(self.marker)!r}, 'w').write('ran')"]
+
+    def assert_refused(self, status: int) -> None:
+        self.assertEqual(status, census_lock.DISK_EXIT)
+        self.assertFalse(self.marker.exists())
+        self.assertFalse(self.lock.exists())
+        self.assertEqual(list(census_lock.queue_dir(self.lock).glob("*.json")), [])
+
+    def test_a_write_dir_under_50_gb_is_refused_before_queueing(self) -> None:
+        self.free[self.write] = 49.0
+        self.assert_refused(self.run_lock("run", "--wait", "--write-dir", str(self.write), *self.touch_command()))
+        self.assertIn("under 50 GB", self.stderr.getvalue())
+
+    def test_a_shared_out_drive_under_20_gb_is_refused(self) -> None:
+        self.free[self.lock.parent] = 19.0
+        self.assert_refused(self.run_lock("run", "--write-dir", str(self.write), *self.touch_command()))
+        self.assert_refused(self.run_lock("run", *self.touch_command()))
+
+    def test_enough_space_runs_the_command(self) -> None:
+        self.free[self.write] = 50.0
+        self.free[self.lock.parent] = 20.0
+        self.assertEqual(self.run_lock("run", "--write-dir", str(self.write), *self.touch_command()), 0)
+        self.assertTrue(self.marker.exists())
+        self.assertFalse(self.lock.exists())
+
+    def test_a_running_command_continues_between_30_and_50_gb(self) -> None:
+        def shrink(path: Path) -> float:
+            if path == self.write and self.marker.exists():
+                return 31.0
+            return self.free[path]
+
+        census = f"import time; open({str(self.marker)!r}, 'w').write('ran'); time.sleep(0.5)"
+        with mock.patch.object(census_lock, "free_gb", shrink):
+            status = self.run_lock("run", "--write-dir", str(self.write), "--", sys.executable, "-c", census)
+        self.assertEqual(status, 0)
+
+    def stop_case(self, low: Path, free: float) -> None:
+        pids = Path(self.temporary.name) / "pids.txt"
+        # The command starts a child process; both must be stopped.
+        census = (
+            "import os, subprocess, sys, time\n"
+            "child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+            f"open({str(pids)!r}, 'w').write(f'{{os.getpid()}} {{child.pid}}')\n"
+            "time.sleep(60)\n"
+        )
+
+        def shrink(path: Path) -> float:
+            if path == low and pids.exists() and pids.read_text().strip():
+                return free
+            return self.free[path]
+
+        started = time.monotonic()
+        with mock.patch.object(census_lock, "free_gb", shrink):
+            status = self.run_lock("run", "--write-dir", str(self.write), "--", sys.executable, "-c", census)
+        self.assertEqual(status, census_lock.DISK_EXIT)
+        self.assertLess(time.monotonic() - started, 50)
+        self.assertIn("were stopped", self.stderr.getvalue())
+        self.assertFalse(self.lock.exists())
+        for pid in map(int, pids.read_text().split()):
+            deadline = time.monotonic() + 10
+            while census_lock.pid_alive(pid) and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertFalse(census_lock.pid_alive(pid), f"process {pid} still runs")
+
+    def test_a_write_dir_under_30_gb_stops_the_command_and_its_children(self) -> None:
+        self.stop_case(self.write, 29.0)
+
+    def test_a_shared_out_drive_under_20_gb_stops_the_command(self) -> None:
+        self.stop_case(self.lock.parent, 19.0)
+
+    def test_disk_reports_every_drive_without_taking_the_lock(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(self.run_lock("disk", "--write-dir", str(self.write)), 0)
+        text = output.getvalue()
+        self.assertIn(f"write dir {self.write}: 100.0 GB free", text)
+        self.assertIn(f"shared out {self.lock.parent}: 100.0 GB free", text)
+        self.assertIn("ok to start", text)
+        self.free[self.write] = 10.0
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(self.run_lock("disk", "--write-dir", str(self.write)), census_lock.DISK_EXIT)
+        self.assertIn("refused", output.getvalue())
+        self.assertFalse(self.lock.exists())
+
+    def test_free_space_of_a_missing_directory_is_its_parents(self) -> None:
+        missing = Path(self.temporary.name) / "not" / "yet"
+        free = census_lock.shutil.disk_usage(self.temporary.name).free / census_lock.GIB
+        self.assertAlmostEqual(REAL_FREE_GB(missing), free, delta=1.0)
 
 
 if __name__ == "__main__":
