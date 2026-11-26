@@ -125,7 +125,8 @@ From the framework track's review of #149:
   (`div::ColorScheme`); Chromium calls it `PreferredColorScheme`.
 - Before `matchMedia` takes the name `MediaQueryList` for its public handle,
   rename the data-model `div_style::media_query::MediaQueryList` (for
-  example to `MediaQueryListData`) or keep its module hidden.
+  example to `MediaQueryListData`) or keep its module hidden. Done in S3/S4
+  PR 2: the data-model type is `MediaQueryListData`.
 - Known existing gap: `Engine::note_selector_state_change` sets the paint
   flag without bumping a dirty generation, so a state change from outside
   input handling may not request a frame on its own.
@@ -456,3 +457,17 @@ From the framework track's review of #149:
   `e9b6768` with every code patch ID unchanged, so the pair and gates carry;
   they predate #152's Skia raster defines.
   [Record](../paint-chunks-a1-2026-11-23.md).
+- 26 November 2026: S3/S4 PR 2 (RFC 0014 step 3). `Document::match_media`
+  returns a `div::MediaQueryList` whose `media()` is serialized as Chromium
+  147 writes it and whose `matches()` reads the document's current inputs.
+  The engine reports changed lists at the "evaluate media queries and
+  report changes" step with Chromium's timing, pinned by the new
+  `match-media-v1` oracle: 236 queries in 7 environments and 24 change
+  sequences, all matching outside 10 named query gaps (the `color` feature,
+  `ex`, `ch`, `lh` and dynamic viewport units, and `calc()`) and one
+  sequence gap. Parenthesized conditions keep their grouping
+  (`MediaCondition::Nested`), and the data-model type is renamed
+  `MediaQueryListData`. The census and CSS Grid coverage pair, `1c148d6`
+  against `main` `e9b67689`, is unchanged at all four profiles (evidence
+  `26fec8c7`), and the touched crates' Linux and Windows suites pass at
+  `1c148d6`. [Record](../match-media-2026-11-26.md).
