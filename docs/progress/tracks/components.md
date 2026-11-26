@@ -18,16 +18,16 @@ a separate `components/` workspace and the public crate was `openui` (now
 
 | Component | Fixtures | Exact at @1 / @2 / @1.25 / @1.5 | Evidence | Measured at (Div commit) |
 | --- | --- | --- | --- | --- |
-| badge | 6 variants; light, dark | 5 / 5 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 19 / 0 / 0 / 0 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| card | basic, with action; light, dark | 0 / 0 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| checkbox | unchecked, checked, disabled, disabled and checked, invalid; light, dark | 6 / 6 / 0 / 0 of 10 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| font | Geist, Geist Mono, Inter; light, dark | 2 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| input | email input: placeholder, value, disabled, invalid; light, dark | 0 / 0 / 0 / 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| label | basic; light, dark | 2 / 0 / 0 / 0 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| separator | horizontal, vertical; light, dark | 4 / 4 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 / 0 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
-| tabs | horizontal, vertical, second tab selected; light, dark | 3 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `06b9002e`, 17 November 2026 |
+| badge | 6 variants; light, dark | 5 / 5 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| button | 6 variants, sizes xs, sm and lg, disabled; light, dark | 19 / 0 / 0 / 0 of 20 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| card | basic, with action; light, dark | 0 / 0 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| checkbox | unchecked, checked, disabled, disabled and checked, invalid; light, dark | 6 / 6 / 0 / 0 of 10 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| font | Geist, Geist Mono, Inter; light, dark | 6 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| input | email input: placeholder, value, disabled, invalid; light, dark | 0 / 0 / 0 / 0 of 8 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| label | basic; light, dark | 2 / 0 / 0 / 0 of 2 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| separator | horizontal, vertical; light, dark | 4 / 4 / 0 / 0 of 4 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| switch | unchecked, checked, disabled, disabled and checked; sm unchecked and checked; light, dark | 1 / 0 / 0 / 0 of 12 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
+| tabs | horizontal, vertical, second tab selected; light, dark | 3 / 0 / 0 / 0 of 6 | [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) | `5c227193`, 26 November 2026 |
 
 The evidence covers all four census profiles (`"complete": true`). Above
 1x the Chromium oracle is captured with `--force-device-scale-factor` by
@@ -41,10 +41,95 @@ Behavior is compared with Radix running in Chromium by the traces in
 
 | Component | Traces | Same | Evidence | Measured at |
 | --- | --- | --- | --- | --- |
-| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
-| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
-| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
-| checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `06b9002e`, 17 November 2026 |
+| tabs | keyboard, pointer, vertical keyboard, manual activation, leaving with Shift+Tab | 4 of 5 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
+| switch | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
+| input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
+| checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
+
+## 26 November 2026: line heights as `calc()`
+
+The components now use Tailwind's own line heights. Before, they used
+lengths computed by hand. The six font pages at 1x become exact.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| The components use Tailwind's line heights, in place of the computed `20px` and `16px`:<br>- `text-sm`'s `calc(1.25 / 0.875)` in `button.rs`, `card.rs` (`CardDescription`), `input.rs` and `tabs.rs`<br>- `text-xs`'s `calc(1 / 0.75)` in `badge.rs` and in `button.rs` (size xs)<br>Div accepts `calc()` in `line-height` since #115, and in the style macros since #150. | components | `crates/div-components/src/` |
+| The fixture renderer's font specimens and tabs panels use `calc(1.25 / 0.875)` in `view!` `style:`, in place of the number `1.4285714` and `20px`. | components | `tests/fidelity/components/render/src/main.rs` |
+
+This closes two earlier notes:
+- the "Line height as `calc()`" failure in the [17 November entry](#17-november-2026-real-zoom-baseline);
+- the `1.4285714` note in the 9 November fonts entry.
+
+### Measurement
+
+Two renderers, both built in WSL from clean shallow clones in ext4:
+- **Before:** main at `4dc219ed`.
+- **After:** this branch at `5c227193`, which is `4dc219ed` plus this change.
+
+Both builds have the same Skia flags: `SKIA_GN_ARGS` from `4dc219ed`'s
+`ci.yml` `rust-parity` job. That is Linux Skia at `-O2` since #142, without
+#152's four raster defines. Skia's `args.gn` ends with these flags. The
+Chromium pages are Linux Chromium's, so no Windows build is involved. All
+336 comparisons ran for each renderer, under the census lock.
+
+| Renderer | Exact (of 336) | Exact at @1 / @2 / @1.25 / @1.5 (of 84) | Geometry the same (of 84 per profile, diagnostic) |
+| --- | --- | --- | --- |
+| before, `4dc219ed` | 55 | 40 / 15 / 0 / 0 | 56 / 50 / 30 / 30 |
+| after, `5c227193` | 61 | 46 / 15 / 0 / 0 | 62 / 56 / 36 / 36 |
+
+Between before and after, 24 Div images changed out of 336. Every one is a
+font page; the other 312 Div images are byte for byte the same, and all
+336 Chromium images are the same.
+
+| Font page (light, dark) | @1 | @2 | @1.25 | @1.5 |
+| --- | --- | --- | --- | --- |
+| Geist | 5,010, 5,110 → exact | 17,835, 18,240 → 13,712, 13,968 | 8,617, 8,821 → 5,827, 5,969 | 10,462, 10,696 → 6,534, 6,675 |
+| Geist Mono | 5,133, 5,262 → exact | 17,858, 18,330 → 13,659, 14,007 | 8,765, 8,989 → 5,902, 6,033 | 10,605, 10,830 → 6,710, 6,786 |
+| Inter | 3,093, 3,158 → exact | 16,112, 16,477 → 13,445, 13,744 | 7,523, 7,716 → 6,068, 6,217 | 8,800, 9,041 → 7,389, 7,587 |
+
+Each font page's boxes now match Chromium's at every profile: all 24
+geometry rows went from different to same. The other components already
+wrote `20px` and `16px`, which equal the `calc()` values at 14px and 12px,
+so their images do not change. The behavior trace rows are identical:
+13 of 14 the same; `tabs-tab-out` still differs.
+
+**Main had drifted from its recorded evidence.** This is a finding about
+main, not about this change. The committed evidence was measured at
+`06b9002e` on 17 November. Before, at `4dc219ed`, has the same images for
+312 rows; the other 24 differ, and they are exactly the font pages, which
+used the number `1.4285714`:
+- Inter at 1x was exact and was 3,093 and 3,158 pixels different.
+- Every other font page differs more than it did.
+
+After, the Inter images are byte-identical to those of `06b9002e`. The
+Geist and Geist Mono pages are better than both. So the drift came from
+the approximate number: a change on main between the two commits rounds
+19.9999996px differently. The fidelity lane is bisecting it. Since the
+components no longer write that number, the result does not affect them.
+
+### Remaining failures
+
+- **Text at 2x, and box edges at 1.25 and 1.5.** These are as in the
+  17 November entry. The font pages still differ at those three profiles,
+  with fewer pixels. On Geist the difference now starts two rows lower
+  (y 25 at 1.25 instead of 23). Owner: engine track, layout, paint and
+  text ([RFC 0011](../../alpha/rfcs/0011-device-pixel-layout.md)).
+- **Active trigger corners (light)**, from the 12 November entry. These
+  are unchanged: 44 pixels on each light tabs page at 1x.
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Tests | `cargo test --locked -p div-components -p div-components-render` in WSL with the `rust-parity` Skia flags (`-O2`), at `5c227193` | 7, 2, 2 and 14 passed; the fixture renderer's `calc()` literals compile |
+| Formatting | `rustfmt --edition 2021 --emit stdout < file.rs \| cmp - file.rs` for each changed Rust file, under a memory cap | all match |
+| Comparison, before and after | `python3 tools/qualification/census_lock.py run --wait -- …`, then for each renderer `reference_harness.py compare --renderer <release div-components-render> --repository-commit <commit> --evidence <file>` in WSL | before 55 of 336 exact, after 61; 0 errors; complete. The after run is the committed [`reference-v1.json`](../../../tests/fidelity/components/evidence/reference-v1.json) |
+| Behavior traces | `reference_harness.py trace` for each renderer | 13 of 14 the same on both sides; after is the committed [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) |
+| Geometry (diagnostic) | `reference_harness.py geometry` for each renderer | 166 and 190 of 336 pages with every box the same |
+| Renderers | `sha256sum` of each release `div-components-render` | before `92466ae7…`, after `548f5d3b…`, the SHA-256 in the committed evidence |
+| Rebuild check | the build log must show `div-components-render` compiled from that side's clone; the after run also touches its clone first, after a first after build that reused before's artifacts (same SHA-256) was discarded | both logs show it |
 
 ## 24 November 2026: the focus fixup (H4, RFC 0015)
 

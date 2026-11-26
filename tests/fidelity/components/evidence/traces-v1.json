@@ -3,9 +3,9 @@
   "chromium": {
     "version": "147.0.7727.50"
   },
-  "renderer_sha256": "f3ee4be91706cfa4f7a296ecd0b1200c67aaa594eb63710786a386e2e7b39077",
+  "renderer_sha256": "548f5d3b0eddf3ea3b693067fd077608787479f5d4a5cfddce1ea5f3cb267fe4",
   "repository": {
-    "commit": "06b9002e85d8b95a1da523cd82a03d45bd59e7c4",
+    "commit": "5c227193846b1060f71e629ae3d83732429cbcc8",
     "dirty_paths": []
   },
   "traces_sha256": "60cbf00f8a9425f2687c072535b2fe6e48d463f880d0478acb2b945976d82697",
