@@ -438,5 +438,7 @@ From the framework track's review of #149:
   bumps the paint generation, so a frame loop redraws. The new
   `media-queries-v1` oracle (84 queries in 7 environments) matches in all
   588 values. The public surface is the narrower one the user approved.
-  The census pair on `main` `4dc219ed` is pending.
+  The census and CSS Grid coverage pair, `b81fcb8` against `main`
+  `4dc219ed`, is unchanged at all four profiles (evidence `e36dce5b`), and
+  the touched crates' Linux and Windows suites pass at `b81fcb8`.
   [Record](../media-style-sheets-2026-11-24.md).

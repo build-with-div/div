@@ -63,14 +63,14 @@ from outside input handling may therefore not request a frame on its own.
 | Chromium oracle | `tools/qualification/capture_media_oracle.py` on Windows with pinned Chrome 147.0.7727.50 | 7 environments (200x200, 600x400, 800x600 and 400x600 at 1x; 640x480 at 1.25x and 800x600 at 2x, real zoom; 600x400 dark with reduced motion), 84 elements, 326 matches |
 | Redraw after a media flip | `cargo test --locked -p div-engine --test rule_cascade` (Linux, `dde50838`'s CI Skia flags), at `8b5bec1` | The new `a_media_flip_bumps_a_dirty_generation_before_update` fails without the fix (paint generation stays 0) and passes with it; 26 of 26 pass |
 | Generators and ledgers (Windows), final code | `check_skia_flags.py`, `check_platform_scoped_tests.py`, the renderer contract, v0.2, property and FFI generators and the SP13-R, SP17, SP18 and SP20 closures with `--check`; rustfmt on each changed file | All pass at `9c04e2f` on `main` `4dc219ed`; 15 changed files are clean |
-| Touched crates (Linux and Windows), final head | `cargo test --locked --no-fail-fast -j 4 -p div-style -p div-macros -p div-layout -p div-engine -p divui` | SUITES-PENDING: run when E: is back above its 50 GB free-space floor |
-| Census and coverage, final head | One full pair, base `main` `4dc219ed` against the final head, both sides with `4dc219ed`'s `ci.yml` flags | CENSUS-PENDING: waits for E: to clear and for the orchestrator's go-ahead |
+| Touched crates (Linux and Windows), final head | `cargo test --locked --no-fail-fast -j 4 -p div-style -p div-macros -p div-layout -p div-engine -p divui` | At `b81fcb8`: Linux 7,127 passed, 0 failed, 17 ignored (`4dc219ed`'s `ci.yml` Linux flags, rustfmt clean on the 15 changed files); Windows 7,125 passed, 0 failed, 21 ignored (`ci.yml` Windows flags, flag check passed) |
+| Census and coverage, final head | One full pair, base `main` `4dc219ed` against the final head, both sides with `4dc219ed`'s `ci.yml` flags | No profile changed. Expanded census 16,297 of 23,728 exact at 1x and 10,404 of 17,796 at the three real-zoom profiles; CSS Grid coverage 1,473 of 4,204 and 894 of 3,153 (1,051 measured ids). Every comparison has the same Chromium image and no Div image changed. Evidence: `e36dce5b` (`media-queries-div-*-v2.json`) |
 
-**Expected census result (not evidence):** no change. The code that reacts to
+**Why the census shows no change:** The code that reacts to
 media changes runs only when an adopted sheet has `@media` rules, and the
 census adopts none. pixel-compare never calls `adopt_style_sheet`,
 `stylesheet!` or `with_media`, and the dialog user agent sheet has no media
-lists. The pair above is what confirms this.
+lists. The pair above confirms this.
 
 **Earlier measurements (history; superseded).**
 - **Census pair:** measured at `8106a6d2` on `main` `b7e4f6a0`. No profile
