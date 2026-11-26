@@ -452,5 +452,7 @@ From the framework track's review of #149:
   measured at `4e69bdf` against `7c816ac` (evidence `fcbb6f3e`) and again
   on `main` `4dc219e` against `974962a`, the base being the engine track's
   #149 run of the same recipe. Linux crate tests pass at `0cdd653` and
-  `e0a80c2`. Frame cost and P7 are in the record.
+  `e0a80c2`. Frame cost and P7 are in the record. Rebased onto `main`
+  `e9b6768` with every code patch ID unchanged, so the pair and gates carry;
+  they predate #152's Skia raster defines.
   [Record](../paint-chunks-a1-2026-11-23.md).

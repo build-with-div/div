@@ -178,6 +178,37 @@ Chromium, raster, contract, resource and font hashes are the same on both
 sides. The pair covers the default profiles only, not the real-zoom subset.
 These receipts are not in the data repository.
 
+**Rebase onto `main` `e9b6768`.** After these measurements the branch was
+rebased onto `e9b6768`, which adds #151, #152 and #149. The results above
+carry across that rebase under D4 without being rerun, for these reasons:
+
+```text
+code only (git diff <base> <head> -- . ':!docs' | git patch-id --stable)
+4dc219e..974962a  d6d83efde0d1c4fdb2fbfbf3565462d136916a92
+e9b6768..a8e7809  d6d83efde0d1c4fdb2fbfbf3565462d136916a92
+per commit (git show <commit> | git patch-id --stable)
+ab3a6ed, a9d80bd  35a50ffec9c76fb5e1967617954f374c960ea44a  A1 code
+a44c29b, 981dd89  1a265ac6d7f72d587491a318c5dac2e8f3a53fcc  inventory
+9d705b2, ee043bf  5708747aa1b54edb67b3262205888d66f17597a7  narrowing
+974962a, a8e7809  5e00cedce3d1219270367d9b058dbf94756707d8  hash_font
+```
+
+- **Generated output.** The regenerated author style inventory adds and
+  removes byte-identical lines at both bases; only the hunk line numbers
+  moved, because #149 added entries. `generate_renderer_contract.py --check`
+  passes at the rebased head with no drift, and so does the v0.2 contract
+  check.
+- **No overlap.** A1 touches `div-compositor`, `div-paint`, `div-text`, a
+  `div-engine` test and `pixel-compare`. The new code on `main` is in
+  `div-style`, `div-engine`'s cascade and accessibility, `div-macros`,
+  `divui`, `div-cli` and the workflows. The only conflict was this track's
+  file, `docs/progress/tracks/engine.md`, where both entries were kept.
+- **Not covered.** #152 compiles Skia with four Chromium raster defines on
+  Linux and Windows. The census pair, the Linux gate and the Windows gate
+  above were all measured without them, and the carry assumes A1 does not
+  interact with them. The rebased head was not built or tested locally;
+  CI runs it.
+
 #136 and #143 change `div-text` font lifetimes next to A1's text
 fingerprints, so the crate tests were rerun on `0cdd653` and `e0a80c2`. The
 later rebases, onto `dde5083` and `4dc219e`, cross #147, which changes how
