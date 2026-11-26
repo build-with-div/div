@@ -1127,7 +1127,10 @@ impl std::fmt::Display for MediaQuery {
 /// feature brings its own parentheses, so the text keeps the source's
 /// grouping, as Blink's `ConditionalExpNode` serializers do; a
 /// `<general-enclosed>` term keeps its own text.
-fn write_condition(f: &mut std::fmt::Formatter<'_>, condition: &MediaCondition) -> std::fmt::Result {
+fn write_condition(
+    f: &mut std::fmt::Formatter<'_>,
+    condition: &MediaCondition,
+) -> std::fmt::Result {
     match condition {
         MediaCondition::Feature(feature) => write!(f, "({feature})"),
         MediaCondition::Unknown(text) => f.write_str(text),
@@ -1248,7 +1251,12 @@ impl std::fmt::Display for FeatureValue {
             Self::Ratio {
                 numerator,
                 denominator,
-            } => write!(f, "{} / {}", css_number(*numerator), css_number(*denominator)),
+            } => write!(
+                f,
+                "{} / {}",
+                css_number(*numerator),
+                css_number(*denominator)
+            ),
             Self::Resolution { value, unit } => {
                 let unit = match unit {
                     ResolutionUnit::Dppx => "dppx",

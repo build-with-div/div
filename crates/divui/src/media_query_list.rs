@@ -36,8 +36,8 @@ impl Drop for Inner {
         };
         // The engine is only borrowed inside divui's own calls, which never
         // drop a handle, so the release cannot meet a borrowed engine.
-        let _ = Document { inner }
-            .with_engine_mut(|engine| engine.release_media_query_list(self.id));
+        let _ =
+            Document { inner }.with_engine_mut(|engine| engine.release_media_query_list(self.id));
     }
 }
 

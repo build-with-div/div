@@ -125,9 +125,7 @@ impl Engine {
     /// whose result changed since it was last reported or read, oldest
     /// first, each with its result now, which the caller gives the `change`
     /// event as its `matches`.
-    pub fn evaluate_media_queries_and_report_changes(
-        &mut self,
-    ) -> Vec<(MediaQueryListId, bool)> {
+    pub fn evaluate_media_queries_and_report_changes(&mut self) -> Vec<(MediaQueryListId, bool)> {
         let values = self.media_values();
         let lists = &mut self.match_media_lists;
         lists.evaluate(&values);

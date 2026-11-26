@@ -115,7 +115,10 @@ fn match_media_reports_changes_when_chromium_does() {
         let actual = replay(expected);
         let same = actual.as_slice() == expected.as_slice();
         if let Some((_, reason)) = GAPS.iter().find(|(gap, _)| gap == name) {
-            assert!(!same, "{name} is listed as a gap ({reason}) but now matches");
+            assert!(
+                !same,
+                "{name} is listed as a gap ({reason}) but now matches"
+            );
             continue;
         }
         assert_eq!(

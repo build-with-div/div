@@ -124,7 +124,9 @@ fn match_media_serializes_and_matches_as_chromium_does() {
 #[test]
 fn a_list_reads_the_documents_current_inputs() {
     let document = Document::new(600, 400).unwrap();
-    let dark = document.match_media("(prefers-color-scheme: dark)").unwrap();
+    let dark = document
+        .match_media("(prefers-color-scheme: dark)")
+        .unwrap();
     let wide = document.match_media("(min-width: 700px)").unwrap();
     let copy = wide.clone();
     assert_eq!(dark.media(), "(prefers-color-scheme: dark)");
@@ -138,8 +140,5 @@ fn a_list_reads_the_documents_current_inputs() {
         .unwrap();
     drop(wide);
     assert!(copy.matches().unwrap(), "a clone keeps the list registered");
-    assert_eq!(
-        document.match_media("garbage!").unwrap().media(),
-        "not all"
-    );
+    assert_eq!(document.match_media("garbage!").unwrap().media(), "not all");
 }

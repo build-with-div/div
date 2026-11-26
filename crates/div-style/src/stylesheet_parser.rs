@@ -179,7 +179,12 @@ impl SheetParser<'_> {
 
     /// The rules of a sheet, or of an `@layer` block when `layer` is set, or
     /// of an `@media` block when `media` is not empty.
-    fn top_level(&mut self, range: Range<usize>, layer: Option<&str>, media: &[MediaQueryListData]) {
+    fn top_level(
+        &mut self,
+        range: Range<usize>,
+        layer: Option<&str>,
+        media: &[MediaQueryListData],
+    ) {
         for item in self.items_in(range) {
             match item {
                 Item::AtRule {
