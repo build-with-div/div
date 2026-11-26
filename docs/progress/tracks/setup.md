@@ -41,6 +41,32 @@ or layer paths that these defines change, so the pair shows no effect on
 these pages, not that the defines have none. Windows was not measured, and
 the components pages are measured separately.
 
+The defines do change one pinned Linux test,
+`crates/divui/tests/native_opacity_lcd_text.rs`. Its `filter-elsewhere` page
+has a `filter: blur(1px)` box beside text in an opacity group. The test ran
+in WSL at `2eb665f`, from an ext4 clone, once with `main` `4fbcc6c`'s flags
+and once with this change's.
+
+| Scale | Without the defines | With them | In the blurred box | In the text rows |
+| --- | ---: | ---: | --- | --- |
+| 1x | 1,971 | 1,271 | 700 to 0 | 1,271, unchanged |
+| 1.25x | 2,901 | 2,021 | 880 to 0 | 2,021, unchanged |
+| 1.5x | 3,590 | 2,490 | 1,100 to 0 | 2,490, unchanged |
+| 2x | 3,538 | 3,538 | 0, unchanged | 3,538, unchanged |
+
+All other frames of the test are byte-identical, as is Div's 2x
+`filter-elsewhere` frame.
+
+`SK_AVOID_SLOW_RASTER_PIPELINE_BLURS` explains the gain and the unchanged 2x
+frame. Without it, Skia's CPU blur tries a true Gaussian pass first, and
+`GaussianPass::MakeMaker` accepts only sigma below 2 (`SkBlurEngine.cpp`). With
+it, Skia goes straight to the three-box pass, as Chromium does. `blur(1px)`
+has sigma 1, 1.25, 1.5 and 2 at the four scales, so at 2x Skia already took
+the three-box pass. The test's pins move down to the new counts.
+
+This is a measured gain on the blurred box only. The grayscale glyph raster
+of the grouped text still differs from Chromium's at every scale.
+
 ## Census Skia flags without the AVX-512 opt-out 24 November 2026
 
 #132 (merged as `a74ca749` at 14:54 UTC on 23 November) added

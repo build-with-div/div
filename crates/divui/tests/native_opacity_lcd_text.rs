@@ -45,9 +45,11 @@ const SCALES: [&str; 4] = ["1", "1.25", "1.5", "2"];
 //   count equals Chromium's. Owner: engine (device-pixel layout, RFC 0011).
 // - `filter-elsewhere`, every scale: both draw the grouped text in
 //   grayscale, as cc decides, but Chromium's grayscale glyph raster for this
-//   text differs from Div's. At 1x, 1,271 pixels are in the text rows and
-//   700 in the blurred box, whose blur also differs. Owner: fidelity
-//   (grayscale raster of LCD-configured text; blur).
+//   text differs from Div's. Every differing pixel is in the text rows; the
+//   blurred box is exact at every scale since Skia is compiled with
+//   Chromium's `SK_AVOID_SLOW_RASTER_PIPELINE_BLURS` (it was 700, 880 and
+//   1,100 pixels at 1x, 1.25x and 1.5x without it). Owner: fidelity
+//   (grayscale raster of LCD-configured text).
 const GAPS: &[(&str, &str, usize)] = &[
     ("on-page", "1.25", 1545),
     ("on-page", "1.5", 1906),
@@ -55,9 +57,9 @@ const GAPS: &[(&str, &str, usize)] = &[
     ("on-box", "1.25", 722),
     ("on-box", "1.5", 906),
     ("on-box", "2", 1170),
-    ("filter-elsewhere", "1", 1971),
-    ("filter-elsewhere", "1.25", 2901),
-    ("filter-elsewhere", "1.5", 3590),
+    ("filter-elsewhere", "1", 1271),
+    ("filter-elsewhere", "1.25", 2021),
+    ("filter-elsewhere", "1.5", 2490),
     ("filter-elsewhere", "2", 3538),
     ("no-group", "1.25", 1545),
     ("no-group", "1.5", 1906),
