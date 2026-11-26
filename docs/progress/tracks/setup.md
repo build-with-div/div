@@ -1,5 +1,46 @@
 # Setup track progress
 
+## Chromium's four Skia raster defines 26 November 2026
+
+Every Skia flag list now carries the four raster defines that Chromium
+147.0.7727.50 sets unconditionally in `skia/config/SkUserConfig.h`
+(lines 129-142):
+
+- `SK_AVOID_SLOW_RASTER_PIPELINE_BLURS`
+- `SK_SUPPORT_LEGACY_ANISOTROPIC_MIPMAP_SCALE`
+- `SK_SUPPORT_LEGACY_RRECT_TRANSFORM`
+- `SK_LEGACY_INITWITHPREV_LAYER_SIZING`
+
+Each is read by one file in Skia's `src/core` at rust-skia `a31b86b`.
+`SK_USE_PADDED_BLUR_UPSCALE`, the fifth define in that block, is read only by
+the GPU backend, so it is left out. So are Chromium's `hsw` compile flags;
+matching those would need a patch to Skia's `BUILD.gn`.
+
+A Linux census and coverage pair ran under the census lock on 25 and 26
+November. Both sides are at main `4dc219ed` with its `ci.yml` flags, and the
+head adds the four defines; its `skia.ninja` shows all four. The input data
+is `b6c41deb146d`.
+
+| Set | Comparisons | Div images changed |
+| --- | ---: | ---: |
+| Expanded census | 23,728 | 0 |
+| Coverage | 4,204 | 0 |
+
+No status, mismatch count or Chromium image changed. Census was 16,297
+exact and 7,431 different on both sides; coverage was 1,473 exact, 2,575
+different and 156 errors. The receipts are
+`archive/docs/progress/evidence/skia-raster-defines-div-{census,coverage}-v1.json`
+in data commit `ecb8beb4`, which `fidelity-data.lock` pins.
+
+The base side was built from a WSL clone on `F:` (9P). The head side was
+built from an ext4 clone, because 9P was too slow. Both are at the same
+commit with the same flags apart from the defines.
+
+The census pages need not reach the blur, mipmap, rounded-rect transform
+or layer paths that these defines change, so the pair shows no effect on
+these pages, not that the defines have none. Windows was not measured, and
+the components pages are measured separately.
+
 ## Census Skia flags without the AVX-512 opt-out 24 November 2026
 
 #132 (merged as `a74ca749` at 14:54 UTC on 23 November) added
