@@ -180,6 +180,7 @@ pub use text_node::{TextNode, WeakTextNode};
 pub mod typed_style {
     pub use div_style::*;
 }
+pub use div_style::media_query::ColorScheme;
 pub use div_style::{ComputedStyle, Style, StyleProperty, StyleValue};
 pub use div_text::{
     AppliedPlatformFontSettings, AppliedSkFontSettings, FontFaceSourceInfo, FontInstantiation,

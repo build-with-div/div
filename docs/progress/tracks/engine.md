@@ -116,6 +116,20 @@ Likely causes, not proven:
   end of the first space's glyph advance, while Div reports one at 0. The
   width and the single-space case match. The cause has not been identified.
 
+## Constraints on RFC 0014's later steps (24 November 2026)
+
+From the framework track's review of #149:
+
+- A future value type for the CSS `color-scheme` property must not be named
+  `ColorScheme`. That name is the `prefers-color-scheme` input
+  (`div::ColorScheme`); Chromium calls it `PreferredColorScheme`.
+- Before `matchMedia` takes the name `MediaQueryList` for its public handle,
+  rename the data-model `div_style::media_query::MediaQueryList` (for
+  example to `MediaQueryListData`) or keep its module hidden.
+- Known existing gap: `Engine::note_selector_state_change` sets the paint
+  flag without bumping a dirty generation, so a state change from outside
+  input handling may not request a frame on its own.
+
 ## Log
 
 - 9 November 2026, PR #89: RFC 0001 typed style rules merged. Docs only;
@@ -416,3 +430,15 @@ Likely causes, not proven:
   `b618850` before #142's `-O2` (evidence `b6c41deb`); the code patch has
   the same patch ID at every base. The four T8-sweep text gaps above are
   recorded as engine-owned. [Record](../calc-macro-paths-2026-11-24.md).
+- 24 November 2026: S3/S4 PR 1 (RFC 0014). `stylesheet!` sheets hold
+  `@media` rules at the top level, in a layer, nested in `@media` and nested
+  in a style rule. Queries parse and evaluate as Chromium 147 does, and they
+  follow the viewport, the device scale factor, the new
+  `Document::set_color_scheme` and the reduced-motion preference. A flip
+  bumps the paint generation, so a frame loop redraws. The new
+  `media-queries-v1` oracle (84 queries in 7 environments) matches in all
+  588 values. The public surface is the narrower one the user approved.
+  The census and CSS Grid coverage pair, `b81fcb8` against `main`
+  `4dc219ed`, is unchanged at all four profiles (evidence `e36dce5b`), and
+  the touched crates' Linux and Windows suites pass at `b81fcb8`.
+  [Record](../media-style-sheets-2026-11-24.md).

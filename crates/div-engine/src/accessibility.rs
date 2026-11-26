@@ -220,6 +220,7 @@ impl Engine {
         if self.reduced_motion != reduced {
             self.reduced_motion = reduced;
             self.mark_dirty(div_style::InvalidationClass::Accessibility);
+            self.note_media_change();
             let _ = self.sample_animations();
         }
     }

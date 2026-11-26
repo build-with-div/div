@@ -86,12 +86,13 @@ fn expand_sheet(input: TokenStream, source: Option<String>) -> syn::Result<Token
 
     let root = quote!(::div::typed_style);
     let selector_root = quote!(::div::typed_style::selector);
+    let media_root = quote!(::div::typed_style::media_query);
     let mut statements = Vec::with_capacity(items.len());
     for item in &items {
         statements.push(match item {
             SheetItem::Layers(names) => quote!(sheet.declare_layers([#(#names),*]);),
             SheetItem::Rule(rule) => {
-                let rule = rule_tokens(rule, &text, &root, &selector_root)
+                let rule = rule_tokens(rule, &text, &root, &selector_root, &media_root)
                     .map_err(|message| syn::Error::new(span, message))?;
                 quote!(sheet.push(#rule);)
             }
@@ -193,6 +194,7 @@ fn rule_tokens(
     text: &str,
     root: &TokenStream,
     selector_root: &TokenStream,
+    media_root: &TokenStream,
 ) -> Result<TokenStream, String> {
     let selectors = rule
         .selectors
@@ -210,6 +212,12 @@ fn rule_tokens(
     }
     if let Some(layer) = &rule.layer {
         tokens = quote!(#tokens.in_layer(#layer));
+    }
+    for media in &rule.media {
+        let media = media
+            .constructor_tokens(media_root)
+            .map_err(|error| error.to_string())?;
+        tokens = quote!(#tokens.with_media(#media));
     }
     Ok(tokens)
 }

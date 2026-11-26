@@ -429,6 +429,8 @@ pub struct Engine {
     scroll_animations: BTreeMap<ScrollAnimationId, animation::ScrollAnimationInstance>,
     next_scroll_animation_id: u64,
     reduced_motion: bool,
+    /// What `prefers-color-scheme` media queries see.
+    color_scheme: div_style::media_query::ColorScheme,
     stats: LifecycleStats,
     rule_set: rule_cascade::RuleSet,
     /// Interaction or form state changed under rules that read it.
@@ -534,6 +536,7 @@ impl Engine {
             scroll_animations: BTreeMap::new(),
             next_scroll_animation_id: 1,
             reduced_motion: false,
+            color_scheme: Default::default(),
             stats: LifecycleStats::default(),
             rule_set: Default::default(),
             selector_restyle_pending: false,
@@ -670,6 +673,7 @@ impl Engine {
         self.document
             .set_raster_context(self.raster_configuration, viewport.device_scale_factor());
         if logical_changed || scale_changed {
+            self.note_media_change();
             self.recompute_authored_styles()?;
         }
         if logical_changed {
