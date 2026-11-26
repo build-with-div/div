@@ -13,7 +13,7 @@ fn matches(text: &str, values: &MediaValues) -> bool {
 }
 
 #[track_caller]
-fn assert_clean(text: &str) -> MediaQueryList {
+fn assert_clean(text: &str) -> MediaQueryListData {
     let parsed = parse(text);
     assert!(parsed.problems.is_empty(), "{text}: {:?}", parsed.problems);
     parsed.list

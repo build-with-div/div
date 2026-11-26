@@ -98,6 +98,8 @@ pub use resize_observer::{
 };
 mod animation_timeline;
 pub use animation_timeline::AnimationTimelineBinding;
+mod media_query_list;
+pub use media_query_list::MediaQueryList;
 
 pub mod click_count;
 pub mod document;

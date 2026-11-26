@@ -22,7 +22,7 @@ use std::ops::Range;
 use crate::declaration_block::{
     parse_declaration, strip_comments, trimmed_range, BlockDeclaration,
 };
-use crate::media_query::{parse_media_query_list, MediaQueryList};
+use crate::media_query::{parse_media_query_list, MediaQueryListData};
 use crate::selector::{PseudoClass, RelativeSelector, Selector, SimpleSelector};
 use crate::selector_parser::parse_selector_list;
 
@@ -36,7 +36,7 @@ pub struct SheetRule {
     pub layer: Option<String>,
     /// The query lists of the `@media` rules around the rule, outermost
     /// first. The rule applies while every one matches.
-    pub media: Vec<MediaQueryList>,
+    pub media: Vec<MediaQueryListData>,
 }
 
 /// A statement of the sheet, in source order.
@@ -179,7 +179,7 @@ impl SheetParser<'_> {
 
     /// The rules of a sheet, or of an `@layer` block when `layer` is set, or
     /// of an `@media` block when `media` is not empty.
-    fn top_level(&mut self, range: Range<usize>, layer: Option<&str>, media: &[MediaQueryList]) {
+    fn top_level(&mut self, range: Range<usize>, layer: Option<&str>, media: &[MediaQueryListData]) {
         for item in self.items_in(range) {
             match item {
                 Item::AtRule {
@@ -212,7 +212,7 @@ impl SheetParser<'_> {
         prelude: Range<usize>,
         block: Option<Range<usize>>,
         layer: Option<&str>,
-        media: &[MediaQueryList],
+        media: &[MediaQueryListData],
     ) {
         let lowercase = name.to_ascii_lowercase();
         match lowercase.as_str() {
@@ -285,7 +285,7 @@ impl SheetParser<'_> {
         range: Range<usize>,
         selectors: &[Selector],
         layer: Option<&str>,
-        media: &[MediaQueryList],
+        media: &[MediaQueryListData],
     ) {
         let mut declarations = Vec::new();
         for item in self.items_in(range) {
@@ -332,8 +332,8 @@ impl SheetParser<'_> {
         whole: Range<usize>,
         prelude: Range<usize>,
         block: Option<Range<usize>>,
-        media: &[MediaQueryList],
-    ) -> Option<(Range<usize>, Vec<MediaQueryList>)> {
+        media: &[MediaQueryListData],
+    ) -> Option<(Range<usize>, Vec<MediaQueryListData>)> {
         let Some(block) = block else {
             self.error("`@media` needs a block", whole);
             return None;
@@ -356,7 +356,7 @@ impl SheetParser<'_> {
         selectors: &[Selector],
         declarations: Vec<BlockDeclaration>,
         layer: Option<&str>,
-        media: &[MediaQueryList],
+        media: &[MediaQueryListData],
     ) {
         if declarations.is_empty() {
             return;
@@ -642,7 +642,7 @@ mod tests {
         assert_eq!(items.len(), 2);
     }
 
-    fn media(text: &str) -> MediaQueryList {
+    fn media(text: &str) -> MediaQueryListData {
         let parsed = parse_media_query_list(text);
         assert!(parsed.problems.is_empty(), "{:?}", parsed.problems);
         parsed.list

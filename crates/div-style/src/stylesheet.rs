@@ -6,7 +6,7 @@
 //! declarations that match an element as CSS Cascade 5 orders them: origin
 //! and importance, then layer, then specificity, then order of appearance.
 
-use crate::media_query::MediaQueryList;
+use crate::media_query::MediaQueryListData;
 use crate::selector::Selector;
 use crate::Style;
 
@@ -68,7 +68,7 @@ pub struct StyleRule {
     declarations: Style,
     important: Style,
     layer: Option<String>,
-    media: Vec<MediaQueryList>,
+    media: Vec<MediaQueryListData>,
 }
 
 impl StyleRule {
@@ -101,7 +101,7 @@ impl StyleRule {
     /// Apply the rule only while `media` matches, as `@media` does. Each
     /// call adds a list, as nested `@media` rules do: the rule applies while
     /// every list matches.
-    pub fn with_media(mut self, media: MediaQueryList) -> Self {
+    pub fn with_media(mut self, media: MediaQueryListData) -> Self {
         self.media.push(media);
         self
     }
@@ -123,7 +123,7 @@ impl StyleRule {
     }
 
     /// The media query lists the rule applies under, outermost first.
-    pub fn media(&self) -> &[MediaQueryList] {
+    pub fn media(&self) -> &[MediaQueryListData] {
         &self.media
     }
 }

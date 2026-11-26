@@ -17,13 +17,14 @@
 use crate::css_tokens::{component_values, ComponentValue, Token};
 
 /// A comma-separated list of media queries. It matches when any query
-/// matches; an empty list matches.
+/// matches; an empty list matches. The `Data` suffix leaves the web's name
+/// for `div::MediaQueryList`, the handle `Document::match_media` returns.
 #[cfg_attr(
     feature = "constructor-tokens",
     derive(crate::constructor_tokens::ConstructorTokens)
 )]
 #[derive(Debug, Clone, PartialEq)]
-pub struct MediaQueryList {
+pub struct MediaQueryListData {
     pub queries: Vec<MediaQuery>,
 }
 
@@ -76,6 +77,10 @@ pub enum MediaCondition {
     Not(Box<MediaCondition>),
     And(Vec<MediaCondition>),
     Or(Vec<MediaCondition>),
+    /// A parenthesized condition, `(not (hover))` or `((width > 1px))`.
+    /// Blink keeps the grouping as a nested node, and `matchMedia().media`
+    /// serializes it; it evaluates as its inner condition.
+    Nested(Box<MediaCondition>),
     /// `<general-enclosed>`: a parenthesized or functional term Chromium
     /// does not recognise. It evaluates to unknown.
     Unknown(String),
@@ -451,7 +456,7 @@ impl MediaValues {
 /// `not all` or unknown, or Div does not evaluate yet.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParsedMediaQueryList {
-    pub list: MediaQueryList,
+    pub list: MediaQueryListData,
     pub problems: Vec<String>,
 }
 
@@ -467,7 +472,7 @@ pub fn parse_media_query_list(text: &str) -> ParsedMediaQueryList {
     // Blink: empty input is an empty list, which matches.
     if values.iter().all(ComponentValue::is_whitespace) {
         return ParsedMediaQueryList {
-            list: MediaQueryList { queries },
+            list: MediaQueryListData { queries },
             problems,
         };
     }
@@ -499,7 +504,7 @@ pub fn parse_media_query_list(text: &str) -> ParsedMediaQueryList {
         }
     }
     ParsedMediaQueryList {
-        list: MediaQueryList { queries },
+        list: MediaQueryListData { queries },
         problems,
     }
 }
@@ -519,7 +524,9 @@ fn collect_unknown(
                 reason.unwrap_or_else(|| format!("`{text}` is not a valid media feature test")),
             );
         }
-        Some(MediaCondition::Not(inner)) => collect_unknown(Some(inner), notes, problems),
+        Some(MediaCondition::Not(inner) | MediaCondition::Nested(inner)) => {
+            collect_unknown(Some(inner), notes, problems)
+        }
         Some(MediaCondition::And(list) | MediaCondition::Or(list)) => {
             for condition in list {
                 collect_unknown(Some(condition), notes, problems);
@@ -687,7 +694,7 @@ fn consume_inner(cursor: &mut Cursor, notes: &mut Vec<String>) -> Option<MediaCo
                             notes.push(note);
                         }
                     }
-                    condition
+                    condition.map(|condition| MediaCondition::Nested(Box::new(condition)))
                 }
             };
             node.unwrap_or_else(|| MediaCondition::Unknown(serialize(std::slice::from_ref(value))))
@@ -1072,6 +1079,242 @@ fn token_text(token: &Token) -> String {
     }
 }
 
+// ── Serialization ───────────────────────────────────────────────────────
+
+/// CSSOM's "serialize a media query list", as Chromium 147's
+/// `MediaQuerySet::MediaText` produces it: queries joined by `", "`, each
+/// as Blink's `MediaQuery::Serialize` and `MediaQueryExp::Serialize`
+/// (`core/css/media_query.cc`, `media_query_exp.cc`, BSD) write it. This is
+/// `matchMedia(query).media`.
+impl std::fmt::Display for MediaQueryListData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (index, query) in self.queries.iter().enumerate() {
+            if index > 0 {
+                f.write_str(", ")?;
+            }
+            write!(f, "{query}")?;
+        }
+        Ok(())
+    }
+}
+
+/// Blink's `MediaQuery::Serialize`: the restrictor, then the media type
+/// unless it is a plain `all` with a condition, then the condition.
+impl std::fmt::Display for MediaQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.restrictor {
+            MediaRestrictor::Only => f.write_str("only ")?,
+            MediaRestrictor::Not => f.write_str("not ")?,
+            MediaRestrictor::None => {}
+        }
+        let media_type = match &self.media_type {
+            MediaType::All => "all",
+            MediaType::Screen => "screen",
+            MediaType::Print => "print",
+            MediaType::Other(name) => name,
+        };
+        let Some(condition) = &self.condition else {
+            return f.write_str(media_type);
+        };
+        if self.media_type != MediaType::All || self.restrictor != MediaRestrictor::None {
+            write!(f, "{media_type} and ")?;
+        }
+        write_condition(f, condition)
+    }
+}
+
+/// A condition. A parenthesized condition is a `Nested` node and a
+/// feature brings its own parentheses, so the text keeps the source's
+/// grouping, as Blink's `ConditionalExpNode` serializers do; a
+/// `<general-enclosed>` term keeps its own text.
+fn write_condition(f: &mut std::fmt::Formatter<'_>, condition: &MediaCondition) -> std::fmt::Result {
+    match condition {
+        MediaCondition::Feature(feature) => write!(f, "({feature})"),
+        MediaCondition::Unknown(text) => f.write_str(text),
+        MediaCondition::Nested(inner) => {
+            f.write_str("(")?;
+            write_condition(f, inner)?;
+            f.write_str(")")
+        }
+        MediaCondition::Not(inner) => {
+            f.write_str("not ")?;
+            write_condition(f, inner)
+        }
+        MediaCondition::And(terms) | MediaCondition::Or(terms) => {
+            let joiner = if matches!(condition, MediaCondition::And(_)) {
+                " and "
+            } else {
+                " or "
+            };
+            for (index, term) in terms.iter().enumerate() {
+                if index > 0 {
+                    f.write_str(joiner)?;
+                }
+                write_condition(f, term)?;
+            }
+            Ok(())
+        }
+    }
+}
+
+impl MediaFeatureName {
+    fn css_name(self) -> &'static str {
+        match self {
+            Self::Width => "width",
+            Self::Height => "height",
+            Self::AspectRatio => "aspect-ratio",
+            Self::Orientation => "orientation",
+            Self::Resolution => "resolution",
+            Self::WebkitDevicePixelRatio => "-webkit-device-pixel-ratio",
+            Self::PrefersColorScheme => "prefers-color-scheme",
+            Self::PrefersReducedMotion => "prefers-reduced-motion",
+            Self::Hover => "hover",
+            Self::AnyHover => "any-hover",
+            Self::Pointer => "pointer",
+            Self::AnyPointer => "any-pointer",
+            Self::ForcedColors => "forced-colors",
+        }
+    }
+}
+
+/// Blink's `MediaQueryExp::Serialize`, without the parentheses.
+impl std::fmt::Display for MediaFeature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let base = self.name.css_name();
+        let name = match self.prefix {
+            None => base.to_owned(),
+            Some(prefix) => {
+                let prefix = match prefix {
+                    RangePrefix::Min => "min-",
+                    RangePrefix::Max => "max-",
+                };
+                match base.strip_prefix("-webkit-") {
+                    Some(rest) => format!("-webkit-{prefix}{rest}"),
+                    None => format!("{prefix}{base}"),
+                }
+            }
+        };
+        match &self.test {
+            FeatureTest::Boolean => f.write_str(&name),
+            FeatureTest::Plain(value) => write!(f, "{name}: {value}"),
+            FeatureTest::Range { left, right } => {
+                if let Some((value, op)) = left {
+                    write!(f, "{value} {} ", op.css_text())?;
+                }
+                f.write_str(&name)?;
+                if let Some((op, value)) = right {
+                    write!(f, " {} {value}", op.css_text())?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Comparison {
+    fn css_text(self) -> &'static str {
+        match self {
+            Self::Eq => "=",
+            Self::Lt => "<",
+            Self::Le => "<=",
+            Self::Gt => ">",
+            Self::Ge => ">=",
+        }
+    }
+}
+
+impl std::fmt::Display for FeatureValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Length { value, unit } => {
+                let unit = match unit {
+                    MediaLengthUnit::Px => "px",
+                    MediaLengthUnit::Cm => "cm",
+                    MediaLengthUnit::Mm => "mm",
+                    MediaLengthUnit::Q => "q",
+                    MediaLengthUnit::In => "in",
+                    MediaLengthUnit::Pt => "pt",
+                    MediaLengthUnit::Pc => "pc",
+                    MediaLengthUnit::Em => "em",
+                    MediaLengthUnit::Rem => "rem",
+                    MediaLengthUnit::Vw => "vw",
+                    MediaLengthUnit::Vh => "vh",
+                    MediaLengthUnit::Vmin => "vmin",
+                    MediaLengthUnit::Vmax => "vmax",
+                };
+                write!(f, "{}{unit}", css_number(*value))
+            }
+            Self::Number { value, .. } => f.write_str(&css_number(*value)),
+            Self::Ratio {
+                numerator,
+                denominator,
+            } => write!(f, "{} / {}", css_number(*numerator), css_number(*denominator)),
+            Self::Resolution { value, unit } => {
+                let unit = match unit {
+                    ResolutionUnit::Dppx => "dppx",
+                    ResolutionUnit::X => "x",
+                    ResolutionUnit::Dpi => "dpi",
+                    ResolutionUnit::Dpcm => "dpcm",
+                };
+                write!(f, "{}{unit}", css_number(*value))
+            }
+            Self::Keyword(keyword) => f.write_str(match keyword {
+                MediaKeyword::Portrait => "portrait",
+                MediaKeyword::Landscape => "landscape",
+                MediaKeyword::None => "none",
+                MediaKeyword::Hover => "hover",
+                MediaKeyword::Coarse => "coarse",
+                MediaKeyword::Fine => "fine",
+                MediaKeyword::Light => "light",
+                MediaKeyword::Dark => "dark",
+                MediaKeyword::NoPreference => "no-preference",
+                MediaKeyword::Reduce => "reduce",
+                MediaKeyword::Active => "active",
+            }),
+        }
+    }
+}
+
+/// A number as Chromium serializes a CSS numeric value: like C's `%g`,
+/// six significant digits without trailing zeros, in exponent form below
+/// 1e-4 and from 1e6 on (`1.23457e+07`, `1e-06`). Negative zero is `0`.
+pub(crate) fn css_number(value: f64) -> String {
+    if value == 0.0 {
+        return "0".to_owned();
+    }
+    if !value.is_finite() {
+        return if value.is_nan() {
+            "NaN".to_owned()
+        } else if value > 0.0 {
+            "inf".to_owned()
+        } else {
+            "-inf".to_owned()
+        };
+    }
+    // Round to six significant digits first; the exponent of the rounded
+    // value picks the form, as `%g` does.
+    let scientific = format!("{value:.5e}");
+    let (mantissa, exponent) = scientific
+        .split_once('e')
+        .expect("`{:e}` output has an exponent");
+    let exponent: i32 = exponent.parse().expect("`{:e}` exponent is an integer");
+    if !(-4..6).contains(&exponent) {
+        let mantissa = trim_fraction(mantissa);
+        let sign = if exponent < 0 { '-' } else { '+' };
+        return format!("{mantissa}e{sign}{:02}", exponent.abs());
+    }
+    let decimals = (5 - exponent) as usize;
+    trim_fraction(&format!("{value:.decimals$}")).to_owned()
+}
+
+fn trim_fraction(text: &str) -> &str {
+    if text.contains('.') {
+        text.trim_end_matches('0').trim_end_matches('.')
+    } else {
+        text
+    }
+}
+
 // ── Evaluation ──────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1091,7 +1334,7 @@ impl From<bool> for Kleene {
     }
 }
 
-impl MediaQueryList {
+impl MediaQueryListData {
     /// Whether the list matches: an empty list does, otherwise any query.
     pub fn matches(&self, values: &MediaValues) -> bool {
         self.queries.is_empty() || self.queries.iter().any(|query| query.matches(values))
@@ -1123,6 +1366,7 @@ impl MediaCondition {
         match self {
             Self::Feature(feature) => feature.evaluate(values).into(),
             Self::Unknown(_) => Kleene::Unknown,
+            Self::Nested(inner) => inner.evaluate(values),
             Self::Not(inner) => match inner.evaluate(values) {
                 Kleene::True => Kleene::False,
                 Kleene::False => Kleene::True,

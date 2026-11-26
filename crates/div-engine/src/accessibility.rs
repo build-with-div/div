@@ -221,6 +221,7 @@ impl Engine {
             self.reduced_motion = reduced;
             self.mark_dirty(div_style::InvalidationClass::Accessibility);
             self.note_media_change();
+            self.evaluate_match_media_lists();
             let _ = self.sample_animations();
         }
     }
