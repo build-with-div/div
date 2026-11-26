@@ -83,7 +83,10 @@ E: was below its free-space floor; CI builds and tests it.
 | Check | Commit | Result |
 | --- | --- | --- |
 | Damage gate, Linux, 1x and 2x | `0cdd653` on `main` `271415b` | Pass, 100,898 steps per scale, 0 with uncovered pixels, 0 fixture errors, 2 known aborts |
+| Damage gate, Windows, 1x and 2x | `974962a` (final head) on `main` `4dc219e` | Pass, 100,898 steps per scale, 0 with uncovered pixels, 0 fixture errors, 2 known aborts |
 | Damage gate, Windows, 1x and 2x | `f488add` (earlier revision) | Pass, 104,860 steps per scale, 0 with uncovered pixels, 4 aborted fixtures |
+| Census, all four profiles | `4dc219e` (engine's run) to `974962a` | 16,297 of 23,728 exact before and after, 0 tests with a changed status or image hash |
+| CSS Grid coverage, all four profiles | `4dc219e` (engine's run) to `974962a` | 1,473 of 4,204 exact before and after, 156 errors before and after, 0 tests changed |
 | Census, all four profiles | `4e69bdf` to `7c816ac` | 16,297 of 23,728 exact before and after, every status, mismatch and Div image hash identical |
 | Census, real zoom subset | `4e69bdf` to `7c816ac` | 10,404 of 17,796 exact before and after, identical |
 | CSS Grid coverage, all four profiles | `4e69bdf` to `7c816ac` | 1,473 of 4,204 exact before and after, 156 errors before and after, identical |
@@ -114,7 +117,8 @@ they first hit `attempt to subtract with overflow` at
 engine track. They count as aborts only with that allocation message; any
 other abort is no result. On Windows, at `f488add`, those two references and
 their test pages (`-002` and `-003`) aborted with exit
-`0xC0000409`.
+`0xC0000409`. At `974962a` only the two references aborted on Windows, with
+the same exit, at both scales.
 
 The Linux gate's Skia build used `main`'s Linux flags, including
 `-USK_ENABLE_AVX512_OPTS`, read back from its `args.gn`.
@@ -125,12 +129,9 @@ the gate receipt and log, and the frame-cost and P7 logs with their
 conditions and binary hashes. `main`'s pin, `b6c41deb`, already contains
 that commit, so this change does not move the lock.
 
-**What the census pair and the gate do not cover.** The census pair was
-measured at `4e69bdf` against `7c816ac`, before #120, #131, #132, #134,
-#135, #136, #137 and #139, and was not rerun on the new Skia flags. The
-Linux gate ran at `0cdd653` on `main` `271415b`, before #112 (Windows Skia
-flags only), #140, #141, #126, #133, #143, #145, #147, #142 (Linux Skia at
-`-O2`) and #150. The code patch is unchanged by every rebase:
+**Census pair on the final head.** The earlier pair, `4e69bdf` against
+`7c816ac`, predates #120, #131, #132, #134, #135, #136, #137, #139 and the
+Linux `-O2` flags of #142. The code patch is unchanged by every rebase:
 
 ```text
 git diff <base> <head> | git patch-id --stable
@@ -141,12 +142,41 @@ dde5083..33255b7  35a50ffec9c76fb5e1967617954f374c960ea44a
 4dc219e..ab3a6ed  35a50ffec9c76fb5e1967617954f374c960ea44a
 ```
 
-The census pair carries to `ab3a6ed`, A1's code on `main` `4dc219e`,
-because its patch ID is unchanged. The narrowing after it (`9d705b2` and the
-`hash_font` fix) is a separate check: a masked byte comparison of the
-`pixel_compare` binaries built at `efa3f8a` (A1 before the narrowing, also
-on `4dc219e`) and at the final head, with the same flags, under the census
-lock, once drive E: has space again. It has not run yet.
+So that pair carries to `ab3a6ed`, A1's code on `main` `4dc219e`. The
+narrowing after it (`9d705b2` and the `hash_font` fix) was checked first by a
+masked byte comparison: release `pixel_compare` built at `efa3f8a` (A1
+before the narrowing, on `4dc219e`) and at `974962a` in one WSL clone and
+one target directory, with the Skia flags of `ci.yml` (identical on both
+sides), masking only the embedded build-identity block. The binaries were
+not comparable: 472,848,424 and 472,849,984 bytes (sha256 `5576df71...` and
+`ddf8c202...`), with the identity block at different offsets. The narrowing
+changes the binary, so a full pair was run on `main` `4dc219e`.
+
+The base side of that pair is the engine track's run of `main` `4dc219e` for
+#149, used because its recipe is the same: the same commit, data pin
+`b6c41deb`, Linux Skia flags read from `ci.yml` with no override (`-O2`
+included), Chromium 147.0.7727.50 from the shared oracle cache, 16 jobs, no
+`--profile` argument, and a byte-identical list of 1,051 CSS Grid coverage
+IDs (sha256 `179fe661...`). Before measuring the head, the run checked that
+both base summaries were complete, at `4dc219e`, with the head's flags and
+that ID list. Base files, which this change did not produce:
+
+```text
+/mnt/f/div-out/engine/census-results/expanded-m4dc2/expanded-summary.json  41a6240fd34f28688f203285fed8c5029bb0663d16872eb277a21b7560d3b25d
+/mnt/f/div-out/engine/census-results/coverage-m4dc2/coverage-summary.json  e7ee6727960525c7b49e1a299def0b014582376ae3bc49ad41dcb35139f61ffe
+pixel_compare  89b154c367fa98916488f158e1b6b9c47975b46b46d3d7b6778b3abe112a0508
+receipt.json   6fa6f267448acd40c71a5373801e830e7290a7bc1f5748e95971a053f7eedf5d
+```
+
+The head, `974962a`, was built and measured by this track: `pixel_compare`
+`ef0437bb55ad90aa0fff39a3aa09cbb2d807021fb41dd6c8dc5b2e0f57ae970d`, receipt
+`b1068fdcae6669a5477f1a9a2832973ae210d364c60c3a45602885f94bfbb1ab`. Across
+the 23,728 census results and 4,204 coverage results, every test's status,
+Div image hash and Chromium image hash is identical. The only per-test field
+that differs is the cache identity, which is derived from the build. The
+Chromium, raster, contract, resource and font hashes are the same on both
+sides. The pair covers the default profiles only, not the real-zoom subset.
+These receipts are not in the data repository.
 
 #136 and #143 change `div-text` font lifetimes next to A1's text
 fingerprints, so the crate tests were rerun on `0cdd653` and `e0a80c2`. The
@@ -186,8 +216,12 @@ no longer compiled against `main`.
 RFC 0006's frame targets (one changed square under 1 ms) need A2 and A3 and
 are not claimed here.
 
-**Not run locally.** The Windows suites run in CI. The Windows damage gate
-ran at `f488add`, an earlier revision of this change, and not on the final
-head. It used the Windows Skia flags of that time, before #132 and #112. The
-gate compares renders made by one binary, so the flags change which pixels it
-sees, not whether the damage covers them.
+**Windows.** The Windows suites run in CI. The Windows damage gate was
+rerun on the final head, `974962a`, with `main`'s Windows Skia flags read
+from the `windows-msvc` job of `ci.yml` (including
+`/clang:-ffp-contract=off`, checked in the build's `args.gn`), under the
+census lock. It used MSVC toolset 14.52.37025 from Visual Studio 18 Build
+Tools, not CI's 14.44, which is no longer installed. Skia's ninja ran through
+a `SKIA_NINJA_COMMAND` wrapper with `-j4`; the wrapper does not log each
+call on Windows. The fixture crate was unoptimized, as on Linux. The earlier
+Windows run at `f488add` used the flags of that time, before #132 and #112.

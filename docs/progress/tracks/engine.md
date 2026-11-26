@@ -447,9 +447,10 @@ From the framework track's review of #149:
   between two recordings; nothing presents with it yet, so pixels are
   unchanged. The new `pixel_compare damage-coverage` gate passes on Linux at
   1x and 2x with no pixel outside the damage over 100,898 steps per scale
-  (fixture crate unoptimized). The census and CSS Grid coverage are
-  unchanged at all four profiles, measured at `4e69bdf` against `7c816ac`
-  (evidence `fcbb6f3e`). The rebased code patch has the same patch ID.
-  Linux crate tests pass at `0cdd653` and `e0a80c2`. Frame cost and
-  P7 are in the record.
+  (fixture crate unoptimized), and on Windows at the final head `974962a`.
+  The census and CSS Grid coverage are unchanged at all four profiles,
+  measured at `4e69bdf` against `7c816ac` (evidence `fcbb6f3e`) and again
+  on `main` `4dc219e` against `974962a`, the base being the engine track's
+  #149 run of the same recipe. Linux crate tests pass at `0cdd653` and
+  `e0a80c2`. Frame cost and P7 are in the record.
   [Record](../paint-chunks-a1-2026-11-23.md).
