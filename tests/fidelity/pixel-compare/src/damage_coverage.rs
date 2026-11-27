@@ -10,6 +10,10 @@
 //!
 //! The over-damage it prints (damaged area over viewport area, and how many
 //! steps fell back to the whole viewport) is a statistic, not a gate.
+//!
+//! Each frame is also rendered by one compositor kept for the fixture, which
+//! rasters only the tiles the damage meets (RFC 0006 A2). That frame must
+//! equal the full raster byte for byte.
 
 use div_compositor::{Frame, PhysicalSceneRect, SceneSnapshot, SoftwareCompositor};
 use div_dom::ElementTag;
@@ -224,6 +228,13 @@ struct Totals {
     area: u64,
 }
 
+/// Whether a retained compositor's frame equals the full raster, byte for
+/// byte, including its size and stride.
+fn same_frame(partial: &Frame, full: &Frame) -> bool {
+    (partial.width, partial.height, partial.stride) == (full.width, full.height, full.stride)
+        && partial.pixels == full.pixels
+}
+
 /// Runs the gate over `fixtures` and returns whether every step passed.
 /// Each step is announced on stderr first, so an abort names its step.
 pub fn run(
@@ -232,6 +243,7 @@ pub fn run(
     filter: Option<&str>,
 ) -> bool {
     let (mut steps, mut failures, mut fallbacks, mut errors) = (0usize, 0usize, 0usize, 0usize);
+    let mut partial_failures = 0usize;
     let (mut damaged, mut total_area) = (0u64, 0u64);
     let mut totals: Vec<Totals> = MUTATIONS.iter().map(|_| Totals::default()).collect();
     for (id, builder) in fixtures {
@@ -251,6 +263,14 @@ pub fn run(
             errors += 1;
             continue;
         };
+        let mut retained = SoftwareCompositor::default();
+        match retained.render(&previous_scene) {
+            Ok(partial) if same_frame(&partial, &previous) => {}
+            _ => {
+                partial_failures += 1;
+                println!("PARTIAL {id} first frame: retained frame differs from the full raster");
+            }
+        }
         let picked = targets(&engine);
         for (index, (name, mutation)) in MUTATIONS.iter().enumerate() {
             eprintln!("step {id} {name}");
@@ -265,6 +285,13 @@ pub fn run(
             // presented, across any scenes the engine built in between.
             let damage = scene.physical_damage_since(&previous_scene);
             let step = compare(&previous, &next, &damage);
+            match retained.render(&scene) {
+                Ok(partial) if same_frame(&partial, &next) => {}
+                _ => {
+                    partial_failures += 1;
+                    println!("PARTIAL {id} {name}: retained frame differs from the full raster");
+                }
+            }
             steps += 1;
             damaged += step.damaged_area;
             total_area += u64::from(next.width) * u64::from(next.height);
@@ -290,9 +317,14 @@ pub fn run(
         }
     }
     println!(
-        "damage-coverage: {steps} steps, {failures} with uncovered pixels, {fallbacks} full-viewport, \
-         {errors} fixture errors; damaged area {:.1}% of the viewport",
-        if total_area == 0 { 0.0 } else { damaged as f64 * 100.0 / total_area as f64 }
+        "damage-coverage: {steps} steps, {failures} with uncovered pixels, \
+         {partial_failures} with a partial frame unequal to the full raster, \
+         {fallbacks} full-viewport, {errors} fixture errors; damaged area {:.1}% of the viewport",
+        if total_area == 0 {
+            0.0
+        } else {
+            damaged as f64 * 100.0 / total_area as f64
+        }
     );
     for ((name, _), total) in MUTATIONS.iter().zip(&totals) {
         let percent = |part: u64| {
@@ -311,5 +343,5 @@ pub fn run(
             percent(total.changed)
         );
     }
-    failures == 0
+    failures == 0 && partial_failures == 0
 }

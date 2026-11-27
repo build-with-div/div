@@ -176,7 +176,13 @@ Div image hash and Chromium image hash is identical. The only per-test field
 that differs is the cache identity, which is derived from the build. The
 Chromium, raster, contract, resource and font hashes are the same on both
 sides. The pair covers the default profiles only, not the real-zoom subset.
-These receipts are not in the data repository.
+Its receipts are in the data repository at `b1cd0d57`, under
+`docs/progress/evidence/paint-chunks-a1-{census,coverage}-v2.json`, with
+`paint-chunks-a1-pair-v2-sources.json` holding both sides' binary,
+build-receipt and summary hashes. The full summaries and the build receipts
+are not there: the receipts hold local paths, and the base's receipt file no
+longer exists. The data commit is archive-only, so `fidelity-data.lock` was
+not moved for it.
 
 **Rebase onto `main` `e9b6768`.** After these measurements the branch was
 rebased onto `e9b6768`, which adds #151, #152 and #149. The results above

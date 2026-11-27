@@ -2,7 +2,7 @@
 
 use div_geometry::{RasterConfiguration, RasterSnapping, ViewportMetrics};
 use div_layout::Fragment;
-use div_paint::{rasterize_picture, LayeredPaintCapture, RecordedPicture};
+use div_paint::{rasterize_picture, LayeredPaintCapture, RecordedPicture, RetainedRaster};
 use skia_safe::image::CachingHint;
 use skia_safe::{Canvas, EncodedImageFormat};
 use std::sync::{Arc, Condvar, Mutex};
@@ -301,22 +301,19 @@ impl std::error::Error for CompositorError {}
 
 /// Retain the immutable recording while its frame is cached. Scene generations
 /// belong to individual documents, so a generation alone cannot identify pixels.
+///
+/// The frame's raster is kept too, so the next scene rasters only the tiles
+/// its damage meets (RFC 0006 A2).
 struct CachedFrame {
-    picture: Arc<RecordedPicture>,
+    scene: SceneSnapshot,
+    raster: RetainedRaster,
     frame: Frame,
 }
 
 impl CachedFrame {
-    fn new(scene: &SceneSnapshot, frame: Frame) -> Self {
-        Self {
-            picture: Arc::clone(&scene.picture),
-            frame,
-        }
-    }
-
     fn frame_for(&self, scene: &SceneSnapshot) -> Option<Frame> {
         (self.frame.scene_generation == scene.generation
-            && Arc::ptr_eq(&self.picture, &scene.picture))
+            && Arc::ptr_eq(&self.scene.picture, &scene.picture))
         .then(|| self.frame.clone())
     }
 }
@@ -332,6 +329,16 @@ pub struct SoftwareCompositor {
     last_layered_frame: Option<CachedLayeredFrame>,
     last_source_frame: Option<(Arc<div_paint::SourceLayerPaintCapture>, Frame)>,
     stats: CompositorStats,
+    partial: PartialRasterStats,
+}
+
+/// Frames rastered from the previous frame's raster, and the tiles they
+/// rastered again (RFC 0006 A2).
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PartialRasterStats {
+    pub frames: u64,
+    pub tiles: u64,
 }
 
 impl Default for SoftwareCompositor {
@@ -343,6 +350,7 @@ impl Default for SoftwareCompositor {
             last_layered_frame: None,
             last_source_frame: None,
             stats: CompositorStats::default(),
+            partial: PartialRasterStats::default(),
         }
     }
 }
@@ -391,12 +399,78 @@ impl SoftwareCompositor {
             self.stats.reused += 1;
             return Ok(frame);
         }
-        let mut surface = rasterize_picture(&scene.picture).map_err(CompositorError::Raster)?;
-        let frame = frame_from_surface(scene, &mut surface)?;
+        let cached = match self.last_frame.take() {
+            Some(previous) => self.raster_since(previous, scene)?,
+            None => {
+                let mut raster =
+                    RetainedRaster::new(&scene.picture).map_err(CompositorError::Raster)?;
+                let frame = frame_from_surface(scene, raster.surface())?;
+                CachedFrame {
+                    scene: scene.clone(),
+                    raster,
+                    frame,
+                }
+            }
+        };
+        let frame = cached.frame.clone();
         self.stats.rasterized += 1;
         self.last_presented = Some(scene.generation);
-        self.last_frame = Some(CachedFrame::new(scene, frame.clone()));
+        self.last_frame = Some(cached);
         Ok(frame)
+    }
+
+    /// Rasters `scene` from the previous frame's raster: only the tiles that
+    /// the damage between the two scenes meets are rastered again, and only
+    /// the pixels that can have changed are read back.
+    fn raster_since(
+        &mut self,
+        previous: CachedFrame,
+        scene: &SceneSnapshot,
+    ) -> Result<CachedFrame, CompositorError> {
+        let CachedFrame {
+            scene: previous_scene,
+            mut raster,
+            frame: previous_frame,
+        } = previous;
+        let damage = scene
+            .physical_damage_since(&previous_scene)
+            .into_iter()
+            .map(|rect| {
+                skia_safe::IRect::from_xywh(
+                    rect.x as i32,
+                    rect.y as i32,
+                    rect.width as i32,
+                    rect.height as i32,
+                )
+            })
+            .collect::<Vec<_>>();
+        let update = raster
+            .update(&scene.picture, &damage)
+            .map_err(CompositorError::Raster)?;
+        if let Some(tiles) = update.tiles {
+            self.partial.frames += 1;
+            self.partial.tiles += tiles as u64;
+        }
+        let frame = match update.changed {
+            Some(changed)
+                if previous_frame.viewport == scene.viewport
+                    && previous_frame.raster_configuration == scene.raster_configuration =>
+            {
+                patch_frame(previous_frame, scene, raster.surface(), &changed)?
+            }
+            _ => frame_from_surface(scene, raster.surface())?,
+        };
+        Ok(CachedFrame {
+            scene: scene.clone(),
+            raster,
+            frame,
+        })
+    }
+
+    /// Frames rastered partially, and their re-rastered tiles.
+    #[doc(hidden)]
+    pub fn partial_raster_stats(&self) -> PartialRasterStats {
+        self.partial
     }
 
     /// Explicit static layer diagnostic using the existing CPU tile, clear,
@@ -462,6 +536,43 @@ impl SoftwareCompositor {
         self.stats.rasterized += 1;
         Ok(data.as_bytes().to_vec())
     }
+}
+
+/// Reads back only `changed` into the previous frame's pixels. The rest of
+/// the surface is unchanged since `previous` was read from it.
+fn patch_frame(
+    previous: Frame,
+    scene: &SceneSnapshot,
+    surface: &mut skia_safe::Surface,
+    changed: &[skia_safe::IRect],
+) -> Result<Frame, CompositorError> {
+    let mut frame = previous;
+    frame.scene_generation = scene.generation;
+    if changed.is_empty() {
+        return Ok(frame);
+    }
+    let image = surface.image_snapshot();
+    let bounds = skia_safe::IRect::from_wh(frame.width as i32, frame.height as i32);
+    for rect in changed {
+        let Some(rect) = skia_safe::IRect::intersect(rect, &bounds) else {
+            continue;
+        };
+        let info = image
+            .image_info()
+            .with_color_type(skia_safe::ColorType::RGBA8888)
+            .with_dimensions((rect.width(), rect.height()));
+        let offset = rect.top as usize * frame.stride + rect.left as usize * 4;
+        if !image.read_pixels(
+            &info,
+            &mut frame.pixels[offset..],
+            frame.stride,
+            (rect.left, rect.top),
+            CachingHint::Allow,
+        ) {
+            return Err(CompositorError::ReadPixels);
+        }
+    }
+    Ok(frame)
 }
 
 // Canonical and diagnostic readback share the same explicit RGBA/stride path.

@@ -105,6 +105,10 @@ pub(crate) struct DocumentInner {
     pointers: RefCell<pointer_dispatch::PointerDispatchState>,
     selection_tasks: selection_tasks::SelectionTasks,
     transaction_depth: Cell<usize>,
+    /// The compositor `render_to_bitmap` keeps between frames, so a frame
+    /// rasters only the tiles its damage meets (RFC 0006 A2). It goes with
+    /// the document.
+    compositor: RefCell<Option<SoftwareCompositor>>,
     #[cfg(feature = "ffi-integration")]
     foreign_event_handler: RefCell<Option<Rc<ForeignEventHandler>>>,
 }
@@ -231,6 +235,7 @@ impl Document {
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
+                compositor: RefCell::new(None),
                 #[cfg(feature = "ffi-integration")]
                 foreign_event_handler: RefCell::new(None),
             }),
@@ -267,6 +272,7 @@ impl Document {
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
+                compositor: RefCell::new(None),
                 foreign_event_handler: RefCell::new(None),
             }),
         }
@@ -922,7 +928,12 @@ impl Document {
     pub fn render_to_bitmap(&self) -> Result<Bitmap, Error> {
         let scene = self.with_engine_mut(|engine| engine.scene())?;
         self.dispatch_animation_events()?;
-        let frame = SoftwareCompositor::default().render(&scene)?;
+        let frame = self
+            .inner
+            .compositor
+            .borrow_mut()
+            .get_or_insert_with(SoftwareCompositor::default)
+            .render(&scene)?;
         Ok(Bitmap {
             pixels: frame.pixels,
             width: frame.width,
