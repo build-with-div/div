@@ -79,6 +79,7 @@ def _consume_openui_directives(template):
         "FINAL_HTML_ATTRS": {},
         "FINAL_BODY_ATTRS": {},
         "FINAL_SCROLLS": [],
+        "FINAL_MODALS": [],
     }
     while True:
         if template.startswith("<!--OPENUI_ROOT_AWARE-->\n"):
@@ -86,7 +87,7 @@ def _consume_openui_directives(template):
             template = template[len("<!--OPENUI_ROOT_AWARE-->\n"):]
             continue
         match = re.match(
-            r"<!--OPENUI_(FINAL_HTML_ATTRS|FINAL_BODY_ATTRS|FINAL_SCROLLS):"
+            r"<!--OPENUI_(FINAL_HTML_ATTRS|FINAL_BODY_ATTRS|FINAL_SCROLLS|FINAL_MODALS):"
             r"([A-Za-z0-9_=-]+)-->\n?",
             template,
         )
@@ -105,6 +106,11 @@ def _consume_openui_directives(template):
         raise ValueError("final body attributes must be an object")
     if not isinstance(values["FINAL_SCROLLS"], list):
         raise ValueError("final scroll state must be an array")
+    if not isinstance(values["FINAL_MODALS"], list) or not all(
+        isinstance(marker, str) and re.fullmatch(r"[0-9]+", marker)
+        for marker in values["FINAL_MODALS"]
+    ):
+        raise ValueError("final modal dialogs must be an array of ranks")
     return template, root_aware, values
 
 
@@ -130,6 +136,16 @@ def build_html_document(template):
     harness_style = ROOT_BODY_STYLE if root_aware else BODY_STYLE
     html_attrs = _html_attributes(directives["FINAL_HTML_ATTRS"])
     body_attrs = _html_attributes(directives["FINAL_BODY_ATTRS"])
+    modal_script = ""
+    if directives["FINAL_MODALS"]:
+        # The lowered script's modal dialogs, in top-layer order (RFC 0015).
+        modal_json = json.dumps(directives["FINAL_MODALS"], separators=(",", ":"))
+        modal_script = (
+            '<script style="display:none!important">'
+            f"for(const m of {modal_json}){{document.querySelector("
+            "`dialog[data-openui-final-modal=\"${m}\"]`).showModal()}"
+            "</script>"
+        )
     scroll_script = ""
     if directives["FINAL_SCROLLS"]:
         scroll_json = json.dumps(
@@ -145,7 +161,7 @@ def build_html_document(template):
     return (
         f"<!DOCTYPE html><html{html_attrs}><head>"
         f'<style style="display:none!important">{harness_style}</style>'
-        f"</head><body{body_attrs}>{template}{scroll_script}</body></html>"
+        f"</head><body{body_attrs}>{template}{modal_script}{scroll_script}</body></html>"
     )
 
 # HTML templates for each test pattern.

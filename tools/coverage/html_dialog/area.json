@@ -1,0 +1,11 @@
+{
+ "area": "html/semantics/interactive-elements/the-dialog-element",
+ "dialog_elements": true,
+ "fixtures": [
+  "closed-dialog-author-display-block.html"
+ ],
+ "mutation_ir": true,
+ "root": "wpt",
+ "schema_version": 1,
+ "selection": "directory"
+}

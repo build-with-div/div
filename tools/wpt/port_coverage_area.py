@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Port one WPT CSS area into a separate coverage suite.
+"""Port one WPT area into a separate coverage suite.
 
 A coverage suite measures an area the expanded census does not include. It
 reuses the porter's deterministic Ahem profile, but keeps its own Rust module,
@@ -17,14 +17,33 @@ Outputs:
   tools/coverage/<module>/port-report.json (counts and reasons per file)
 
 ``--check`` regenerates everything in memory and fails if any output differs.
+
+An area outside ``css/`` is described by ``tools/coverage/<module>/area.json``:
+its directory under the WPT root and its opt-ins. The directory is ported
+whole, by the rule in ``SELECTION_RULE``: no file is picked by hand. The
+report lists every file the rule leaves out, with its reason, and every
+test document it ports or cannot port, with the porter's reason. With
+``"mutation_ir": true`` the area's scripts are read with the same pinned Acorn
+frontend and validators as the renderer contract, into
+``tools/coverage/<module>/mutation-ir.json``; only such an area lowers
+scripts. Lowered tests are measured, never qualified, and never enter the
+census manifests. An area without ``area.json`` ports every file under
+``CHROMIUM_WPT_CSS/<area>`` exactly as before.
+
+An area may also list ``fixtures``: script-free pages of Div's own under
+``tools/coverage/<module>/fixtures/``, for a case no WPT file covers. They
+are ported and captured like the WPT files, with test IDs under
+``div/<module>/`` so they are never mistaken for WPT tests.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -61,6 +80,178 @@ def wpt_css_root() -> Path:
     )
 
 
+AREA_KEYS = {"schema_version", "root", "area", "selection", "dialog_elements", "mutation_ir"}
+OPTIONAL_AREA_KEYS = {"fixtures"}
+# The only selection: the whole directory, as area_files() walks it.
+SELECTION = "directory"
+SELECTION_RULE = (
+    "every .html, .htm, .xht and .xhtml file of the directory outside its "
+    "support, resources, crashtests and tentative subdirectories is ported or "
+    "listed in not_portable with the porter's reason; every other file is "
+    "listed in excluded with its reason"
+)
+METADATA_FILES = {"DIR_METADATA", "OWNERS", "META.yml", "WEB_FEATURES.yml", "README.md"}
+
+
+def area_config(module: str) -> dict | None:
+    """The module's ``area.json``, validated, or None for a css area."""
+    path = COVERAGE_DIR / module / "area.json"
+    if not path.is_file():
+        return None
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not AREA_KEYS <= set(config) <= AREA_KEYS | OPTIONAL_AREA_KEYS
+        or config["schema_version"] != 1
+    ):
+        raise SystemExit(
+            f"{path}: expected keys {sorted(AREA_KEYS)} (and optionally "
+            f"{sorted(OPTIONAL_AREA_KEYS)}), schema_version 1"
+        )
+    if config["root"] != "wpt":
+        raise SystemExit(f"{path}: root must be \"wpt\"")
+    if config["selection"] != SELECTION:
+        raise SystemExit(f"{path}: selection must be \"{SELECTION}\" ({SELECTION_RULE})")
+    fixtures = config.get("fixtures", ["placeholder.html"])
+    if (
+        not isinstance(fixtures, list)
+        or not fixtures
+        or fixtures != sorted(set(fixtures))
+        or not all(
+            isinstance(name, str) and "/" not in name and name.endswith(EXTENSIONS)
+            for name in fixtures
+        )
+    ):
+        raise SystemExit(f"{path}: fixtures must be a sorted list of unique test files")
+    if not isinstance(config["dialog_elements"], bool) or not isinstance(
+        config["mutation_ir"], bool
+    ):
+        raise SystemExit(f"{path}: dialog_elements and mutation_ir are booleans")
+    return config
+
+
+DIALOG_RS = ROOT / "crates/div-engine/src/dialog.rs"
+# Properties a dialog's children inherit, as far as a UA rule could set them.
+INHERITED_PREFIXES = (
+    "color", "font", "line-height", "letter-spacing", "word-spacing", "white-space",
+    "text-", "direction", "visibility", "cursor", "list-style", "writing-mode",
+)
+
+
+def dialog_user_agent_guard(source: str | None = None) -> None:
+    """Fail when the engine's dialog UA sheet leaves what the porter models.
+
+    The porter creates dialogs as the engine's named element and lets the
+    engine's ``DIALOG_USER_AGENT_RULES`` style them, except for the
+    inherited declarations it passes to children itself
+    (``port_wpt._DIALOG_UA_INHERITED``). A rule for another element, or a
+    changed inherited declaration, would make ported fixtures differ from
+    the engine without a visible cause. ``source`` stands in for
+    ``dialog.rs`` in tests.
+    """
+    if source is None:
+        source = DIALOG_RS.read_text(encoding="utf-8")
+    match = re.search(
+        r"DIALOG_USER_AGENT_RULES: &\[\(&str, &str\)\] = &\[(.*?)\n\];", source, re.S
+    )
+    if match is None:
+        raise SystemExit(f"{DIALOG_RS}: DIALOG_USER_AGENT_RULES not found")
+    block = match.group(1)
+    selectors = re.findall(r'(?<!concat!)\(\s*"([^"]+)"', block)
+    others = [selector for selector in selectors if not re.match(r"dialog(?![-\w])", selector)]
+    if not selectors or others:
+        raise SystemExit(
+            "DIALOG_USER_AGENT_RULES styles elements other than dialog, which the "
+            "porter does not model: " + ", ".join(others or ["(no rules)"])
+        )
+    # Each rule's concat! pieces end at a declaration boundary.
+    declarations = ";".join(re.findall(r'"([^"]*)"', block))
+    inherited = {}
+    for declaration in declarations.split(";"):
+        name, _, value = declaration.partition(":")
+        name = name.strip()
+        if name.startswith(INHERITED_PREFIXES):
+            inherited[name] = value.strip()
+    if inherited != port_wpt._DIALOG_UA_INHERITED:
+        raise SystemExit(
+            f"DIALOG_USER_AGENT_RULES' inherited declarations {inherited} differ from "
+            f"port_wpt._DIALOG_UA_INHERITED {port_wpt._DIALOG_UA_INHERITED}"
+        )
+
+
+def wpt_root() -> Path:
+    if not os.environ.get("CHROMIUM_WPT_ROOT") or not port_wpt.WPT_SOURCE_ROOT.is_dir():
+        raise SystemExit("CHROMIUM_WPT_ROOT must name the pinned Chromium WPT checkout")
+    return port_wpt.WPT_SOURCE_ROOT
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def area_mutation_ir(base: Path, paths: list[Path], module: str, area: str) -> dict:
+    """Mutation IR for the area's scripted files, as the renderer contract
+    builds it: the same pinned Acorn, frontend and validators."""
+    sys.path.insert(0, str(ROOT))
+    from tools.qualification import generate_renderer_contract as contract
+
+    if not contract.ACORN.is_file():
+        raise SystemExit(f"pinned Chromium Acorn parser is missing: {contract.ACORN}")
+    documents = []
+    sources = {}
+    for path in paths:
+        raw = path.read_bytes()
+        collector = contract.InlineScriptCollector()
+        collector.feed(raw.decode("utf-8", errors="ignore"))
+        if not collector.scripts and not collector.external_scripts:
+            continue
+        test_id = f"wpt/{module}/{unique_name(base, path)}"
+        documents.append(
+            {
+                "test_id": test_id,
+                "scripts": collector.scripts,
+                "external_scripts": collector.external_scripts,
+            }
+        )
+        sources[test_id] = {
+            "path": path.relative_to(wpt_root()).as_posix(),
+            "source_sha256": sha256(raw),
+        }
+    analyses = {}
+    if documents:
+        completed = subprocess.run(
+            ["node", str(contract.MUTATION_IR), str(contract.ACORN)],
+            input=json.dumps(documents),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        analyses = {entry["test_id"]: entry for entry in json.loads(completed.stdout)}
+    entries = {}
+    for test_id, source in sorted(sources.items()):
+        analysis = analyses[test_id]
+        contract._validate_mutation_styles(analysis)
+        contract._validate_mutation_lowering_scope(analysis)
+        entries[test_id] = {**source, "mutation_ir": analysis}
+    # One lookup: a test the census audit lowers is never lowered here too.
+    audit = json.loads(port_wpt.JAVASCRIPT_MUTATION_AUDIT.read_text(encoding="utf-8"))
+    duplicates = sorted(set(entries) & {entry["test_id"] for entry in audit["entries"]})
+    if duplicates:
+        raise SystemExit("area IR repeats census audit tests: " + ", ".join(duplicates))
+    return {
+        "schema_version": 1,
+        "area": area,
+        "module": module,
+        "parser": {
+            "name": "Acorn",
+            "path": "third_party/node/node_modules/acorn/dist/acorn.mjs",
+            "sha256": sha256(contract.ACORN.read_bytes()),
+        },
+        "frontend_sha256": sha256(contract.MUTATION_IR.read_bytes()),
+        "entries": entries,
+    }
+
+
 def area_files(base: Path) -> list[Path]:
     files = []
     for root, dirs, names in os.walk(base):
@@ -71,37 +262,101 @@ def area_files(base: Path) -> list[Path]:
     return sorted(files, key=lambda path: path.relative_to(base).as_posix())
 
 
+def excluded_files(base: Path, ported: list[Path]) -> dict[str, str]:
+    """Every file of the directory that area_files() does not return, by
+    its path relative to the directory, with the reason it is left out."""
+    ported_set = set(ported)
+    excluded = {}
+    for root, dirs, names in os.walk(base):
+        dirs.sort()
+        relative_root = Path(root).relative_to(base)
+        support = next((part for part in relative_root.parts if part in SKIPPED_DIRS), None)
+        for name in sorted(names):
+            path = Path(root) / name
+            if path in ported_set:
+                continue
+            if support is not None:
+                reason = f"in a {support}/ directory: a support file, not a test"
+            elif name.endswith("-expected.txt"):
+                reason = "Chromium's expected testharness output, not a test"
+            elif name in METADATA_FILES:
+                reason = "directory metadata, not a test"
+            elif name.endswith((".window.js", ".any.js", ".worker.js")):
+                reason = "a JavaScript-only testharness test: no document to port"
+            else:
+                reason = "not an HTML test document"
+            excluded[path.relative_to(base).as_posix()] = reason
+    return dict(sorted(excluded.items()))
+
+
 def unique_name(base: Path, path: Path) -> str:
     relative = path.relative_to(base).as_posix()
     return Path(relative.replace("/", "_")).stem
 
 
-def port_one(path: Path, module: str, name: str) -> tuple[str, str] | str:
-    """Return (rust, template) for a portable file, or the reason it is not."""
+IR_LOWERING_FAILURE = "AST mutation IR could not be lowered: "
+
+
+def port_one(
+    path: Path,
+    module: str,
+    name: str,
+    *,
+    dialog_elements: bool = False,
+    mutation_ir: dict | None = None,
+    notes: dict | None = None,
+) -> tuple[str, str] | str:
+    """Return (rust, template) for a portable file, or the reason it is not.
+
+    ``mutation_ir`` is the area IR entry's analysis for a scripted file. A
+    lowerable one is applied by the porter; any other keeps its specific
+    rejection reason. ``notes`` receives ``backdrop_rules_dropped`` when a
+    ported file's ``::backdrop`` rules style nothing here (RFC 0015 PR 4).
+    """
     port_wpt.set_porter_profile(
         port_wpt.PorterProfile.DETERMINISTIC_AHEM, retain_text=True
     )
     port_wpt.set_modern_line_clamp_enabled(False)
     port_wpt.set_paint_layer_emission(False)
-    parser = port_wpt.parse_wpt_html(str(path))
-    root_aware = False
-    if splice_text_port.requires_distinct_root_box(parser):
-        root_aware = True
-        parser = port_wpt.parse_wpt_html(str(path), root_aware=True)
-    portable, reason = port_wpt.analyze_portability(parser)
-    if not portable:
-        return reason
-    if not port_wpt.has_layout_content(parser):
-        return "no_layout_content"
-    fn_name = f"{module}_{port_wpt.sanitize_fn_name(name)}"
-    rust = port_wpt.generate_rust_fn(
-        fn_name, parser.root, parser.html_styles, root_aware=root_aware
-    )
-    # The module is exempt from rustfmt, as the census modules are. Leaving
-    # the porter's text unformatted keeps the output identical on every host.
-    rust = rust.rstrip("\n")
-    template = port_wpt.generate_html_template(str(path), root_aware=root_aware)
-    return rust, template
+    port_wpt.set_dialog_elements_enabled(dialog_elements)
+    try:
+        if mutation_ir is not None and not mutation_ir.get("lowerable"):
+            reasons = mutation_ir.get("rejection_reasons") or ["no-final-state-mutation"]
+            return "mutation_ir: " + ", ".join(reasons)
+        try:
+            parser = port_wpt.parse_wpt_html(str(path), mutation_ir=mutation_ir)
+            root_aware = False
+            if splice_text_port.requires_distinct_root_box(parser):
+                root_aware = True
+                parser = port_wpt.parse_wpt_html(
+                    str(path), root_aware=True, mutation_ir=mutation_ir
+                )
+        except ValueError as error:
+            if str(error).startswith(IR_LOWERING_FAILURE):
+                return "mutation_ir: " + str(error)[len(IR_LOWERING_FAILURE):]
+            raise
+        portable, reason = port_wpt.analyze_portability(parser)
+        if not portable:
+            return reason
+        if not port_wpt.has_layout_content(parser):
+            return "no_layout_content"
+        fn_name = f"{module}_{port_wpt.sanitize_fn_name(name)}"
+        rust = port_wpt.generate_rust_fn(
+            fn_name, parser.root, parser.html_styles, root_aware=root_aware
+        )
+        if notes is not None and parser.backdrop_rules:
+            notes["backdrop_rules_dropped"] = True
+        # The module is exempt from rustfmt, as the census modules are. Leaving
+        # the porter's text unformatted keeps the output identical on every host.
+        rust = rust.rstrip("\n")
+        template = port_wpt.generate_html_template(
+            str(path),
+            root_aware=root_aware,
+            final_state_parser=parser if mutation_ir is not None else None,
+        )
+        return rust, template
+    finally:
+        port_wpt.set_dialog_elements_enabled(False)
 
 
 def part_source(module: str, part: int, builders: list[tuple[str, str, str]]) -> str:
@@ -186,22 +441,56 @@ def module_sources(module: str, builders: list[tuple[str, str, str]]) -> dict[Pa
 
 
 def generate(area: str, module: str) -> dict[Path, str]:
-    base = wpt_css_root() / area
+    config = area_config(module)
+    if config is None:
+        base = wpt_css_root() / area
+    else:
+        if config["area"] != area:
+            raise SystemExit(f"{module}/area.json names area {config['area']}, not {area}")
+        base = wpt_root() / area
     if not base.is_dir():
         raise SystemExit(f"missing WPT area: {base}")
+    paths = area_files(base)
+    excluded = excluded_files(base, paths) if config is not None else None
+    # (path, name, test ID): the WPT files, then Div's own fixture pages.
+    entries = [(path, unique_name(base, path), None) for path in paths]
+    for name in (config or {}).get("fixtures", []):
+        fixture = COVERAGE_DIR / module / "fixtures" / name
+        if not fixture.is_file():
+            raise SystemExit(f"missing fixture page: {fixture}")
+        if re.search(r"<script\b|\son[a-z]+\s*=", fixture.read_text(encoding="utf-8"), re.I):
+            raise SystemExit(f"fixture pages are script-free: {fixture}")
+        stem = Path(name).stem
+        entries.append((fixture, f"div_{stem}", f"div/{module}/{stem}"))
+    if config is not None and config["dialog_elements"]:
+        dialog_user_agent_guard()
+    ir = None
+    if config is not None and config["mutation_ir"]:
+        ir = area_mutation_ir(base, paths, module, area)
     builders: list[tuple[str, str, str]] = []
     templates: dict[str, str] = {}
     not_portable: dict[str, str] = {}
     errors: dict[str, str] = {}
+    lowered: dict[str, list[str]] = {}
+    backdrop_dropped: list[str] = []
     names: set[str] = set()
-    for path in area_files(base):
-        name = unique_name(base, path)
-        test_id = f"wpt/{module}/{name}"
+    for path, name, test_id in entries:
+        test_id = test_id or f"wpt/{module}/{name}"
         if name in names:
             raise SystemExit(f"duplicate coverage test name: {test_id}")
         names.add(name)
+        entry = ir["entries"].get(test_id) if ir is not None else None
+        mutation_ir = entry["mutation_ir"] if entry is not None else None
+        notes: dict = {}
         try:
-            result = port_one(path, module, name)
+            result = port_one(
+                path,
+                module,
+                name,
+                dialog_elements=bool(config and config["dialog_elements"]),
+                mutation_ir=mutation_ir,
+                notes=notes,
+            )
         except Exception as error:  # Porter failures are reported, not fatal.
             errors[test_id] = f"{type(error).__name__}: {error}"
             continue
@@ -212,6 +501,10 @@ def generate(area: str, module: str) -> dict[Path, str]:
         fn_name = f"{module}_{port_wpt.sanitize_fn_name(name)}"
         builders.append((test_id, fn_name, rust))
         templates[test_id] = template
+        if mutation_ir is not None:
+            lowered[test_id] = [operation["kind"] for operation in mutation_ir["operations"]]
+        if notes.get("backdrop_rules_dropped"):
+            backdrop_dropped.append(test_id)
     fn_names = [fn_name for _, fn_name, _ in builders]
     if len(fn_names) != len(set(fn_names)):
         raise SystemExit("generated function-name collision")
@@ -226,20 +519,43 @@ def generate(area: str, module: str) -> dict[Path, str]:
         "not_portable": dict(sorted(not_portable.items())),
         "errors": dict(sorted(errors.items())),
     }
+    if config is not None:
+        report["selection"] = SELECTION_RULE
+        report["excluded"] = excluded
+    if config is not None and config["dialog_elements"]:
+        # Ported tests whose ::backdrop rules style nothing until RFC 0015
+        # PR 4: Chromium's capture shows a backdrop that Div does not draw.
+        report["backdrop_rules_dropped"] = sorted(backdrop_dropped)
+    if config is not None and config.get("fixtures"):
+        # Div's own pages, measured like the WPT files; they are not WPT.
+        report["fixtures"] = sorted(
+            test_id for _, _, test_id in entries if test_id is not None
+        )
+    if ir is not None:
+        # Lowered tests run a script's final state, not the source as
+        # written: they are measured apart from static ports, never qualified.
+        report["lowered"] = dict(sorted(lowered.items()))
     out_dir = COVERAGE_DIR / module
     dump = lambda value: json.dumps(value, indent=1, sort_keys=True) + "\n"  # noqa: E731
-    return {
+    outputs = {
         **module_sources(module, builders),
         out_dir / "templates.json": dump(templates),
         out_dir / "manifest.json": dump(ids),
         out_dir / "port-report.json": dump(report),
     }
+    if ir is not None:
+        outputs[out_dir / "mutation-ir.json"] = dump(ir)
+    return outputs
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("area", help="WPT CSS directory, for example css-grid")
+    parser.add_argument(
+        "area",
+        help="WPT directory: under css/, for example css-grid, or under the WPT "
+        "root as the module's area.json names it",
+    )
     parser.add_argument("module", help="module name, for example css_grid")
     args = parser.parse_args()
     outputs = generate(args.area, args.module)

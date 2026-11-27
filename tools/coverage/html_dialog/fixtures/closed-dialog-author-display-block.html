@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!--
+  Div fixture, not a WPT file (RFC 0015 3p; the engine's style-channel case
+  "author `dialog { display: block }` shows a closed dialog"). No WPT file at
+  the pin declares `display: block` on a closed dialog.
+
+  #shown is closed, and the author's `display: block` beats the user agent's
+  `dialog:not([open]) { display: none }`; the rest of the user agent's
+  dialog rule still applies (absolute position, left and right 0, a 3px
+  border). The comparison harness's `* { margin: 0; padding: 0 }` is
+  author CSS too, so it replaces the user agent's margin and padding.
+  #hidden is closed with no author display, so it renders nothing.
+-->
+<style>
+dialog {
+  width: 100px;
+  height: 40px;
+}
+#shown {
+  display: block;
+  background-color: green;
+  top: 30px;
+}
+#hidden {
+  background-color: red;
+  top: 90px;
+}
+</style>
+<div style="width: 300px; height: 150px; background-color: silver"></div>
+<dialog id="shown"></dialog>
+<dialog id="hidden"></dialog>

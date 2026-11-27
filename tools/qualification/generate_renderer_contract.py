@@ -604,18 +604,6 @@ def _validate_mutation_lowering_scope(analysis: dict[str, object]) -> None:
                 }
             )
             continue
-        if operation.get("kind") == "dialog-show-modal":
-            # The top layer arrives with RFC 0015 PR 3.
-            rejections.append(
-                {
-                    "reason": "top-layer-dependency",
-                    "origin": operation["origin"],
-                    "line": operation["line"],
-                    "node_type": "MutationTarget",
-                    "detail": operation["kind"],
-                }
-            )
-            continue
         target = operation.get("target")
         if (
             operation.get("kind") in {"append", "insert-before"}

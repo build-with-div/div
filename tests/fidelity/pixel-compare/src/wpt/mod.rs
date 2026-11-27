@@ -14,6 +14,7 @@ pub mod wpt_css_multicol;
 pub mod wpt_css_overflow;
 pub mod wpt_css_position;
 pub mod wpt_css_sizing;
+pub mod wpt_html_dialog;
 
 pub fn all_wpt_registry() -> Vec<(
     &'static str,
@@ -32,5 +33,7 @@ pub fn all_wpt_registry() -> Vec<(
     all.extend(wpt_css_backgrounds::css_backgrounds_registry());
     // Coverage suite outside the census: tools/coverage/css_grid.
     all.extend(wpt_css_grid::css_grid_registry());
+    // Coverage suite outside the census: tools/coverage/html_dialog.
+    all.extend(wpt_html_dialog::html_dialog_registry());
     all
 }
