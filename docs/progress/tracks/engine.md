@@ -502,3 +502,19 @@ From the framework track's review of #149:
   `3602e20`. Rebased onto `main` `0211362` with the code patch ID
   unchanged, so the pair carries; it was measured without #158's code.
   [Record](../renderer-snapshot-live-rules-2026-11-27.md).
+- 27 November 2026: RFC 0006 B. An animation tick restyles only the
+  targets whose sampled output changed and the elements that inherit from
+  them, in one style pass; a changed root element still restyles every
+  tree. On the document timeline a start samples only the new effect, so
+  starting 1,000 animations costs 28 to 31 µs each instead of 5.8 to 6.2 ms.
+  Debug builds check every targeted sample against a full cascade and every
+  start against a resample of the other effects. The census and CSS Grid
+  coverage, `62c0cba` (remeasured after the review fix) against `0211362`,
+  are unchanged at all four profiles (evidence `371507a`), the touched
+  crates' Linux debug suites pass, and the motion sample's 54 sampled
+  frames are byte-identical. Rebased onto `main` `087de2b` with the code
+  patch ID unchanged, so the census carries. While a
+  selector, media or font restyle is pending, sampling restyles every root
+  as before, so a hover change still reaches `~`, `+` and `:has()`
+  dependents (found in engine review, with two regression tests).
+  [Record](../targeted-sampling-b-2026-11-27.md).
