@@ -3,10 +3,15 @@
 //! only the new target. In debug builds every targeted sample is also checked
 //! against a full cascade of every root, which these tests exercise.
 use div_dom::ElementTag;
-use div_engine::{AnimationId, AnimationTimeline, Engine, NodeHandle, ViewportMetrics};
+use div_engine::{
+    AnimationId, AnimationTimeline, Engine, NodeHandle, PointerEventKind, ViewportMetrics,
+    MOUSE_POINTER_ID,
+};
+use div_style::selector_parser::parse_selector_list;
+use div_style::stylesheet::{CascadeOrigin, StyleRule, StyleSheet};
 use div_style::{
-    AnimationOptions, Color, FillMode, Keyframes, LengthValue, PropertyKeyframes, StyleProperty,
-    StyleValue,
+    parse_literal, AnimationOptions, Color, FillMode, Keyframes, LengthValue, PropertyKeyframes,
+    Style, StyleProperty, StyleValue,
 };
 
 fn engine() -> Engine {
@@ -203,4 +208,60 @@ fn a_detached_target_restyles_its_own_tree() {
         e.computed_style(leaf).unwrap().color,
         e.computed_style(detached).unwrap().color
     );
+}
+
+/// `.a:hover ~ .b`, with `.a` animated and hovered, and `.b` its sibling.
+/// Returns the engine, `.a` and `.b`, with the pointer over `.a` and the
+/// hover restyle pending.
+fn hovered_sibling_page(animate_first: bool) -> (Engine, NodeHandle, NodeHandle) {
+    let mut e = engine();
+    let root = e.root();
+    let a = child(&mut e, root);
+    let b = child(&mut e, root);
+    e.set_attribute(a, "class", "a").unwrap();
+    e.set_attribute(b, "class", "b").unwrap();
+    for node in [a, b] {
+        for property in [StyleProperty::Width, StyleProperty::Height] {
+            let value = parse_literal(property, "40px").unwrap();
+            e.set_property(node, property, value).unwrap();
+        }
+    }
+    let rule = StyleRule::new(
+        parse_selector_list(".a:hover ~ .b", None).unwrap(),
+        Style::default().color(Color::RED),
+    );
+    e.adopt_style_sheet(&StyleSheet::new(CascadeOrigin::Author).with_rule(rule))
+        .unwrap();
+    if animate_first {
+        animate_opacity(&mut e, a);
+    }
+    e.update().unwrap();
+    assert_ne!(e.computed_style(b).unwrap().color, Color::RED);
+    e.pointer_event(MOUSE_POINTER_ID, PointerEventKind::Move, 10.0, 10.0)
+        .unwrap();
+    (e, a, b)
+}
+
+/// A pending selector restyle finds the elements whose state changed by
+/// comparing it with the state they were last resolved with. A tick that
+/// restyled only the hovered target would record its new state first, so
+/// the next `update()` would never restyle the sibling `.b` (Tailwind's
+/// `peer-hover:`). While a selector restyle is pending, a tick restyles
+/// every root instead.
+#[test]
+fn a_tick_keeps_a_pending_hover_restyle_of_a_sibling() {
+    let (mut e, _, b) = hovered_sibling_page(true);
+    e.set_animation_time(250.0).unwrap();
+    e.update().unwrap();
+    assert_eq!(e.computed_style(b).unwrap().color, Color::RED);
+}
+
+/// The same for a start: starting an effect on the hovered element while
+/// its hover restyle is pending must not hide the change from `.b`.
+#[test]
+fn a_start_keeps_a_pending_hover_restyle_of_a_sibling() {
+    let (mut e, a, b) = hovered_sibling_page(false);
+    animate_opacity(&mut e, a);
+    e.update().unwrap();
+    assert_eq!(e.computed_style(b).unwrap().color, Color::RED);
 }

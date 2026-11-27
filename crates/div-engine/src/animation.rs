@@ -908,10 +908,14 @@ impl Engine {
         // RFC 0006 B: on the document timeline every other effect was already
         // sampled at this time by the clock or control call that last changed
         // it, so a start samples only the new effect and restyles its target.
-        let sampled = if self
-            .animations
-            .values()
-            .all(|instance| instance.timeline.is_document())
+        // With a restyle pending, every root is restyled instead
+        // (`restyle_pending`).
+        let pending = self.restyle_pending();
+        let sampled = if !pending
+            && self
+                .animations
+                .values()
+                .all(|instance| instance.timeline.is_document())
         {
             #[cfg(debug_assertions)]
             self.debug_assert_samples_current(id);
@@ -919,7 +923,14 @@ impl Engine {
         } else {
             self.sample_animations()
         };
-        if let Err(error) = sampled.and_then(|()| self.refresh_inherited_styles(node)) {
+        let refreshed = sampled.and_then(|()| {
+            if pending {
+                self.recompute_authored_styles()
+            } else {
+                self.refresh_inherited_styles(node)
+            }
+        });
+        if let Err(error) = refreshed {
             // No callback runs while the Engine is borrowed. Failed source
             // resolution must not leave a returned-error effect or its events.
             self.animations.remove(&id);
@@ -1687,13 +1698,29 @@ impl Engine {
         Ok(changed)
     }
 
+    /// Whether a selector, media or font restyle waits for the next
+    /// `update()`. A pending selector restyle finds the elements whose state
+    /// changed by comparing their state with the state their style was last
+    /// resolved with, and restyling a target records its current state, so a
+    /// hover change on an animated element would never reach its `~`, `+` or
+    /// `:has()` dependents. Sampling then restyles every root, as before
+    /// RFC 0006 B, which also applies a pending media or font restyle early.
+    fn restyle_pending(&self) -> bool {
+        self.selector_restyle_pending
+            || self.font_collection().generation() != self.font_collection_generation
+    }
+
     /// RFC 0006 B: restyle only the targets whose effect changed and the
     /// descendants that inherit from them, in one style pass, instead of every
     /// root. A changed root element restyles every tree, because every
-    /// element's `rem` resolves against it, detached ones included.
+    /// element's `rem` resolves against it, detached ones included. With a
+    /// restyle pending, every root is restyled (`restyle_pending`).
     fn refresh_sampled_targets(&mut self, targets: &[NodeHandle]) -> Result<(), EngineError> {
         if targets.is_empty() {
             return Ok(());
+        }
+        if self.restyle_pending() {
+            return self.recompute_authored_styles();
         }
         let document_root = self.document.root();
         let mut nodes = Vec::new();
@@ -1753,16 +1780,9 @@ impl Engine {
 
     /// RFC 0006 B gate, in debug builds: after a targeted sample every
     /// element's style, and every effect target's base style, equals a full
-    /// cascade of every root. It is skipped while a selector, media or font
-    /// restyle is pending; the next `update()` applies those as it does after
-    /// any other style change.
+    /// cascade of every root.
     #[cfg(debug_assertions)]
     fn debug_assert_styles_match_full_cascade(&self) {
-        if self.selector_restyle_pending
-            || self.font_collection().generation() != self.font_collection_generation
-        {
-            return;
-        }
         let roots = self
             .slots
             .iter()
