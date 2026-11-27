@@ -174,10 +174,48 @@ Each named gap is asserted to still differ, so a fix must remove it.
 
 | Check | Result |
 | --- | --- |
-| custom-properties-v1 (`cargo test -p divui --test custom_properties_oracle`) | Pass at `986a583` on Windows and Linux: the 2,788 values agree outside the 4 named gaps |
-| Macro and run-time parse agree (`cargo test -p divui --test style_macro`) | Pass at `986a583`, 11 tests, including declaration order and the step-4 run-time errors |
-| The `style` attribute (`cargo test -p div-engine --test style_attribute`) | Pass at `986a583` with no gaps left |
-| Touched crates' suites | Windows, with `main`'s Windows Skia flags: 7,154 passed, 0 failed, 21 ignored at `986a583`. Linux (WSL), with CI's Linux flags: 7,156 passed, 0 failed, 17 ignored at `986a583`. rustfmt: the 23 changed Rust files it checks are clean (the two generated `include!` targets are skipped), and it reformats no neighbouring line in a frozen file |
-| Generators and ledgers | On Windows at `e9e9dc3`, every generator and ledger check exits 0, including `generate_properties.py --check` with the regenerated accessors, the renderer contract and `audit --repository-only`, except three. The two `wpt_script` checks need `WPT_SCRIPT_ROOT`, whose directories the local WPT checkout lacks, so CI runs them. `check_cli_template.py` failed here because its template build compiles Skia from source in a temporary directory and hit the Windows path-length limit (`GetFullPathNameA … too long`); CI runs it. `986a583` differs from `e9e9dc3` only in `crates/div-engine/tests/style_attribute.rs`. `python tools/fidelity_data.py verify` exits 0 |
-| Census and CSS Grid coverage pair | `986a583` against `main` `8e626ab`, both with `8e626ab`'s CI flags, in WSL: no Div image changed in any profile. Expanded census 16,297 of 23,728 exact on both sides (1x) and 10,404 of 17,796 (real zoom); CSS Grid coverage 1,473 of 4,204 (156 errors on both sides) and 894 of 3,153 (117 errors on both sides). Evidence: `div-fidelity-data` EVIDENCE-PENDING, `archive/docs/progress/evidence/var-div-{census,coverage}{,-zoom}-v1.json` |
+| custom-properties-v1 (`cargo test -p divui --test custom_properties_oracle`) | Pass at `5470201` on Windows and at `f9ac163` on Linux: the 2,788 values agree outside the 4 named gaps |
+| Macro and run-time parse agree (`cargo test -p divui --test style_macro`) | Pass at `5470201`, 11 tests, including declaration order and the step-4 run-time errors |
+| The `style` attribute (`cargo test -p div-engine --test style_attribute`) | Pass at `5470201` with no gaps left |
+| Touched crates' suites | Windows, with `main`'s Windows Skia flags: 7,172 passed, 0 failed, 21 ignored at `5470201`. Linux (WSL), with CI's Linux flags: 7,174 passed, 0 failed, 17 ignored at `f9ac163`, the code commit (`5470201` adds only Markdown). Both counts include the tests #160 added. rustfmt: the 23 changed Rust files it checks are clean (the two generated `include!` targets are skipped), and it reformats no neighbouring line in a frozen file |
+| Generators and ledgers | On Windows at `5470201`, every generator and ledger check exits 0, including `generate_properties.py --check` with the regenerated accessors, the renderer contract and `audit --repository-only`, except three. The two `wpt_script` checks need `WPT_SCRIPT_ROOT`, whose directories the local WPT checkout lacks, so CI runs them. `check_cli_template.py` failed here because its template build compiles Skia from source in a temporary directory and hit the Windows path-length limit (`GetFullPathNameA … too long`); CI runs it. `python tools/fidelity_data.py fetch --profile all` and `verify --profile all` exit 0 at the bumped lock (`91520766`) |
+| Census and CSS Grid coverage pair | `f9ac163` against `main` `087de2b`, both with `087de2b`'s CI flags, in WSL: no Div image changed in any profile. Expanded census 16,297 of 23,728 exact on both sides (1x) and 10,404 of 17,796 (real zoom); CSS Grid coverage 1,473 of 4,204 (156 errors on both sides) and 894 of 3,153 (117 errors on both sides). Evidence: `div-fidelity-data` `91520766`, `archive/docs/progress/evidence/var-div-{census,coverage}{,-zoom}-v1.json` |
 | Licence and freeze | `computed.rs`: one field line and one initializer line, with no existing line changed or moved. `lib.rs`: one `mod` and one `pub use` line. `internal-style-fields.csv`: one row. No provenance comment is edited or removed, and no off-limits file is touched. The Blink files read are BSD |
+
+## Rebase onto `main` `087de2b`
+
+The branch was first measured at `986a583` on `main` `8e626ab`. #160
+(renderer snapshots stop freezing rule-derived values) merged as `087de2b`
+first, and both changes edit `crates/div-engine/src/authored_source.rs`. #160
+split the native source into `unanimated_style` and `snapshot_base_style`,
+which both call `resolve_native_source` with a slice of contributions. This
+branch passes whole declaration lists instead, because
+`custom_properties::substitute` needs the custom declarations and the
+positions of every declaration. The resolution keeps #160's split:
+`resolve_native_source` now takes `&AuthoredStyleDeclarations`,
+`unanimated_style` passes `&cascaded.declarations`, and `snapshot_base_style`
+passes `&slot.authored`. The code's patch ID changed (`cc6e4c6f` to
+`33cc5fcd`), so the census and coverage pair, the suites and the generator
+checks were run again at the rebased head instead of being carried; the
+`986a583` measurements are history.
+
+A renderer snapshot freezes no custom property, for two reasons.
+
+- What it resolves holds none. `snapshot_base_style` resolves `slot.authored`,
+  which only `set_property`, `remove_property` and animation staging write.
+  `set_property` refuses CSS-wide keywords and `var()` with `InvalidInput`
+  until step 5 (`div_style::runtime_value_limit`), staging requires a value of
+  the property's own type (`value_matches_property`), and `StyleProperty`
+  names no custom property. `divui`'s `apply_style` checks every declaration
+  with `runtime_style_limit` before writing any. Custom declarations and
+  `var()` reach a node only through rules, the `style` attribute and
+  pseudo-element declarations, which stay declarations and are resolved again
+  each time.
+- What it inherits is replaced on every use. The snapshot source keeps the
+  custom properties it inherited from the parent when it was taken, but every
+  later resolution from that source, the cascade in `authored_source.rs` and
+  `unanimated_style` alike, goes through `resolve_native_declarations`. That
+  function first sets the style's custom properties to
+  `custom_properties::substitute(declarations, &parent.custom_properties)`,
+  computed from the parent's current values, so the inherited copy is never
+  read.

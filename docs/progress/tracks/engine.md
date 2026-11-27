@@ -528,9 +528,12 @@ From the framework track's review of #149:
   `custom-properties-v1` oracle: 2,788 values for 62 elements match outside
   4 named gaps (the `border` shorthand with a comma `rgb()`, and `calc()`
   over lengths in margins and padding, which waits for calc() PR 2).
-  Run-time writes are step 5 and return `InvalidInput` until then. The
-  census and CSS Grid coverage pair, `986a583` against `main` `8e626ab`, is
-  unchanged at all four profiles (evidence EVIDENCE-PENDING), and the
-  touched crates' Linux and Windows suites pass at `986a583`. The user
-  approved the public API on 27 November. The WPT `css/css-variables`
+  Run-time writes are step 5 and return `InvalidInput` until then. Rebased
+  onto `main` `087de2b` after #160: `resolve_native_source` now takes
+  `&AuthoredStyleDeclarations` and `snapshot_base_style` passes
+  `&slot.authored`. The patch ID changed, so the census and CSS Grid
+  coverage pair was run again: `f9ac163` against `main` `087de2b` is
+  unchanged at all four profiles (evidence `91520766`), and the touched
+  crates' Linux and Windows suites pass at `f9ac163`. The user approved
+  the public API on 27 November. The WPT `css/css-variables`
   coverage area is a follow-up PR. [Record](../custom-properties-2026-11-27.md).
