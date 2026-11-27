@@ -45,6 +45,10 @@ enum UserEvent {
         window: crate::WindowId,
         item: u32,
     },
+    /// The operating system's settings changed: re-read the
+    /// [`crate::SystemPreferences`].
+    #[cfg_attr(not(all(feature = "windows", target_os = "windows")), allow(dead_code))]
+    SettingsChanged,
 }
 
 /// Set by `div dev` for the apps it runs.
@@ -741,6 +745,18 @@ impl WindowState {
         application: Box<dyn PlatformApplication>,
     ) -> Result<(Self, BackendStatus), PlatformError> {
         let (window, presenter, status) = initialize_presenter(event_loop, display, &options)?;
+        #[cfg(all(feature = "windows", target_os = "windows"))]
+        if let Ok(raw_window_handle::RawWindowHandle::Win32(handle)) =
+            window.window_handle().map(|handle| handle.as_raw())
+        {
+            let proxy = proxy.clone();
+            crate::preferences::windows::watch_settings(
+                handle.hwnd.get() as _,
+                Box::new(move || {
+                    let _ = proxy.send_event(UserEvent::SettingsChanged);
+                }),
+            );
+        }
         // AccessKit requires its adapter before the window is first shown.
         let accessibility =
             AccessibilityAdapter::with_event_loop_proxy(event_loop, &window, proxy.clone());
@@ -1120,6 +1136,8 @@ struct Runtime<C: WindowController> {
     frame_round_started: Instant,
     /// Set by [`LoopWaker::wake`] until the loop handles the wake event.
     wake_pending: Arc<AtomicBool>,
+    /// The operating system's preferences, as last reported to the windows.
+    preferences: crate::SystemPreferences,
 }
 
 /// A round ends early if a window has not drawn by then, so one window that
@@ -1346,6 +1364,25 @@ impl<C: WindowController> ApplicationHandler<UserEvent> for Runtime<C> {
                     self.exit_if_requested(event_loop);
                 }
             }
+            UserEvent::SettingsChanged => {
+                // Windows broadcasts one message per top-level window and
+                // for every setting; report only an actual change, once.
+                let preferences = crate::SystemPreferences::system();
+                if preferences == self.preferences {
+                    return;
+                }
+                self.preferences = preferences;
+                let mut result = Ok(());
+                for state in &mut self.windows {
+                    let sent = state.send(PlatformEvent::SystemPreferencesChanged(preferences));
+                    state.request_redraw();
+                    result = result.and(sent);
+                }
+                if self.check(event_loop, result) {
+                    self.apply_commands(event_loop);
+                    self.exit_if_requested(event_loop);
+                }
+            }
             UserEvent::DevExit => {
                 for state in &mut self.windows {
                     let _ = state.send(PlatformEvent::CloseRequested);
@@ -1500,6 +1537,7 @@ pub fn run_windows<C: WindowController>(mut controller: C) -> Result<(), Platfor
         frame_round: 1,
         frame_round_started: Instant::now(),
         wake_pending,
+        preferences: crate::SystemPreferences::system(),
     };
     event_loop
         .run_app(&mut runtime)

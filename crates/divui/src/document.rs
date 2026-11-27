@@ -49,6 +49,14 @@ type ForeignEventHandler =
 
 static NEXT_LISTENER_REGISTRATION_ID: AtomicU64 = AtomicU64::new(1);
 
+/// A new listener id, unique across every document and listener kind, so a
+/// [`ListenerHandle`](crate::ListenerHandle) names one listener.
+pub(crate) fn next_listener_id() -> Result<u64, Error> {
+    NEXT_LISTENER_REGISTRATION_ID
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+        .map_err(|_| listener_allocation_error())
+}
+
 #[derive(Clone)]
 pub(crate) enum RegisteredCallback {
     Rust(EventCallback),
@@ -101,6 +109,7 @@ pub(crate) struct DocumentInner {
     pub(crate) animation_frames: RefCell<crate::animation_frame::AnimationFrameCallbacks>,
     pub(crate) resize_observers: RefCell<crate::resize_observer::ResizeObservers>,
     pub(crate) error_handlers: RefCell<crate::reported_error::ErrorHandlers>,
+    pub(crate) media_query_listeners: RefCell<crate::media_query_list::MediaQueryListeners>,
     active_clicks: RefCell<HashSet<NodeHandle>>,
     pointers: RefCell<pointer_dispatch::PointerDispatchState>,
     selection_tasks: selection_tasks::SelectionTasks,
@@ -227,6 +236,7 @@ impl Document {
                 animation_frames: RefCell::default(),
                 resize_observers: RefCell::default(),
                 error_handlers: RefCell::default(),
+                media_query_listeners: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
@@ -263,6 +273,7 @@ impl Document {
                 animation_frames: RefCell::default(),
                 resize_observers: RefCell::default(),
                 error_handlers: RefCell::default(),
+                media_query_listeners: RefCell::default(),
                 active_clicks: RefCell::new(HashSet::new()),
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
@@ -761,7 +772,31 @@ impl Document {
     }
 
     pub fn set_viewport(&self, viewport: ViewportMetrics) -> Result<(), Error> {
-        self.with_engine_mut(|engine| engine.set_viewport(viewport))
+        self.with_engine_mut(|engine| engine.set_viewport(viewport))?;
+        self.note_media_input_change();
+        Ok(())
+    }
+
+    /// A media query input changed: a frame must run to report it to
+    /// [`MediaQueryList::on_change`] listeners, even when no style reads it.
+    fn note_media_input_change(&self) {
+        if let Ok(mut listeners) = self.inner.media_query_listeners.try_borrow_mut() {
+            listeners.note_input_change();
+        }
+    }
+
+    /// Whether a media query input changed since the last frame while the
+    /// document has media query lists, so the next frame may fire `change`
+    /// events.
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    pub(crate) fn has_pending_media_query_report(&self) -> bool {
+        self.inner
+            .media_query_listeners
+            .try_borrow()
+            .is_ok_and(|listeners| listeners.report_pending())
     }
 
     pub fn register_font_face(
@@ -828,7 +863,9 @@ impl Document {
         self.with_engine_mut(|engine| {
             engine.set_prefers_reduced_motion(reduced);
             Ok(())
-        })
+        })?;
+        self.note_media_input_change();
+        Ok(())
     }
 
     /// The color scheme `prefers-color-scheme` media queries see.
@@ -843,7 +880,9 @@ impl Document {
         self.with_engine_mut(|engine| {
             engine.set_color_scheme(scheme);
             Ok(())
-        })
+        })?;
+        self.note_media_input_change();
+        Ok(())
     }
 
     /// `window.matchMedia(query)`: a new list that reports whether `query`
@@ -1085,7 +1124,8 @@ impl Document {
 
     /// Run the steps of one frame at `time_ms`, in the order of HTML's
     /// "update the rendering": the pending scroll and selection events, the
-    /// animations and their events, the animation frame callbacks
+    /// media query lists' `change` events
+    /// ([`MediaQueryList::on_change`]), the animations and their events, the animation frame callbacks
     /// ([`request_animation_frame`](Self::request_animation_frame)), then
     /// style and layout, repeated with the resize observations
     /// ([`ResizeObserver`](crate::ResizeObserver)) while they change sizes,
@@ -1095,6 +1135,7 @@ impl Document {
     /// target. Painting follows, by the caller.
     pub fn begin_frame(&self, time_ms: f64) -> Result<(), Error> {
         self.dispatch_pending_events()?;
+        crate::media_query_list::report_changes(self)?;
         self.advance_time(time_ms)?;
         self.run_animation_frame_callbacks(time_ms);
         self.update_all()?;
@@ -2023,7 +2064,19 @@ impl Document {
             map.retain(|_, list| !list.is_empty());
             removed
         };
-        // The callback's captures can run Drop; release the list borrow first.
+        if removed.is_some() {
+            // The callback's captures can run Drop; release the list borrow first.
+            drop(removed);
+            return Ok(());
+        }
+        // A media query list's `change` listener. Its callback, and the list
+        // when it was the last listener, drop after the registry's borrow.
+        let removed = self
+            .inner
+            .media_query_listeners
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?
+            .remove(id);
         drop(removed);
         Ok(())
     }
@@ -2057,9 +2110,7 @@ impl Document {
                 .try_reserve(1)
                 .map_err(|_| listener_allocation_error())?;
         }
-        let id = NEXT_LISTENER_REGISTRATION_ID
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
-            .map_err(|_| listener_allocation_error())?;
+        let id = next_listener_id()?;
         let listener = RegisteredListener {
             id,
             capture,

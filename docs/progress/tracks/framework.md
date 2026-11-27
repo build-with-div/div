@@ -85,7 +85,7 @@ framework track as its owner. The translator is a new
 `tools/wpt_script/`; `tools/wpt` and the renderer contract stay untouched.
 Item 1.2 (`matchMedia` change events, OS reduced-motion and colour-scheme,
 `devicePixelRatio`) moves ahead of T3b–T3d once the engine's S3/S4 PR 2
-merges. The editor gaps below wait behind T3.
+merges. (Item 1.2 is in review: see the 27 November 2026 log entry.) The editor gaps below wait behind T3.
 
 | # | Item | State |
 | --- | --- | --- |
@@ -117,6 +117,72 @@ element identity) merges, because the samples' icons are written in `view!`.
 | F1 | RFC 0009: `Element::create_ns`, and `view!` with SVG's namespace and spellings (waits on the engine's E1) | Not started |
 
 ## Log
+
+### 27 November 2026: `matchMedia` change events and the system's preferences (item 1.2)
+
+The framework's half of `matchMedia()` (RFC 0014 step 3). The engine's
+lists and its report merged in #154. The public items were approved by the
+user on 27 November 2026, relayed by the parent session: `MediaQueryList::on_change`,
+`MediaQueryListEvent`, `div_platform::SystemPreferences` with `system()`, and
+`PlatformEvent::SystemPreferencesChanged`.
+
+Changes:
+
+- `crates/divui/src/media_query_list.rs`: `on_change` adds a `change`
+  listener and returns the existing `ListenerHandle`. A list with listeners
+  stays registered after its last clone drops, as on the web, and is
+  released with its last listener.
+- `crates/divui/src/document.rs`: `begin_frame` runs HTML's "evaluate media
+  queries and report changes" step after the scroll and selection events and
+  before the animations. It fires `change` at each list the engine reports,
+  oldest first, with the reported result. Listeners follow the DOM's rules:
+  one removed during the dispatch is not called, and one added waits for the
+  next event. A change to the viewport, color scheme or reduced motion while
+  lists exist asks the native App for a frame, even when no style reads it.
+- `crates/div-platform/src/preferences.rs`: `SystemPreferences::system()`
+  reads Windows' app mode (`AppsUseLightTheme`) and animation effects
+  (`SPI_GETCLIENTAREAANIMATION`); other platforms report the defaults. Each
+  window gets a subclass hook for `WM_SETTINGCHANGE`, which winit does not
+  forward, and the runtime reports an actual change once to every window.
+- `crates/divui/src/app.rs` and `app_spec.rs`: a built App applies the
+  system's preferences before any view mounts (not under `DIV_RENDER_PNG`),
+  and a window applies them when it opens, which covers `App::from_document`.
+  A change applies reduced motion first, then the color scheme (choice (a)),
+  and overrides earlier `set_color_scheme` and `set_prefers_reduced_motion`
+  calls (choice (b)). `devicePixelRatio` already reaches the lists through
+  `ScaleFactorChanged` and `set_viewport`.
+- `crates/div-ffi/src/native_app.rs`: the frozen v0.2 raw platform event has
+  no type for the new event, so C callbacks don't see it; the App still
+  applies it to the document. No ABI change.
+
+Oracle: `match-media-v1` (#154). `crates/divui/tests/match_media_events.rs`
+replays its 23 matched sequences through listeners and `begin_frame`, and
+requires the same events per frame. The one gap is the engine's
+(`scheme-and-motion-together`).
+
+Remaining gaps:
+
+- Linux reports the default preferences. Reading the XDG settings portal
+  (`org.freedesktop.appearance`) is a follow-up.
+- Chromium's order for one OS notification that changes both preferences is
+  not recorded; choice (a) is a working rule, pinned by
+  `system_preferences_apply_reduced_motion_before_the_color_scheme`.
+- C apps cannot observe the change; that needs a new raw event type (an ABI
+  change for the user).
+
+Verification, at `baef6801` plus this change:
+
+- WSL debug with CI's Skia flags: `cargo test --locked -j 4 -p div-platform
+  -p divui -p div-ffi --features "div-platform/linux divui/linux divui/async
+  divui/testing div-ffi/linux" --lib --tests`: 64 binaries, 578 passed,
+  0 failed. `-p divui -p div-ffi --features "divui/async divui/http
+  divui/testing"`: 65 binaries, 569 passed, 0 failed, 8 ignored.
+- Windows debug, MSVC 14.52 (CI pins 14.44), the windows-msvc job's Skia
+  flags: `-p div-platform -p divui -p div-ffi --features "div-platform/windows
+  divui/windows divui/async divui/testing div-ffi/windows" --lib --test
+  match_media_events`: 146, 19, 143 and 7 tests passed, including the hook
+  test, which sends `WM_SETTINGCHANGE` to a message-only window. The
+  window-opening integration tests were left to CI.
 
 ### 23 November 2026: a listener that removes the pointer's target
 
