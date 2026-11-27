@@ -165,6 +165,14 @@ class DialogPorterTests(unittest.TestCase):
         )
         self.assertEqual(expand("background", "white"), [("background-color", "white")])
         self.assertIsNone(expand("background", "url(a.png) red"))
+        # The engine's border literal takes `none` or all three parts; a
+        # value without a style computes as `none` (dialog-popover-overlay).
+        self.assertEqual(expand("border", "0"), [("border", "none")])
+        self.assertEqual(expand("border-top", "2px red"), [("border-top", "none")])
+        self.assertEqual(expand("border", "none"), [("border", "none")])
+        self.assertEqual(expand("border", "1px solid red"), [("border", "1px solid red")])
+        self.assertIsNone(expand("border", "solid"))
+        self.assertIsNone(expand("border", "1px solid rgb(0, 0, 0)"))
         parser = self.parse(
             "<body><style>dialog { margin: inherit }</style><dialog open></dialog></body>"
         )

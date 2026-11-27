@@ -1246,7 +1246,7 @@ fn html_dialog_dialog_popover_overlay(viewport: ViewportMetrics) -> Result<Engin
     doc.set_author_literal(n1, "padding", "0");
     doc.set_author_literal(n1, "left", "0");
     doc.set_author_literal(n1, "top", "0");
-    doc.set_author_literal(n1, "border", "0");
+    doc.set_author_literal(n1, "border", "none");
     doc.set_author_literal(n1, "width", "300px");
     doc.set_author_literal(n1, "height", "300px");
     doc.set_author_literal(n1, "background-color", "green");

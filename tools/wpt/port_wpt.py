@@ -187,6 +187,10 @@ _OUTLINE_STYLES = {
     'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'groove',
     'ridge', 'inset', 'outset', 'auto',
 }
+_BORDER_STYLES = _OUTLINE_STYLES - {'auto'}
+_BORDER_SHORTHANDS = {
+    'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+}
 _SCHEMA_CSS_NAMES: frozenset | None = None
 
 
@@ -234,6 +238,17 @@ def _expand_dialog_shorthand(prop: str, value: str) -> list | None:
             return None
         color = tokens[0].lower()
         return [('background-color', 'transparent' if color == 'none' else color)]
+    if prop in _BORDER_SHORTHANDS:
+        # The engine's border literal takes `none` or `<width> <style>
+        # <color>`. A value without a style keyword resets the style to
+        # `none`, which computes the width to 0: the computed border of
+        # `none`. A style with a part omitted has no literal yet.
+        lowered = [token.lower() for token in tokens]
+        if lowered == ['none'] or not any(token in _BORDER_STYLES for token in lowered):
+            return [(prop, 'none')]
+        if len(tokens) == 3 and '(' not in value:
+            return [(prop, value)]
+        return None
     return [(prop, value)]
 
 
