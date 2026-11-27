@@ -1,0 +1,8 @@
+.parent { color: rgb(0, 128, 0); margin-top: 9px; --len: 10px; --col: rgb(255, 0, 0); --word: banana }
+.i1 { color: var(--len) }
+.i2 { margin-top: var(--col) }
+.i3 { color: rgb(0, 0, 255); color: var(--missing) }
+.i4 { display: var(--word) }
+.i5 { padding-left: 3px; padding-left: var(--word) }
+.i6 { font-weight: var(--len) }
+.i7 { color: var(--missing, var(--len)) }

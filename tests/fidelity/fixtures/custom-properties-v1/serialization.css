@@ -1,0 +1,1 @@
+.v { --a:   1px    2px   ; --b:/* comment */x; --c: UPPER Case; --d: 1e3; --e: 'str'; --f: {a:b}; --g: var(--a) var(--a); --h: var(--missing, fall  back); --i:; --j: ; --k: rgb( 0 , 128 , 0 ); --l: calc( 1px + 2px ); --m: +.5; --n: -0; --o: a,b , c }

@@ -1,0 +1,11 @@
+.s { --m: 3px 5px; --one: 2px; --c: rgb(0, 0, 255); --fs: 20px; --em: 2em; --n: 3 }
+.s1 { margin: var(--m) }
+.s2 { padding: var(--one) 7px }
+.s3 { border: var(--one) solid var(--c) }
+.s4 { font: 700 var(--fs) / 30px serif }
+.s5 { margin-top: calc(var(--n) * 2px); padding-left: calc(var(--one) + 1px) }
+.s6 { font-size: 10px; margin-top: var(--em); --em: 1.5em; padding-left: var(--em) }
+.s7 { font-size: var(--em); margin-top: var(--em) }
+.s8 { background-color: var(--c) }
+.s9 { margin: var(--m); margin-left: 9px }
+.s10 { margin-left: 9px; margin: var(--missing) }

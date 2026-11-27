@@ -1,0 +1,8 @@
+.c { color: rgb(0, 128, 0) }
+.c1 { --a: var(--b); --b: var(--a); color: var(--a, rgb(0, 0, 255)) }
+.c2 { --self: var(--self); margin-top: var(--self, 3px) }
+.c3 { --p: var(--q, 1px); --q: var(--p); padding-left: var(--p, 6px) }
+.c4 { --r: var(--s); --s: var(--t); --t: var(--r); --outside: var(--r, 7px); margin-top: var(--outside) }
+.c5 { --inherited: 8px }
+.c6 { --inherited: var(--inherited); margin-top: var(--inherited, 2px) }
+.c7 { --u: var(--v); --v: 4px; margin-top: var(--u) }
