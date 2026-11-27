@@ -137,6 +137,22 @@ the difference.
 | Census and CSS Grid coverage pair | `1c148d6` against `main` `e9b67689`, both with `e9b67689`'s CI flags, in WSL: no Div image changed in any profile. Expanded census 16,297 of 23,728 exact on both sides (1x) and 10,404 of 17,796 (real zoom); CSS Grid coverage 1,473 of 4,204 (156 errors on both sides) and 894 of 3,153 (117 errors on both sides). Evidence: `div-fidelity-data` `26fec8c7`, `archive/docs/progress/evidence/match-media-div-{census,coverage}{,-zoom}-v1.json` |
 | Licence and freeze | No provenance comment is edited or removed. No frozen or off-limits file is touched (`div-style/src/lib.rs` is unchanged). The Blink files read are BSD |
 
+**Rebase onto `main` `aa61757d`.** After #153 (`4a771b04`) and #146
+(`aa61757d`) merged, the branch was rebased onto `aa61757d`. Both code
+commits keep their patch IDs (`43d5786` = `462e62c`, `b005f29` =
+`1c148d6`), and so does the combined code diff. At the rebased head
+`1747b3f`, before this note, every file the PR changes is byte-identical to
+the pre-rebase head `dbf7745`, except this track's log in `engine.md`, where
+both entries are kept. On Windows on the rebased tree, the generator and
+ledger checks give the same results as at `1c148d6`: every one exits 0
+except the two `wpt_script` checks, which need `WPT_SCRIPT_ROOT` and are
+left to CI as before. So
+the census and CSS Grid coverage pair and the suites above carry under D4.
+They were measured on `e9b67689`, without #153's and #146's code. #146
+records paint chunks and damage without changing pixels. #153 changes only
+`div-components` and the components harness, which pixel-compare does not
+depend on.
+
 **Why the census should not change:** pixel-compare never calls
 `match_media`, and the evaluation added to `set_viewport` and
 `set_prefers_reduced_motion` runs only over registered lists. The rename and

@@ -470,5 +470,7 @@ From the framework track's review of #149:
   `MediaQueryListData`. The census and CSS Grid coverage pair, `1c148d6`
   against `main` `e9b67689`, is unchanged at all four profiles (evidence
   `26fec8c7`), and the touched crates' Linux and Windows suites pass at
-  `1c148d6`. The user approved the public API on 27 November.
+  `1c148d6`. The user approved the public API on 27 November. Rebased
+  onto `main` `aa61757d` with every code patch ID unchanged, so the pair
+  and gates carry; they were measured without #153's and #146's code.
   [Record](../match-media-2026-11-26.md).
