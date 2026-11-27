@@ -131,7 +131,7 @@ pub fn CardDescription(children: Vec<ViewNode>) -> ViewNode {
     let description = element(
         "div",
         "card-description",
-        &[("font-size", "14px"), ("line-height", "20px")],
+        &[("font-size", "14px"), ("line-height", "calc(1.25 / 0.875)")],
     );
     set_color(&description, "color", current_theme().muted_foreground);
     mount(&description, children);

@@ -1,9 +1,9 @@
 {
   "schema": "openui-components-reference-results-v1",
-  "measured_on": "2026-11-17",
+  "measured_on": "2026-11-26",
   "complete": true,
   "repository": {
-    "commit": "06b9002e85d8b95a1da523cd82a03d45bd59e7c4",
+    "commit": "5c227193846b1060f71e629ae3d83732429cbcc8",
     "dirty_paths": []
   },
   "chromium": {
@@ -16,7 +16,7 @@
     "package_lock_sha256": "1f1b02a57485f88c7ae80b17c0f7ca22c79f40f2dcb3474d4013ca81857cc906"
   },
   "openui": {
-    "renderer_sha256": "f3ee4be91706cfa4f7a296ecd0b1200c67aaa594eb63710786a386e2e7b39077",
+    "renderer_sha256": "548f5d3b0eddf3ea3b693067fd077608787479f5d4a5cfddce1ea5f3cb267fe4",
     "raster_configuration": "chromium-linux-lcd"
   },
   "profiles": [
@@ -76,8 +76,8 @@
   "unimplemented_fixtures": [],
   "summary": {
     "comparisons": 336,
-    "exact": 57,
-    "different": 279,
+    "exact": 61,
+    "different": 275,
     "error": 0,
     "by_component": {
       "badge": {
@@ -101,8 +101,8 @@
         "error": 0
       },
       "font": {
-        "exact": 2,
-        "different": 22,
+        "exact": 6,
+        "different": 18,
         "error": 0
       },
       "input": {
@@ -143,8 +143,8 @@
         "error": 0
       },
       "legacy-800x600@1": {
-        "exact": 42,
-        "different": 42,
+        "exact": 46,
+        "different": 38,
         "error": 0
       },
       "mobile-375x667@2": {
@@ -155,13 +155,13 @@
     },
     "by_theme": {
       "dark": {
-        "exact": 30,
-        "different": 138,
+        "exact": 32,
+        "different": 136,
         "error": 0
       },
       "light": {
-        "exact": 27,
-        "different": 141,
+        "exact": 29,
+        "different": 139,
         "error": 0
       }
     }
@@ -3014,12 +3014,12 @@
       "theme": "dark",
       "profile": "desktop-1280x720@1.25",
       "chromium_rgba_sha256": "247269197e90420040f5bec162f770e46fa92248cd39566fce11497c1053ee4e",
-      "openui_rgba_sha256": "2455618ecf8db65d0dce4e530cd042c73f066b1e3afec396ca36f3ee5842160c",
-      "mismatched_pixels": 8414,
+      "openui_rgba_sha256": "9ed48b93b9d1b69863cb42f62d423d95e88d7842db00d408194b294c67ca92a3",
+      "mismatched_pixels": 5969,
       "status": "different",
       "diff_bbox": [
         20,
-        23,
+        25,
         322,
         101
       ],
@@ -3031,12 +3031,12 @@
       "theme": "dark",
       "profile": "desktop-1920x1080@1.5",
       "chromium_rgba_sha256": "929497ef03e233bda4789b9c27ef37b8eecbbaabbe1243ede4a63f381699ae80",
-      "openui_rgba_sha256": "71b3dfcc2646ee257ffd0df1c04df03b6f15643498778b35b9100d6756a34953",
-      "mismatched_pixels": 9194,
+      "openui_rgba_sha256": "e86ffc0f8753256c93dc40c93668ace0d7f1a912fcf38ee73dd9d0ae2ca2d0a7",
+      "mismatched_pixels": 6675,
       "status": "different",
       "diff_bbox": [
         24,
-        28,
+        29,
         387,
         120
       ],
@@ -3048,16 +3048,9 @@
       "theme": "dark",
       "profile": "legacy-800x600@1",
       "chromium_rgba_sha256": "66b17e572f6e1b21a005a07a6927c7400e8f3a62cc5bb2b63fdf5fa073d20071",
-      "openui_rgba_sha256": "d4b67d879401751b4dd7b74134965b2aa95f304f1d210e25281182b75eec0aa6",
-      "mismatched_pixels": 4548,
-      "status": "different",
-      "diff_bbox": [
-        15,
-        20,
-        258,
-        82
-      ],
-      "max_channel_delta": 240
+      "openui_rgba_sha256": "66b17e572f6e1b21a005a07a6927c7400e8f3a62cc5bb2b63fdf5fa073d20071",
+      "mismatched_pixels": 0,
+      "status": "exact"
     },
     {
       "fixture": "font-geist-dark",
@@ -3065,12 +3058,12 @@
       "theme": "dark",
       "profile": "mobile-375x667@2",
       "chromium_rgba_sha256": "a941b6878985279ceaaac63129c5cf7af430559f71ac6474fa81498cce0f18d7",
-      "openui_rgba_sha256": "418954a43a71bb400dad4cb27c1b2830085a688ac568d009ff026eb873f71a5f",
-      "mismatched_pixels": 17435,
+      "openui_rgba_sha256": "7ee32e6f82dcab0022ca9598584761a4d7ae93790c9ca661e6f1b037357b3255",
+      "mismatched_pixels": 13968,
       "status": "different",
       "diff_bbox": [
         32,
-        37,
+        39,
         515,
         161
       ],
@@ -3082,12 +3075,12 @@
       "theme": "light",
       "profile": "desktop-1280x720@1.25",
       "chromium_rgba_sha256": "e0d650ff24a0dde16794ed36599f28d6644a0e2fecb3c2be20140c4aa5a3d237",
-      "openui_rgba_sha256": "b1ee231e245c4229b7f2a0e1b56eddb7b887833bccb83b9ddae7b063164bd08c",
-      "mismatched_pixels": 8245,
+      "openui_rgba_sha256": "3d61c8d423f94a5c8117b9457f0ef82eb13cb050fb596c4578f271b754eac2cb",
+      "mismatched_pixels": 5827,
       "status": "different",
       "diff_bbox": [
         20,
-        23,
+        25,
         322,
         101
       ],
@@ -3099,12 +3092,12 @@
       "theme": "light",
       "profile": "desktop-1920x1080@1.5",
       "chromium_rgba_sha256": "e03e6666bb485171fe31627cb65a937abb3dbac15d9d643c8c001e21f438b7e0",
-      "openui_rgba_sha256": "79988443b53a7cd9afe5576823e1ae289127a9a82e04dbe81efa630cc94589b6",
-      "mismatched_pixels": 8982,
+      "openui_rgba_sha256": "839f77af80a33ff319516290817537e2551deb0c00ce659f5b423083f076a9f0",
+      "mismatched_pixels": 6534,
       "status": "different",
       "diff_bbox": [
         24,
-        28,
+        29,
         386,
         120
       ],
@@ -3116,16 +3109,9 @@
       "theme": "light",
       "profile": "legacy-800x600@1",
       "chromium_rgba_sha256": "07cc192c6a17112170c0ec1fe03fba14e1e55d922932f725c2ff9bc2e34c4c91",
-      "openui_rgba_sha256": "930a20582c3c711e7417310b6e77ea0b9c5f9a6157bf80aa55ed42d0448050c3",
-      "mismatched_pixels": 4451,
-      "status": "different",
-      "diff_bbox": [
-        16,
-        20,
-        258,
-        82
-      ],
-      "max_channel_delta": 245
+      "openui_rgba_sha256": "07cc192c6a17112170c0ec1fe03fba14e1e55d922932f725c2ff9bc2e34c4c91",
+      "mismatched_pixels": 0,
+      "status": "exact"
     },
     {
       "fixture": "font-geist-light",
@@ -3133,12 +3119,12 @@
       "theme": "light",
       "profile": "mobile-375x667@2",
       "chromium_rgba_sha256": "9e14f2c4b397f18afb0ddfca7a611f855f9ba92a741255889e079ddeed4a7b74",
-      "openui_rgba_sha256": "98ecc93f735a8c9abd77f2831d773ba923df6ba30f1dce0ab1cbcc65b9948d0f",
-      "mismatched_pixels": 17089,
+      "openui_rgba_sha256": "143815a654d22db1124bfde50fce2e4e8137983fbe59cfbad9839e510482988e",
+      "mismatched_pixels": 13712,
       "status": "different",
       "diff_bbox": [
         32,
-        37,
+        39,
         515,
         161
       ],
@@ -3150,12 +3136,12 @@
       "theme": "dark",
       "profile": "desktop-1280x720@1.25",
       "chromium_rgba_sha256": "898d1afc574a56ddd960da1f24ce308c6c3b1f261c7036d7214b5f63080b08cb",
-      "openui_rgba_sha256": "b7ffbb279dd3783e771e599f00345eab8a048891e723421dd46d2f91cbcb5974",
-      "mismatched_pixels": 8624,
+      "openui_rgba_sha256": "83afc1035188c7fca91beeec45b7ae7bd37944a980b7ca5fd686196a307e35ca",
+      "mismatched_pixels": 6033,
       "status": "different",
       "diff_bbox": [
         20,
-        23,
+        25,
         406,
         102
       ],
@@ -3167,12 +3153,12 @@
       "theme": "dark",
       "profile": "desktop-1920x1080@1.5",
       "chromium_rgba_sha256": "eae4502ddff401fce2af0149239fec438fef91408f42b386c7ffd1ec5b66a4d6",
-      "openui_rgba_sha256": "10e3aa99d8938167b9333def00de0b2965aa665e6cf314bae761ba81881d6f10",
-      "mismatched_pixels": 9358,
+      "openui_rgba_sha256": "32973fbd0f62d9a7ed3a1ec481490a06c93762bbbbea1141eca3d69fda4af33b",
+      "mismatched_pixels": 6786,
       "status": "different",
       "diff_bbox": [
         24,
-        28,
+        29,
         486,
         120
       ],
@@ -3184,16 +3170,9 @@
       "theme": "dark",
       "profile": "legacy-800x600@1",
       "chromium_rgba_sha256": "1da4870bfe7d59249934fdaa384d3fd9394d6228caa868e867bb881bdc83cdef",
-      "openui_rgba_sha256": "417f6a9cc3ef1c2455d8c2cb254af9188ed7dea631a10ad6aa72ada211749c3d",
-      "mismatched_pixels": 4667,
-      "status": "different",
-      "diff_bbox": [
-        15,
-        20,
-        325,
-        82
-      ],
-      "max_channel_delta": 240
+      "openui_rgba_sha256": "1da4870bfe7d59249934fdaa384d3fd9394d6228caa868e867bb881bdc83cdef",
+      "mismatched_pixels": 0,
+      "status": "exact"
     },
     {
       "fixture": "font-geist-mono-dark",
@@ -3201,12 +3180,12 @@
       "theme": "dark",
       "profile": "mobile-375x667@2",
       "chromium_rgba_sha256": "d3ee835c1f5a97498f207b12d8028af5a3eb2a0c246134ca3a6dd9dc29da4acb",
-      "openui_rgba_sha256": "1f6444e8881399819a488e9ff1ef9bfe4d6f448577f97d139f62fd668533cc03",
-      "mismatched_pixels": 17464,
+      "openui_rgba_sha256": "3dea49beaa8948e70fdef790c5d26ea289c2eaa55f9d72d2bdb2ee0314690a30",
+      "mismatched_pixels": 14007,
       "status": "different",
       "diff_bbox": [
         32,
-        37,
+        39,
         648,
         161
       ],
@@ -3218,12 +3197,12 @@
       "theme": "light",
       "profile": "desktop-1280x720@1.25",
       "chromium_rgba_sha256": "fc83375f68fbb71c0866ed552399f3b07deea3afdca85090aec075558a23d361",
-      "openui_rgba_sha256": "e956ea9753ba91cef50cdb14fcdf80b2acd75816de783962ef4aff188ee015f5",
-      "mismatched_pixels": 8416,
+      "openui_rgba_sha256": "3dfd80e95ac49249b941c638ea5d234f7559db476f17ae742f215ceba1b04230",
+      "mismatched_pixels": 5902,
       "status": "different",
       "diff_bbox": [
         20,
-        23,
+        25,
         405,
         102
       ],
@@ -3235,12 +3214,12 @@
       "theme": "light",
       "profile": "desktop-1920x1080@1.5",
       "chromium_rgba_sha256": "0f6bab7526d9d1990acce942dceab5e6ef3d4c2665f917555e5acb506d2adb9d",
-      "openui_rgba_sha256": "114c7b43642060f66d196bf1164de4a53c50705356e8e1a06964ac484aa43899",
-      "mismatched_pixels": 9186,
+      "openui_rgba_sha256": "eabfbe9381f3eff4c4514585555e165e88bf43f1de45029280255d993fbfc6ac",
+      "mismatched_pixels": 6710,
       "status": "different",
       "diff_bbox": [
         24,
-        28,
+        29,
         486,
         120
       ],
@@ -3252,16 +3231,9 @@
       "theme": "light",
       "profile": "legacy-800x600@1",
       "chromium_rgba_sha256": "6254c8723f5a2f5a4d488ee400a9fc689f70575b20fa2a9d958d07bce400cc16",
-      "openui_rgba_sha256": "2381a16f3e11a47be55dc0a4dd37daa98b60b8b04aa0a62ffdfc2ea1ba064672",
-      "mismatched_pixels": 4555,
-      "status": "different",
-      "diff_bbox": [
-        16,
-        20,
-        325,
-        82
-      ],
-      "max_channel_delta": 245
+      "openui_rgba_sha256": "6254c8723f5a2f5a4d488ee400a9fc689f70575b20fa2a9d958d07bce400cc16",
+      "mismatched_pixels": 0,
+      "status": "exact"
     },
     {
       "fixture": "font-geist-mono-light",
@@ -3269,12 +3241,12 @@
       "theme": "light",
       "profile": "mobile-375x667@2",
       "chromium_rgba_sha256": "5910a0457d17d15f24840c7202004f34b50edad725f0360aeb75053c2bb98fc9",
-      "openui_rgba_sha256": "8cda5d45667184bcfbb9daa400338a97de19a17075c39655d5d171298ddcbf3d",
-      "mismatched_pixels": 17048,
+      "openui_rgba_sha256": "e8ee381f8f60a5d01f0016b5626158ffd3eac236d7334949ba687c551bb4842a",
+      "mismatched_pixels": 13659,
       "status": "different",
       "diff_bbox": [
         32,
-        37,
+        39,
         648,
         161
       ],

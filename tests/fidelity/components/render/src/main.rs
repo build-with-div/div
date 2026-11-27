@@ -109,8 +109,7 @@ const TRACE_FIXTURES: &[(&str, Fixture)] = &[
 // `FontSpecimen` in fixtures.tsx: `flex flex-col gap-1 text-sm` and a font
 // family, holding three lines at weights 400, 500 (`font-medium`) and 600
 // (`font-semibold`). Tailwind's `text-sm` is 0.875rem with line-height
-// calc(1.25 / 0.875), written as the number 1.4285714 because `line-height`
-// does not accept `calc()` in Div yet.
+// calc(1.25 / 0.875).
 
 fn font_geist() -> ViewNode {
     view! {
@@ -119,7 +118,7 @@ fn font_geist() -> ViewNode {
             style:flex-direction="column"
             style:gap="4px"
             style:font-size="14px"
-            style:line-height="1.4285714"
+            style:line-height="calc(1.25 / 0.875)"
             style:font-family="Geist"
         >
             <p>"Sphinx of black quartz, judge my vow."</p>
@@ -136,7 +135,7 @@ fn font_geist_mono() -> ViewNode {
             style:flex-direction="column"
             style:gap="4px"
             style:font-size="14px"
-            style:line-height="1.4285714"
+            style:line-height="calc(1.25 / 0.875)"
             style:font-family="\"Geist Mono\""
         >
             <p>"Sphinx of black quartz, judge my vow."</p>
@@ -153,7 +152,7 @@ fn font_inter() -> ViewNode {
             style:flex-direction="column"
             style:gap="4px"
             style:font-size="14px"
-            style:line-height="1.4285714"
+            style:line-height="calc(1.25 / 0.875)"
             style:font-family="Inter"
         >
             <p>"Sphinx of black quartz, judge my vow."</p>
@@ -280,10 +279,7 @@ fn label_basic() -> ViewNode {
 }
 
 // `TabsExample` in fixtures.tsx: three tabs, `selected` selected and the
-// third disabled, each panel holding one `text-sm` line. Its line height is
-// written as 20px, its computed value: the number 1.4285714 used above for
-// the font specimens gives 19.9999996px, which rounds the baseline a pixel
-// differently here.
+// third disabled, each panel holding one `text-sm` line.
 
 fn tabs_example(
     orientation: Orientation,
@@ -310,17 +306,17 @@ fn tabs_example(
                 </TabsTrigger>
             </TabsList>
             <TabsContent state={tabs.clone()} value={"account"}>
-                <p style:font-size="14px" style:line-height="20px">
+                <p style:font-size="14px" style:line-height="calc(1.25 / 0.875)">
                     "Make changes to your account here."
                 </p>
             </TabsContent>
             <TabsContent state={tabs.clone()} value={"password"}>
-                <p style:font-size="14px" style:line-height="20px">
+                <p style:font-size="14px" style:line-height="calc(1.25 / 0.875)">
                     "Change your password here."
                 </p>
             </TabsContent>
             <TabsContent state={tabs.clone()} value={"billing"}>
-                <p style:font-size="14px" style:line-height="20px">
+                <p style:font-size="14px" style:line-height="calc(1.25 / 0.875)">
                     "Billing is not available."
                 </p>
             </TabsContent>
