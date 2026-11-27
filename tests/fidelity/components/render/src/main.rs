@@ -782,7 +782,7 @@ fn perform(document: &Document, step: &Json) -> Result<(), Box<dyn std::error::E
             MouseEventType::Down,
             MouseEventType::Up,
         ] {
-            document.dispatch_mouse_event(kind, x, y, MouseButton::Left, Modifiers::NONE)?;
+            document.dispatch_mouse_event(kind, x, y, MouseButton::Main, Modifiers::NONE)?;
         }
         return Ok(());
     }

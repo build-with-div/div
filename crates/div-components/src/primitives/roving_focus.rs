@@ -391,7 +391,7 @@ pub(crate) fn is_target(event: &Event, element: &Element) -> bool {
 /// Whether a `mousedown` is the primary button without Ctrl, which Radix's
 /// tab trigger selects on.
 pub(crate) fn is_primary_press(event: &Event) -> bool {
-    event.mouse_button == MouseButton::Left as i32 && !Held::of(event).ctrl
+    event.mouse_button == MouseButton::Main as i32 && !Held::of(event).ctrl
 }
 
 pub(crate) fn set_attribute(element: &Element, name: &str, value: &str) {
