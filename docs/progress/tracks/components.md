@@ -46,6 +46,28 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
 
+## 27 November 2026: dirty paths in the harness evidence
+
+The reference harness records the paths that were uncommitted when it
+measured, in each evidence file's `dirty_paths`. It used to cut the first
+character off the first such path.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| `repository_identity` read `git status --porcelain` and stripped the whole output. A change only in the worktree starts with a space (` M path`), so the strip removed that space from the first line, and slicing off the three status columns then removed the path's first character. The harness now reads `git status --porcelain -z` without stripping it, through a new `dirty_paths` function. With `-z`, git does not quote paths, and a rename gives its new path, not `old -> new`. | components | `tests/fidelity/components/harness/reference_harness.py` |
+
+No committed evidence is affected: both `reference-v1.json` and
+`traces-v1.json` were measured on clean trees (`"dirty_paths": []`).
+
+### Verification
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Unit tests | `python -m unittest tests/fidelity/components/harness/test_reference_harness.py` | 28 passed, 3 of them new: a first record that starts with a space keeps its first character, a rename records its new path, paths are unquoted, and a clean tree has none |
+| A dirty tree | `repository_identity()` with this change and one untracked file, on Windows at `aa61757d` | the three paths, each whole |
+
 ## 26 November 2026: line heights as `calc()`
 
 The components now use Tailwind's own line heights. Before, they used
