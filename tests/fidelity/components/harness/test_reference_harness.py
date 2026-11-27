@@ -185,6 +185,24 @@ class TraceTests(unittest.TestCase):
         self.assertTrue(difference["missing"])
 
 
+class RepositoryTests(unittest.TestCase):
+    def test_dirty_paths_keep_their_first_character(self) -> None:
+        # A worktree-only change begins with a space (" M"); the first
+        # record used to lose that space to strip() and then a character.
+        status = " M crates/div-components/src/button.rs\0?? out.txt\0M  README.md\0"
+        self.assertEqual(
+            harness.dirty_paths(status),
+            ["README.md", "crates/div-components/src/button.rs", "out.txt"],
+        )
+
+    def test_renames_record_the_new_path_and_paths_are_unquoted(self) -> None:
+        status = "R  new name.rs\0old name.rs\0 D café.txt\0"
+        self.assertEqual(harness.dirty_paths(status), ["café.txt", "new name.rs"])
+
+    def test_a_clean_tree_has_no_dirty_paths(self) -> None:
+        self.assertEqual(harness.dirty_paths(""), [])
+
+
 class ComparisonTests(unittest.TestCase):
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()

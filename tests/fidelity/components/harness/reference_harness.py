@@ -122,6 +122,27 @@ def load_manifest() -> dict:
     return manifest
 
 
+def dirty_paths(status: str) -> list[str]:
+    """The paths in `git status --porcelain -z` output, sorted.
+
+    Each record is `XY PATH`, unquoted and NUL-terminated; a rename or copy
+    is followed by a second record with its source path, which is skipped.
+    The status columns may begin with a space, so records are not stripped.
+    """
+    records = status.split("\0")
+    paths = []
+    index = 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        if not record:
+            continue
+        paths.append(record[3:])
+        if record[0] in "RC":
+            index += 1
+    return sorted(paths)
+
+
 def repository_identity(commit: str | None = None) -> dict[str, object]:
     """The measured commit and any uncommitted paths.
 
@@ -132,13 +153,11 @@ def repository_identity(commit: str | None = None) -> dict[str, object]:
     def git(*args: str) -> str:
         return subprocess.run(
             ["git", *args], cwd=ROOT, check=True, capture_output=True, text=True
-        ).stdout.strip()
+        ).stdout
 
     try:
-        head = git("rev-parse", "HEAD")
-        dirty: object = sorted(
-            line[3:] for line in git("status", "--porcelain").splitlines() if line
-        )
+        head = git("rev-parse", "HEAD").strip()
+        dirty: object = dirty_paths(git("status", "--porcelain", "-z"))
     except (OSError, subprocess.CalledProcessError):
         if commit is None:
             raise SystemExit("git cannot read this checkout; pass --repository-commit")
