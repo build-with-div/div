@@ -78,9 +78,15 @@ impl Engine {
             .map(|cascaded| cascaded.declarations.into_owned())
             .unwrap_or_else(|_| slot.authored.clone());
         for contribution in cascaded.contributions() {
+            // A value with `var()` or a CSS-wide keyword is typed only by the
+            // full cascade, which this scrollbar probe does not run.
             if contribution
                 .fields()
                 .contains(CanonicalStyleField::ScrollbarWidth)
+                && !matches!(
+                    contribution.value(),
+                    div_style::StyleValue::Wide(_) | div_style::StyleValue::Unparsed(_)
+                )
             {
                 contribution
                     .project_resolved(&mut style, contribution.value(), viewport)

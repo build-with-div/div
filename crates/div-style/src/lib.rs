@@ -15,6 +15,7 @@ mod computed;
 #[doc(hidden)]
 pub mod constructor_tokens;
 mod css_tokens;
+mod custom_property;
 #[doc(hidden)]
 pub mod declaration_block;
 mod enums;
@@ -51,6 +52,7 @@ pub use computed::{
     PositionArea, QuotePair, RadialGradient, RadialGradientShape, RadialGradientSize,
     WebkitBoxOrient,
 };
+pub use custom_property::*;
 pub use div_geometry::Length;
 pub use enums::*;
 pub use font_types::*;

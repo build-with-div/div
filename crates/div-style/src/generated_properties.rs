@@ -1703,6 +1703,7 @@ pub enum RendererInternalStyleValue {
     NativeTransform(Option<crate::TransformList>),
     TransformMatrix(Option<crate::TransformMatrix>),
     BorderRadiusLengths([Option<(Length, Length)>; 4]),
+    CustomProperties(crate::CustomProperties),
 }
 
 impl RendererInternalStyleValue {
@@ -1729,6 +1730,7 @@ impl RendererInternalStyleValue {
             Self::NativeTransform(value) => style.native_transform = value,
             Self::TransformMatrix(value) => style.transform_matrix = value,
             Self::BorderRadiusLengths(value) => style.border_radius_lengths = value,
+            Self::CustomProperties(value) => style.custom_properties = value,
         });
     }
 }

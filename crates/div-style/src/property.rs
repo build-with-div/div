@@ -439,6 +439,12 @@ pub enum StyleValue {
     /// are known. `line-height` is the first property to accept one.
     #[cfg_attr(feature = "constructor-tokens", constructor_tokens(module = "math"))]
     Math(crate::math::MathFunction),
+    /// A CSS-wide keyword: `inherit`, `initial`, `unset`, `revert` or
+    /// `revert-layer`.
+    Wide(crate::CssWideKeyword),
+    /// A value that contains `var()`, substituted and parsed with the
+    /// property's grammar when the element's style is computed.
+    Unparsed(crate::UnparsedValue),
 }
 
 impl StyleValue {
@@ -599,11 +605,43 @@ pub struct Declaration {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Style {
     declarations: Vec<Declaration>,
+    custom: Vec<crate::CustomDeclaration>,
 }
 
 impl Style {
     pub fn declarations(&self) -> &[Declaration] {
         &self.declarations
+    }
+
+    /// The custom property declarations, `--name: value`, in source order.
+    /// They are kept apart from [`Style::declarations`]: a custom property
+    /// and a standard one never override each other. Each records how many
+    /// standard declarations came before it, so the source order of the
+    /// two lists together is kept for CSSOM.
+    pub fn custom_declarations(&self) -> &[crate::CustomDeclaration] {
+        &self.custom
+    }
+
+    /// Append a standard declaration. A later declaration of a property
+    /// overrides an earlier one. `style!` builds a `Style` with this and
+    /// [`Style::with_custom_property`], in source order.
+    pub fn with_declaration(mut self, declaration: Declaration) -> Self {
+        self.declarations.push(declaration);
+        self
+    }
+
+    /// Append a custom property declaration, after the standard
+    /// declarations already added. A later declaration of the same name
+    /// overrides an earlier one.
+    pub fn with_custom_property(
+        mut self,
+        name: crate::CustomPropertyName,
+        value: crate::UnparsedValue,
+    ) -> Self {
+        let position = self.declarations.len();
+        self.custom
+            .push(crate::CustomDeclaration::new(name, value, position));
+        self
     }
 
     /// Retain a numeric color or own-color currentcolor inheritance.
@@ -651,6 +689,7 @@ impl FromIterator<Declaration> for Style {
     fn from_iter<I: IntoIterator<Item = Declaration>>(declarations: I) -> Self {
         Self {
             declarations: declarations.into_iter().collect(),
+            custom: Vec::new(),
         }
     }
 }

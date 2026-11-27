@@ -65,8 +65,8 @@ use div_style::selector::{
 };
 use div_style::stylesheet::{CascadeOrigin, StyleSheet};
 use div_style::{
-    AuthoredStyleDeclarations, CanonicalStyleFields, ComputedStyle, DroppedDeclaration,
-    InvalidationClass, Style, StyleProperty, StyleValue,
+    AuthoredStyleDeclarations, CanonicalStyleFields, ComputedStyle, CssWideKeyword,
+    DroppedDeclaration, InvalidationClass, Style, StyleProperty, StyleValue,
 };
 
 use crate::selector_match::{is_html_space, SelectorMatchError};
@@ -538,6 +538,45 @@ fn bucket_key(selector: &Selector) -> Option<(u8, &str)> {
         })
 }
 
+/// Fold one declaration block into the cascade so far, and return the
+/// fields it set. `revert` rolls a declaration back to `origin_base`, the
+/// earlier origins, and `revert-layer` to `layer_base`, the earlier layers
+/// of its origin. Fields neither holds keep the native source, which plays
+/// the user-agent origin's part for engine defaults.
+fn fold(
+    declarations: &AuthoredStyleDeclarations,
+    out: &mut AuthoredStyleDeclarations,
+    origin_base: &AuthoredStyleDeclarations,
+    layer_base: &AuthoredStyleDeclarations,
+) -> Result<CanonicalStyleFields, EngineError> {
+    let mut fields = CanonicalStyleFields::EMPTY;
+    for contribution in declarations.contributions() {
+        let result = match contribution.value() {
+            StyleValue::Wide(CssWideKeyword::Revert) => {
+                out.try_revert_to(contribution.property(), contribution.fields(), origin_base)
+            }
+            StyleValue::Wide(CssWideKeyword::RevertLayer) => {
+                out.try_revert_to(contribution.property(), contribution.fields(), layer_base)
+            }
+            value => out
+                .try_set_validated(contribution.property(), value.clone())
+                .map(|_| ()),
+        };
+        result.map_err(|_| EngineError::AllocationFailure)?;
+        fields = fields.union(contribution.fields());
+    }
+    for declaration in declarations.custom() {
+        let name = declaration.name().as_str();
+        let result = match declaration.value().wide_keyword() {
+            Some(CssWideKeyword::Revert) => out.try_revert_custom_to(name, origin_base),
+            Some(CssWideKeyword::RevertLayer) => out.try_revert_custom_to(name, layer_base),
+            _ => out.try_set_custom(declaration.clone()).map(|_| ()),
+        };
+        result.map_err(|_| EngineError::AllocationFailure)?;
+    }
+    Ok(fields)
+}
+
 fn compile_declarations(style: &Style) -> Result<AuthoredStyleDeclarations, StyleSheetError> {
     Engine::canonical_declarations(style).map_err(|error| match error {
         EngineError::PropertyType { property } => StyleSheetError::PropertyType { property },
@@ -834,7 +873,11 @@ impl Engine {
                     ..StyleAttribute::default()
                 };
                 for declaration in parsed.declarations {
-                    if !div_style::value_matches_property(declaration.property, &declaration.value)
+                    if !crate::custom_properties::is_cascade_value(&declaration.value)
+                        && !div_style::value_matches_property(
+                            declaration.property,
+                            &declaration.value,
+                        )
                     {
                         return Err(EngineError::PropertyType {
                             property: declaration.property,
@@ -847,6 +890,16 @@ impl Engine {
                     };
                     target
                         .try_set_validated(declaration.property, declaration.value)
+                        .map_err(|_| EngineError::AllocationFailure)?;
+                }
+                for declaration in parsed.custom {
+                    let target = if declaration.important {
+                        &mut attribute.important
+                    } else {
+                        &mut attribute.normal
+                    };
+                    target
+                        .try_set_custom(declaration.declaration)
                         .map_err(|_| EngineError::AllocationFailure)?;
                 }
                 Some(Box::new(attribute))
@@ -1322,41 +1375,84 @@ impl Engine {
         };
         let mut out = AuthoredStyleDeclarations::default();
         let mut important = CanonicalStyleFields::EMPTY;
-        let apply = |declarations: &AuthoredStyleDeclarations,
-                     out: &mut AuthoredStyleDeclarations,
-                     important_fields: Option<&mut CanonicalStyleFields>|
-         -> Result<(), EngineError> {
-            let mut fields = CanonicalStyleFields::EMPTY;
-            for contribution in declarations.contributions() {
-                out.try_set_validated(contribution.property(), contribution.value().clone())
-                    .map_err(|_| EngineError::AllocationFailure)?;
-                fields = fields.union(contribution.fields());
-            }
-            if let Some(important_fields) = important_fields {
-                *important_fields = important_fields.union(fields);
-            }
-            Ok(())
-        };
         let rule = |m: &Matched| &rules.sheets[m.sheet as usize].rules[m.rule as usize];
+        // `revert` rolls a declaration back to the earlier origins and
+        // `revert-layer` to the earlier layers. Their snapshots are taken
+        // only when some matched declaration uses one.
+        let rollback = matched.iter().any(|m| {
+            let rule = rule(m);
+            rule.normal.has_revert() || rule.important.has_revert()
+        }) || slot.style_attribute.as_ref().is_some_and(|attribute| {
+            attribute.normal.has_revert() || attribute.important.has_revert()
+        }) || slot.authored.has_revert();
+        let none = AuthoredStyleDeclarations::default();
+        let snapshot = |out: &AuthoredStyleDeclarations| rollback.then(|| out.clone());
         for m in ordered(CascadeOrigin::UserAgent, false) {
-            apply(&rule(m).normal, &mut out, None)?;
+            fold(&rule(m).normal, &mut out, &none, &none)?;
         }
-        apply(&slot.presentational_hints, &mut out, None)?;
+        let user_agent = snapshot(&out);
+        let origin_base = user_agent.as_ref().unwrap_or(&none);
+        fold(
+            &slot.presentational_hints,
+            &mut out,
+            origin_base,
+            origin_base,
+        )?;
+        let mut layer: Option<(u32, Option<AuthoredStyleDeclarations>)> = None;
         for m in ordered(CascadeOrigin::Author, false) {
-            apply(&rule(m).normal, &mut out, None)?;
+            let rank = rules.layer_rank(m.sheet, rule(m), false);
+            if layer.as_ref().map(|(current, _)| *current) != Some(rank) {
+                layer = Some((rank, snapshot(&out)));
+            }
+            let layer_base = layer.as_ref().and_then(|(_, base)| base.as_ref());
+            fold(
+                &rule(m).normal,
+                &mut out,
+                origin_base,
+                layer_base.unwrap_or(&none),
+            )?;
         }
         if let Some(attribute) = &slot.style_attribute {
-            apply(&attribute.normal, &mut out, None)?;
+            let layer_base = snapshot(&out);
+            fold(
+                &attribute.normal,
+                &mut out,
+                origin_base,
+                layer_base.as_ref().unwrap_or(&none),
+            )?;
         }
-        apply(&slot.authored, &mut out, None)?;
+        let layer_base = snapshot(&out);
+        fold(
+            &slot.authored,
+            &mut out,
+            origin_base,
+            layer_base.as_ref().unwrap_or(&none),
+        )?;
+        let mut layer: Option<(u32, Option<AuthoredStyleDeclarations>)> = None;
         for m in ordered(CascadeOrigin::Author, true) {
-            apply(&rule(m).important, &mut out, Some(&mut important))?;
+            let rank = rules.layer_rank(m.sheet, rule(m), true);
+            if layer.as_ref().map(|(current, _)| *current) != Some(rank) {
+                layer = Some((rank, snapshot(&out)));
+            }
+            let layer_base = layer.as_ref().and_then(|(_, base)| base.as_ref());
+            important = important.union(fold(
+                &rule(m).important,
+                &mut out,
+                origin_base,
+                layer_base.unwrap_or(&none),
+            )?);
         }
         if let Some(attribute) = &slot.style_attribute {
-            apply(&attribute.important, &mut out, Some(&mut important))?;
+            let layer_base = snapshot(&out);
+            important = important.union(fold(
+                &attribute.important,
+                &mut out,
+                origin_base,
+                layer_base.as_ref().unwrap_or(&none),
+            )?);
         }
         for m in ordered(CascadeOrigin::UserAgent, true) {
-            apply(&rule(m).important, &mut out, Some(&mut important))?;
+            important = important.union(fold(&rule(m).important, &mut out, &none, &none)?);
         }
         Ok(Cascaded {
             declarations: Cow::Owned(out),

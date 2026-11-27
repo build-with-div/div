@@ -19,7 +19,9 @@
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use quote::quote;
 
-use crate::view::{property_tokens, typed_value_tokens};
+use crate::view::{
+    custom_declaration_tokens, property_tokens, typed_value_tokens, OrderedStyleTokens,
+};
 
 /// `source` is the macro call's source text, when the compiler has it.
 pub(crate) fn expand(input: TokenStream, source: Option<String>) -> TokenStream {
@@ -36,7 +38,7 @@ pub(crate) fn expand(input: TokenStream, source: Option<String>) -> TokenStream 
             return quote!({ #(#errors)* ::div::typed_style::Style::default() });
         }
     };
-    let mut items = Vec::with_capacity(declarations.len());
+    let mut style = OrderedStyleTokens::new();
     for declaration in &declarations {
         let css = &text[declaration.source.clone()];
         if declaration.important {
@@ -49,22 +51,33 @@ pub(crate) fn expand(input: TokenStream, source: Option<String>) -> TokenStream 
             )
             .to_compile_error();
         }
-        let property = property_tokens(declaration.property);
-        let value = match typed_value_tokens(&declaration.value) {
+        let (property, value) = match &declaration.target {
+            div_style::declaration_block::BlockTarget::Property(property, value) => {
+                (property, value)
+            }
+            div_style::declaration_block::BlockTarget::Custom(declaration) => {
+                match custom_declaration_tokens(declaration, &quote!(::div::typed_style)) {
+                    Ok(tokens) => style.custom(tokens),
+                    Err(error) => {
+                        return syn::Error::new(span, format!("`{css}`: {error}"))
+                            .to_compile_error()
+                    }
+                }
+                continue;
+            }
+        };
+        let property = property_tokens(*property);
+        let value = match typed_value_tokens(value) {
             Ok(value) => value,
             Err(error) => {
                 return syn::Error::new(span, format!("`{css}`: {error}")).to_compile_error()
             }
         };
-        items.push(quote! {
+        style.declaration(quote! {
             ::div::typed_style::Declaration { property: #property, value: #value }
         });
     }
-    quote! {
-        <::div::typed_style::Style as ::core::iter::FromIterator<
-            ::div::typed_style::Declaration,
-        >>::from_iter([#(#items),*])
-    }
+    style.finish(&quote!(::div::typed_style))
 }
 
 /// The CSS text of the block and the span its errors point at.

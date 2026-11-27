@@ -262,6 +262,10 @@ impl ComputedStyle {
         &self.fields.counter_set
     }
     #[inline]
+    pub fn custom_properties(&self) -> &crate::CustomProperties {
+        &self.fields.custom_properties
+    }
+    #[inline]
     pub fn device_scale_factor(&self) -> &f64 {
         &self.fields.device_scale_factor
     }

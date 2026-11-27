@@ -411,7 +411,11 @@ impl SheetParser<'_> {
                 (self.text[start + 1..name_end].to_owned(), name_end)
             });
             let scan_from = at_name.as_ref().map_or(start, |(_, end)| *end);
-            match self.next_stop(scan_from, range.end) {
+            // A custom property's value may hold `{}` blocks, so its
+            // declaration ends only at a top-level `;`, as in Chromium.
+            let custom =
+                at_name.is_none() && starts_custom_declaration(&self.text[start..range.end]);
+            match self.next_stop(scan_from, range.end, custom) {
                 Err(position) => {
                     self.error(
                         format!("`{}` has no opening bracket", byte_char(bytes[position])),
@@ -459,8 +463,9 @@ impl SheetParser<'_> {
 
     /// The first top-level `;` or `{` at or after `from`, outside strings and
     /// brackets, or `end` (reported as `;`). `Err` holds the position of a
-    /// closing bracket with no opening one.
-    fn next_stop(&self, from: usize, end: usize) -> Result<(usize, u8), usize> {
+    /// closing bracket with no opening one. With `braces`, `{}` blocks are
+    /// brackets too, so only a `;` stops.
+    fn next_stop(&self, from: usize, end: usize, braces: bool) -> Result<(usize, u8), usize> {
         let bytes = self.text.as_bytes();
         let mut depth: Vec<u8> = Vec::new();
         let mut quote = None;
@@ -478,6 +483,12 @@ impl SheetParser<'_> {
                     b'"' | b'\'' => quote = Some(byte),
                     b'(' => depth.push(b')'),
                     b'[' => depth.push(b']'),
+                    b'{' if braces => depth.push(b'}'),
+                    b'}' if braces && !depth.is_empty() => {
+                        if depth.pop() != Some(byte) {
+                            return Err(index);
+                        }
+                    }
                     b')' | b']' => {
                         if depth.pop() != Some(byte) {
                             return Err(index);
@@ -524,6 +535,17 @@ impl SheetParser<'_> {
         }
         None
     }
+}
+
+/// Whether `text` starts with a custom property name and its colon.
+fn starts_custom_declaration(text: &str) -> bool {
+    let Some(rest) = text.strip_prefix("--") else {
+        return false;
+    };
+    let name_end = rest
+        .find(|c: char| !(c.is_alphanumeric() || c == '-' || c == '_' || !c.is_ascii()))
+        .unwrap_or(rest.len());
+    rest[name_end..].trim_start().starts_with(':')
 }
 
 fn byte_char(byte: u8) -> char {
@@ -597,7 +619,7 @@ mod tests {
         let first = rule(&items[0]);
         assert_eq!(first.selectors, parse_selector_list(".a", None).unwrap());
         assert_eq!(first.declarations.len(), 2);
-        assert_eq!(first.declarations[0].property, StyleProperty::Color);
+        assert_eq!(first.declarations[0].property(), Some(StyleProperty::Color));
         assert!(!first.declarations[0].important);
         assert!(first.declarations[1].important);
         assert_eq!(rule(&items[1]).selectors.len(), 2);
@@ -622,8 +644,8 @@ mod tests {
         // Declarations after a nested rule form their own rule, after it.
         assert_eq!(rule(&items[3]).selectors, parent);
         assert_eq!(
-            rule(&items[3]).declarations[0].property,
-            StyleProperty::Display
+            rule(&items[3]).declarations[0].property(),
+            Some(StyleProperty::Display)
         );
     }
 
@@ -637,6 +659,16 @@ mod tests {
         );
         assert_eq!(rule(&items[1]).layer.as_deref(), Some("theme"));
         assert_eq!(rule(&items[2]).layer, None);
+    }
+
+    #[test]
+    fn custom_declarations_may_hold_blocks() {
+        let items = rules(".a { --f: {a:b}; color: red }");
+        assert_eq!(items.len(), 1);
+        let declarations = &rule(&items[0]).declarations;
+        assert_eq!(declarations.len(), 2);
+        assert_eq!(declarations[0].property(), None);
+        assert_eq!(declarations[1].property(), Some(StyleProperty::Color));
     }
 
     #[test]
@@ -676,8 +708,8 @@ mod tests {
         assert_eq!(rule(&items[5]).selectors, parent);
         assert_eq!(rule(&items[5]).media, vec![hover.clone()]);
         assert_eq!(
-            rule(&items[5]).declarations[0].property,
-            StyleProperty::Opacity
+            rule(&items[5]).declarations[0].property(),
+            Some(StyleProperty::Opacity)
         );
         assert_eq!(
             rule(&items[6]).selectors,

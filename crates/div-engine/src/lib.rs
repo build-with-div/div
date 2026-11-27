@@ -7,6 +7,7 @@ mod authored_source;
 mod client_geometry;
 mod compositor_scene;
 mod control_geometry;
+mod custom_properties;
 mod dialog;
 mod element_dimensions;
 mod focus_navigation;
@@ -1644,6 +1645,12 @@ impl Engine {
         property: StyleProperty,
         value: StyleValue,
     ) -> Result<(), EngineError> {
+        // Run-time writes of CSS-wide keywords and `var()` are RFC 0014
+        // step 5. Until then they come only from `style!`, `stylesheet!`,
+        // `css!` and the `style` attribute.
+        if let Some(limit) = div_style::runtime_value_limit(&value) {
+            return Err(EngineError::InvalidInput(limit));
+        }
         let node = self.resolve(handle)?;
         let old_transform = (property == StyleProperty::Transform)
             .then(|| div_style::value_from_computed(&self.document.node(node).style, property));
@@ -1915,12 +1922,35 @@ impl Engine {
     fn resolve_native_declarations(
         &self,
         mut style: ComputedStyle,
-        declarations: &[AuthoredStyleContribution],
+        declarations: &AuthoredStyleDeclarations,
         parent: &ComputedStyle,
         root_font: f32,
         viewport: (f32, f32),
         is_root: bool,
     ) -> Result<ComputedStyle, EngineError> {
+        // Custom properties and `var()` first (RFC 0014 step 4), then the
+        // CSS-wide keywords, whose fields no other live declaration owns.
+        let (custom, substituted) =
+            custom_properties::substitute(declarations, &parent.custom_properties);
+        style.update_derived(|fields| fields.custom_properties = custom);
+        let substituted = if substituted
+            .iter()
+            .any(|contribution| matches!(contribution.value(), StyleValue::Wide(_)))
+        {
+            let mut typed = Vec::with_capacity(substituted.len());
+            for contribution in substituted.iter() {
+                match contribution.value() {
+                    StyleValue::Wide(keyword) => {
+                        contribution.project_wide(&mut style, *keyword, parent)
+                    }
+                    _ => typed.push(contribution.clone()),
+                }
+            }
+            std::borrow::Cow::Owned(typed)
+        } else {
+            substituted
+        };
+        let declarations: &[AuthoredStyleContribution] = &substituted;
         let parent_font = parent.font_size;
         let parent_metrics = declarations
             .iter()
@@ -2119,12 +2149,7 @@ impl Engine {
                 let mut pseudo = ComputedStyle::for_pseudo(&origin);
                 pseudo.inherit_properties_from(&origin);
                 let pseudo = self.resolve_native_declarations(
-                    pseudo,
-                    canonical.contributions(),
-                    &origin,
-                    root_font,
-                    viewport,
-                    false,
+                    pseudo, &canonical, &origin, root_font, viewport, false,
                 )?;
                 origin.update_derived(|fields| {
                     let destination = match target {
@@ -2403,7 +2428,7 @@ impl Engine {
         let declarations_to_resolve = Self::canonical_declarations(declarations)?;
         let pseudo = self.resolve_native_declarations(
             pseudo,
-            declarations_to_resolve.contributions(),
+            &declarations_to_resolve,
             &origin,
             self.document.node(self.document.root()).style.font_size,
             viewport,

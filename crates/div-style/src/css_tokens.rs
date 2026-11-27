@@ -77,6 +77,31 @@ pub fn tokenize(input: &str) -> Vec<Token> {
     tokens
 }
 
+/// Tokenize `input`, which must already be preprocessed (CSS Syntax 3.3),
+/// with each token's byte range. Comments are removed, so they fall
+/// between ranges.
+pub(crate) fn tokenize_spans(input: &str) -> Vec<(Token, std::ops::Range<usize>)> {
+    let offsets: Vec<usize> = input
+        .char_indices()
+        .map(|(offset, _)| offset)
+        .chain(std::iter::once(input.len()))
+        .collect();
+    let mut tokenizer = Tokenizer {
+        chars: input.chars().collect(),
+        at: 0,
+    };
+    let mut tokens = Vec::new();
+    loop {
+        tokenizer.skip_comments();
+        let start = tokenizer.at;
+        let Some(token) = tokenizer.next_token() else {
+            break;
+        };
+        tokens.push((token, offsets[start]..offsets[tokenizer.at]));
+    }
+    tokens
+}
+
 /// Parse `input` into a list of component values.
 pub fn component_values(input: &str) -> Vec<ComponentValue> {
     let tokens = tokenize(input);
@@ -200,8 +225,7 @@ impl Tokenizer {
         }
     }
 
-    fn next_token(&mut self) -> Option<Token> {
-        // Comments.
+    fn skip_comments(&mut self) {
         while self.peek(0) == Some('/') && self.peek(1) == Some('*') {
             self.at += 2;
             while self.at < self.chars.len()
@@ -211,6 +235,10 @@ impl Tokenizer {
             }
             self.at = (self.at + 2).min(self.chars.len());
         }
+    }
+
+    fn next_token(&mut self) -> Option<Token> {
+        self.skip_comments();
         let c = self.peek(0)?;
         if is_whitespace(c) {
             while self.peek(0).is_some_and(is_whitespace) {

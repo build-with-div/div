@@ -361,7 +361,20 @@ impl Element {
         self.set_attribute("lang", language.as_str())
     }
 
+    /// Apply `style`'s declarations to this element, in order.
+    ///
+    /// Custom properties, CSS-wide keywords and `var()` work in
+    /// [`stylesheet!`](crate::stylesheet) and `css!` rules, in the `style`
+    /// attribute and in [`Element::set_pseudo_style`] (RFC 0014 step 4), and
+    /// in `apply_style` from step 5. Until then a `style` that holds any of
+    /// them returns `Err(Error::Engine(EngineError::InvalidInput(..)))`
+    /// naming the kind of its first such declaration, and nothing is
+    /// applied.
     pub fn apply_style(&self, style: &Style) -> Result<(), Error> {
+        // Check before writing: the transaction does not roll back.
+        if let Some(limit) = div_style::runtime_style_limit(style) {
+            return Err(Error::Engine(div_engine::EngineError::InvalidInput(limit)));
+        }
         self.document.transaction(|_| {
             for declaration in style.declarations() {
                 self.set_property(declaration.property, declaration.value.clone())?;

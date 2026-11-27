@@ -1214,6 +1214,7 @@ pub struct ComputedStyleFields {
     /// CSS Inline `text-box-edge` and `text-box-trim`.
     pub text_box_edge: TextBoxEdge,
     pub text_box_trim: TextBoxTrim,
+    pub custom_properties: crate::CustomProperties,
 }
 
 impl ComputedStyleFields {
@@ -1645,6 +1646,7 @@ impl ComputedStyle {
                 initial_letter: None, // normal (no drop-cap)
                 text_box_edge: TextBoxEdge::default(),
                 text_box_trim: TextBoxTrim::None,
+                custom_properties: crate::CustomProperties::NONE,
             },
         }
     }

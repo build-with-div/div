@@ -115,6 +115,8 @@ impl ScrollButton {
     pub fn set_property(&self, property: StyleProperty, value: StyleValue) -> Result<(), Error> {
         self.element.set_property(property, value)
     }
+    /// As [`Element::apply_style`](crate::Element::apply_style), including
+    /// its limits before RFC 0014 step 5.
     pub fn apply_style(&self, style: &Style) -> Result<(), Error> {
         self.element.apply_style(style)
     }

@@ -11,8 +11,17 @@
 
 use std::ops::Range;
 
-use crate::declaration_block::{collapse_whitespace, split_important};
-use crate::{parse_literal, StyleProperty, StyleValue};
+use crate::declaration_block::{collapse_whitespace, parse_property_value, split_important};
+use crate::{
+    parse_literal, CustomDeclaration, CustomPropertyName, StyleProperty, StyleValue, UnparsedValue,
+};
+
+/// One custom property declaration of a `style` attribute.
+#[derive(Debug, Clone, PartialEq)]
+pub struct InlineCustomDeclaration {
+    pub declaration: CustomDeclaration,
+    pub important: bool,
+}
 
 /// One declaration of a `style` attribute that applies.
 #[derive(Debug, Clone, PartialEq)]
@@ -34,6 +43,8 @@ pub struct DroppedDeclaration {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ParsedStyleAttribute {
     pub declarations: Vec<InlineDeclaration>,
+    /// The custom property declarations, in source order.
+    pub custom: Vec<InlineCustomDeclaration>,
     pub dropped: Vec<DroppedDeclaration>,
 }
 
@@ -283,7 +294,21 @@ fn parse_segment(cleaned: &str, segment: Segment, parsed: &mut ParsedStyleAttrib
         return drop(parsed, "expected `property: value`".into());
     }
     if name.starts_with("--") {
-        return drop(parsed, "custom properties are not supported yet".into());
+        let name = match CustomPropertyName::new(name) {
+            Ok(name) => name,
+            Err(error) => return drop(parsed, error.0),
+        };
+        let (value, important) = split_important(text[colon + 1..].trim());
+        let mut value = value.to_owned();
+        value.extend(segment.closers.iter().map(|&byte| byte as char));
+        match UnparsedValue::parse(&value) {
+            Ok(value) => parsed.custom.push(InlineCustomDeclaration {
+                declaration: CustomDeclaration::new(name, value, parsed.declarations.len()),
+                important,
+            }),
+            Err(error) => drop(parsed, error.0),
+        }
+        return;
     }
     let Some(property) = StyleProperty::from_css_name(&name.to_ascii_lowercase()) else {
         return drop(parsed, format!("Div has no property `{name}`"));
@@ -295,22 +320,17 @@ fn parse_segment(cleaned: &str, segment: Segment, parsed: &mut ParsedStyleAttrib
     let mut value = collapse_whitespace(value);
     value.extend(segment.closers.iter().map(|&byte| byte as char));
     let lowercase = value.to_ascii_lowercase();
-    if matches!(
-        lowercase.as_str(),
-        "inherit" | "initial" | "unset" | "revert" | "revert-layer"
-    ) {
+    if lowercase.contains("env(") || lowercase.contains("attr(") {
         return drop(
             parsed,
-            format!("`{value}`: CSS-wide keywords are not supported yet"),
+            format!("`{value}`: `env()` and `attr()` are not supported yet"),
         );
     }
-    if lowercase.contains("var(") || lowercase.contains("env(") || lowercase.contains("attr(") {
-        return drop(
-            parsed,
-            format!("`{value}`: substitution functions are not supported yet"),
-        );
-    }
-    match parse_value(property, &value) {
+    let typed = match parse_property_value(property, &value, &value) {
+        Ok(value @ (StyleValue::Wide(_) | StyleValue::Unparsed(_))) => Ok(value),
+        _ => parse_value(property, &value),
+    };
+    match typed {
         Ok(value) => parsed.declarations.push(InlineDeclaration {
             property,
             value,
