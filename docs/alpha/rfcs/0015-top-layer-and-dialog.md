@@ -163,7 +163,10 @@ unless that is cancelled, calls `close` with no return value.
 - `closedby` and light dismiss are left to H5.
 
 **Out of scope:**
-- moved to H5: `popover`, `closedby` and light dismiss;
+- moved to H5: `popover`, `closedby` and light dismiss. H5 also owns a
+  popover in the top layer: the `html_dialog` coverage area's
+  `dialog-popover-overlay` (`<dialog open popover>` over a
+  `contain: layout` box) needs it and is a named gap until H5 lands;
 - moved to H7: the `inert` attribute;
 - not covered: `method="dialog"` form submission, iframes and `<object>`,
   close-watcher sources other than Escape, transitions of `overlay`, and

@@ -46,6 +46,78 @@ Behavior is compared with Radix running in Chromium by the traces in
 | input | focus by Tab, focus by a click, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
 | checkbox | keyboard (Space, Enter), pointer, disabled | 3 of 3 | [`traces-v1.json`](../../../tests/fidelity/components/evidence/traces-v1.json) | `5c227193`, 26 November 2026 |
 
+## 27 November 2026: the porter's dialog and top layer (H4, RFC 0015 3p)
+
+The WPT porter can port `<dialog>` pages and their `showModal()` calls
+into a coverage area that opts in, and the new `html_dialog` area ports
+`html/semantics/interactive-elements/the-dialog-element` with it. The
+engine lane owns the porter and reviewed it; fidelity and setup reviewed
+CI's sparse checkout and the capture. The census does not change: its 393
+JavaScript candidates are frozen and none calls `showModal()`.
+
+### Change
+
+| Change | Owner | Source |
+| --- | --- | --- |
+| An area with `"dialog_elements": true` ports a `<dialog>` as a dialog: the engine's user-agent rules style it, its author declarations go through `set_author_literal` above them, and its modal state opens through `show_modal` in top-layer order once the tree is built. A top-layer dialog the porter generated no builder for is an error, and so is a `FINAL_MODALS` rank that does not mark exactly one `<dialog>` in the Chromium template. `::backdrop` rules are dropped and the report lists the tests that had them. In HTML parsing a `<dialog>` closes an open `<p>`, as the HTML parser does. A `border` shorthand without a style keyword is emitted as `none`, its computed value, because the engine's `border` literal takes only `none` or `<width> <style> <color>`. | components (H4, for the engine lane) | `tools/wpt/port_wpt.py`, `tools/wpt/port_coverage_area.py` |
+| `showModal()` is now lowerable: the renderer contract no longer rejects it as `top-layer-dependency`. Only the `html_dialog` area admits it; the census audit set stays frozen at 393. | components (H4, for the engine lane) | `tools/qualification/generate_renderer_contract.py`, `tools/qualification/test_renderer_matrix.py` |
+| The `html_dialog` area selects the whole directory (`"selection": "directory"`): every `.html`, `.htm`, `.xht` and `.xhtml` file outside `support/`, `resources/`, `crashtests/` and `tentative/` is ported or listed in `not_portable` with the porter's reason, and every other file is listed in `excluded` with its reason. 176 files: 71 ported (45 of them through the mutation IR), 105 not portable, 10 excluded, 0 errors; 27 ported tests had `::backdrop` rules dropped. One Div fixture, `closed-dialog-author-display-block`, checks that a closed dialog's author `display: block` shows it. | components | `tools/coverage/html_dialog/` |
+| The Chromium capture opens the template's modal dialogs with `showModal()` from the `FINAL_MODALS` directive. The fixture engine learns `create_dialog`, `set_author_literal` and `show_modal`. | components | `tools/accountability/run_all_pixel_comparisons.py`, `tests/fidelity/pixel-compare/src/main.rs`, `tests/fidelity/pixel-compare/src/wpt/` |
+| CI checks out the dialog directory, runs the porter tests and checks the area. | components | `.github/workflows/ci.yml` |
+
+`run_all_pixel_comparisons.py` is hashed whole into each Chromium oracle's
+identity, so every lane recaptures every census and coverage oracle once
+after this merges (about 23,700 census and 4,200 coverage pages). The
+pixels are expected not to change, as with `7e853ee`.
+
+### Measurement
+
+The area at the four default profiles, under the census lock with the
+pinned Chrome 147.0.7727.50, tolerance 0, at `035c3e11`: a local merge of
+this branch's `0cb8d8d5` with the engine's snapshot fix `3602e20`, which
+this PR merges after. Diagnostic, not qualification. Evidence:
+`archive/docs/progress/evidence/html-dialog-coverage-v1.json` and its
+`-sources.json` in the data repository at `fe97417a`.
+
+| Profile | Exact | Different | Errors |
+| --- | --- | --- | --- |
+| legacy-800x600@1 | 31 | 40 | 0 |
+| mobile-375x667@2 | 18 | 53 | 0 |
+| desktop-1280x720@1.25 | 9 | 62 | 0 |
+| desktop-1920x1080@1.5 | 4 | 67 | 0 |
+| total | 62 | 222 | 0 |
+
+### Remaining failures
+
+- Tests that differ on `main`'s renderer are owned by RFC 0015 PR 3b, the
+  top layer's layout and paint. A local preview of 3b (`46625d4`) on the
+  same base measured 66 exact, 218 different.
+- That preview makes `fixed-position-child-with-fo-ancestor` worse: exact
+  at legacy-800x600@1 without it, 768 pixels different with it, and more
+  different at the other three profiles (1693 → 3146, 2928 → 4799,
+  6112 → 9148). 3b fixes this before it merges.
+- `dialog-popover-overlay` needs a popover in the top layer, owned by H5
+  ([RFC 0015](../../alpha/rfcs/0015-top-layer-and-dialog.md), out of scope).
+- The engine's `border` literal rejects `border: 0`, which is valid CSS.
+  Owner: engine (`div-style`, `property.rs`, `fn border`); the porter
+  works around it as above.
+
+### Verification
+
+On Windows at this PR's head, rebased on `main` `29d1f102`, with
+`PYTHONUTF8=1`, the pinned Acorn 8.14.0 and the WPT sources at `09d377d9`:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Porter tests | `python -m unittest tools.wpt.test_dialog_porter tools.wpt.test_port_coverage_area tools.qualification.test_renderer_matrix tools.test_fidelity_data` | 65 passed, 2 skipped; 21 of them are the new dialog porter tests |
+| The dialog area | `python tools/wpt/port_coverage_area.py --check html/semantics/interactive-elements/the-dialog-element html_dialog` | current |
+| The CSS Grid area | `python tools/wpt/port_coverage_area.py --check css-grid css_grid` | current, byte for byte |
+| Renderer contract | `python tools/qualification/generate_renderer_contract.py --check` | no drift; `javascript=393` |
+| Generators and ledgers | the `--check` steps of CI's "Verify immutable closure ledgers" job, and `audit.py --repository-only` | all current; audit passed |
+| Fidelity data | `python tools/fidelity_data.py fetch --profile all` and `verify --profile all` | 30674 files match `fe97417a` |
+| Fixture build | the capture's release build of `pixel-compare` at `035c3e11`, in WSL with CI's `SKIA_GN_ARGS` | built; every one of the 71 tests rendered |
+| Capture | the area at the four profiles, under the census lock | as measured above |
+
 ## 27 November 2026: dirty paths in the harness evidence
 
 The reference harness records the paths that were uncommitted when it
