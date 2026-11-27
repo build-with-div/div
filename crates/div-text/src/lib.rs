@@ -14,6 +14,8 @@
 //! - Text transform (uppercase, lowercase, capitalize, full-width)
 
 pub mod bidi;
+#[doc(hidden)]
+pub mod blob_fingerprint;
 pub mod char_orientation;
 pub mod emoji;
 pub mod emphasis;

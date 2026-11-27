@@ -794,6 +794,7 @@ impl ShapeResult {
         };
 
         let mut builder = TextBlobBuilder::new();
+        let mut fingerprint = crate::blob_fingerprint::BlobFingerprint::new();
         let mut run_x = 0.0f32;
 
         for run in &self.runs {
@@ -815,10 +816,11 @@ impl ShapeResult {
                     Point::new(raster_x * device_scale, run.offsets[i].1 * device_scale);
                 x += run.advances[i];
             }
+            fingerprint.run(raster_font.font(), glyphs_out, positions_out);
             run_x = x;
         }
 
-        builder.make()
+        fingerprint.register(builder.make())
     }
 
     /// Build a blob for the glyphs of `characters`, each at a position the
@@ -901,6 +903,7 @@ impl ShapeResult {
         }
 
         let mut builder = TextBlobBuilder::new();
+        let mut fingerprint = crate::blob_fingerprint::BlobFingerprint::new();
         let mut placements = placements.iter();
         for (run, glyphs) in pieces {
             let (raster_policy, raster_font) =
@@ -913,8 +916,9 @@ impl ShapeResult {
                 let raster_x = raster_x(x, device_origin_x, raster_policy, font_size);
                 *position = Point::new(raster_x * device_scale, y * device_scale);
             }
+            fingerprint.run(raster_font.font(), glyphs_out, positions_out);
         }
-        builder.make()
+        fingerprint.register(builder.make())
     }
 
     /// Find the glyph range within a run that covers a given character range.

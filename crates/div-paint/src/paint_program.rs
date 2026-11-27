@@ -592,6 +592,7 @@ fn layout_scope_role(fragment: &Fragment) -> PaintLayoutScopeRole {
 }
 
 pub(crate) fn record_operation(canvas: &Canvas, operation: ProgramOperation) {
+    crate::damage::observe_operation(canvas, &operation);
     matching(canvas, |capture| capture.program.operations.push(operation));
 }
 
@@ -614,10 +615,18 @@ pub(crate) fn record_source_event(
 }
 
 pub(crate) fn record_draw(canvas: &Canvas, make_draw: impl FnOnce() -> OwnedDraw) {
-    if !is_capturing(canvas) {
+    let capturing = is_capturing(canvas);
+    let observing = crate::damage::is_observing(canvas);
+    if !capturing && !observing {
         return;
     }
     let draw = make_draw();
+    if observing {
+        crate::damage::observe_draw(canvas, &draw);
+    }
+    if !capturing {
+        return;
+    }
     // Recording the side picture uses a different canvas and does not mutate
     // the canonical state, its save depth or the pending opacity operation.
     let picture = draw.intrinsic_picture();
@@ -636,6 +645,7 @@ pub(crate) fn record_draw(canvas: &Canvas, make_draw: impl FnOnce() -> OwnedDraw
 }
 
 pub(crate) fn mark_incomplete(canvas: &Canvas, reason: PaintCaptureIncompleteReason) {
+    crate::damage::mark_incomplete(canvas);
     matching(canvas, |capture| {
         if !capture.program.reasons.contains(&reason) {
             capture.program.reasons.push(reason);
@@ -644,6 +654,7 @@ pub(crate) fn mark_incomplete(canvas: &Canvas, reason: PaintCaptureIncompleteRea
 }
 
 pub(crate) fn record_restore(canvas: &Canvas) {
+    crate::damage::observe_restore(canvas);
     matching(canvas, |capture| {
         if canvas.save_count() > capture.base_save_count {
             capture.program.operations.push(ProgramOperation::Restore);
@@ -663,6 +674,7 @@ pub(crate) fn record_restore(canvas: &Canvas) {
 }
 
 pub(crate) fn record_restore_to(canvas: &Canvas, count: usize) {
+    crate::damage::observe_restore_to(canvas, count);
     matching(canvas, |capture| {
         if let Some(relative) = count.checked_sub(capture.base_save_count) {
             capture
@@ -764,6 +776,7 @@ impl<'a> PaintOwnerScope<'a> {
             owns_element_box: fragment.owns_authored_projection_box(),
         };
         let role = layout_scope_role(fragment);
+        crate::damage::enter_owner(canvas, owner.node_id, owner.owns_element_box, phase);
         matching(canvas, |capture| {
             capture.owners.push(owner);
             capture
@@ -776,6 +789,7 @@ impl<'a> PaintOwnerScope<'a> {
 }
 impl Drop for PaintOwnerScope<'_> {
     fn drop(&mut self) {
+        crate::damage::exit_owner(self.canvas);
         matching(self.canvas, |capture| {
             capture.owners.pop();
             capture.program.operations.push(ProgramOperation::ExitOwner);

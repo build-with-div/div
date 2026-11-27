@@ -175,6 +175,40 @@ impl SceneSnapshot {
     pub fn damage(&self) -> &[SceneRect] {
         &self.logical_damage
     }
+    /// The physical pixels that can differ between `previous` and this
+    /// scene (RFC 0006 A1): the old and new bounds of every paint chunk
+    /// that changed, or the whole viewport when the two cannot be compared.
+    ///
+    /// It compares the two recordings directly, so `previous` can be any
+    /// earlier scene. The engine also builds scenes for geometry reads, so
+    /// a presenter passes the scene it last presented.
+    pub fn physical_damage_since(&self, previous: &SceneSnapshot) -> Vec<PhysicalSceneRect> {
+        if Arc::ptr_eq(&self.picture, &previous.picture) {
+            return Vec::new();
+        }
+        match self.picture.damage_since(&previous.picture) {
+            Some(rects) => rects
+                .into_iter()
+                .filter_map(|[x, y, width, height]| {
+                    physical_damage_rect(
+                        SceneRect {
+                            x,
+                            y,
+                            width,
+                            height,
+                        },
+                        self.viewport,
+                    )
+                })
+                .collect(),
+            None => vec![PhysicalSceneRect {
+                x: 0,
+                y: 0,
+                width: self.viewport.physical_width(),
+                height: self.viewport.physical_height(),
+            }],
+        }
+    }
     pub fn physical_damage(&self) -> &[PhysicalSceneRect] {
         &self.physical_damage
     }

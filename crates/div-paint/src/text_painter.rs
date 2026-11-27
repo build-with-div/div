@@ -246,6 +246,7 @@ pub(crate) fn paint_vertical_text_tracked(
     }
 
     let mut builder = TextBlobBuilder::new();
+    let mut fingerprint = div_text::blob_fingerprint::BlobFingerprint::new();
     let physical_scale = style.device_scale_factor as f32;
     let physical_strike = style.raster_configuration.backend == RasterBackend::ChromiumLinux
         && (physical_scale - 1.0).abs() > f32::EPSILON;
@@ -298,10 +299,11 @@ pub(crate) fn paint_vertical_text_tracked(
                 cluster_y += run.font_data.vertical_advance(glyph);
             }
         }
+        fingerprint.run(raster_font, glyphs_out, positions_out);
         run_y = cluster_y;
     }
 
-    if let Some(blob) = builder.make() {
+    if let Some(blob) = fingerprint.register(builder.make()) {
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
         paint.set_style(PaintStyle::Fill);

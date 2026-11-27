@@ -8,6 +8,7 @@
 
 mod collapsed_table_painter;
 mod content_layer;
+mod damage;
 pub mod decoration_painter;
 pub mod emphasis_painter;
 pub mod image_resource;

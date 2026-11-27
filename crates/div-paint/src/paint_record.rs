@@ -618,7 +618,7 @@ impl dyn PaintCanvas + '_ {
         let op = op.into().unwrap_or(ClipOp::Intersect);
         let aa = aa.into().unwrap_or(false);
         let c = self.ordinary_draw_target();
-        if paint_program::is_capturing(c) {
+        if paint_program::is_capturing(c) || crate::damage::is_observing(c) {
             paint_program::record_operation(
                 c,
                 ProgramOperation::ClipPath(paint_program::OwnedPath::new(path), op, aa),
