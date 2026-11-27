@@ -1,9 +1,11 @@
 use crate::{Engine, EngineError, NodeHandle};
+use div_dom::NodeId;
 use div_style::{
     apply_to_computed, value_from_computed, AnimationAttachmentRange, AnimationOptions,
     AnimationPhase, AnimationTimingSeconds, CompositedStyleValue, Keyframes, PlayState,
     PropertyKeyframes, StyleProperty, StyleValue, TimelineAxis, TimelineRange, ViewTimelineInset,
 };
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct AnimationId(pub u64);
@@ -903,10 +905,21 @@ impl Engine {
                 ended: false,
             },
         );
-        if let Err(error) = self
-            .sample_animations()
-            .and_then(|()| self.refresh_inherited_styles(node))
+        // RFC 0006 B: on the document timeline every other effect was already
+        // sampled at this time by the clock or control call that last changed
+        // it, so a start samples only the new effect and restyles its target.
+        let sampled = if self
+            .animations
+            .values()
+            .all(|instance| instance.timeline.is_document())
         {
+            #[cfg(debug_assertions)]
+            self.debug_assert_samples_current(id);
+            self.sample_animation_ids(vec![id], None).map(|_| ())
+        } else {
+            self.sample_animations()
+        };
+        if let Err(error) = sampled.and_then(|()| self.refresh_inherited_styles(node)) {
             // No callback runs while the Engine is borrowed. Failed source
             // resolution must not leave a returned-error effect or its events.
             self.animations.remove(&id);
@@ -1620,7 +1633,18 @@ impl Engine {
                 (!progress_only || !instance.timeline.is_document()).then_some(*id)
             })
             .collect::<Vec<_>>();
-        let mut changed = false;
+        let changed = self.sample_animation_ids(ids, discontinuous)?;
+        self.refresh_sampled_targets(&changed)
+    }
+
+    /// Sample `ids` and return the targets whose effect output changed, in
+    /// animation order, without restyling them.
+    fn sample_animation_ids(
+        &mut self,
+        ids: Vec<AnimationId>,
+        discontinuous: Option<AnimationId>,
+    ) -> Result<Vec<NodeHandle>, EngineError> {
+        let mut changed = Vec::new();
         for id in ids {
             let resolved_seek = self.refresh_progress_timeline_snapshot(id);
             let Some(snapshot) = self.animations.get(&id).cloned() else {
@@ -1632,7 +1656,9 @@ impl Engine {
             }
             if !snapshot.timeline.is_document() && snapshot.timeline_snapshot.is_none() {
                 let (next, sample_changed, events) = self.plan_inactive_animation(id, snapshot);
-                changed |= sample_changed;
+                if sample_changed {
+                    changed.push(next.target);
+                }
                 self.animations.insert(id, next);
                 self.animation_events.extend(events);
                 continue;
@@ -1652,14 +1678,141 @@ impl Engine {
             };
             let (next, sample_changed, events) =
                 self.plan_animation_sample(id, snapshot, timeline_now);
-            changed |= sample_changed;
+            if sample_changed {
+                changed.push(next.target);
+            }
             self.animations.insert(id, next);
             self.animation_events.extend(events);
         }
-        if changed {
-            self.recompute_authored_styles()?;
+        Ok(changed)
+    }
+
+    /// RFC 0006 B: restyle only the targets whose effect changed and the
+    /// descendants that inherit from them, in one style pass, instead of every
+    /// root. A changed root element restyles every tree, because every
+    /// element's `rem` resolves against it, detached ones included.
+    fn refresh_sampled_targets(&mut self, targets: &[NodeHandle]) -> Result<(), EngineError> {
+        if targets.is_empty() {
+            return Ok(());
         }
+        let document_root = self.document.root();
+        let mut nodes = Vec::new();
+        let mut members = HashSet::new();
+        for target in targets {
+            let Ok(node) = self.resolve(*target) else {
+                continue;
+            };
+            if node == document_root {
+                self.recompute_authored_styles()?;
+                #[cfg(debug_assertions)]
+                self.debug_assert_styles_match_full_cascade();
+                return Ok(());
+            }
+            if members.insert(node) {
+                nodes.push(node);
+            }
+        }
+        // A refresh restyles its style descendants, so keep only the outermost
+        // targets. A descendant staged before its ancestor would keep the
+        // ancestor's old style.
+        let roots = nodes
+            .iter()
+            .copied()
+            .filter(|node| {
+                let mut seen = HashSet::new();
+                let mut current = self.style_parent(*node);
+                while !current.is_none() && seen.insert(current) {
+                    if members.contains(&current) {
+                        return false;
+                    }
+                    current = self.style_parent(current);
+                }
+                true
+            })
+            .collect::<Vec<_>>();
+        let updates = self.prepare_native_cascade_roots(&roots)?;
+        self.publish_prepared_native_cascade(updates);
+        #[cfg(debug_assertions)]
+        self.debug_assert_styles_match_full_cascade();
         Ok(())
+    }
+
+    /// The node a cascade inherits from: a scroll button's origin, otherwise
+    /// the parent, as `prepare_native_cascade_roots` resolves it.
+    fn style_parent(&self, node: NodeId) -> NodeId {
+        self.node_slots
+            .get(&node)
+            .and_then(|index| {
+                self.scroll_buttons
+                    .bindings
+                    .get(&self.handle_for_slot(*index))
+            })
+            .and_then(|binding| self.resolve(binding.origin).ok())
+            .unwrap_or(self.document.node(node).parent)
+    }
+
+    /// RFC 0006 B gate, in debug builds: after a targeted sample every
+    /// element's style, and every effect target's base style, equals a full
+    /// cascade of every root. It is skipped while a selector, media or font
+    /// restyle is pending; the next `update()` applies those as it does after
+    /// any other style change.
+    #[cfg(debug_assertions)]
+    fn debug_assert_styles_match_full_cascade(&self) {
+        if self.selector_restyle_pending
+            || self.font_collection().generation() != self.font_collection_generation
+        {
+            return;
+        }
+        let roots = self
+            .slots
+            .iter()
+            .filter_map(|slot| slot.node)
+            .filter(|node| self.document.node(*node).parent.is_none())
+            .collect::<Vec<_>>();
+        let Ok(updates) = self.prepare_native_cascade_roots(&roots) else {
+            return;
+        };
+        for update in updates {
+            assert!(
+                update.style == update.old_style,
+                "RFC 0006 B: targeted animation sampling left slot {} unequal to a full cascade",
+                update.index
+            );
+            let target = self.handle_for_slot(update.index);
+            if self
+                .animations
+                .values()
+                .any(|instance| instance.target == target)
+            {
+                if let Some(base) = &self.slots[update.index as usize].animation_base_style {
+                    assert!(
+                        *base == update.base,
+                        "RFC 0006 B: targeted animation sampling left slot {}'s base style unequal to a full cascade",
+                        update.index
+                    );
+                }
+            }
+        }
+    }
+
+    /// RFC 0006 B gate, in debug builds: when a start samples only the new
+    /// effect, sampling every other effect again would change no output and
+    /// emit no event.
+    #[cfg(debug_assertions)]
+    fn debug_assert_samples_current(&self, new: AnimationId) {
+        for (id, instance) in &self.animations {
+            if *id == new || self.resolve(instance.target).is_err() {
+                continue;
+            }
+            let Ok(now) = self.timeline_time(instance.timeline, &instance.options) else {
+                continue;
+            };
+            let (_, changed, events) = self.plan_animation_sample(*id, instance.clone(), now);
+            assert!(
+                !changed && events.is_empty(),
+                "RFC 0006 B: animation {id:?} was not sampled at the current time"
+            );
+        }
     }
 
     fn plan_inactive_animation(
