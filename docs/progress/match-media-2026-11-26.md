@@ -62,8 +62,47 @@ renders.
 
 ## Public API
 
-Proposed, reviewed by the framework track on 26 November, waiting for the
-user's approval. See the PR for the final list.
+Reviewed by the framework track on 26 November and approved by the user on
+27 November ("approve both"), with Chromium's change-event timing above.
+
+`div-style` (hidden module `div_style::media_query`, reached as
+`div::typed_style::media_query`):
+
+1. `MediaQueryList` is renamed `MediaQueryListData`, and every use moves with
+   it: `StyleRule::with_media`, `StyleRule::media()`,
+   `ParsedMediaQueryList.list`, the `stylesheet!` output and `div-engine`.
+2. `impl Display for MediaQueryListData`: CSSOM serialization as Chromium
+   writes it.
+3. `MediaCondition::Nested(Box<MediaCondition>)`: a parenthesized condition.
+   It evaluates as its inner condition.
+
+`div-engine`:
+
+4. `MediaQueryListId`: opaque, `Copy`, `Eq`, `Ord`, `Hash` and `Debug`. A
+   monotonic `u64`, never reused.
+5. `Engine::match_media(&mut self, query: &str) -> MediaQueryListId`: a new
+   list on every call, with no deduplication. Its baseline is its result at
+   creation.
+6. `Engine::media_query_list_media(&self, id) -> Result<&str, EngineError>`.
+7. `Engine::media_query_list_matches(&mut self, id) -> Result<bool, EngineError>`.
+8. `Engine::release_media_query_list(&mut self, id) -> Result<(), EngineError>`.
+   For 6 to 8, a released or unknown id returns `Err(StaleHandle)`. It never
+   panics or aliases another list.
+9. `Engine::evaluate_media_queries_and_report_changes(&mut self) ->
+   Vec<(MediaQueryListId, bool)>`, oldest first. The `bool` is the result
+   recorded as reported.
+
+`divui`:
+
+10. `Document::match_media(&self, query: &str) -> Result<MediaQueryList, Error>`.
+    It fails only on a reentrant engine borrow.
+11. `div::MediaQueryList`: `Clone`, `Debug` (shows `media` without
+    evaluating) and `PartialEq`/`Eq` by list identity. It holds the document
+    weakly, and the last clone's drop releases the engine list if the
+    document still exists. `media(&self) -> String` is fixed at creation
+    (`not all` for invalid text). `matches(&self) -> Result<bool, Error>`
+    reads the current inputs; with the document gone it returns
+    `Err(Error::Engine(EngineError::StaleHandle))`.
 
 ## Gaps
 
