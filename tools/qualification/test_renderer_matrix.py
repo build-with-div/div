@@ -812,9 +812,13 @@ class RendererMatrixTests(unittest.TestCase):
             [operation["kind"] for operation in modal["operations"]],
             ["dialog-show-modal"],
         )
+        # The IR keeps showModal() as a lowerable operation. The census
+        # cannot admit it, since its v4 audit set of 393 tests is frozen;
+        # the html_dialog coverage area lowers it, and those tests are
+        # expected to fail until RFC 0015 PR 3b's renderer lands.
         CONTRACT._validate_mutation_lowering_scope(modal)
-        self.assertFalse(modal["lowerable"])
-        self.assertEqual(modal["rejection_reasons"], ["top-layer-dependency"])
+        self.assertTrue(modal["lowerable"])
+        self.assertEqual(modal["rejection_reasons"], [])
         self.assertIn(
             "runtime-dependent-mutation-input",
             results["dialog-runtime-return-value"]["rejection_reasons"],

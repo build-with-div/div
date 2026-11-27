@@ -208,6 +208,20 @@ measured by `focus-fixup-v1`, and the engine replays the scenario. The modal
 `max-width`/`max-height` wait for engine 0.2 PR 2 (`calc()` in `width`,
 `height`, `min-*` and `max-*`, with `em` and `%`).
 
+On 27 November 2026 the porter work 3b's reftests need moved into a PR of
+its own, 3p, which lands before 3b. The porter creates a dialog as the
+engine's named element and lets the engine's UA rules, `:modal` and top
+layer style and place it. It adds, through `set_property`, only what the
+author's CSS declares (the engine's decision on the style channel), and
+the final open, closed or modal state. The reftests are measured in a
+coverage area of their own, `tools/coverage/html_dialog`, whose scripts
+are lowered with the renderer contract's Acorn frontend and validators.
+The area is the whole `the-dialog-element` directory, by a stated rule
+rather than a chosen list: every test document is ported or reported with
+the porter's reason, and every other file is reported as excluded with
+its reason. 3b's gate is then the top-layer reftests passing against its
+renderer.
+
 3a's sheet is not the specification's rules verbatim. Until their owners
 close them, these gaps remain:
 
@@ -222,6 +236,7 @@ close them, these gaps remain:
 | 1 | **Chromium dialog oracle** (no product code). Captured twice from real input at 1x, with a replay test that lists every scenario as pending. | Byte-stable capture; the replay test passes with its pending list |
 | 2 | **WPT porter mutations** (`showModal`, `show`, `close`), reviewed by the engine. | The porter's own tests; `generate_renderer_contract.py --check` |
 | 3a | **Engine top layer, without paint:** the tag (S6a's local name, and `dialog` in `divui`'s tag table, reviewed by the framework), the top-layer list, inertness (the `set_modal_root` change), `:modal`, `:open`, hit testing, the focusing steps, and the three UA element rules (`dialog`, `dialog:not([open])`, `dialog:modal`) adapted from the specification text, with the three named gaps below; the porter rejects `show()`/`close()` on receivers that are not elements. | The oracle replayed by the engine, field by field: ten no-paint click and focus scenarios (input events, focus and each dialog's `open`, `:modal` and `returnValue` exact) and all 15 geometry records (box, client and scroll sizes, computed style). Pending fields name their owner, and a pending field that matches fails the test: the toggle-family events (PR 5); `max-width`/`max-height` and the boxes they limit (engine 0.2 PR 2: `calc()` in `width`, `height`, `min-*` and `max-*`, with `em` and `%`) |
+| 3p | **The porter's `<dialog>` and top layer**, opted into by a coverage area (`area.json`), reviewed by the engine (porter, fixture codegen and IR) and by fidelity and setup (CI's sparse checkout, the capture's data commit). The census porter keeps rejecting `<dialog>` and `showModal()`. | The porter's tests, among them the engine's three style-channel cases; `port_coverage_area.py --check` for `html_dialog`, and `css_grid` byte for byte; `generate_renderer_contract.py --check`; the ported pages of the `html_dialog` area captured in the pinned Chromium at all four profiles. Cases that fail on `main`'s renderer are named gaps owned by 3b |
 | 3b | **The top-layer paint pass and containing block**, after the SVG lane's A1 (which also changes `painter.rs`). | Ported reftests: `top-layer-*` (stacking, nesting, position, containing block, `display: none`, parent clip, opacity, transform and overflow), `removed-element-is-removed-from-top-layer`, `element-removed-from-top-layer-has-original-position`, `modal-dialog-sibling`; hit tests of a modal dialog under a clipping ancestor and under a transformed ancestor |
 | 4 | **`::backdrop`** and its UA rule. | The oracle's 15 `::backdrop` records, `click_inert` and `nested` (with PR 5); `backdrop-*`, `modal-dialog-backdrop(-opacity)`, `dialogs-with-no-backdrop`, `green-dialog-and-backdrop`, `top-layer-backdrop-remove-add-ordering` |
 | 5 | **The `divui` API, events, Escape and focus.** | The oracle's pending list is empty. Rust translations name each WPT file and assert they reproduce: `dialog-showModal`, `-close`, `-close-event`, `-cancel-events`, `-cancel-preventDefault`, `-canceling`, `-return-value`, `-focusing-steps-*`, `focus-after-close`, `modal-dialog-ancestor-is-inert`, `remove-dialog-should-unblock-document`, `closed-`/`non-modal-dialog-does-not-block-mouse-events`, `inert-node-is-unfocusable` |

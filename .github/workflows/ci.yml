@@ -212,6 +212,7 @@ jobs:
           git -C "$chromium_src" sparse-checkout set \
             third_party/blink/web_tests/external/wpt/css \
             third_party/blink/web_tests/external/wpt/fonts \
+            third_party/blink/web_tests/external/wpt/html/semantics/interactive-elements/the-dialog-element \
             third_party/blink/web_tests/external/wpt/images \
             third_party/blink/web_tests/external/wpt/media
           git -C "$chromium_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
@@ -244,6 +245,7 @@ jobs:
             tools.wpt.test_sp19_closure \
             tools.wpt.test_sp20_closure \
             tools.wpt.test_port_coverage_area \
+            tools.wpt.test_dialog_porter \
             tools.isolation.test_isolation_tools \
             tools.qualification.test_build_renderer \
             tools.qualification.test_census_lock \
@@ -269,6 +271,8 @@ jobs:
           python tools/wpt/generate_sp18_closure.py --check
           python tools/wpt/generate_sp20_closure.py --check
           python tools/wpt/port_coverage_area.py --check css-grid css_grid
+          python tools/wpt/port_coverage_area.py --check \
+            html/semantics/interactive-elements/the-dialog-element html_dialog
           python tools/release/generate_v02_contract.py --check
           python tools/style/generate_properties.py --check
           python tools/ffi/generate_ffi.py --check
@@ -427,6 +431,7 @@ jobs:
           git -C "$chromium_src" sparse-checkout set \
             third_party/blink/web_tests/external/wpt/css \
             third_party/blink/web_tests/external/wpt/fonts \
+            third_party/blink/web_tests/external/wpt/html/semantics/interactive-elements/the-dialog-element \
             third_party/blink/web_tests/external/wpt/images \
             third_party/blink/web_tests/external/wpt/media
           git -C "$chromium_src" fetch --depth 1 --filter=blob:none origin "$chromium_commit"
@@ -489,6 +494,7 @@ jobs:
             tools.wpt.test_sp19_closure \
             tools.wpt.test_sp20_closure \
             tools.wpt.test_port_coverage_area \
+            tools.wpt.test_dialog_porter \
             tools.isolation.test_isolation_tools \
             tools.qualification.test_build_renderer \
             tools.qualification.test_census_lock \
@@ -519,6 +525,8 @@ jobs:
           python3 tools/wpt/generate_sp18_closure.py --check
           python3 tools/wpt/generate_sp20_closure.py --check
           python3 tools/wpt/port_coverage_area.py --check css-grid css_grid
+          python3 tools/wpt/port_coverage_area.py --check \
+            html/semantics/interactive-elements/the-dialog-element html_dialog
           python3 tools/release/generate_v02_contract.py --check
           python3 tools/style/generate_properties.py --check
           python3 tools/ffi/generate_ffi.py --check

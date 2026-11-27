@@ -149,6 +149,20 @@ def set_paint_layer_emission(enabled: bool) -> None:
     EMIT_PAINT_LAYERS = bool(enabled)
 
 
+def set_dialog_elements_enabled(enabled: bool) -> None:
+    """Port ``<dialog>`` elements and their top layer (RFC 0015).
+
+    Off by default, so the census and every existing area keep rejecting
+    ``<dialog>`` and stay byte-identical. A coverage area opts in through its
+    ``area.json``. A dialog is then created as the engine's named element, so
+    the engine's dialog user-agent sheet, ``:modal`` and the top layer style
+    and place it; the porter adds only the author's declarations and the
+    final open, closed or modal state.
+    """
+    global DIALOG_ELEMENTS_ENABLED
+    DIALOG_ELEMENTS_ENABLED = bool(enabled)
+
+
 def set_modern_line_clamp_enabled(enabled: bool) -> None:
     """Mirror Chromium's runtime-gated modern line-clamp grammar.
 
@@ -158,6 +172,110 @@ def set_modern_line_clamp_enabled(enabled: bool) -> None:
     """
     global MODERN_LINE_CLAMP_ENABLED
     MODERN_LINE_CLAMP_ENABLED = bool(enabled)
+
+
+DIALOG_ELEMENTS_ENABLED = False
+# While the porter cascades, a top-layer dialog carries this attribute and
+# author `:modal` selectors are rewritten to it. It never reaches the output.
+_MODAL_MARKER = 'data-openui-modal'
+# The inherited declarations of the engine's dialog user-agent rules
+# (`DIALOG_USER_AGENT_RULES` in div-engine's dialog.rs). The porter passes
+# inherited values to children itself, so it needs these; the engine applies
+# the dialog's own copy, and they are never emitted as author declarations.
+_DIALOG_UA_INHERITED = {'color': 'black'}
+_OUTLINE_STYLES = {
+    'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'groove',
+    'ridge', 'inset', 'outset', 'auto',
+}
+_SCHEMA_CSS_NAMES: frozenset | None = None
+
+
+def _schema_css_names() -> frozenset:
+    """CSS names `StyleProperty::from_css_name` accepts."""
+    global _SCHEMA_CSS_NAMES
+    if _SCHEMA_CSS_NAMES is None:
+        schema = PROJECT_ROOT / 'crates/div-style/property-schema.csv'
+        with open(schema, newline='', encoding='utf-8') as handle:
+            _SCHEMA_CSS_NAMES = frozenset(
+                row['css_name'] for row in csv.DictReader(handle)
+            )
+    return _SCHEMA_CSS_NAMES
+
+
+def _expand_dialog_shorthand(prop: str, value: str) -> list | None:
+    """Longhands for a shorthand the engine schema lacks, or None."""
+    tokens = value.split()
+    if prop == 'inset':
+        four = _expand_four(tokens)
+        if four is None:
+            return None
+        return list(zip(('top', 'right', 'bottom', 'left'), four))
+    if prop == 'outline':
+        parts = {}
+        for token in tokens:
+            lowered = token.lower()
+            if lowered in _OUTLINE_STYLES and 'outline-style' not in parts:
+                parts['outline-style'] = lowered
+            elif (
+                lowered in {'thin', 'medium', 'thick'}
+                or re.fullmatch(r'[+]?(\d+(\.\d*)?|\.\d+)(px)?', lowered)
+            ) and 'outline-width' not in parts:
+                parts['outline-width'] = lowered
+            elif 'outline-color' not in parts and '(' not in token:
+                parts['outline-color'] = lowered
+            else:
+                return None
+        # The shorthand resets the longhands it omits; with the initial
+        # style `none` no outline paints, whatever its width and color.
+        parts.setdefault('outline-style', 'none')
+        return list(parts.items())
+    if prop == 'background':
+        if len(tokens) != 1 or '(' in value:
+            return None
+        color = tokens[0].lower()
+        return [('background-color', 'transparent' if color == 'none' else color)]
+    return [(prop, value)]
+
+
+def dialog_author_declarations(node) -> tuple[list, str | None]:
+    """The declarations a dialog's author CSS gives it, for `set_property`.
+
+    RFC 0015 3b-porter: the engine styles a dialog with its own user-agent
+    rules and `:modal`, which rank above the snapshot. The author's
+    declarations, the comparison harness reset included (it is author CSS in
+    Chromium too), go through `set_property`, which ranks above both. They
+    are returned in cascade order, lowest first, so a later call wins as the
+    cascade's winner does. Percentages and `auto` stay as specified. A value
+    `set_property` cannot take yet returns a reason instead.
+    """
+    styles = node.styles
+    ua = getattr(node, 'dialog_ua_declarations', frozenset())
+    ordered = []
+    for index, (prop, value) in enumerate(styles.items()):
+        if prop in ua or prop.startswith('--'):
+            continue
+        priority = (0, 0, 0, 0, 0, 0, index)
+        if isinstance(styles, CssDeclarations):
+            priority = styles.cascade_priority.get(prop, priority)
+        ordered.append((priority, index, prop, value))
+    ordered.sort(key=lambda entry: (entry[0], entry[1]))
+    schema = _schema_css_names()
+    declarations = []
+    for _priority, _index, prop, value in ordered:
+        value, _important = _split_important(str(value))
+        lowered = value.strip().lower()
+        if lowered in _CSS_WIDE or 'var(' in lowered:
+            return [], f'dialog {prop}: {value} (set_property takes no CSS-wide keyword or var() yet)'
+        expanded = _expand_dialog_shorthand(prop, value.strip())
+        if expanded is None:
+            return [], f'dialog {prop}: {value} (no longhands set_property takes)'
+        for name, part in expanded:
+            if name not in schema:
+                return [], f'dialog {name} is not in the style schema'
+            declarations.append((name, part))
+    return declarations, None
+
+
 
 
 # ─── CSS property support map ──────────────────────────────────────────────
@@ -2398,10 +2516,23 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
             return None
         return None
 
+    top_layer = parser.top_layer
+
+    def leave_top_layer(subtree):
+        # Blink's HTMLDialogElement::RemovedFrom: a dialog that leaves the
+        # document leaves the top layer, and keeps its `open` attribute.
+        if isinstance(subtree, DomNode):
+            removed = {id(node) for node in walk(subtree)}
+            top_layer[:] = [dialog for dialog in top_layer if id(dialog) not in removed]
+
+    def connected(node):
+        return any(candidate is node for candidate in walk(parser.root))
+
     def detach(node):
         parent = find_parent(node)
         if parent is not None:
             parent.children.remove(node)
+            leave_top_layer(node)
 
     def append(parent, child):
         if isinstance(parent, StyleElementTarget) and isinstance(child, DomNode):
@@ -2425,6 +2556,8 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
         if node.is_text:
             node.text_content = value
             return True
+        for child in node.children:
+            leave_top_layer(child)
         node.children.clear()
         if value:
             text = DomNode('#text', {}, CssDeclarations())
@@ -2439,6 +2572,8 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
         fragment = WptHtmlParser(root_aware=parser.root_aware)
         fragment.in_body = True
         fragment.feed(markup)
+        for child in node.children:
+            leave_top_layer(child)
         node.children = fragment.root.children
         return True
 
@@ -2540,6 +2675,11 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
             name = operation.get('name')
             if attrs is None or not isinstance(name, str):
                 unsupported.append((kind, operation.get('order'), 'invalid attribute target'))
+            elif name.lower() == 'open' and any(dialog is target for dialog in top_layer):
+                # Blink 147 keeps the dialog in the top layer
+                # (DialogCloseWhenOpenRemoved is off), hidden by the
+                # `dialog:not([open])` rule: a fixture cannot build that.
+                unsupported.append((kind, operation.get('order'), 'open removed from a modal dialog'))
             else:
                 attrs.pop(name, None)
                 if name.lower() == 'style':
@@ -2633,19 +2773,38 @@ def _apply_ast_mutation_ir(parser: 'WptHtmlParser') -> None:
                 if len(arguments) >= 2:
                     target.scroll_top = float(arguments[1])
         elif kind in {'dialog-show', 'dialog-show-modal', 'dialog-close'}:
-            # HTMLDialogElement (RFC 0015). show() adds `open` and close()
-            # removes it; neither does anything when the dialog is already
-            # in that state. showModal() needs the top layer, which the
-            # renderer does not have before RFC 0015 PR 3.
+            # HTMLDialogElement (RFC 0015), as Blink 147 runs it. show() adds
+            # `open`; showModal() adds it and appends the dialog to the top
+            # layer; close() removes both. A call that would throw stops the
+            # script, which a static fixture cannot follow, so it is
+            # rejected with its reason. Without the opt-in, showModal() is
+            # rejected as before.
             if (not isinstance(target, DomNode) or target.is_text
                     or target.tag.lower() != 'dialog'):
                 unsupported.append((kind, operation.get('order'), 'not a dialog'))
-            elif kind == 'dialog-show-modal':
-                unsupported.append((kind, operation.get('order'), 'top layer (RFC 0015 PR 3)'))
+                continue
+            is_open = 'open' in target.attrs
+            is_modal = any(dialog is target for dialog in top_layer)
+            if kind == 'dialog-show-modal':
+                if not DIALOG_ELEMENTS_ENABLED:
+                    unsupported.append((kind, operation.get('order'), 'top layer (RFC 0015 PR 3)'))
+                elif is_open and is_modal:
+                    pass
+                elif is_open:
+                    unsupported.append((kind, operation.get('order'), 'showModal() on an open non-modal dialog throws'))
+                elif not connected(target):
+                    unsupported.append((kind, operation.get('order'), 'showModal() on a disconnected dialog throws'))
+                else:
+                    target.attrs['open'] = ''
+                    top_layer.append(target)
             elif kind == 'dialog-show':
-                target.attrs.setdefault('open', '')
-            else:
+                if is_open and is_modal:
+                    unsupported.append((kind, operation.get('order'), 'show() on a modal dialog throws'))
+                else:
+                    target.attrs.setdefault('open', '')
+            elif is_open:
                 target.attrs.pop('open', None)
+                top_layer[:] = [dialog for dialog in top_layer if dialog is not target]
         else:
             unsupported.append((kind, operation.get('order'), 'unknown operation'))
 
@@ -2711,6 +2870,9 @@ def _mutation_final_state(parser: 'WptHtmlParser') -> dict:
     comparison does not depend on a browser JavaScript runtime.
     """
     scrolls = []
+    # A modal dialog is serialized closed and marked with its top-layer rank;
+    # the runner's script opens them with showModal(), bottom first.
+    modal_rank = {id(dialog): rank for rank, dialog in enumerate(parser.top_layer)}
 
     def serialize(node) -> str:
         if node.is_text:
@@ -2718,17 +2880,23 @@ def _mutation_final_state(parser: 'WptHtmlParser') -> dict:
         if node.tag == '#document-fragment':
             return ''.join(serialize(child) for child in node.children)
         extra = None
+        rank = modal_rank.get(id(node))
+        if rank is not None:
+            extra = {'data-openui-final-modal': str(rank)}
         scroll_left = float(getattr(node, 'scroll_left', 0.0))
         scroll_top = float(getattr(node, 'scroll_top', 0.0))
         if scroll_left or scroll_top:
             marker = str(len(scrolls))
-            extra = {'data-openui-final-scroll': marker}
+            extra = {**(extra or {}), 'data-openui-final-scroll': marker}
             scrolls.append({
                 'marker': marker,
                 'left': scroll_left,
                 'top': scroll_top,
             })
-        attrs = _serialize_mutation_attrs(node.attrs, node.styles, extra=extra)
+        node_attrs = node.attrs
+        if rank is not None:
+            node_attrs = {name: value for name, value in node.attrs.items() if name != 'open'}
+        attrs = _serialize_mutation_attrs(node_attrs, node.styles, extra=extra)
         start = f'<{node.tag}{attrs}>'
         if node.tag in WptHtmlParser.VOID_TAGS:
             return start
@@ -2748,6 +2916,7 @@ def _mutation_final_state(parser: 'WptHtmlParser') -> dict:
         'html_style': _serialize_mutation_styles(parser.html_styles),
         'author_style_blocks': copy.deepcopy(parser.author_style_blocks),
         'scrolls': scrolls,
+        'modals': [str(rank) for rank in range(len(parser.top_layer))],
     }
 
 
@@ -3988,6 +4157,9 @@ class WptHtmlParser(HTMLParser):
         self.mutation_ir = mutation_ir
         self.lowered_layout_barriers = []
         self.lowered_final_state = None
+        # The top layer after the lowered script, bottom to top (RFC 0015).
+        self.top_layer: list = []
+        self.backdrop_rules: list = []
         self.root = DomNode('body', {}, {})
         self.stack = [self.root]
         self.in_body = False
@@ -4025,8 +4197,8 @@ class WptHtmlParser(HTMLParser):
     # ``<p>instructions<div id=test>`` incorrectly nests the entire test in
     # the instructional paragraph that the porter later prunes.
     P_IMPLICIT_END_TAGS = {
-        'address', 'article', 'aside', 'blockquote', 'div', 'dl', 'fieldset',
-        'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header',
+        'address', 'article', 'aside', 'blockquote', 'dialog', 'div', 'dl',
+        'fieldset', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header',
         'hgroup', 'hr', 'main', 'menu', 'nav', 'ol', 'p', 'pre', 'section',
         'table', 'ul',
     }
@@ -4335,6 +4507,28 @@ class WptHtmlParser(HTMLParser):
                         authored.append(value)
                     self.root.attrs['class'] = ' '.join(authored)
 
+        if DIALOG_ELEMENTS_ENABLED:
+            # `::backdrop` boxes arrive with RFC 0015 PR 4: their rules style
+            # no element here. `:modal` and `:open` match the final state.
+            self.backdrop_rules = [
+                rule for rule in self.external_css_rules + self.css_rules
+                if '::backdrop' in rule[0].lower()
+            ]
+
+            def dialog_state_rules(rules):
+                return [
+                    (
+                        re.sub(r':open\b', '[open]', re.sub(
+                            r':modal\b', f'[{_MODAL_MARKER}]', selector, flags=re.IGNORECASE
+                        ), flags=re.IGNORECASE),
+                        styles,
+                    )
+                    for selector, styles in rules
+                    if '::backdrop' not in selector.lower()
+                ]
+
+            self.external_css_rules = dialog_state_rules(self.external_css_rules)
+            self.css_rules = dialog_state_rules(self.css_rules)
         harness_rules = self.harness_rules
         if harness_rules is None:
             harness_rules = ROOT_BODY_STYLE_RULES if self.root_aware else BODY_STYLE_RULES
@@ -4370,20 +4564,43 @@ class WptHtmlParser(HTMLParser):
                 RETAIN_TEXT and not is_real_font_profile() and len(self.stack) == 1
             )
             leading_author_styles = len(self.author_style_blocks)
-            apply_css_rules(
-                all_rules,
-                self.root,
-                ancestors=root_ancestors,
-                leading_element_siblings=leading_author_styles,
-                trailing_element_siblings=trailing_harness_style,
-            )
-            apply_static_target_current_rules(
-                all_rules,
-                self.root,
-                ancestors=root_ancestors,
-                leading_element_siblings=leading_author_styles,
-                trailing_element_siblings=trailing_harness_style,
-            )
+            for dialog in self.top_layer:
+                dialog.attrs[_MODAL_MARKER] = ''
+            try:
+                apply_css_rules(
+                    all_rules,
+                    self.root,
+                    ancestors=root_ancestors,
+                    leading_element_siblings=leading_author_styles,
+                    trailing_element_siblings=trailing_harness_style,
+                )
+                apply_static_target_current_rules(
+                    all_rules,
+                    self.root,
+                    ancestors=root_ancestors,
+                    leading_element_siblings=leading_author_styles,
+                    trailing_element_siblings=trailing_harness_style,
+                )
+            finally:
+                for dialog in self.top_layer:
+                    dialog.attrs.pop(_MODAL_MARKER, None)
+            if DIALOG_ELEMENTS_ENABLED:
+                pending = [self.root]
+                while pending:
+                    node = pending.pop()
+                    pending.extend(node.children)
+                    if node.is_text or node.tag != 'dialog':
+                        continue
+                    injected = set()
+                    for prop, value in _DIALOG_UA_INHERITED.items():
+                        if prop not in node.styles:
+                            _set_declaration(
+                                node.styles, prop, value,
+                                priority=(-1, 0, 0, 0, 0, -1, -1),
+                            )
+                            injected.add(prop)
+                    node.dialog_ua_declarations = frozenset(injected)
+            self.root.top_layer = list(self.top_layer)
             def sample_animations(node):
                 if node.is_text:
                     return
@@ -4756,9 +4973,15 @@ def analyze_portability(parser: WptHtmlParser) -> tuple[bool, str]:
     def check_tree(node):
         if node.is_text:
             return True, ""
-        if node.tag in ('dialog',
-                        'template', 'slot'):
+        if (
+            node.tag in ('template', 'slot')
+            or (node.tag == 'dialog' and not DIALOG_ELEMENTS_ENABLED)
+        ):
             return False, f"unsupported element: <{node.tag}>"
+        if node.tag == 'dialog':
+            _declarations, reason = dialog_author_declarations(node)
+            if reason is not None:
+                return False, reason
         for child in node.children:
             ok, reason = check_tree(child)
             if not ok:
@@ -9960,6 +10183,9 @@ def generate_rust_fn(
         lines.append(canvas_color_line)
 
     counter = [0]
+    # Generated dialogs in tree order, and the final top layer (RFC 0015 3p).
+    dialog_vars: list = []
+    modal_dialogs = {id(dialog) for dialog in getattr(root, 'top_layer', [])}
     materialization_required = [False]
     generated_scroll_markers: list[
         tuple[str, CssDeclarations, float, float]
@@ -10586,7 +10812,14 @@ def generate_rust_fn(
             element_tag = 'ElementTag::Span'
         else:
             element_tag = semantic_tags.get(node.tag, 'ElementTag::Div')
-        lines.append(f"{ws}let {var} = doc.create_node({element_tag});")
+        if node.tag == 'dialog' and DIALOG_ELEMENTS_ENABLED:
+            # The engine's dialog element. Like every element, it gets its
+            # attributes after its styles; a modal dialog's `open` comes from
+            # show_modal at the end.
+            lines.append(f"{ws}let {var} = doc.create_dialog();")
+            dialog_vars.append((node, var))
+        else:
+            lines.append(f"{ws}let {var} = doc.create_node({element_tag});")
         scroll_left = getattr(node, 'scroll_left', 0.0)
         scroll_top = getattr(node, 'scroll_top', 0.0)
         if scroll_left:
@@ -11697,7 +11930,7 @@ def generate_rust_fn(
                       'aside', 'figure', 'figcaption', 'blockquote', 'pre', 'address',
                       'details', 'summary', 'fieldset', 'legend', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                       'dl', 'dt', 'dd', 'ol', 'ul', 'menu', 'li', 'hr',
-                      'option', 'optgroup'}
+                      'option', 'optgroup', 'dialog'}
         supported_display_values = {
             'block', 'inline', 'inline-block', 'none', 'flow-root',
             'contents', 'list-item', 'flow-root list-item',
@@ -12228,6 +12461,8 @@ def generate_rust_fn(
         # Preserve source attributes for generated `attr()` values. The
         # document keeps these separately from labels/debug metadata.
         for attr_name, attr_value in sorted(node.attrs.items()):
+            if attr_name == 'open' and id(node) in modal_dialogs:
+                continue
             lines.append(
                 f'{ws}doc.set_attribute({var}, '
                 f'"{_rust_escape_string(attr_name)}", '
@@ -13282,6 +13517,32 @@ def generate_rust_fn(
             'scroll-marker-group', 'ScrollMarkerGroup', structural=True
         )
 
+    if getattr(root, 'top_layer', []) and not dialog_vars:
+        raise ValueError('a top-layer dialog has no generated builder')
+    if dialog_vars:
+        # RFC 0015 3p: each dialog's author declarations through
+        # set_property, then modal dialogs open in top-layer order, bottom
+        # first. A top-layer dialog renders even under a display: none
+        # ancestor, so one the porter generated no builder for is an error,
+        # not an absent box.
+        top_layer = getattr(root, 'top_layer', [])
+        for node, var in dialog_vars:
+            declarations, reason = dialog_author_declarations(node)
+            if reason is not None:
+                raise ValueError(reason)
+            for name, value in declarations:
+                lines.append(
+                    f'    doc.set_author_literal({var}, "{_rust_escape_string(name)}", '
+                    f'"{_rust_escape_string(value)}");'
+                )
+        dialog_var = {id(node): var for node, var in dialog_vars}
+        for dialog in top_layer:
+            if id(dialog) not in dialog_var:
+                raise ValueError(
+                    'a top-layer dialog has no generated builder: '
+                    + (dialog.attrs.get('id') or '(no id)')
+                )
+            lines.append(f"    doc.show_modal({dialog_var[id(dialog)]});")
     if materialization_required[0]:
         lines.append("    doc.materialize_generated_content();")
     lines.append("    doc")
@@ -13723,6 +13984,19 @@ def generate_html_template(
             directive('FINAL_BODY_ATTRS', body_final_attrs),
             directive('FINAL_SCROLLS', final_state['scrolls']),
         ]
+        if final_state.get('modals'):
+            # Only a template with a modal dialog carries the directive, so
+            # every other template keeps its bytes and its cached result.
+            directives.append(directive('FINAL_MODALS', final_state['modals']))
+            # The runner's showModal() on a missing rank would throw inside
+            # the page, unseen: each rank marks exactly one dialog here.
+            markers = re.findall(r'\sdata-openui-final-modal="([^"]*)"', template)
+            dialogs = re.findall(r'<dialog\b[^>]*\sdata-openui-final-modal="([^"]*)"', template)
+            if sorted(markers) != sorted(final_state['modals']) or sorted(dialogs) != sorted(markers):
+                raise ValueError(
+                    'FINAL_MODALS ranks do not each mark one dialog in the template: '
+                    f"ranks {final_state['modals']}, dialogs {dialogs}, markers {markers}"
+                )
         template = '\n'.join(directives) + '\n' + template
     if root_aware:
         template = '<!--OPENUI_ROOT_AWARE-->\n' + template

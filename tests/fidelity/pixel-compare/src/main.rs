@@ -91,6 +91,40 @@ impl FixtureEngine {
         node
     }
 
+    /// An HTML `<dialog>`, the engine's named element (RFC 0015): its user
+    /// agent rules, `:modal` and the top layer style and place it. Its
+    /// `open` attribute follows its styles, as every attribute does, and a
+    /// modal dialog opens through `show_modal` after the whole tree.
+    fn create_dialog(&mut self) -> NodeId {
+        let node = self
+            .inner
+            .create_native_element_named(ElementTag::Div, "dialog")
+            .expect("fixture dialog");
+        self.inner
+            .set_renderer_style(
+                node,
+                RendererStyleValue::ScrollbarWidth(ScrollbarWidth::None),
+            )
+            .expect("fixture capture-harness scrollbar style");
+        node
+    }
+
+    /// One author declaration, applied above the engine's user-agent rules
+    /// as Chromium's author origin is (RFC 0015 3b-porter).
+    fn set_author_literal(&mut self, node: NodeId, name: &str, value: &str) {
+        let property = StyleProperty::from_css_name(name)
+            .unwrap_or_else(|| panic!("porter-checked property {name}"));
+        let value = parse_value(property, value)
+            .unwrap_or_else(|error| panic!("porter-checked value {name}: {value}: {error}"));
+        self.inner
+            .set_property(node, property, value)
+            .expect("fixture author declaration");
+    }
+
+    fn show_modal(&mut self, node: NodeId) {
+        self.inner.show_modal(node).expect("fixture showModal");
+    }
+
     fn append_child(&mut self, parent: NodeId, child: NodeId) {
         self.inner
             .append_child(parent, child)

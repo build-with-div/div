@@ -1,0 +1,369 @@
+{
+ "area": "html/semantics/interactive-elements/the-dialog-element",
+ "backdrop_rules_dropped": [
+  "wpt/html_dialog/backdrop-dynamic-style-change",
+  "wpt/html_dialog/backdrop-in-flow",
+  "wpt/html_dialog/backdrop-inherits",
+  "wpt/html_dialog/backdrop-stacking-order",
+  "wpt/html_dialog/dialogs-with-no-backdrop",
+  "wpt/html_dialog/fixed-position-child-with-contain-ancestor",
+  "wpt/html_dialog/fixed-position-child-with-fo-ancestor",
+  "wpt/html_dialog/fixed-position-child-with-will-change-ancestor.tentative",
+  "wpt/html_dialog/inert-node-is-not-highlighted",
+  "wpt/html_dialog/inert-node-is-not-highlighted-ref",
+  "wpt/html_dialog/modal-dialog-backdrop-opacity",
+  "wpt/html_dialog/modal-dialog-generated-content",
+  "wpt/html_dialog/pass-dialog-ref",
+  "wpt/html_dialog/removed-element-is-removed-from-top-layer",
+  "wpt/html_dialog/top-layer-containing-block",
+  "wpt/html_dialog/top-layer-display-none",
+  "wpt/html_dialog/top-layer-nesting",
+  "wpt/html_dialog/top-layer-parent-filter",
+  "wpt/html_dialog/top-layer-parent-mask",
+  "wpt/html_dialog/top-layer-parent-opacity",
+  "wpt/html_dialog/top-layer-parent-overflow-clip",
+  "wpt/html_dialog/top-layer-parent-overflow-hidden",
+  "wpt/html_dialog/top-layer-parent-overflow-scroll",
+  "wpt/html_dialog/top-layer-parent-transform",
+  "wpt/html_dialog/top-layer-stacking-correct-order-remove-readd",
+  "wpt/html_dialog/top-layer-stacking-dynamic",
+  "wpt/html_dialog/top-layer-stacking.tentative"
+ ],
+ "errors": {},
+ "excluded": {
+  "DIR_METADATA": "directory metadata, not a test",
+  "WEB_FEATURES.yml": "directory metadata, not a test",
+  "dialog-open-expected.txt": "Chromium's expected testharness output, not a test",
+  "focus-previous-iframe.tentative-expected.txt": "Chromium's expected testharness output, not a test",
+  "resources/common.js": "in a resources/ directory: a support file, not a test",
+  "resources/dialog.css": "in a resources/ directory: a support file, not a test",
+  "resources/inert-focus-in-frames-frame1.html": "in a resources/ directory: a support file, not a test",
+  "resources/inert-focus-in-frames-frame2.html": "in a resources/ directory: a support file, not a test",
+  "resources/showmodal-frame.html": "in a resources/ directory: a support file, not a test",
+  "resources/submit.jpg": "in a resources/ directory: a support file, not a test"
+ },
+ "files": 176,
+ "fixtures": [
+  "div/html_dialog/closed-dialog-author-display-block"
+ ],
+ "lowered": {
+  "wpt/html_dialog/backdrop-dynamic-style-change": [
+   "bind-target",
+   "dialog-show-modal",
+   "class-list"
+  ],
+  "wpt/html_dialog/backdrop-in-flow": [
+   "dialog-show-modal",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/backdrop-inherits": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/backdrop-stacking-order": [
+   "bind-target",
+   "bind-target",
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-close",
+   "dialog-show-modal",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/dialog-audio-video-crash": [
+   "dialog-show"
+  ],
+  "wpt/html_dialog/dialog-insert-disconnected-node-crash": [
+   "bind-target",
+   "create-element",
+   "append",
+   "append"
+  ],
+  "wpt/html_dialog/dialog-open-add-closedby-crash": [
+   "set-attribute"
+  ],
+  "wpt/html_dialog/dialog-open-pseudo-invalidation": [
+   "bind-target",
+   "dialog-show"
+  ],
+  "wpt/html_dialog/dialog-popover-overlay": [
+   "bind-target"
+  ],
+  "wpt/html_dialog/dialog-remove-open-attr-crash": [
+   "dialog-show-modal",
+   "set-attribute",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/dialogs-with-no-backdrop": [
+   "dialog-show-modal",
+   "dialog-show",
+   "dialog-show-modal",
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-close",
+   "bind-target",
+   "dialog-show-modal",
+   "remove"
+  ],
+  "wpt/html_dialog/dont-share-style-to-top-layer": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/dont-share-style-to-top-layer-ref": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/element-removed-from-top-layer-has-original-position": [
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-close",
+   "dialog-show"
+  ],
+  "wpt/html_dialog/fixed-position-child-with-contain-ancestor": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/fixed-position-child-with-fo-ancestor": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/fixed-position-child-with-will-change-ancestor.tentative": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/inert-node-is-not-highlighted": [
+   "bind-target",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/inert-node-is-not-highlighted-ref": [
+   "bind-target",
+   "dialog-show-modal",
+   "bind-target"
+  ],
+  "wpt/html_dialog/modal-dialog-backdrop": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/modal-dialog-backdrop-opacity": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/modal-dialog-display-contents-ref": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/modal-dialog-generated-content": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/pass-dialog-ref": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/removed-element-is-removed-from-top-layer": [
+   "dialog-show-modal",
+   "bind-target",
+   "dialog-show-modal",
+   "layout-barrier",
+   "bind-target",
+   "remove",
+   "append"
+  ],
+  "wpt/html_dialog/top-layer-backdrop-remove-add-ordering": [
+   "bind-target",
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-close",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-backdrop-remove-add-ordering-ref": [
+   "bind-target",
+   "bind-target",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-containing-block": [
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-display-none": [
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "set-style",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "set-style"
+  ],
+  "wpt/html_dialog/top-layer-nesting": [
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-close"
+  ],
+  "wpt/html_dialog/top-layer-parent-filter": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-mask": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-opacity": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-overflow-clip": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-overflow-hidden": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-overflow-scroll": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-parent-transform": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-position-ref": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-position-relative": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-position-static": [
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-remove-popover-attribute": [
+   "bind-target",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-remove-popover-attribute-ref": [
+   "bind-target",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-stacking-correct-order-remove-readd": [
+   "bind-target",
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "layout-barrier",
+   "dialog-close",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-stacking-dynamic": [
+   "dialog-show-modal",
+   "bind-target",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "remove",
+   "dialog-close",
+   "dialog-show-modal"
+  ],
+  "wpt/html_dialog/top-layer-stacking.tentative": [
+   "dialog-show-modal",
+   "dialog-show-modal",
+   "dialog-show-modal"
+  ]
+ },
+ "module": "html_dialog",
+ "not_portable": {
+  "wpt/html_dialog/abspos-dialog-layout": "mutation_ir: assertion-harness-dependency, external-script-dependency, runtime-dependent-control-flow",
+  "wpt/html_dialog/backdrop-descendant-selector": "mutation_ir: runtime-dependent-control-flow, unbounded-or-runtime-loop, unresolved-dialog-receiver",
+  "wpt/html_dialog/backdrop-dynamic-display-none": "mutation_ir: animation-frame-dependency",
+  "wpt/html_dialog/backdrop-receives-element-events": "mutation_ir: assertion-harness-dependency, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/centering": "mutation_ir: assertion-harness-dependency, external-script-dependency, runtime-dependent-control-flow, unbounded-or-runtime-loop",
+  "wpt/html_dialog/centering-iframe.sub": "dialog max-width: initial (set_property takes no CSS-wide keyword or var() yet)",
+  "wpt/html_dialog/child-sequential-focus": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/closed-dialog-does-not-block-mouse-events": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/default-color": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-active-document": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-autofocus": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-autofocus-just-once": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-autofocus-multiple-times": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-cancel-events": "mutation_ir: assertion-harness-dependency, asynchronous-control-flow, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/dialog-cancel-preventDefault": "mutation_ir: assertion-harness-dependency, asynchronous-control-flow, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/dialog-cancel-with-input": "mutation_ir: assertion-harness-dependency, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/dialog-cancel-with-select": "mutation_ir: assertion-harness-dependency, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/dialog-canceling": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-close": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-close-event": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-close-event-async": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-close-via-attribute.tentative": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-closedby": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/dialog-closedby-bounds-clicking": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-closedby-corner-cases": "mutation_ir: assertion-harness-dependency, external-script-dependency, unbounded-or-runtime-loop",
+  "wpt/html_dialog/dialog-closedby-show-stacked": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-closedby-start-open": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-closewatcher-crash": "mutation_ir: event-driven-control-flow",
+  "wpt/html_dialog/dialog-enabled": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-focus-previous-outside": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-focus-shadow": "mutation_ir: assertion-harness-dependency, external-script-dependency, runtime-dependent-control-flow, unbounded-or-runtime-loop",
+  "wpt/html_dialog/dialog-focus-shadow-double-nested": "mutation_ir: assertion-harness-dependency, external-script-dependency, recursive-control-flow, runtime-dependent-control-flow, unbounded-or-runtime-loop",
+  "wpt/html_dialog/dialog-focusability": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-focusing-steps-disconnected": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-focusing-steps-inert": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-focusing-steps-prevent-autofocus": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-form-submission": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-form-submission-unusual": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-inert": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-keydown-preventDefault": "mutation_ir: assertion-harness-dependency, event-driven-control-flow, external-script-dependency",
+  "wpt/html_dialog/dialog-light-dismiss-drag": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-light-dismiss-pointer-capture": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/dialog-light-dismiss-touch": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-no-throw-requested-state": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-not-in-tree-crash": "no_layout_content",
+  "wpt/html_dialog/dialog-open": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-open-2": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-open-movebefore-setup": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-overlay": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-overlay-re-add-during-transition": "mutation_ir: animation-frame-dependency",
+  "wpt/html_dialog/dialog-popover-closedby-complex": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/dialog-popover-closedby-simple": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-requestclose": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-requestclose-2-crash": "no_layout_content",
+  "wpt/html_dialog/dialog-requestclose-3-crash": "mutation_ir: append@1: invalid append target",
+  "wpt/html_dialog/dialog-requestclose-4-crash": "mutation_ir: append@2: invalid append target",
+  "wpt/html_dialog/dialog-requestclose-crash": "mutation_ir: no-final-state-mutation",
+  "wpt/html_dialog/dialog-return-value": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-setup-cleanup-crash": "mutation_ir: promise-dependency",
+  "wpt/html_dialog/dialog-showModal": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-showModal-inert-crash": "mutation_ir: embedded-document-mutation",
+  "wpt/html_dialog/dialog-showModal-remove": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/dialog-toggle-source": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/dialogs-with-no-backdrop-ref": "no_layout_content",
+  "wpt/html_dialog/fixed-position-child-with-transformed-ancestor.tentative": "unsupported property: scale",
+  "wpt/html_dialog/focus-after-close": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/focus-previous-iframe.tentative": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/form-submit-dialog-shadow": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-does-not-match-disabled-selector": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-focus-in-frames": "mutation_ir: assertion-harness-dependency, embedded-document-mutation, event-driven-control-flow, external-script-dependency, promise-dependency, runtime-dependent-control-flow, unresolved-dialog-receiver",
+  "wpt/html_dialog/inert-inlines": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-label-focus": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-node-is-uneditable": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-node-is-unfocusable": "mutation_ir: assertion-harness-dependency, external-script-dependency, recursive-control-flow, runtime-dependent-control-flow, unbounded-or-runtime-loop",
+  "wpt/html_dialog/inert-node-is-unselectable": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inert-svg-hittest": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/inertness-with-modal-dialogs-and-iframes": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-ancestor-is-inert": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-blocks-mouse-events": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-display-contents": "mutation_ir: runtime-dependent-mutation-input",
+  "wpt/html_dialog/modal-dialog-generated-content-ref": "mutation_ir: dialog-show-modal@0: not a dialog",
+  "wpt/html_dialog/modal-dialog-in-iframe": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/modal-dialog-in-object": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/modal-dialog-in-replaced-renderer": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/modal-dialog-in-table-column": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/modal-dialog-in-visibility-hidden": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-scroll-height": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-selection": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/modal-dialog-sibling": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/modal-dialog-sibling-ref": "dialog border-color is not in the style schema",
+  "wpt/html_dialog/multiple-centered-dialogs": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/non-modal-canceling": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/non-modal-dialog-does-not-block-mouse-events": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/non-modal-dialog-layout": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/popover-dialog-does-not-block-mouse-events": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/remove-dialog-should-unblock-document": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/show-modal-focusing-steps": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/showmodal-in-shadow-crash": "mutation_ir: unresolved-dialog-receiver",
+  "wpt/html_dialog/showmodal-shadow-sibling-frame-crash": "mutation_ir: dialog-show@3: not a dialog",
+  "wpt/html_dialog/simulated-click-inert": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/submit-dialog-close-event": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/synthetic-click-inert": "mutation_ir: assertion-harness-dependency, external-script-dependency",
+  "wpt/html_dialog/toggle-events": "mutation_ir: external-script-dependency",
+  "wpt/html_dialog/top-layer-parent-clip": "style_block_unsupported clip-path: circle(5%)",
+  "wpt/html_dialog/top-layer-position": "mutation_ir: assertion-harness-dependency, external-script-dependency"
+ },
+ "portable": 71,
+ "schema_version": 1,
+ "selection": "every .html, .htm, .xht and .xhtml file of the directory outside its support, resources, crashtests and tentative subdirectories is ported or listed in not_portable with the porter's reason; every other file is listed in excluded with its reason"
+}
