@@ -1756,7 +1756,7 @@ impl Engine {
             self.viewport.logical_width() as f32,
             self.viewport.logical_height() as f32,
         );
-        let mut source = self.unanimated_style(node, handle.index)?;
+        let mut source = self.snapshot_base_style(node, handle.index)?;
         apply_to_computed(&mut source, property, &value, viewport)
             .map_err(|_| EngineError::PropertyType { property })?;
         let slot = &mut self.slots[handle.index as usize];
