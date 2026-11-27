@@ -489,3 +489,16 @@ From the framework track's review of #149:
   onto `main` `7796adf` with every code patch ID unchanged, so the pair,
   gates and cost carry; they were measured without #154's code.
   [Record](../partial-raster-a2-2026-11-27.md).
+- 27 November 2026: renderer snapshots stop freezing rule-derived values.
+  `Engine::set_renderer_style` built the snapshot from the full cascade, so
+  a value a matched rule supplied (a closed `<dialog>`'s user agent
+  `display: none`, found by the components track's dialog porter) outlived
+  its rule. The snapshot now holds the native source and the node's own
+  `set_property` declarations; rules, presentational hints and the `style`
+  attribute stay live above it. Three new tests fail at `7796adf` and pass
+  with the fix. The census and CSS Grid coverage pair, `3602e20` against
+  `main` `7796adf`, is unchanged at all four profiles (evidence
+  `9a83f981`), and the touched crates' Linux and Windows suites pass at
+  `3602e20`. Rebased onto `main` `0211362` with the code patch ID
+  unchanged, so the pair carries; it was measured without #158's code.
+  [Record](../renderer-snapshot-live-rules-2026-11-27.md).

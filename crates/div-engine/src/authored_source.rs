@@ -298,6 +298,33 @@ impl Engine {
         node: NodeId,
         index: u32,
     ) -> Result<ComputedStyle, EngineError> {
+        let cascaded = self.cascaded_declarations(index)?;
+        self.resolve_native_source(node, index, cascaded.declarations.contributions())
+    }
+
+    /// The style a renderer snapshot freezes: the native source and the
+    /// slot's own declarations (`set_property`), resolved as the cascade
+    /// resolves them. Declarations from matched stylesheet rules,
+    /// presentational hints and the `style` attribute are left out: they stay
+    /// live and cascade above the snapshot, so one whose rule stops matching
+    /// (a closed dialog's `display: none`, for example) leaves nothing behind.
+    pub(crate) fn snapshot_base_style(
+        &self,
+        node: NodeId,
+        index: u32,
+    ) -> Result<ComputedStyle, EngineError> {
+        let slot = &self.slots[index as usize];
+        self.resolve_native_source(node, index, slot.authored.contributions())
+    }
+
+    /// The native source with `declarations` resolved over it, against the
+    /// node's style parent, the root font and the viewport.
+    fn resolve_native_source(
+        &self,
+        node: NodeId,
+        index: u32,
+        declarations: &[div_style::AuthoredStyleContribution],
+    ) -> Result<ComputedStyle, EngineError> {
         let initial = ComputedStyle::initial();
         let slot = &self.slots[index as usize];
         let parent_node = self
@@ -326,9 +353,7 @@ impl Engine {
         }
         self.resolve_native_declarations(
             style,
-            self.cascaded_declarations(index)?
-                .declarations
-                .contributions(),
+            declarations,
             &parent,
             root_font,
             (
