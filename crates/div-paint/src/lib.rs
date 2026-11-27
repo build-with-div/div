@@ -17,6 +17,7 @@ pub mod paint_order;
 mod paint_program;
 mod paint_record;
 mod painter;
+mod partial_raster;
 mod render;
 mod source_layer_program;
 mod surface_program;
@@ -35,6 +36,8 @@ pub use painter::{
     overflow_border_radius_reference_box, OverflowClipContour, OverflowClipContourPurpose,
     OverflowClipGeometry,
 };
+#[doc(hidden)]
+pub use partial_raster::{RasterUpdate, RetainedRaster};
 pub use render::{
     raster_surface_properties, rasterize_picture, record_document, record_fragment,
     record_fragment_with_program, render_to_png, render_to_surface, LayeredPaintCapture,

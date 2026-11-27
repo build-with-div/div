@@ -754,8 +754,7 @@ fn hash_draw(observer: &mut Observer, draw: &OwnedDraw, h: &mut DefaultHasher) {
         }
         OwnedDraw::Image(image, src, dst, sampling, paint) => {
             10u8.hash(h);
-            // Image ids are never reused within a process.
-            image.unique_id().hash(h);
+            hash_image(image, h);
             if let Some((rect, constraint)) = src {
                 hash_rect(rect, h);
                 (*constraint as i32).hash(h);
@@ -766,7 +765,7 @@ fn hash_draw(observer: &mut Observer, draw: &OwnedDraw, h: &mut DefaultHasher) {
         }
         OwnedDraw::ImageNine(image, center, dst, filter, paint) => {
             11u8.hash(h);
-            image.unique_id().hash(h);
+            hash_image(image, h);
             [center.left, center.top, center.right, center.bottom].hash(h);
             hash_rect(dst, h);
             (*filter as i32).hash(h);
@@ -818,6 +817,41 @@ fn hash_draw(observer: &mut Observer, draw: &OwnedDraw, h: &mut DefaultHasher) {
             }
         }
     }
+}
+
+/// Raster images up to this many bytes are fingerprinted by their pixels.
+const HASHED_IMAGE_BYTES: usize = 1 << 20;
+
+/// Fingerprints an image. The painter rasters some images again in every
+/// recording (a composited scrollbar's track, for one), so their ids always
+/// change although their pixels do not. A small raster image is hashed by
+/// its pixels and image info instead: drawn the same way, the same pixels
+/// give the same output (RFC 0006 A2). Any other image is hashed by its id,
+/// which is never reused within a process.
+fn hash_image(image: &skia_safe::Image, h: &mut impl Hasher) {
+    if let Some(pixmap) = image.peek_pixels() {
+        let info = pixmap.info();
+        let row = usize::try_from(info.width()).unwrap_or(0) * info.bytes_per_pixel();
+        let rows = usize::try_from(info.height()).unwrap_or(0);
+        let stride = pixmap.row_bytes();
+        if let Some(bytes) = pixmap.bytes() {
+            if row > 0 && rows > 0 && row * rows <= HASHED_IMAGE_BYTES && stride >= row {
+                if bytes.len() >= stride * (rows - 1) + row {
+                    true.hash(h);
+                    (info.width(), info.height()).hash(h);
+                    (info.color_type() as i32, info.alpha_type() as i32).hash(h);
+                    info.color_space()
+                        .map(|space| space.serialize().as_bytes().to_vec())
+                        .hash(h);
+                    for y in 0..rows {
+                        bytes[y * stride..y * stride + row].hash(h);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    (false, image.unique_id()).hash(h);
 }
 
 fn hash_rrect(rrect: &skia_safe::RRect, h: &mut impl Hasher) {

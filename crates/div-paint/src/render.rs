@@ -10,9 +10,9 @@ use div_geometry::{
 use div_layout::{block_layout, ConstraintSpace, Fragment};
 use skia_safe::canvas::SrcRectConstraint;
 use skia_safe::{
-    surfaces, Canvas, Color as SkColor, ColorSpace, EncodedImageFormat, FilterMode, ImageInfo,
-    Paint, Picture, PictureRecorder, PixelGeometry, Rect, SamplingOptions, Surface, SurfaceProps,
-    SurfacePropsFlags,
+    surfaces, Canvas, ClipOp, Color as SkColor, ColorSpace, EncodedImageFormat, FilterMode, IRect,
+    ImageInfo, Paint, Picture, PictureRecorder, PixelGeometry, Rect, SamplingOptions, Surface,
+    SurfaceProps, SurfacePropsFlags,
 };
 use std::sync::Arc;
 
@@ -727,8 +727,82 @@ pub fn rasterize_picture(recording: &RecordedPicture) -> Result<Surface, String>
             .draw_picture(&recording.picture, None, None);
         return Ok(surface);
     }
+    replay_tiles(recording, &mut surface, &|_| true, false)?;
+    compose_viewport_overlay(recording, &mut surface);
+    Ok(surface)
+}
+
+/// The physical size and scale a recording rasters at.
+pub(crate) fn raster_size(recording: &RecordedPicture) -> Result<(i32, i32, f32), String> {
+    let width = i32::try_from(recording.viewport.physical_width())
+        .map_err(|_| "physical viewport width exceeds Skia limit".to_string())?;
+    let height = i32::try_from(recording.viewport.physical_height())
+        .map_err(|_| "physical viewport height exceeds Skia limit".to_string())?;
+    Ok((
+        width,
+        height,
+        recording.viewport.device_scale_factor() as f32,
+    ))
+}
+
+/// Whether a recording rasters as one untiled picture.
+pub(crate) fn replays_untiled(recording: &RecordedPicture) -> Result<bool, String> {
+    let (width, height, _) = raster_size(recording)?;
+    Ok(should_replay_untiled(
+        recording.direct_replay,
+        width,
+        height,
+        recording.content_requires_tiling,
+    ))
+}
+
+/// A cleared surface for a recording's viewport.
+pub(crate) fn viewport_surface(recording: &RecordedPicture) -> Result<Surface, String> {
+    let (width, height, _) = raster_size(recording)?;
+    let mut surface = create_raster_surface(
+        width,
+        height,
+        recording.raster_configuration,
+        recording.lcd_surface,
+    )
+    .ok_or_else(|| "Failed to create Skia surface".to_string())?;
+    surface.canvas().clear(SkColor::WHITE);
+    Ok(surface)
+}
+
+/// Replays the document content tile by tile into `surface`. Every
+/// physical pixel belongs to exactly one tile's visible rect; a tile is
+/// rastered only when `select` accepts that rect. With `refill`, each
+/// selected rect is cleared before its tile is drawn, so a surface that
+/// holds an earlier frame ends with the pixels of a full raster there
+/// (RFC 0006 A2). Returns the visible rects that were drawn.
+pub(crate) fn replay_tiles(
+    recording: &RecordedPicture,
+    surface: &mut Surface,
+    select: &dyn Fn(IRect) -> bool,
+    refill: bool,
+) -> Result<Vec<IRect>, String> {
+    let (width, height, scale) = raster_size(recording)?;
+    let canvas_color = SkColor::WHITE;
+    let mut drawn = Vec::new();
     for tile_y in (0..height).step_by(RASTER_TILE_STEP_PX as usize) {
         for tile_x in (0..width).step_by(RASTER_TILE_STEP_PX as usize) {
+            let crop_left = if tile_x == 0 { 0 } else { 1 };
+            let crop_top = if tile_y == 0 { 0 } else { 1 };
+            let destination_x = tile_x + crop_left;
+            let destination_y = tile_y + crop_top;
+            let visible_right = (tile_x + RASTER_TILE_SIZE_PX - 1).min(width);
+            let visible_bottom = (tile_y + RASTER_TILE_SIZE_PX - 1).min(height);
+            let visible_width = visible_right - destination_x;
+            let visible_height = visible_bottom - destination_y;
+            if visible_width <= 0 || visible_height <= 0 {
+                continue;
+            }
+            let visible =
+                IRect::from_xywh(destination_x, destination_y, visible_width, visible_height);
+            if !select(visible) {
+                continue;
+            }
             let mut tile = create_raster_surface(
                 RASTER_TILE_SIZE_PX,
                 RASTER_TILE_SIZE_PX,
@@ -743,17 +817,6 @@ pub fn rasterize_picture(recording: &RecordedPicture) -> Result<Surface, String>
                 .draw_picture(&recording.content_picture, None, None);
 
             let image = tile.image_snapshot();
-            let crop_left = if tile_x == 0 { 0 } else { 1 };
-            let crop_top = if tile_y == 0 { 0 } else { 1 };
-            let destination_x = tile_x + crop_left;
-            let destination_y = tile_y + crop_top;
-            let visible_right = (tile_x + RASTER_TILE_SIZE_PX - 1).min(width);
-            let visible_bottom = (tile_y + RASTER_TILE_SIZE_PX - 1).min(height);
-            let visible_width = visible_right - destination_x;
-            let visible_height = visible_bottom - destination_y;
-            if visible_width <= 0 || visible_height <= 0 {
-                continue;
-            }
             let source = Rect::from_xywh(
                 crop_left as f32,
                 crop_top as f32,
@@ -766,6 +829,14 @@ pub fn rasterize_picture(recording: &RecordedPicture) -> Result<Surface, String>
                 visible_width as f32,
                 visible_height as f32,
             );
+            if refill {
+                // A retained surface holds the previous frame here; the full
+                // raster draws each tile over the cleared surface instead.
+                surface.canvas().save();
+                surface.canvas().clip_irect(visible, ClipOp::Intersect);
+                surface.canvas().clear(canvas_color);
+                surface.canvas().restore();
+            }
             surface.canvas().draw_image_rect_with_sampling_options(
                 image,
                 Some((&source, SrcRectConstraint::Strict)),
@@ -776,8 +847,19 @@ pub fn rasterize_picture(recording: &RecordedPicture) -> Result<Surface, String>
                 SamplingOptions::from(FilterMode::Nearest),
                 &Paint::default(),
             );
+            drawn.push(visible);
         }
     }
+    Ok(drawn)
+}
+
+/// Draws the viewport controls over the document tiles and closes a
+/// rounded-up physical viewport. Returns whether the last scanline was
+/// rewritten.
+pub(crate) fn compose_viewport_overlay(recording: &RecordedPicture, surface: &mut Surface) -> bool {
+    let Ok((width, height, scale)) = raster_size(recording) else {
+        return false;
+    };
     if let Some(overlay) = &recording.viewport_overlay {
         surface.canvas().save();
         surface.canvas().scale((scale, scale));
@@ -801,8 +883,9 @@ pub fn rasterize_picture(recording: &RecordedPicture) -> Result<Surface, String>
             SamplingOptions::from(FilterMode::Nearest),
             &Paint::default(),
         );
+        return true;
     }
-    Ok(surface)
+    false
 }
 
 /// Render a Document tree to a PNG file.
