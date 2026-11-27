@@ -474,3 +474,18 @@ From the framework track's review of #149:
   onto `main` `aa61757d` with every code patch ID unchanged, so the pair
   and gates carry; they were measured without #153's and #146's code.
   [Record](../match-media-2026-11-26.md).
+- 27 November 2026: RFC 0006 A2. `SoftwareCompositor` keeps the last
+  frame's raster and rasters only the 256-pixel tiles A1's damage meets, and
+  each `divui` document keeps one compositor for `render_to_bitmap`. Raster
+  images up to 1 MiB are fingerprinted by their pixels, so a re-rastered
+  scrollbar track no longer damages every frame. The damage gate now also
+  requires every retained frame to equal the full raster byte for byte; it
+  passes on Linux and Windows at 1x and 2x over 100,898 steps per scale
+  (fixture crate unoptimized). The census and CSS Grid coverage, `aa61757`
+  against `f158ff8`, are unchanged at all four profiles (evidence
+  `fc65f020`), and the touched crates' Linux suites pass. Headless raster
+  time for one animated element falls from about 1.4 ms to 0.2 ms at
+  1280x800; P7's unchanged-document render from 2.48 to 0.105 ms. Rebased
+  onto `main` `7796adf` with every code patch ID unchanged, so the pair,
+  gates and cost carry; they were measured without #154's code.
+  [Record](../partial-raster-a2-2026-11-27.md).
