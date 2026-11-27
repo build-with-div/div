@@ -2,7 +2,10 @@
 
 Tier 0 item 0.7, stage B (R5) of
 [RFC 0006](../alpha/rfcs/0006-rendering-pipeline.md). Branch
-`pipeline/b-targeted-sampling`, code commit `3c59392` on `main` `0211362`.
+`pipeline/b-targeted-sampling`, code commits `3c59392` and `62c0cba` (the
+engine review's fix) on `main` `0211362`, then rebased onto `main`
+`087de2b` as `4dc589f` and `2bbf298` with the code patch ID unchanged
+(only `docs/progress/tracks/engine.md` conflicted).
 SVG lane, owned by the engine track. The change is in
 `crates/div-engine/src/animation.rs` only, plus a new test; no `div-style`,
 `lib.rs` or public API change.
@@ -29,6 +32,13 @@ SVG lane, owned by the engine track. The change is in
   that target's descendants). When any effect uses a scroll or view
   timeline, a start still samples every effect, because those depend on
   layout.
+- **With a restyle pending, sampling restyles every root, as before.** A
+  pending selector restyle finds the elements whose state changed by
+  comparing their state with the state their style was last resolved with,
+  and restyling an element records its current state. So while a selector,
+  media or font restyle waits for the next `update()`, a tick or a start
+  re-cascades every root as `main` does, instead of only its targets
+  (`restyle_pending`).
 
 ## Gates
 
@@ -38,9 +48,13 @@ asserts that every element's style, and every effect target's base style,
 equals the published one. A start also asserts that sampling every other
 effect again would change no output and emit no event. Every test in a
 debug build runs these checks, so CI's suites run them on Linux and
-Windows. The check is skipped while a selector, media or font restyle is
-pending: the next `update()` applies those, as it does after any other style
-change.
+Windows. The full-cascade check runs after every targeted sample: with a
+restyle pending, sampling takes the full path instead. Each check costs a
+full cascade of the document, in debug builds only. It slows the debug
+suites by no measurable amount: `div-engine`'s debug suite took 437 and
+452 s of test time at `62c0cba` against 450 and 464 s at `main`
+`0211362` (two alternating rounds on the WSL host, 2 jobs, compile time
+excluded; B also runs 8 more tests).
 
 - The check fires: with the descendants left out of the restyle (a
   temporary edit, not committed), it failed 4 of the 6 new tests.
@@ -50,6 +64,12 @@ change.
   staged outer first; an ended effect without fill restoring its target and
   descendants; a root element `font-size` effect reaching an attached and a
   detached `rem` element; and a detached target.
+- Two tests added in review check `.a:hover ~ .b` (Tailwind's
+  `peer-hover:`) with `.a` animated: hovering `.a`, then a tick or a start
+  before `update()`, must still turn `.b` red. Both failed at `4d5c06c`,
+  where a targeted sample recorded `.a`'s new hover state and the pending
+  restyle then saw no change; both pass with the full path above. The
+  engine track found this in review.
 
 **Motion sample's sampled-time probe.** sample-motion's
 `tests/fidelity_sampled.rs` (copied unchanged into `divui/tests` of `main`
@@ -58,30 +78,46 @@ change.
 two sides, so its comparison with pinned Chromium (46 of 54 when it was
 recorded) is unchanged by this PR. Chromium was not run again.
 
-## Behavior change
+## Behavior
 
-A tick no longer restyles elements that no effect touched. On `main`, a tick
-re-cascaded every element and so applied a pending selector, media or font
-restyle early; now those apply at the next `update()`, as documented for
-`set_color_scheme`, interaction state and `@media`, and as after every other
-style change. Frames are produced after `update()`, so they are unaffected;
-a style read between a tick and the next `update()` can see the pending
-state later than on `main`.
+No behavior change from `main` is intended. With no restyle pending, every
+debug test checks that the targeted result equals a full cascade; with one
+pending, sampling takes `main`'s full path.
 
 ## Verification
 
 | Check | Commit | Result |
 | --- | --- | --- |
-| Census, all four profiles | `0211362` to `3c59392` | 0 of 23,728 Div outputs changed; 16,297 exact on both sides |
-| CSS Grid coverage, all four profiles | `0211362` to `3c59392` | 0 of 4,204 Div outputs changed; 1,473 exact on both sides |
-| Linux `div-engine`, debug (targeted-equals-full checks on) | `3c59392` | 591 passed, 0 failed, 2 ignored (76 targets) |
-| Linux `divui`, `div-ffi`, `div-components`, `div-svg`, debug | `3c59392` | 590 passed, 0 failed, 8 ignored (74 targets) |
-| Motion sampled-time frames, `main` against B | `0211362`, `3c59392` | 54 of 54 byte-identical |
-| v0.2 and renderer contracts, format of changed files | `3c59392` | Pass |
+| Census, all four profiles | `0211362` to `62c0cba` | 0 of 23,728 Div outputs changed; 16,297 exact on both sides |
+| CSS Grid coverage, all four profiles | `0211362` to `62c0cba` | 0 of 4,204 Div outputs changed; 1,473 exact on both sides |
+| Census and CSS Grid coverage, first pair (superseded) | `0211362` to `3c59392` | 0 of 23,728 and 0 of 4,204 Div outputs changed |
+| Linux `div-engine`, debug (targeted-equals-full checks on) | `62c0cba` | 593 passed, 0 failed, 2 ignored (76 targets) |
+| Linux `div-engine`, `divui`, `div-ffi`, `div-components`, `div-svg`, debug | `62c0cba` | 1,183 passed, 0 failed, 10 ignored (150 targets) |
+| Motion sampled-time frames, `main` against B | `0211362`, `62c0cba` | 54 of 54 byte-identical (also at `3c59392`) |
+| Linux `div-engine` and `divui`, debug, rebased on `087de2b` | `2bbf298` | 980 passed, 0 failed, 10 ignored (140 targets) |
+| v0.2 and renderer contracts, format of changed files | `2bbf298` | Pass |
 
-**Census pair.** Both sides were built and measured in one run under the census lock (WSL, 16 jobs, default profiles), against the same Chromium 147.0.7727.50 binary and the same 1,051 measured CSS Grid ids, with the fidelity data at `26fec8c7`. Every Chromium output is identical between the sides; no Div output changed, and there are no errors in the census (the coverage run's 156 errors are the same tests on both sides).
+**Census.** The review fix changed the code patch ID, so the first pair
+(`3c59392`, evidence `0b2f531`) does not carry. `62c0cba` was measured
+again on its own, under the census lock, and compared with the `main`
+`0211362` base measured in the first pair's run: the same WSL host (i9-12900KF,
+16 jobs, default profiles, no `--profile`), the same Chromium
+147.0.7727.50 binary (sha256 `0ba87684df0afc11faaea40ac57bd2f1d68b67191443b38215a36b90e6f08848`),
+the same oracle cache, the same 1,051 measured CSS Grid ids and the
+fidelity data at `26fec8c7`, as A1's final-head remeasure was. Every
+Chromium output is identical between the sides, no Div output changed,
+there are no errors in the census, and the coverage run's 156 errors are
+the same tests on both sides. The rebase onto `087de2b` left the code
+patch ID unchanged, so this result carries to the rebased head; it was
+measured without #159's and #160's code.
 
-**Evidence.** [div-fidelity-data](https://github.com/build-with-div/div-fidelity-data) commit `0b2f531`, archive only, under `archive/docs/progress/evidence/targeted-sampling-b-*`: the census and coverage deltas, the pair's sources (binary, receipt and summary hashes), the cost logs and binary hashes, and the 54 sampled-frame hashes. No lock bump: no gate file changed.
+**Evidence.** [div-fidelity-data](https://github.com/build-with-div/div-fidelity-data)
+commit `371507a`, archive only, under
+`archive/docs/progress/evidence/targeted-sampling-b-*-v2*`: the census and
+coverage deltas, the remeasure's sources (binary, receipt and summary
+hashes, with the base's), the 54 sampled-frame hashes at `62c0cba` and the
+debug suite timing. The first pair's files (`-v1`, commit `0b2f531`) are
+superseded. No lock bump: no gate file changed.
 
 ## Cost
 
@@ -91,6 +127,8 @@ checked to compile its own `div-engine` and to produce a different binary.
 Probes copied unchanged from A2's cost run (sample-motion `9b37723`). Load
 average 5.5 at the first round (a stopped debug build), 1.3 from the third
 onwards.
+The cost was measured at `3c59392` and not again: the review fix changes
+only the path taken while a restyle is pending.
 
 **`start_cost_by_animation_count`** (three alternating rounds). Time to
 build N cells and start one infinite transform animation on each, then the
@@ -126,6 +164,9 @@ remove that; it is not in this PR. RFC 0006's 1,000-animation target
 
 ## Not done
 
+- **A double restyle in one rare case** (engine review). A start while a
+  restyle is pending can restyle every root twice: once through sampling
+  and once explicitly. `main` did comparable work there.
 - **One style pass per frame batch of starts.** Each start still restyles
   its target at once, because the API returns with styles current. With a
   start sampling only its own effect, N starts are already linear, so a
