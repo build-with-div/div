@@ -107,6 +107,7 @@ mod keyboard;
 pub mod pointer;
 pub mod scroll_button;
 pub mod style;
+mod style_preset;
 pub mod text_node;
 
 // ─── View system modules ────────────────────────────────────
@@ -174,6 +175,7 @@ pub use scroll_button::{
     ScrollSnapStrictness,
 };
 pub use style::{Bitmap, Error, Rect};
+pub use style_preset::{StylePreset, UserAgentStyle};
 pub use text_node::{TextNode, WeakTextNode};
 
 /// Canonical typed style values shared with the engine, macro, and C schema.

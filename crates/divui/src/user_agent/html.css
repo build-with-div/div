@@ -1,0 +1,79 @@
+/* Div's user-agent style sheet for HTML elements: the browser style preset
+ * (RFC 0004, `StylePreset::BROWSER`).
+ *
+ * Source: the HTML Standard, section 15 "Rendering",
+ * https://html.spec.whatwg.org/multipage/rendering.html (Living Standard,
+ * last updated 20 November 2026). The rules below are adapted from its style
+ * sheet blocks. Chromium 147's computed style is the oracle that checks them.
+ * Where Chromium differs, the rule follows Chromium and cites the Chromium
+ * source beside it. No text is taken from Chromium's html.css.
+ *
+ * The section's `@namespace` rule limits its rules to HTML elements. Div's
+ * selectors have no namespaces, so that rule is left out and rules that would
+ * reach an SVG element exclude it by name. `foreignObject` cannot be excluded
+ * yet, because its local name is `div`: `hidden` on it computes `display: none`
+ * where Chromium keeps `block`. That is a named gap, owned by the engine.
+ *
+ * The parts follow docs/architecture/user-agent-stylesheet.md: this first
+ * part is the section's "Hidden elements" (15.3.1) and "The page" (15.3.2).
+ * Text and sections, lists, tables and forms follow, one part at a time.
+ *
+ * Licence: the WHATWG licenses the Standard's text under CC BY 4.0,
+ * https://creativecommons.org/licenses/by/4.0/, and the portions of it
+ * incorporated into source code, as these rules are, under the BSD 3-Clause
+ * License:
+ *
+ * Copyright (c) WHATWG (Apple, Google, Mozilla, Microsoft)
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/* 15.3.1 Hidden elements. */
+
+area, base, basefont, datalist, head, link, meta, noembed,
+noframes, param, rp, script, style, template, title {
+  display: none;
+}
+
+[hidden]:not([hidden=until-found i]):not(embed):not(svg) {
+  display: none;
+}
+
+/* The section's `[hidden=until-found i]:not(embed) { content-visibility:
+ * hidden }` rule waits for `content-visibility` keywords in Div's value
+ * parser. Until then a `hidden=until-found` element keeps its contents
+ * visible. */
+
+embed[hidden] { display: inline; height: 0; width: 0; }
+
+input[type=hidden i] { display: none !important; }
+
+/* The section's `@media (scripting) { noscript { display: none !important } }`
+ * rule waits for `@media` in sheets (engine S3/S4). Div rejects `noscript`
+ * until then, so no element can match it. */
+
+/* 15.3.2 The page. */
+
+html, body { display: block; }

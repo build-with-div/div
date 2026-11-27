@@ -105,6 +105,8 @@ pub(crate) struct DocumentInner {
     pointers: RefCell<pointer_dispatch::PointerDispatchState>,
     selection_tasks: selection_tasks::SelectionTasks,
     transaction_depth: Cell<usize>,
+    style_preset: Cell<crate::StylePreset>,
+    user_agent_sheet: Cell<Option<div_engine::StyleSheetId>>,
     #[cfg(feature = "ffi-integration")]
     foreign_event_handler: RefCell<Option<Rc<ForeignEventHandler>>>,
 }
@@ -231,6 +233,8 @@ impl Document {
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
+                style_preset: Cell::new(crate::StylePreset::NONE),
+                user_agent_sheet: Cell::new(None),
                 #[cfg(feature = "ffi-integration")]
                 foreign_event_handler: RefCell::new(None),
             }),
@@ -267,6 +271,8 @@ impl Document {
                 pointers: RefCell::default(),
                 selection_tasks: selection_tasks::SelectionTasks::default(),
                 transaction_depth: Cell::new(0),
+                style_preset: Cell::new(crate::StylePreset::NONE),
+                user_agent_sheet: Cell::new(None),
                 foreign_event_handler: RefCell::new(None),
             }),
         }
@@ -662,6 +668,45 @@ impl Document {
     pub fn create_text_node(&self, data: &str) -> Result<crate::TextNode, Error> {
         let handle = self.with_engine_mut(|engine| engine.create_text(data))?;
         Ok(crate::TextNode::from_handle(self.clone(), handle))
+    }
+
+    /// Return the document's style preset.
+    pub fn style_preset(&self) -> crate::StylePreset {
+        self.inner.style_preset.get()
+    }
+
+    /// Set the document's starting style (RFC 0004). A document starts with
+    /// [`StylePreset::NONE`](crate::StylePreset::NONE).
+    /// [`StylePreset::BROWSER`](crate::StylePreset::BROWSER) adds the browser's
+    /// user-agent style sheet for HTML elements. Its normal declarations rank
+    /// below every author rule, element style and `style` attribute, and its
+    /// `!important` declarations rank above them, including author
+    /// `!important`. Setting another preset restyles the document; on error
+    /// the previous preset stays.
+    pub fn set_style_preset(&self, preset: crate::StylePreset) -> Result<(), Error> {
+        if self.inner.style_preset.get() == preset {
+            return Ok(());
+        }
+        let mut engine = self
+            .inner
+            .engine
+            .try_borrow_mut()
+            .map_err(|_| Error::ReentrantMutation)?;
+        let adopted = match preset.user_agent.sheet() {
+            Some(sheet) => Some(engine.adopt_style_sheet(sheet)?),
+            None => None,
+        };
+        if let Some(previous) = self.inner.user_agent_sheet.get() {
+            if let Err(error) = engine.remove_style_sheet(previous) {
+                if let Some(adopted) = adopted {
+                    let _ = engine.remove_style_sheet(adopted);
+                }
+                return Err(error.into());
+            }
+        }
+        self.inner.user_agent_sheet.set(adopted);
+        self.inner.style_preset.set(preset);
+        Ok(())
     }
 
     /// Adopt a style sheet, as `document.adoptedStyleSheets` does: its rules
