@@ -14,6 +14,7 @@ mod forms;
 mod hit_geometry;
 mod interaction;
 mod keyboard_scroll;
+mod match_media;
 mod resize_observation;
 mod rule_cascade;
 mod scroll_button;
@@ -30,6 +31,7 @@ pub use scroll_button::{
 
 pub use focus_navigation::PressFocus;
 pub use keyboard_scroll::ScrollGranularity;
+pub use match_media::MediaQueryListId;
 pub use resize_observation::{LogicalBoxSize, ResizeObservation};
 pub use rule_cascade::{StyleSheetError, StyleSheetId};
 
@@ -431,6 +433,8 @@ pub struct Engine {
     reduced_motion: bool,
     /// What `prefers-color-scheme` media queries see.
     color_scheme: div_style::media_query::ColorScheme,
+    /// `matchMedia()` lists, in creation order.
+    match_media_lists: match_media::MatchMediaLists,
     stats: LifecycleStats,
     rule_set: rule_cascade::RuleSet,
     /// Interaction or form state changed under rules that read it.
@@ -537,6 +541,7 @@ impl Engine {
             next_scroll_animation_id: 1,
             reduced_motion: false,
             color_scheme: Default::default(),
+            match_media_lists: Default::default(),
             stats: LifecycleStats::default(),
             rule_set: Default::default(),
             selector_restyle_pending: false,
@@ -674,6 +679,7 @@ impl Engine {
             .set_raster_context(self.raster_configuration, viewport.device_scale_factor());
         if logical_changed || scale_changed {
             self.note_media_change();
+            self.evaluate_match_media_lists();
             self.recompute_authored_styles()?;
         }
         if logical_changed {

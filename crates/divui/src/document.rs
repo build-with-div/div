@@ -7,7 +7,7 @@ use crate::events::{
 };
 use crate::pointer::{PointerInput, PointerInputKind};
 use crate::style::{Bitmap, Error};
-use crate::ColorScheme;
+use crate::{ColorScheme, MediaQueryList};
 use div_compositor::SoftwareCompositor;
 use div_dom::{ElementTag, FormControlRole};
 use div_engine::{
@@ -844,6 +844,21 @@ impl Document {
             engine.set_color_scheme(scheme);
             Ok(())
         })
+    }
+
+    /// `window.matchMedia(query)`: a new list that reports whether `query`
+    /// matches this document. Text that is not a valid media query list
+    /// becomes `not all`, which never matches, as in Chromium.
+    ///
+    /// Reading [`MediaQueryList::matches`] moves the list's cached result:
+    /// after a color scheme change, a read before the next frame means no
+    /// change event for that list, as in Chromium.
+    pub fn match_media(&self, query: &str) -> Result<MediaQueryList, Error> {
+        let (id, media) = self.with_engine_mut(|engine| {
+            let id = engine.match_media(query);
+            Ok((id, engine.media_query_list_media(id)?.to_owned()))
+        })?;
+        Ok(MediaQueryList::new(self, id, media))
     }
 
     #[cfg(feature = "ffi-integration")]

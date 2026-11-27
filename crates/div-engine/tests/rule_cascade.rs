@@ -897,7 +897,7 @@ fn type_rules_select_an_element_by_its_created_name() {
     assert_eq!(engine.local_name(plain).unwrap(), Some("div"));
 }
 
-fn media(text: &str) -> div_style::media_query::MediaQueryList {
+fn media(text: &str) -> div_style::media_query::MediaQueryListData {
     let parsed = div_style::media_query::parse_media_query_list(text);
     assert!(parsed.problems.is_empty(), "{:?}", parsed.problems);
     parsed.list

@@ -59,7 +59,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use div_dom::NodeId;
-use div_style::media_query::{ColorScheme, MediaQueryList, MediaValues};
+use div_style::media_query::{ColorScheme, MediaQueryListData, MediaValues};
 use div_style::selector::{
     Combinator, Compound, PseudoClass, Selector, SimpleSelector, Specificity,
 };
@@ -122,7 +122,7 @@ struct CompiledRule {
     /// Index into the sheet's layer names.
     layer: Option<usize>,
     /// The rule's media query lists, outermost first.
-    media: Vec<MediaQueryList>,
+    media: Vec<MediaQueryListData>,
     /// Index into the rule set's media table; `None` without `@media`.
     media_slot: Option<u32>,
 }
@@ -424,7 +424,7 @@ pub(crate) struct RuleSet {
     restyle_log: Option<Vec<u32>>,
     /// Each distinct stack of media query lists the rules use, and whether
     /// it matched when last evaluated.
-    media_table: Vec<(Vec<MediaQueryList>, bool)>,
+    media_table: Vec<(Vec<MediaQueryListData>, bool)>,
 }
 
 /// Where a change can alter which rules match.
@@ -586,7 +586,7 @@ impl RuleSet {
     /// Recompute layer ranks, buckets, flags and media results from the
     /// adopted sheets.
     fn rebuild(&mut self, media: &MediaValues) {
-        let mut table: Vec<(Vec<MediaQueryList>, bool)> = Vec::new();
+        let mut table: Vec<(Vec<MediaQueryListData>, bool)> = Vec::new();
         for sheet in &mut self.sheets {
             for rule in &mut sheet.rules {
                 rule.media_slot = (!rule.media.is_empty()).then(|| {

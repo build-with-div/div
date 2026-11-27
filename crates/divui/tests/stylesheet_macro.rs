@@ -147,3 +147,30 @@ fn media_rules_apply_while_their_queries_match() {
     document.update_all().unwrap();
     assert_eq!(opacity(&panel), 0.4);
 }
+
+// `(color)` would be a compile error: Div does not evaluate the `color`
+// feature yet. `(hover)` takes the same parenthesized-condition path.
+stylesheet!(grouped {
+    .panel { opacity: 0.1 }
+    @media screen and (not (hover)) { .panel { opacity: 0.5 } }
+    @media ((width >= 600px)) { .panel { opacity: 0.6 } }
+});
+
+#[test]
+fn media_lists_keep_their_parentheses() {
+    use div::ViewportMetrics;
+    let rules = grouped::SHEET.rules();
+    assert_eq!(rules[1].media()[0].to_string(), "screen and (not (hover))");
+    assert_eq!(rules[2].media()[0].to_string(), "((width >= 600px))");
+
+    let document = Document::new(400, 300).unwrap();
+    let body = document.body();
+    let panel = element(&document, &body, &["panel"]);
+    document.adopt_stylesheet(&grouped::SHEET).unwrap();
+    // A desktop mouse hovers, so the first rule never applies.
+    assert_eq!(opacity(&panel), 0.1);
+    let metrics = ViewportMetrics::from_logical_size(600.0, 300.0, 1.0).unwrap();
+    document.set_viewport(metrics).unwrap();
+    document.update_all().unwrap();
+    assert_eq!(opacity(&panel), 0.6);
+}
