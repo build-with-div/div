@@ -724,9 +724,9 @@ impl ListenerOptions {
     }
 }
 
-/// One listener added by [`Element::on`], [`Element::on_capture`] or
-/// [`Element::on_with`], as the callback and capture flag identify a
-/// listener for the DOM's `removeEventListener`.
+/// One listener added by [`Element::on`], [`Element::on_capture`],
+/// [`Element::on_with`] or [`MediaQueryList::on_change`], as the callback
+/// and capture flag identify a listener for the DOM's `removeEventListener`.
 ///
 /// It is a handle: dropping it leaves the listener in place, as forgetting a
 /// callback does on the web. [`Self::remove`] removes exactly this listener.
@@ -734,6 +734,7 @@ impl ListenerOptions {
 /// [`Element::on`]: crate::Element::on
 /// [`Element::on_capture`]: crate::Element::on_capture
 /// [`Element::on_with`]: crate::Element::on_with
+/// [`MediaQueryList::on_change`]: crate::MediaQueryList::on_change
 #[derive(Debug, Clone)]
 pub struct ListenerHandle {
     pub(crate) document: std::rc::Weak<crate::document::DocumentInner>,

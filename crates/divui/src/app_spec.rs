@@ -265,6 +265,13 @@ mod desktop {
                     Ok(())
                 })
                 .map_err(|error| error.to_string())?;
+            // A built app already has them; an app made with
+            // `App::from_document` gets them here, before its first frame.
+            crate::app::apply_system_preferences(
+                app.app.document(),
+                div_platform::SystemPreferences::system(),
+            )
+            .map_err(|error| error.to_string())?;
             let mut native = div_platform::WindowOptions {
                 title: options.title.clone(),
                 width: options.size.width,

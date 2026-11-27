@@ -318,8 +318,9 @@ pub extern "C" fn divui_app_run(
                     .drain_animation_events()
                     .expect("native event processing released document borrows");
                 state.document.animation_events.borrow_mut().extend(events);
-                if let Some(callback) = config.callback {
-                    let raw = platform_event(event);
+                // An event the frozen C raw event cannot carry reaches only
+                // the document, through the App.
+                if let (Some(callback), Some(raw)) = (config.callback, platform_event(event)) {
                     // SAFETY: callback/user_data validity spans this run. Text
                     // and path borrow the event for this call only. No engine,
                     // registry, document, or listener-list borrow is held.
@@ -374,7 +375,7 @@ pub(crate) fn native_application(state: &AppState) -> Result<div::App, ApiError>
     all(feature = "linux", target_os = "linux"),
     all(feature = "windows", target_os = "windows")
 ))]
-fn platform_event(event: &div_platform::PlatformEvent) -> DivUiPlatformEvent {
+fn platform_event(event: &div_platform::PlatformEvent) -> Option<DivUiPlatformEvent> {
     use div_platform::{KeyPhase, PlatformEvent, PointerButton, PointerPhase};
     let mut raw = DivUiPlatformEvent {
         struct_size: size_of::<DivUiPlatformEvent>() as u32,
@@ -545,6 +546,9 @@ fn platform_event(event: &div_platform::PlatformEvent) -> DivUiPlatformEvent {
             raw.time_ms = *time_ms;
         }
         PlatformEvent::CloseRequested => raw.event_type = 15,
+        // The App applies it to the document. The v0.2 raw event has no
+        // type for it, so C callbacks do not see it.
+        PlatformEvent::SystemPreferencesChanged(_) => return None,
     }
-    raw
+    Some(raw)
 }

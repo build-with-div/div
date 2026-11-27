@@ -105,7 +105,7 @@ impl AppBuilder {
             self.options.size.height,
             1.0,
         )?;
-        Ok(App {
+        let app = App {
             document: Document::with_options(
                 viewport,
                 windowed_engine_options(self.engine_options),
@@ -134,8 +134,44 @@ impl AppBuilder {
                 all(feature = "windows", target_os = "windows")
             ))]
             pointer_ids: PlatformPointerIds::default(),
-        })
+        };
+        // The document starts with the operating system's color scheme and
+        // motion preference, before any view mounts, as a page starts with
+        // them in Chromium; so a list `match_media` creates while mounting
+        // reports no change in the first frame. A first-frame PNG keeps the
+        // defaults, so it does not depend on the system theme.
+        #[cfg(any(
+            all(feature = "linux", target_os = "linux"),
+            all(feature = "windows", target_os = "windows")
+        ))]
+        if std::env::var_os(RENDER_PNG_ENV).is_none() {
+            apply_system_preferences(&app.document, div_platform::SystemPreferences::system())?;
+        }
+        Ok(app)
     }
+}
+
+/// Apply the operating system's preferences to `document`'s media queries.
+///
+/// Reduced motion goes first. Its setter evaluates `matchMedia()` lists at
+/// once, while a color scheme change waits for the frame's report, which a
+/// read before the frame can suppress (`match-media-v1`). Applying the scheme
+/// last keeps that measured timing when both change together; Chromium's
+/// order for one notification that changes both is not recorded.
+#[cfg(any(
+    all(feature = "linux", target_os = "linux"),
+    all(feature = "windows", target_os = "windows")
+))]
+pub(crate) fn apply_system_preferences(
+    document: &Document,
+    preferences: div_platform::SystemPreferences,
+) -> Result<(), Error> {
+    document.set_prefers_reduced_motion(preferences.reduced_motion)?;
+    document.set_color_scheme(if preferences.dark {
+        crate::ColorScheme::Dark
+    } else {
+        crate::ColorScheme::Light
+    })
 }
 
 pub struct App {
@@ -231,6 +267,10 @@ impl App {
     }
 
     /// Present an existing retained document, preserving its nodes and listeners.
+    ///
+    /// Its window applies the operating system's color scheme and motion
+    /// preference when it opens, so the document's `matchMedia()` lists may
+    /// report a change in the first frame.
     pub fn from_document(document: Document, options: WindowOptions) -> Result<Self, Error> {
         ViewportMetrics::from_logical_size(options.size.width, options.size.height, 1.0)?;
         // The document's options are the app's choice: windows it opens
@@ -474,6 +514,9 @@ impl div_platform::PlatformApplication for App {
             }
             PlatformEvent::CompositionEnd(text) => self.document.dispatch_composition_end(&text),
             PlatformEvent::Focused(false) => self.document.dispatch_composition_cancel(),
+            PlatformEvent::SystemPreferencesChanged(preferences) => {
+                apply_system_preferences(&self.document, *preferences)
+            }
             PlatformEvent::Focused(true)
             | PlatformEvent::DroppedFile(_)
             | PlatformEvent::HoveredFile(_)
@@ -565,6 +608,7 @@ impl div_platform::PlatformApplication for App {
         self.document.is_animating().unwrap_or(false)
             || self.document.has_animation_frame_callbacks()
             || self.document.has_pending_resize_observations()
+            || self.document.has_pending_media_query_report()
     }
 
     fn needs_redraw(&self) -> bool {
@@ -992,6 +1036,50 @@ mod tests {
         let unchanged = app.render(0.0).unwrap();
         assert_eq!(second.pixels, unchanged.pixels);
         assert!(!app.needs_redraw());
+    }
+
+    #[cfg(any(
+        all(feature = "linux", target_os = "linux"),
+        all(feature = "windows", target_os = "windows")
+    ))]
+    #[test]
+    fn system_preferences_apply_reduced_motion_before_the_color_scheme() {
+        use div_platform::{PlatformApplication, PlatformEvent, SystemPreferences};
+        let document = Document::new(80, 40).unwrap();
+        let dark = document
+            .match_media("(prefers-color-scheme: dark)")
+            .unwrap();
+        let motion = document.match_media("(prefers-reduced-motion)").unwrap();
+        let fired = std::rc::Rc::new(std::cell::RefCell::new(Vec::<String>::new()));
+        for list in [&dark, &motion] {
+            let sink = fired.clone();
+            list.on_change(move |event| sink.borrow_mut().push(event.media().to_owned()))
+                .unwrap();
+        }
+        // `from_document` leaves the preferences to the window, which this
+        // test never opens, so the system's own do not leak in.
+        let mut app = App::from_document(document.clone(), WindowOptions::default()).unwrap();
+        app.render(0.0).unwrap();
+        assert!(!app.is_animating());
+
+        app.event(PlatformEvent::SystemPreferencesChanged(SystemPreferences {
+            dark: true,
+            reduced_motion: true,
+        }))
+        .unwrap();
+        assert_eq!(document.color_scheme().unwrap(), crate::ColorScheme::Dark);
+        assert!(document.prefers_reduced_motion().unwrap());
+        assert!(
+            app.is_animating(),
+            "a frame is due to report the change, though no style reads it"
+        );
+        // The scheme was applied after reduced motion, so it waits for the
+        // report and this read suppresses its event; the motion list was
+        // evaluated at once and still reports.
+        assert!(dark.matches().unwrap());
+        app.render(16.0).unwrap();
+        assert_eq!(*fired.borrow(), ["(prefers-reduced-motion)"]);
+        assert!(!app.is_animating());
     }
 
     #[test]

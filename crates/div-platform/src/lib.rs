@@ -27,6 +27,8 @@ mod wheel;
 pub use wheel::{WheelDeltaMode, WheelDeltas, WheelSettings, WHEEL_PAGESCROLL};
 mod text_raster;
 pub use text_raster::system_raster_configuration;
+mod preferences;
+pub use preferences::SystemPreferences;
 
 use div_geometry::ViewportMetrics;
 use std::path::PathBuf;
@@ -388,6 +390,9 @@ pub enum PlatformEvent {
         time_ms: f64,
     },
     CloseRequested,
+    /// The user changed the operating system's color scheme or motion
+    /// preference. Carries all of them, as they are now.
+    SystemPreferencesChanged(SystemPreferences),
 }
 
 /// A native key notification and its separately supplied committed text.
