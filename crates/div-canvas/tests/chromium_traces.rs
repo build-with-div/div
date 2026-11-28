@@ -92,13 +92,20 @@ fn bundled_font(file: &str) -> Option<Vec<u8>> {
 /// differ from one platform's Chromium, each with its cause. They are still
 /// replayed and compared: a listed entry must keep differing (it is removed
 /// when it starts to match), and is reported, not hidden.
-const KNOWN_GAPS: &[(&str, &str, &str)] = &[(
-    "linux",
-    "text-transform-composite.c",
-    "scaled, skewed and rotated web-font text: hinting and coverage differ \
-     (the 2x1.5 scaled text's first ink row moves); div-text web-font \
-     outlines under a transform, engine track",
-)];
+const KNOWN_GAPS: &[(&str, &str, &str)] = &[
+    (
+        "linux",
+        "text-transform-composite.c",
+        "scaled, skewed and rotated web-font text: hinting and coverage differ \
+         (the 2x1.5 scaled text's first ink row moves); div-text web-font \
+         outlines under a transform, engine track",
+    ),
+    ("linux", "text-measure-spaces#78", NBSP_WORD_SPACING),
+    ("windows", "text-measure-spaces#78", NBSP_WORD_SPACING),
+];
+
+const NBSP_WORD_SPACING: &str = "word-spacing on U+00A0: div-text's `apply_spacing` adds \
+     it to U+0020 only, and Chromium also adds it to a no-break space; engine track";
 
 /// `cpu-classes.json`: each class's fingerprint, and the canvases that have
 /// one oracle per class.

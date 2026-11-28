@@ -34,6 +34,7 @@ license that can be found in the LICENSE file`. The licence is Chromium's
 | `cc/paint/paint_op.cc` (`DrawArcImpl`) | 2017 The Chromium Authors | `src/context.rs` |
 | `ui/gfx/geometry/clamp_float_geometry.h` | 2022 The Chromium Authors | `src/style.rs` |
 | `platform/geometry/skia_geometry_utils.h` (`ClampNonFiniteToSafeFloat`) | 2025 The Chromium Authors | `src/style.rs` |
+| `ui/gfx/geometry/rect_f.cc` (`Union`), `size_f.h` (size clamp) | 2012 The Chromium Authors | `src/text.rs` |
 
 ```text
 Copyright 2015 The Chromium Authors
