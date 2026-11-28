@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use div_style::constructor_tokens::ConstructorTokens;
-use div_style::declaration_block::BlockDeclaration;
+use div_style::declaration_block::{BlockDeclaration, BlockTarget};
 use div_style::stylesheet_parser::{class_names, parse_stylesheet, SheetItem, SheetRule};
 use proc_macro2::{Delimiter, Ident, Span, TokenStream, TokenTree};
 use quote::quote;
@@ -227,16 +227,24 @@ fn style_tokens(
     text: &str,
     root: &TokenStream,
 ) -> Result<TokenStream, String> {
-    let mut items = Vec::with_capacity(declarations.len());
+    let mut style = crate::view::OrderedStyleTokens::new();
     for declaration in declarations {
-        let property = property_tokens(declaration.property);
-        let value = typed_value_tokens(&declaration.value)
-            .map_err(|error| format!("`{}`: {error}", text[declaration.source.clone()].trim()))?;
-        items.push(quote!(#root::Declaration { property: #property, value: #value }));
+        let css = || text[declaration.source.clone()].trim();
+        match &declaration.target {
+            BlockTarget::Property(property, value) => {
+                let property = property_tokens(*property);
+                let value =
+                    typed_value_tokens(value).map_err(|error| format!("`{}`: {error}", css()))?;
+                style
+                    .declaration(quote!(#root::Declaration { property: #property, value: #value }));
+            }
+            BlockTarget::Custom(declaration) => style.custom(
+                crate::view::custom_declaration_tokens(declaration, root)
+                    .map_err(|error| format!("`{}`: {error}", css()))?,
+            ),
+        }
     }
-    Ok(quote! {
-        <#root::Style as ::core::iter::FromIterator<#root::Declaration>>::from_iter([#(#items),*])
-    })
+    Ok(style.finish(root))
 }
 
 fn class_constants(names: &[String], span: Span) -> syn::Result<Vec<TokenStream>> {

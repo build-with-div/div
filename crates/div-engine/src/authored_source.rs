@@ -1,4 +1,5 @@
 //! Permanent declaration-free source, distinct from effect presentation/cache.
+use crate::custom_properties::is_cascade_value;
 use crate::{Engine, EngineError};
 use div_dom::NodeId;
 use div_style::{
@@ -132,7 +133,7 @@ impl Engine {
                 let cascaded = self.cascaded_declarations(index)?;
                 let base = self.resolve_native_declarations(
                     source,
-                    cascaded.declarations.contributions(),
+                    &cascaded.declarations,
                     &parent,
                     root_font,
                     viewport,
@@ -159,7 +160,7 @@ impl Engine {
                     }
                     self.resolve_native_declarations(
                         base.clone(),
-                        declarations.contributions(),
+                        &declarations,
                         &parent,
                         root_font,
                         viewport,
@@ -279,13 +280,22 @@ impl Engine {
     ) -> Result<AuthoredStyleDeclarations, EngineError> {
         let mut canonical = AuthoredStyleDeclarations::default();
         for declaration in declarations.declarations() {
-            if !div_style::value_matches_property(declaration.property, &declaration.value) {
+            // A CSS-wide keyword or `var()` is resolved when the style is
+            // computed (RFC 0014 step 4).
+            if !is_cascade_value(&declaration.value)
+                && !div_style::value_matches_property(declaration.property, &declaration.value)
+            {
                 return Err(EngineError::PropertyType {
                     property: declaration.property,
                 });
             }
             canonical
                 .try_set_validated(declaration.property, declaration.value.clone())
+                .map_err(|_| EngineError::AllocationFailure)?;
+        }
+        for declaration in declarations.custom_declarations() {
+            canonical
+                .try_set_custom(declaration.clone())
                 .map_err(|_| EngineError::AllocationFailure)?;
         }
         Ok(canonical)
@@ -299,7 +309,7 @@ impl Engine {
         index: u32,
     ) -> Result<ComputedStyle, EngineError> {
         let cascaded = self.cascaded_declarations(index)?;
-        self.resolve_native_source(node, index, cascaded.declarations.contributions())
+        self.resolve_native_source(node, index, &cascaded.declarations)
     }
 
     /// The style a renderer snapshot freezes: the native source and the
@@ -314,7 +324,7 @@ impl Engine {
         index: u32,
     ) -> Result<ComputedStyle, EngineError> {
         let slot = &self.slots[index as usize];
-        self.resolve_native_source(node, index, slot.authored.contributions())
+        self.resolve_native_source(node, index, &slot.authored)
     }
 
     /// The native source with `declarations` resolved over it, against the
@@ -323,7 +333,7 @@ impl Engine {
         &self,
         node: NodeId,
         index: u32,
-        declarations: &[div_style::AuthoredStyleContribution],
+        declarations: &AuthoredStyleDeclarations,
     ) -> Result<ComputedStyle, EngineError> {
         let initial = ComputedStyle::initial();
         let slot = &self.slots[index as usize];

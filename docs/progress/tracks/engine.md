@@ -518,3 +518,22 @@ From the framework track's review of #149:
   as before, so a hover change still reaches `~`, `+` and `:has()`
   dependents (found in engine review, with two regression tests).
   [Record](../targeted-sampling-b-2026-11-27.md).
+- 27 November 2026: S3/S4 PR 3 (RFC 0014 step 4). Custom properties,
+  `var()` with fallbacks and the CSS-wide keywords work in `style!`,
+  `stylesheet!` and `css!` blocks, the `style` attribute and pseudo-element
+  styles, and `ComputedStyle::custom_property` reads them as Chromium
+  serializes them. Cycles, values invalid at computed-value time,
+  `revert-layer`, importance and layers, shorthands and `/**/` between
+  merging tokens follow Chromium 147, pinned by the new
+  `custom-properties-v1` oracle: 2,788 values for 62 elements match outside
+  4 named gaps (the `border` shorthand with a comma `rgb()`, and `calc()`
+  over lengths in margins and padding, which waits for calc() PR 2).
+  Run-time writes are step 5 and return `InvalidInput` until then. Rebased
+  onto `main` `087de2b` after #160: `resolve_native_source` now takes
+  `&AuthoredStyleDeclarations` and `snapshot_base_style` passes
+  `&slot.authored`. The patch ID changed, so the census and CSS Grid
+  coverage pair was run again: `f9ac163` against `main` `087de2b` is
+  unchanged at all four profiles (evidence `91520766`), and the touched
+  crates' Linux and Windows suites pass at `f9ac163`. The user approved
+  the public API on 27 November. The WPT `css/css-variables`
+  coverage area is a follow-up PR. [Record](../custom-properties-2026-11-27.md).

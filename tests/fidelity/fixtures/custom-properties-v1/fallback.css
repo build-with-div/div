@@ -1,0 +1,7 @@
+.f1 { color: var(--missing, rgb(0, 128, 0)) }
+.f2 { color: var(--missing, var(--also-missing, rgb(0, 0, 255))) }
+.f3 { --set: rgb(255, 0, 0); color: var(--set, rgb(0, 0, 0)) }
+.f4 { --list: a, b; --empty-fallback: var(--missing,); margin-top: var(--missing, 5px) }
+.f5 { --x: var(--missing, 1px, 2px) }
+.f6 { margin-top: var(--missing, var(--also-missing)) ; padding-left: 2px }
+.f7 { --space: var(--missing, ) }

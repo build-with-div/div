@@ -1,0 +1,16 @@
+@layer base, theme;
+.k1 { --k: 1px !important }
+.k1 { --k: 2px; margin-top: var(--k) }
+@layer base {
+  .k2 { --k: 3px; --base: 4px }
+}
+@layer theme {
+  .k2 { --k: revert-layer; margin-top: var(--k); padding-left: var(--base) }
+  .k3 { --k: 5px !important }
+}
+@layer base {
+  .k3 { --k: 6px !important; margin-top: var(--k) }
+}
+.k3 { --k: 7px }
+.k4 { margin-top: var(--k) !important }
+.k4 { margin-top: 8px }

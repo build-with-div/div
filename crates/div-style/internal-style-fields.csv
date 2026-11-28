@@ -19,3 +19,4 @@ will_change_transform,Caches compositing intent derived from authored will-chang
 native_transform,Retains the owned typed native transform source for effect composition and actual post-layout reference-box resolution.
 transform_matrix,Retains a complete constant native transform matrix while the existing affine field remains a compatibility view.
 border_radius_lengths,Retains resolved native length pairs and source kinds per corner while the existing numeric and percentage transports remain explicit computed overrides.
+custom_properties,Holds the computed custom properties from --name declarations (RFC 0014); they are not schema properties and are read through ComputedStyle::custom_property.

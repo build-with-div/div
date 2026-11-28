@@ -5,8 +5,8 @@
     "crates/div-engine/src"
   ],
   "counts": {
-    "consumed": 235,
-    "internal": 18,
+    "consumed": 236,
+    "internal": 19,
     "public_typed": 217,
     "unclassified": 0
   },
@@ -962,6 +962,18 @@
       "internal_rationale": null,
       "property_id": 176,
       "rust_type": "Option<Vec<GeneratedContentItem>>"
+    },
+    {
+      "canonical_schema_entry": false,
+      "classification": "internal",
+      "consumers": [
+        "crates/div-engine/src/lib.rs"
+      ],
+      "css_name": null,
+      "field": "custom_properties",
+      "internal_rationale": "Holds the computed custom properties from --name declarations (RFC 0014); they are not schema properties and are read through ComputedStyle::custom_property.",
+      "property_id": null,
+      "rust_type": "crate::CustomProperties"
     },
     {
       "canonical_schema_entry": false,
@@ -2649,6 +2661,7 @@
         "crates/div-paint/src/painter.rs",
         "crates/div-paint/src/surface_program.rs",
         "crates/div-engine/src/animation.rs",
+        "crates/div-engine/src/custom_properties.rs",
         "crates/div-engine/src/focus_navigation.rs",
         "crates/div-engine/src/interaction.rs",
         "crates/div-engine/src/lib.rs",

@@ -23,6 +23,63 @@ pub(crate) fn typed_value_tokens(value: &div_style::StyleValue) -> Result<TokenS
         .map_err(|error| error.to_string())
 }
 
+/// `.with_custom_property(name, value)` for one custom declaration.
+pub(crate) fn custom_declaration_tokens(
+    declaration: &div_style::CustomDeclaration,
+    root: &TokenStream,
+) -> Result<TokenStream, String> {
+    use div_style::constructor_tokens::ConstructorTokens;
+    let name = declaration
+        .name()
+        .constructor_tokens(root)
+        .map_err(|error| error.to_string())?;
+    let value = declaration
+        .value()
+        .constructor_tokens(root)
+        .map_err(|error| error.to_string())?;
+    Ok(quote!(.with_custom_property(#name, #value)))
+}
+
+/// A `Style` with its declarations in source order. The standard
+/// declarations before the first custom one are collected with
+/// `from_iter`; every later declaration is appended with
+/// `.with_declaration(..)` or `.with_custom_property(..)`.
+pub(crate) struct OrderedStyleTokens {
+    leading: Vec<TokenStream>,
+    calls: Vec<TokenStream>,
+}
+
+impl OrderedStyleTokens {
+    pub(crate) fn new() -> Self {
+        Self {
+            leading: Vec::new(),
+            calls: Vec::new(),
+        }
+    }
+
+    /// Add `#root::Declaration { .. }`.
+    pub(crate) fn declaration(&mut self, declaration: TokenStream) {
+        if self.calls.is_empty() {
+            self.leading.push(declaration);
+        } else {
+            self.calls.push(quote!(.with_declaration(#declaration)));
+        }
+    }
+
+    /// Add `.with_custom_property(..)`.
+    pub(crate) fn custom(&mut self, call: TokenStream) {
+        self.calls.push(call);
+    }
+
+    pub(crate) fn finish(self, root: &TokenStream) -> TokenStream {
+        let Self { leading, calls } = self;
+        quote! {
+            <#root::Style as ::core::iter::FromIterator<#root::Declaration>>::from_iter([#(#leading),*])
+                #(#calls)*
+        }
+    }
+}
+
 pub(crate) fn property_tokens(value: div_style::StyleProperty) -> TokenStream {
     let variant = format_ident!("{}", format!("{value:?}"));
     quote! { ::div::typed_style::StyleProperty::#variant }

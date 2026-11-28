@@ -8,7 +8,8 @@ use div_engine::{Engine, NodeHandle, ViewportMetrics};
 use div_style::selector_parser::parse_selector_list;
 use div_style::stylesheet::{CascadeOrigin, StyleRule, StyleSheet};
 use div_style::{
-    parse_style_attribute, parse_value, Color, InlineDeclaration, Style, StyleProperty, StyleValue,
+    parse_style_attribute, parse_value, Color, CssWideKeyword, InlineDeclaration, Style,
+    StyleProperty, StyleValue, UnparsedValue,
 };
 use serde_json::Value;
 
@@ -17,10 +18,9 @@ const ORACLE: &str =
 
 /// Style cases Div reads differently from Chromium: (case index, probe,
 /// why). Chromium keeps the declaration and Div drops it, with a report.
-const STYLE_GAPS: &[(usize, &str, &str)] = &[
-    (31, "color", "var() resolution is item 0.5"),
-    (32, "color", "StyleValue cannot hold CSS-wide keywords yet"),
-];
+/// Empty since RFC 0014 step 4 kept `var()` (case 31) and CSS-wide keywords
+/// (case 32).
+const STYLE_GAPS: &[(usize, &str, &str)] = &[];
 
 fn engine() -> Engine {
     Engine::new(ViewportMetrics::from_logical_size(200.0, 200.0, 1.0).unwrap()).unwrap()
@@ -49,6 +49,21 @@ fn same_value(a: &StyleValue, b: &StyleValue) -> bool {
         (StyleValue::Color(a), StyleValue::Color(b)) => bytes(a) == bytes(b),
         _ => a == b,
     }
+}
+
+/// The value Chromium kept, as a declaration holds it: a CSS-wide keyword,
+/// a value with `var()` (kept unparsed until computed-value time), or a
+/// literal of the property's type.
+fn expected_value(property: StyleProperty, value: &str) -> Result<StyleValue, String> {
+    if let Some(keyword) = CssWideKeyword::from_css(value) {
+        return Ok(StyleValue::Wide(keyword));
+    }
+    if value.to_ascii_lowercase().contains("var(") {
+        return UnparsedValue::parse(value)
+            .map(StyleValue::Unparsed)
+            .map_err(|error| error.0);
+    }
+    parse_value(property, value)
 }
 
 /// The declaration that wins for `property` in a parsed attribute: the last
@@ -103,7 +118,7 @@ fn style_attributes_keep_what_chromium_keeps() {
                 (Some(div), Some(chromium)) => {
                     let value = chromium["value"].as_str().unwrap();
                     let important = chromium["important"].as_bool().unwrap();
-                    let expected = parse_value(property, value);
+                    let expected = expected_value(property, value);
                     match expected {
                         Ok(expected) if same_value(&div.value, &expected) => {}
                         other => failures.push(format!(

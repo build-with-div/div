@@ -1,0 +1,4 @@
+.root { --c: rgb(0, 128, 0); --pad: 4px; --Pad: 9px; color: var(--c); padding-left: var(--pad) }
+.mid { --c: rgb(0, 0, 255) }
+.leaf { color: var(--c); padding-left: var(--Pad) }
+.uses-parent { margin-top: var(--pad) }

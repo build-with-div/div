@@ -1,0 +1,11 @@
+.w { color: rgb(0, 128, 0); padding-left: 4px; margin-top: 6px; opacity: 0.5; --w: 3px; font-size: 20px }
+.w1 { color: initial }
+.w2 { color: rgb(255, 0, 0); color: unset }
+.w3 { padding-left: inherit; margin-top: unset }
+.w4 { opacity: inherit; font-size: initial }
+.w5 { --w: initial; margin-top: var(--w, 1px) }
+.w6 { --w: inherit; padding-left: var(--w) }
+.w7 { --w: unset; padding-left: var(--w) }
+.w8 { color: revert; padding-left: revert; display: revert }
+.w9 { --w: revert; margin-top: var(--w, 2px) }
+.w10 { color: INHERIT; padding-left: Initial }

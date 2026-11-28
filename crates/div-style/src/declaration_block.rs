@@ -9,15 +9,61 @@
 
 use std::ops::Range;
 
-use crate::{parse_literal, StyleProperty, StyleValue};
+use crate::{
+    parse_literal, CssWideKeyword, CustomDeclaration, CustomPropertyName, StyleProperty,
+    StyleValue, UnparsedValue,
+};
 
 /// One declaration of a block, with its byte range in the source text.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockDeclaration {
-    pub property: StyleProperty,
-    pub value: StyleValue,
+    pub target: BlockTarget,
     pub important: bool,
     pub source: Range<usize>,
+}
+
+/// What a declaration sets: a standard property or a custom one.
+#[derive(Debug, Clone, PartialEq)]
+pub enum BlockTarget {
+    Property(StyleProperty, StyleValue),
+    Custom(CustomDeclaration),
+}
+
+impl BlockDeclaration {
+    /// The standard property, or `None` for a custom property.
+    pub fn property(&self) -> Option<StyleProperty> {
+        match &self.target {
+            BlockTarget::Property(property, _) => Some(*property),
+            BlockTarget::Custom(_) => None,
+        }
+    }
+
+    /// The standard property's value, or `None` for a custom property.
+    pub fn value(&self) -> Option<&StyleValue> {
+        match &self.target {
+            BlockTarget::Property(_, value) => Some(value),
+            BlockTarget::Custom(_) => None,
+        }
+    }
+}
+
+/// A standard property's value: a CSS-wide keyword, a value with `var()`
+/// (checked but not typed), or a literal of the property's type.
+pub(crate) fn parse_property_value(
+    property: StyleProperty,
+    raw: &str,
+    collapsed: &str,
+) -> Result<StyleValue, String> {
+    if let Some(keyword) = CssWideKeyword::from_css(collapsed) {
+        return Ok(StyleValue::Wide(keyword));
+    }
+    if collapsed.to_ascii_lowercase().contains("var(") {
+        let value = UnparsedValue::parse(raw).map_err(|error| error.0)?;
+        if value.has_references() {
+            return Ok(StyleValue::Unparsed(value));
+        }
+    }
+    parse_literal(property, collapsed).map_err(|error| error.0)
 }
 
 /// A declaration the block cannot accept, with its byte range in the source.
@@ -78,7 +124,8 @@ pub(crate) fn parse_declaration(
 ) -> Result<BlockDeclaration, BlockError> {
     let declaration = &text[source.clone()];
     let error = |message: String| BlockError::new(message, source.clone());
-    if top_level_position(declaration, b'{').is_some() {
+    let custom = declaration.trim_start().starts_with("--");
+    if !custom && top_level_position(declaration, b'{').is_some() {
         return Err(error(format!(
             "`{declaration}`: a declaration block holds no nested rules"
         )));
@@ -90,9 +137,15 @@ pub(crate) fn parse_declaration(
     };
     let name = declaration[..colon].trim();
     if name.starts_with("--") {
-        return Err(error(format!(
-            "`{name}`: custom properties are not supported yet"
-        )));
+        let name = CustomPropertyName::new(name).map_err(|literal| error(literal.0))?;
+        let (value, important) = split_important(declaration[colon + 1..].trim());
+        let value = UnparsedValue::parse(value)
+            .map_err(|literal| error(format!("`{name}`: {}", literal.0)))?;
+        return Ok(BlockDeclaration {
+            target: BlockTarget::Custom(CustomDeclaration::new(name, value, 0)),
+            important,
+            source,
+        });
     }
     let lowercase = name.to_ascii_lowercase();
     let Some(property) = StyleProperty::from_css_name(&lowercase) else {
@@ -103,10 +156,9 @@ pub(crate) fn parse_declaration(
         return Err(error(format!("`{name}` has no value")));
     }
     let value_text = collapse_whitespace(value);
-    let value = parse_literal(property, &value_text).map_err(|literal| error(literal.0))?;
+    let value = parse_property_value(property, value, &value_text).map_err(error)?;
     Ok(BlockDeclaration {
-        property,
-        value,
+        target: BlockTarget::Property(property, value),
         important,
         source,
     })
@@ -318,13 +370,13 @@ mod tests {
         let block = "padding: 8px 16px; display: flex;\n opacity: 0.25";
         let declarations = parse(block);
         assert_eq!(declarations.len(), 3);
-        assert_eq!(declarations[0].property, StyleProperty::Padding);
+        assert_eq!(declarations[0].property(), Some(StyleProperty::Padding));
         assert_eq!(
-            declarations[0].value,
+            declarations[0].value().unwrap().clone(),
             parse_literal(StyleProperty::Padding, "8px 16px").unwrap()
         );
         assert_eq!(
-            declarations[0].value,
+            declarations[0].value().unwrap().clone(),
             StyleValue::from(Edges {
                 top: LengthValue::px(8.0),
                 right: LengthValue::px(16.0),
@@ -332,7 +384,10 @@ mod tests {
                 left: LengthValue::px(16.0),
             })
         );
-        assert_eq!(declarations[1].value, StyleValue::from(Display::Flex));
+        assert_eq!(
+            declarations[1].value().unwrap().clone(),
+            StyleValue::from(Display::Flex)
+        );
         assert_eq!(&block[declarations[2].source.clone()], "opacity: 0.25");
     }
 
@@ -344,7 +399,7 @@ mod tests {
         );
         assert_eq!(declarations.len(), 2);
         assert_eq!(
-            declarations[0].value,
+            declarations[0].value().unwrap().clone(),
             parse_literal(StyleProperty::FontFamily, "\"a;b\", 'c:d'").unwrap()
         );
     }
@@ -355,14 +410,17 @@ mod tests {
         assert_eq!(collapse_whitespace("\"a  b\"   c"), "\"a  b\" c");
         let declarations = parse("padding:\n    8px\n    16px");
         assert_eq!(
-            declarations[0].value,
+            declarations[0].value().unwrap().clone(),
             parse_literal(StyleProperty::Padding, "8px 16px").unwrap()
         );
     }
 
     #[test]
     fn property_names_are_ascii_case_insensitive() {
-        assert_eq!(parse("Display: flex")[0].property, StyleProperty::Display);
+        assert_eq!(
+            parse("Display: flex")[0].property(),
+            Some(StyleProperty::Display)
+        );
     }
 
     #[test]
@@ -375,7 +433,10 @@ mod tests {
         ] {
             let declarations = parse(block);
             assert!(declarations[0].important, "{block}");
-            assert_eq!(declarations[0].value, StyleValue::from(Display::Flex));
+            assert_eq!(
+                declarations[0].value().unwrap().clone(),
+                StyleValue::from(Display::Flex)
+            );
         }
         assert!(!parse("display: flex")[0].important);
     }
@@ -389,12 +450,12 @@ mod tests {
 
     #[test]
     fn every_invalid_declaration_is_reported() {
-        let errors = messages("colr: red; display: sideways; width; --x: 1; opacity: 1");
+        let errors = messages("colr: red; display: sideways; width; --x: a ! b; opacity: 1");
         assert_eq!(errors.len(), 4, "{errors:?}");
         assert!(errors[0].contains("unknown Div style property `colr`"));
         assert!(errors[1].contains("sideways"), "{}", errors[1]);
         assert!(errors[2].contains("expected `property: value`"));
-        assert!(errors[3].contains("custom properties"));
+        assert!(errors[3].contains("top-level `!`"), "{}", errors[3]);
     }
 
     #[test]
