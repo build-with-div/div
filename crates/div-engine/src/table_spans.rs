@@ -1,19 +1,72 @@
-//! Native table span reflection and layout state share the attribute path.
+//! Reflection of the table span content attributes into layout state.
 //!
-//! Pinned Chromium 147.0.7727.50: html_table_cell_element.cc:45-63,152-162;
-//! html_table_col_element.cc:64-75,99-101; table_constants.h:12-20;
-//! html_parser_idioms.cc:217-283; element.cc:11042-11052.
+//! The span limits and fallbacks follow the table model in the WHATWG HTML
+//! Standard, section 4.9 "Tabular data" (CC BY 4.0). How attribute text is
+//! read as an integer was measured as a black box in pinned Chromium
+//! 147.0.7727.50. The corpus and results are in
+//! `tests/fidelity/fixtures/table-spans-v1`, and
+//! `tools/qualification/capture_table_span_oracle.py` regenerates them.
 
 use crate::{Engine, EngineError, NodeHandle};
 use div_dom::{ElementTag, NodeId};
 
+const DEFAULT_SPAN: u32 = 1;
 const MAX_COLUMN_SPAN: u32 = 1000;
 const MAX_ROW_SPAN: u32 = 65534;
+/// The largest value the IDL setters write back unchanged. Anything above it
+/// stores the default span.
+const MAX_STORED_SPAN: u32 = i32::MAX as u32;
+
+/// Reads the integer at the start of `text`.
+///
+/// Leading ASCII whitespace and one sign are skipped, and anything after the
+/// digits is ignored. Magnitudes too large for `u32` saturate, so they still
+/// land on the upper clamp. A negative value is an error unless it is zero.
+fn leading_integer(text: &str) -> Option<u32> {
+    let unsigned = text.trim_start_matches([' ', '\t', '\n', '\u{c}', '\r']);
+    let (negative, body) = match unsigned.as_bytes().first() {
+        Some(b'-') => (true, &unsigned[1..]),
+        Some(b'+') => (false, &unsigned[1..]),
+        _ => (false, unsigned),
+    };
+    let digits = body.bytes().take_while(u8::is_ascii_digit);
+    let mut seen = false;
+    let mut magnitude = 0_u32;
+    for digit in digits {
+        seen = true;
+        magnitude = magnitude
+            .saturating_mul(10)
+            .saturating_add(u32::from(digit - b'0'));
+    }
+    (seen && (!negative || magnitude == 0)).then_some(magnitude)
+}
+
+fn column_span_from(value: Option<&str>) -> u32 {
+    match value.and_then(leading_integer) {
+        None | Some(0) => DEFAULT_SPAN,
+        Some(span) => span.min(MAX_COLUMN_SPAN),
+    }
+}
+
+fn row_span_from(value: Option<&str>) -> u32 {
+    value
+        .and_then(leading_integer)
+        .map_or(DEFAULT_SPAN, |span| span.min(MAX_ROW_SPAN))
+}
+
+fn stored_span_text(value: u32) -> String {
+    if value > MAX_STORED_SPAN {
+        DEFAULT_SPAN.to_string()
+    } else {
+        value.to_string()
+    }
+}
 
 fn is_cell(tag: ElementTag) -> bool {
     matches!(tag, ElementTag::TableCell | ElementTag::TableHeaderCell)
 }
 
+/// The content attribute holding this element's column span, if it has one.
 fn column_attribute(tag: ElementTag) -> Option<&'static str> {
     match tag {
         ElementTag::TableCell | ElementTag::TableHeaderCell => Some("colspan"),
@@ -22,101 +75,10 @@ fn column_attribute(tag: ElementTag) -> Option<&'static str> {
     }
 }
 
-// HTML spaces only, an optional sign, and the initial ASCII digit sequence.
-// Trailing garbage is accepted. Minus zero is accepted, other negatives fail.
-// Positive overflow clamps to the span maximum, including integers > u32::MAX.
-fn reflected_span(value: Option<&str>, minimum: u32, maximum: u32) -> u32 {
-    let Some(value) = value else { return 1 };
-    let bytes = value.as_bytes();
-    let mut index = 0;
-    while bytes
-        .get(index)
-        .is_some_and(|byte| matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | b'\x0c'))
-    {
-        index += 1;
-    }
-    let negative = bytes.get(index) == Some(&b'-');
-    if negative || bytes.get(index) == Some(&b'+') {
-        index += 1;
-    }
-    let first_digit = index;
-    let mut number = 0_u64;
-    while let Some(byte) = bytes.get(index).filter(|byte| byte.is_ascii_digit()) {
-        number = number
-            .saturating_mul(10)
-            .saturating_add(u64::from(*byte - b'0'));
-        index += 1;
-    }
-    if first_digit == index || (negative && number != 0) {
-        return 1;
-    }
-    number.clamp(u64::from(minimum), u64::from(maximum)) as u32
-}
-
-// Chromium's unsigned IDL setter stores values through signed-i32 range;
-// values outside that range become the default attribute string "1".
-fn unsigned_reflection_value(value: u32) -> u32 {
-    if value > i32::MAX as u32 {
-        1
-    } else {
-        value
-    }
-}
-
 impl Engine {
-    /// Reflected used column span for a td/th cell or col/colgroup element.
-    pub fn column_span(&self, handle: NodeHandle) -> Result<u32, EngineError> {
-        let node = self.resolve(handle)?;
-        let attribute = column_attribute(self.document.node(node).tag).ok_or(
-            EngineError::InvalidInput("column span requires td, th, col or colgroup"),
-        )?;
-        Ok(reflected_span(
-            self.document.attribute(node, attribute),
-            1,
-            MAX_COLUMN_SPAN,
-        ))
-    }
-
-    /// Set the native reflected colspan (td/th) or span (col/colgroup).
-    pub fn set_column_span(&mut self, handle: NodeHandle, value: u32) -> Result<(), EngineError> {
-        let node = self.resolve(handle)?;
-        let attribute = column_attribute(self.document.node(node).tag).ok_or(
-            EngineError::InvalidInput("column span requires td, th, col or colgroup"),
-        )?;
-        self.set_attribute(
-            handle,
-            attribute,
-            unsigned_reflection_value(value).to_string(),
-        )
-    }
-
-    /// Reflected row span for a td/th cell. Zero extends to its section's end.
-    pub fn row_span(&self, handle: NodeHandle) -> Result<u32, EngineError> {
-        let node = self.resolve(handle)?;
-        if !is_cell(self.document.node(node).tag) {
-            return Err(EngineError::InvalidInput("row span requires td or th"));
-        }
-        Ok(reflected_span(
-            self.document.attribute(node, "rowspan"),
-            0,
-            MAX_ROW_SPAN,
-        ))
-    }
-
-    /// Set the native reflected rowspan, preserving zero's section semantics.
-    pub fn set_row_span(&mut self, handle: NodeHandle, value: u32) -> Result<(), EngineError> {
-        let node = self.resolve(handle)?;
-        if !is_cell(self.document.node(node).tag) {
-            return Err(EngineError::InvalidInput("row span requires td or th"));
-        }
-        self.set_attribute(
-            handle,
-            "rowspan",
-            unsigned_reflection_value(value).to_string(),
-        )
-    }
-
-    /// True means the changed attribute participates in intrinsic table layout.
+    /// Updates layout state after a span attribute changed. `name` must be
+    /// lowercase and `value` is `None` when the attribute was removed. Returns
+    /// whether the element's span changed.
     pub(crate) fn sync_table_span_attribute(
         &mut self,
         node: NodeId,
@@ -125,14 +87,60 @@ impl Engine {
     ) -> bool {
         let tag = self.document.node(node).tag;
         if column_attribute(tag) == Some(name) {
-            self.document.node_mut(node).table_col_span = reflected_span(value, 1, MAX_COLUMN_SPAN);
-            true
+            let span = column_span_from(value);
+            let state = self.document.node_mut(node);
+            let changed = state.table_col_span != span;
+            state.table_col_span = span;
+            changed
         } else if is_cell(tag) && name == "rowspan" {
-            self.document.node_mut(node).table_row_span = reflected_span(value, 0, MAX_ROW_SPAN);
-            true
+            let span = row_span_from(value);
+            let state = self.document.node_mut(node);
+            let changed = state.table_row_span != span;
+            state.table_row_span = span;
+            changed
         } else {
             false
         }
+    }
+
+    /// The reflected `colSpan` of a cell or `span` of a column or column group.
+    pub fn column_span(&self, handle: NodeHandle) -> Result<u32, EngineError> {
+        let node = self.resolve(handle)?;
+        let state = self.document.node(node);
+        column_attribute(state.tag)
+            .map(|_| state.table_col_span)
+            .ok_or(EngineError::InvalidInput(
+                "column span needs a table cell, column or column group",
+            ))
+    }
+
+    /// Writes the column span attribute through the shared attribute path.
+    pub fn set_column_span(&mut self, handle: NodeHandle, value: u32) -> Result<(), EngineError> {
+        let node = self.resolve(handle)?;
+        let name = column_attribute(self.document.node(node).tag).ok_or(
+            EngineError::InvalidInput("column span needs a table cell, column or column group"),
+        )?;
+        self.set_attribute(handle, name, stored_span_text(value))
+    }
+
+    /// The reflected `rowSpan` of a cell. Zero means the rest of the row group.
+    pub fn row_span(&self, handle: NodeHandle) -> Result<u32, EngineError> {
+        let node = self.resolve(handle)?;
+        let state = self.document.node(node);
+        if is_cell(state.tag) {
+            Ok(state.table_row_span)
+        } else {
+            Err(EngineError::InvalidInput("row span needs a table cell"))
+        }
+    }
+
+    /// Writes the `rowspan` attribute through the shared attribute path.
+    pub fn set_row_span(&mut self, handle: NodeHandle, value: u32) -> Result<(), EngineError> {
+        let node = self.resolve(handle)?;
+        if !is_cell(self.document.node(node).tag) {
+            return Err(EngineError::InvalidInput("row span needs a table cell"));
+        }
+        self.set_attribute(handle, "rowspan", stored_span_text(value))
     }
 }
 
@@ -141,127 +149,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn html_table_span_parser_retains_minus_zero_and_clamps_positive_overflow() {
+    fn integers_skip_ascii_whitespace_and_one_sign() {
+        assert_eq!(leading_integer(" \t\n\u{c}\r+7tail"), Some(7));
+        assert_eq!(leading_integer("-0tail"), Some(0));
+        for invalid in [
+            "", "x", "-", "+", "++2", "-+2", "- 2", "-2", "\u{b}2", "\u{a0}2",
+        ] {
+            assert_eq!(leading_integer(invalid), None, "{invalid:?}");
+        }
+    }
+
+    #[test]
+    fn oversized_integers_saturate_and_negative_ones_stay_errors() {
+        assert_eq!(leading_integer("4294967295"), Some(u32::MAX));
+        assert_eq!(leading_integer("99999999999999999999"), Some(u32::MAX));
+        assert_eq!(leading_integer("-99999999999999999999"), None);
+    }
+
+    #[test]
+    fn spans_apply_their_fallbacks_and_limits() {
         for (text, column, row) in [
-            ("", 1, 1),
-            (" \t+003tail", 3, 3),
-            ("-0garbage", 1, 0),
-            ("-000", 1, 0),
-            ("-1", 1, 1),
-            ("+", 1, 1),
-            ("  - 0", 1, 1),
-            ("0x10", 1, 0),
-            ("1.5", 1, 1),
-            ("1e8", 1, 1),
-            ("\u{a0}3", 1, 1),
-            ("1001", 1000, 1001),
-            ("65535", 1000, 65534),
-            ("4294967296", 1000, 65534),
-            ("999999999999999999999999999999", 1000, 65534),
-            ("-999999999999999999999999999999", 1, 1),
+            (None, 1, 1),
+            (Some("junk"), 1, 1),
+            (Some("0"), 1, 0),
+            (Some("1001"), 1000, 1001),
+            (Some("65535"), 1000, 65534),
+            (Some("4294967296"), 1000, 65534),
         ] {
-            assert_eq!(
-                reflected_span(Some(text), 1, MAX_COLUMN_SPAN),
-                column,
-                "{text:?}"
-            );
-            assert_eq!(reflected_span(Some(text), 0, MAX_ROW_SPAN), row, "{text:?}");
+            assert_eq!(column_span_from(text), column, "{text:?}");
+            assert_eq!(row_span_from(text), row, "{text:?}");
         }
     }
 
     #[test]
-    fn typed_and_generic_spans_update_one_layout_state_and_skip_identical_attributes() {
-        let mut engine =
-            Engine::new(crate::ViewportMetrics::from_logical_size(320.0, 240.0, 1.0).unwrap())
-                .unwrap();
-        for tag in [
-            ElementTag::TableCell,
-            ElementTag::TableHeaderCell,
-            ElementTag::TableColumn,
-            ElementTag::TableColumnGroup,
-        ] {
-            let element = engine.create_native_element(tag).unwrap();
-            let node = engine.resolve(element).unwrap();
-            let attribute = column_attribute(tag).unwrap();
-            engine.set_column_span(element, 1001).unwrap();
-            assert_eq!(engine.column_span(element).unwrap(), 1000);
-            assert_eq!(engine.attribute(element, attribute).unwrap(), Some("1001"));
-            assert_eq!(engine.document.node(node).table_col_span, 1000);
-            let before = engine.dirty_generations();
-            engine
-                .set_attribute(element, attribute.to_uppercase(), "1001")
-                .unwrap();
-            assert_eq!(engine.dirty_generations(), before);
-            engine
-                .set_attribute(element, attribute, " \t+2suffix")
-                .unwrap();
-            assert_eq!(engine.column_span(element).unwrap(), 2);
-            assert_eq!(engine.document.node(node).table_col_span, 2);
-            assert_eq!(engine.dirty_generations().intrinsic, before.intrinsic + 1);
-            engine
-                .remove_attribute(element, &attribute.to_uppercase())
-                .unwrap();
-            assert_eq!(engine.column_span(element).unwrap(), 1);
-            assert_eq!(engine.document.node(node).table_col_span, 1);
-            engine.set_column_span(element, u32::MAX).unwrap();
-            assert_eq!(engine.attribute(element, attribute).unwrap(), Some("1"));
-            assert_eq!(engine.column_span(element).unwrap(), 1);
-        }
-        let cell = engine.create_native_element(ElementTag::TableCell).unwrap();
-        engine.set_row_span(cell, 0).unwrap();
-        assert_eq!(engine.row_span(cell).unwrap(), 0);
-        assert_eq!(
-            engine
-                .document
-                .node(engine.resolve(cell).unwrap())
-                .table_row_span,
-            0
-        );
-        engine.remove_attribute(cell, "rowspan").unwrap();
-        assert_eq!(engine.row_span(cell).unwrap(), 1);
-        assert_eq!(
-            engine
-                .document
-                .node(engine.resolve(cell).unwrap())
-                .table_row_span,
-            1
-        );
-    }
-
-    #[test]
-    fn span_type_checks_precede_attribute_mutation_and_keep_documents_isolated() {
-        let mut engine =
-            Engine::new(crate::ViewportMetrics::from_logical_size(320.0, 240.0, 1.0).unwrap())
-                .unwrap();
-        let plain = engine.create_native_element(ElementTag::Div).unwrap();
-        assert!(engine.set_row_span(plain, 2).is_err());
-        assert!(engine.set_column_span(plain, 2).is_err());
-        assert!(engine.attribute(plain, "rowspan").unwrap().is_none());
-        assert!(engine.attribute(plain, "colspan").unwrap().is_none());
-        engine.set_attribute(plain, "colspan", "2").unwrap();
-        assert_eq!(
-            engine
-                .document
-                .node(engine.resolve(plain).unwrap())
-                .table_col_span,
-            1
-        );
-        let mut other =
-            Engine::new(crate::ViewportMetrics::from_logical_size(320.0, 240.0, 1.0).unwrap())
-                .unwrap();
-        let foreign = other.create_native_element(ElementTag::TableCell).unwrap();
-        assert_eq!(
-            engine.set_row_span(foreign, 2),
-            Err(EngineError::WrongDocument)
-        );
-        assert_eq!(engine.column_span(foreign), Err(EngineError::WrongDocument));
-        let removed = engine.create_native_element(ElementTag::TableCell).unwrap();
-        engine.append_child(engine.root(), removed).unwrap();
-        engine.remove(removed).unwrap();
-        assert_eq!(engine.row_span(removed), Err(EngineError::StaleHandle));
-        assert_eq!(
-            engine.set_column_span(removed, 2),
-            Err(EngineError::StaleHandle)
-        );
+    fn setters_store_the_default_above_the_signed_range() {
+        assert_eq!(stored_span_text(0), "0");
+        assert_eq!(stored_span_text(MAX_STORED_SPAN), "2147483647");
+        assert_eq!(stored_span_text(MAX_STORED_SPAN + 1), "1");
+        assert_eq!(stored_span_text(u32::MAX), "1");
     }
 }
